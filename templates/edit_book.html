@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ book.title }} | NOVUS{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+
+  <a href="{{ url_for('view_book', id=book.id) }}" class="back-link mb-3 d-inline-block">
+    ← Back to book
+  </a>
+
+  <div class="section-container">
+    <div class="row">
+      <!-- LEFT: basic info -->
+      <div class="col-md-7">
+        <h2 class="section-title mb-4">Edit Book Details</h2>
+
+        <form method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input
+              type="text"
+              name="title"
+              class="form-control"
+              value="{{ book.title }}"
+              required
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Author</label>
+            <input
+              type="text"
+              name="author"
+              class="form-control"
+              value="{{ book.author }}"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Category</label>
+            <input
+              type="text"
+              name="category"
+              class="form-control"
+              value="{{ book.category or '' }}"
+              placeholder="e.g. Fiction, Fantasy"
+            />
+          </div>
+
+          <!-- MOBILE submit button -->
+          <button type="submit" class="btn btn-neon d-md-none w-100 mt-3">
+            Save Changes
+          </button>
+
+      </div>
+
+      <!-- RIGHT: files -->
+      <div class="col-md-5">
+        <h2 class="section-title mb-4">Files & Media</h2>
+
+        <!-- COVER -->
+        <div class="mb-4">
+          <h6 class="text-muted mb-2">Cover image</h6>
+          {% if book.cover_path %}
+            <div class="mb-2">
+              <img
+                src="{{ url_for('static', filename=book.cover_path) }}"
+                alt="Cover"
+                class="img-fluid rounded"
+                style="max-height: 220px; object-fit: cover;"
+              />
+              <div class="small text-muted mt-1">
+                Current: <code>{{ book.cover_path }}</code>
+              </div>
+            </div>
+          {% else %}
+            <div class="small text-muted mb-2">
+              No cover uploaded yet.
+            </div>
+          {% endif %}
+
+          <input
+            type="file"
+            name="cover_file"
+            accept="image/*"
+            class="form-control form-control-sm"
+          />
+          <div class="form-text">Leave empty to keep current cover.</div>
+        </div>
+
+        <!-- PDF -->
+        <div class="mb-4">
+          <h6 class="text-muted mb-1">E-Book file (PDF)</h6>
+          <div class="small text-muted mb-1">
+            {% if book.pdf_filename %}
+              Current: <code>{{ book.pdf_filename }}</code>
+            {% else %}
+              No PDF uploaded yet.
+            {% endif %}
+          </div>
+
+          <input
+            type="file"
+            name="pdf_file"
+            accept=".pdf"
+            class="form-control form-control-sm"
+          />
+          <div class="form-text">Upload a new PDF to replace the current one.</div>
+        </div>
+
+        <!-- AUDIO -->
+        <div class="mb-4">
+          <h6 class="text-muted mb-1">Audiobook (MP3)</h6>
+          <div class="small text-muted mb-1">
+            {% if book.audio_filename %}
+              Current: <code>{{ book.audio_filename }}</code>
+            {% else %}
+              No audio uploaded yet.
+            {% endif %}
+          </div>
+
+          <input
+            type="file"
+            name="audio_file"
+            accept=".mp3"
+            class="form-control form-control-sm"
+          />
+          <div class="form-text">Upload a new MP3 to replace the current one.</div>
+        </div>
+
+        <!-- DESKTOP submit button -->
+        <button type="submit" class="btn btn-neon w-100 d-none d-md-block">
+          Save Changes
+        </button>
+
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

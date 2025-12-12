@@ -23,16 +23,16 @@
 
     <div class="watchlist-search">
       <i class="fas fa-search"></i>
-      <input type="text" placeholder="Search in watchlist..." />
+      <input type="text" id="watchlist-search" placeholder="Search in watchlist..." onkeyup="searchWatchlist()" />
     </div>
   </div>
 
   <!-- Status filter buttons (top colored row) -->
   <div class="watchlist-filter-bar mb-4">
-    <button class="watchlist-filter-btn active">Planned to Read</button>
-    <button class="watchlist-filter-btn">Finishing Reading</button>
-    <button class="watchlist-filter-btn">On Hold</button>
-    <button class="watchlist-filter-btn">Dropped</button>
+    <button class="watchlist-filter-btn active" onclick="filterByStatus('planned')">Planned to Read</button>
+    <button class="watchlist-filter-btn" onclick="filterByStatus('reading')">Reading</button>
+    <button class="watchlist-filter-btn" onclick="filterByStatus('on_hold')">On Hold</button>
+    <button class="watchlist-filter-btn" onclick="filterByStatus('dropped')">Dropped</button>
   </div>
 
   <!-- FEATURED CARDS (like the covers row in the screenshot) -->
@@ -42,17 +42,18 @@
     <div class="watchlist-cards-row">
       {% for book in featured_books %}
       <div class="watchlist-card">
-        <div class="watchlist-card-cover">
+        <div class="watchlist-card-cover" style="position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
           {% if book.cover %}
-            <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
-            <div class="watchlist-card-cover-text" style="position:absolute; left:10px; bottom:10px;">
-              <span class="watchlist-card-author">{{ book.author }}</span>
-              <span class="watchlist-card-title">{{ book.title }}</span>
+            <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px; position: absolute; top: 0; left: 0;">
+            <div class="watchlist-card-cover-text" style="position:relative; left:10px; bottom:10px; z-index:2; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:4px; color: white;">
+              <span class="watchlist-card-author" style="display:block; font-size:12px; margin-bottom:4px;">{{ book.author }}</span>
+              <span class="watchlist-card-title" style="display:block; font-weight:bold; font-size:14px;">{{ book.title }}</span>
             </div>
           {% else %}
-            <div class="watchlist-card-cover-text">
-              <span class="watchlist-card-author">{{ book.author }}</span>
-              <span class="watchlist-card-title">{{ book.title }}</span>
+            <div style="width:100%; height:100%; background: linear-gradient(135deg,#667eea,#764ba2); border-radius:6px;"></div>
+            <div class="watchlist-card-cover-text" style="position:relative; left:10px; bottom:10px; z-index:2; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:4px; color: white;">
+              <span class="watchlist-card-author" style="display:block; font-size:12px; margin-bottom:4px;">{{ book.author }}</span>
+              <span class="watchlist-card-title" style="display:block; font-weight:bold; font-size:14px;">{{ book.title }}</span>
             </div>
           {% endif %}
         </div>
@@ -88,7 +89,7 @@
       <table class="watchlist-table">
         <tbody>
           {% for book in table_books %}
-          <tr>
+          <tr class="watchlist-row" data-title="{{ book.title.lower() }}" data-author="{{ book.author.lower() }}" data-status="{{ book.status }}">
             <td class="watchlist-table-cover">
               <div class="watchlist-table-cover-thumb">
                 {% if book.cover %}
@@ -139,4 +140,42 @@
     </div>
   </div>
 </div>
+
+<script>
+  let currentFilter = 'planned';
+
+  function filterByStatus(status) {
+    currentFilter = status;
+    const buttons = document.querySelectorAll('.watchlist-filter-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    applyFilters();
+  }
+
+  function searchWatchlist() {
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const searchTerm = document.getElementById('watchlist-search').value.toLowerCase();
+    const rows = document.querySelectorAll('.watchlist-row');
+    
+    rows.forEach(row => {
+      const status = row.getAttribute('data-status');
+      const title = row.getAttribute('data-title');
+      const author = row.getAttribute('data-author');
+      
+      const statusMatch = status === currentFilter;
+      const searchMatch = title.includes(searchTerm) || author.includes(searchTerm);
+      
+      row.style.display = (statusMatch && searchMatch) ? '' : 'none';
+    });
+  }
+
+  // Initialize with 'planned' status filter on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    applyFilters();
+  });
+</script>
+
 {% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width: 900px; margin: 30px auto; padding: 0 20px;">
+  <div style="margin-bottom: 30px;">
+    <a href="{{ url_for('manga') }}" style="color: #667eea; text-decoration: none; display: flex; align-items: center; gap: 5px; font-size: 14px;">
+      <i class="fas fa-arrow-left"></i> Back to Manga
+    </a>
+  </div>
+
+  <h2 style="color: var(--text-primary); margin-bottom: 10px;">
+    <i class="fas fa-plus-circle me-2" style="color: var(--neon-blue)"></i>
+    Add Chapter
+  </h2>
+  <p style="color: #999; margin-bottom: 30px;">{{ manga[1] }} by {{ manga[2] }}</p>
+
+  <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 8px; padding: 30px;">
+    
+    <!-- EXISTING CHAPTERS LIST -->
+    {% if chapters %}
+    <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
+      <h5 style="font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px;">
+        <i class="fas fa-list me-2"></i>Existing Chapters ({{ chapters|length }})
+      </h5>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+        {% for chapter in chapters %}
+        <div style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 6px; padding: 15px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 700; color: #667eea; margin-bottom: 8px;">{{ chapter[0] }}</div>
+          <p style="color: #ddd; font-size: 13px; margin: 0;">{{ chapter[1] }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div style="padding: 20px; background: rgba(102, 126, 234, 0.05); border-radius: 6px; margin-bottom: 30px; border-left: 3px solid #667eea;">
+      <p style="color: #999; margin: 0; font-size: 14px;">No chapters uploaded yet. Upload the first chapter below.</p>
+    </div>
+    {% endif %}
+
+    <!-- UPLOAD FORM -->
+    <h5 style="font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px;">
+      <i class="fas fa-file-upload me-2"></i>Upload New Chapter
+    </h5>
+
+    <form method="POST" enctype="multipart/form-data">
+      <div style="margin-bottom: 20px;">
+        <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter Number *</label>
+        <input type="number" name="chapter_num" min="1" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" required placeholder="e.g., 2">
+        <small style="color: #999; display: block; margin-top: 5px;">The next chapter number in numerical order</small>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter Title (Optional)</label>
+        <input type="text" name="chapter_title" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" placeholder="e.g., The Beginning">
+        <small style="color: #999; display: block; margin-top: 5px;">Leave blank to auto-generate as "Chapter X"</small>
+      </div>
+
+      <div style="margin-bottom: 30px;">
+        <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">PDF File *</label>
+        <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterFile').click()" id="dropZone">
+          <input type="file" name="chapter_file" id="chapterFile" accept=".pdf" style="display:none">
+          <i class="fas fa-file-pdf" style="color: var(--neon-blue); font-size: 40px;"></i>
+          <p style="margin: 15px 0; color: #bbb;">Drag & Drop or Browse</p>
+          <small style="color: #999;">PDF only (Max 50MB)</small>
+          <div id="fileName" style="display: none; color: #667eea; margin-top: 15px; font-weight: 500;"></div>
+        </div>
+      </div>
+
+      <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: #fff; font-weight: 600; border-radius: 6px; transition: all 0.3s; cursor: pointer; width: 100%; font-size: 16px; padding: 12px;">
+        <i class="fas fa-upload me-2"></i>UPLOAD CHAPTER
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('chapterFile').addEventListener('change', function() {
+  const fileName = document.getElementById('fileName');
+  if (this.files[0]) {
+    fileName.textContent = '✓ ' + this.files[0].name;
+    fileName.style.display = 'block';
+  } else {
+    fileName.style.display = 'none';
+  }
+});
+
+// Drag and drop
+const dropZone = document.getElementById('dropZone');
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+  dropZone.addEventListener(eventName, () => {
+    dropZone.style.borderColor = '#667eea';
+    dropZone.style.background = 'rgba(102, 126, 234, 0.15)';
+  });
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, () => {
+    dropZone.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+    dropZone.style.background = 'rgba(102, 126, 234, 0.05)';
+  });
+});
+
+dropZone.addEventListener('drop', (e) => {
+  const dt = e.dataTransfer;
+  const files = dt.files;
+  document.getElementById('chapterFile').files = files;
+  
+  // Trigger change event
+  const event = new Event('change', { bubbles: true });
+  document.getElementById('chapterFile').dispatchEvent(event);
+});
+</script>
+{% endblock %}

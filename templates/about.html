@@ -1,0 +1,50 @@
+
+{% extends "base.html" %}
+{% block title %}About | NOVUS{% endblock %}
+
+{% block content %}
+<div class="container py-3 about-page">
+
+  <!-- Hero -->
+  <div class="section-container about-hero mb-4">
+    <h1 class="mb-2">Meet the Developers</h1>
+    <p class="text-muted mb-0">
+      The team behind NOVUS — building a clean, student-friendly digital library.
+    </p>
+  </div>
+
+  <!-- Team grid -->
+  <div class="team-grid">
+    {% for p in people %}
+      <div class="team-card">
+        <div class="team-avatar">
+          {% if p.avatar %}
+            <img src="{{ p.avatar }}" alt="{{ p.name }}">
+          {% else %}
+            <div class="team-initials">{{ p.initials }}</div>
+          {% endif %}
+        </div>
+        <div class="team-name">{{ p.name }}</div>
+        <div class="team-role text-muted">{{ p.role }}</div>
+        <div class="team-bio">
+          {{ p.bio }}
+        </div>
+        <!-- optional footer row for future links -->
+        <div class="team-links">
+          <span class="badge-soft">Team NOVUS</span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Project blurb -->
+  <div class="section-container mt-4">
+    <h5 class="section-title mb-2">Our Mission</h5>
+    <p class="mb-0 text-muted">
+      Provide a simple, modern, and fast e-library experience for students and teachers —
+      with a consistent dark UI, helpful tooltips, and neat organization.
+    </p>
+  </div>
+
+</div>
+{% endblock %}

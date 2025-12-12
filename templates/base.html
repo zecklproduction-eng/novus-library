@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>
+      {% block title %}NOVUS | Digital Library{% endblock %}
+    </title>
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Favicon -->
+    <link
+      rel="shortcut icon"
+      href="{{ url_for('static', filename='img/logo.png') }}"
+    />
+
+    <!-- Main app stylesheet -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+
+  <body class="{{ body_class|default('') }}">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <a href="{{ url_for('home') }}">
+        <img
+          src="{{ url_for('static', filename='img/logo.png') }}"
+          class="sidebar-logo"
+          alt="NOVUS Logo"
+        />
+      </a>
+
+      <div class="nav-links">
+
+  <!-- Dashboard -->
+  <a href="{{ url_for('home') }}" class="nav-item">
+    <i class="fas fa-home"></i>
+    <span class="tooltip-text">Dashboard</span>
+  </a>
+
+  <!-- MANGA PORTAL BUTTON (with warp animation) -->
+<a href="{{ url_for('manga') }}"
+   class="nav-item nav-manga"
+   id="nav-manga">
+  <i class="fas fa-dragon"></i>
+  <span class="tooltip-text">Manga Universe</span>
+</a>
+
+
+  <!-- Add Book (admin + publisher only) -->
+  {% if session.get('role') in ['admin', 'publisher'] %}
+  <a href="{{ url_for('add_book') }}" class="nav-item">
+    <i class="fas fa-upload"></i>
+    <span class="tooltip-text">Upload Book</span>
+  </a>
+  {% endif %}
+
+  <!-- Watchlist -->
+  <a href="{{ url_for('watchlist') }}" class="nav-item">
+    <i class="fas fa-layer-group"></i>
+    <span class="tooltip-text">Watchlist</span>
+  </a>
+
+  <!-- Profile -->
+  <a href="{{ url_for('profile') }}" class="nav-item">
+    <i class="fas fa-user"></i>
+    <span class="tooltip-text">My Profile</span>
+  </a>
+
+  <!-- My Uploads (admin + publisher only) -->
+  {% if session.get('role') in ['admin', 'publisher'] %}
+  <a href="{{ url_for('my_uploads') }}" class="nav-item">
+    <i class="fas fa-folder-open"></i>
+    <span class="tooltip-text">My Uploads</span>
+  </a>
+  {% endif %}
+
+  <!-- Logout -->
+  {% if session.get('user_id') %}
+  <a href="{{ url_for('logout') }}" class="nav-item nav-item-logout">
+    <i class="fas fa-sign-out-alt"></i>
+    <span class="tooltip-text">Logout</span>
+  </a>
+  {% endif %}
+
+</div>
+
+
+      <div class="sidebar-footer">
+        <span class="sidebar-brand-text">NOVUS</span>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <header class="top-header-minimal">
+        <div class="logo-text-top">NOVUS</div>
+
+        <div class="d-flex align-items-center">
+          <div class="top-menu-links">
+  {% if session.get('role') == 'admin' %}
+  <a href="{{ url_for('team_admin') }}" class="nav-link-item">Team Admin</a>
+<a href="{{ url_for('user_management') }}" class="nav-link-item">User Management</a>
+{% endif %}
+
+
+            <div class="dropdown-nav">
+              <button
+                class="dropdown-btn"
+                type="button"
+                onclick="toggleDropdown(this)"
+              >
+                Help &amp; Info
+                <i class="fas fa-arrow-up nav-logo-arrow"></i>
+              </button>
+              <div class="dropdown-content">
+                <a href="{{ url_for('faq') }}">FAQ & Guidelines</a>
+                <a href="{{ url_for('about') }}">About</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- About (always visible) -->
+          <a href="{{ url_for('about') }}" class="nav-link-item ms-3">
+            About
+          </a>
+
+          <!-- Top-right CTA: Login / Logout -->
+          {% if session.get('user_id') %}
+          <a href="{{ url_for('logout') }}" class="cta-button ms-3">
+            <i class="fas fa-sign-out-alt me-2"></i>
+            Log Out
+          </a>
+          {% else %}
+          <a href="{{ url_for('login') }}" class="cta-button ms-3">
+            <i class="fas fa-sign-in-alt me-2"></i>
+            Log In
+          </a>
+          {% endif %}
+        </div>
+      </header>
+
+      <!-- FLASH MESSAGES -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-container" style="margin: 15px 0;">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show"
+                   role="alert"
+                   style="background:#222; border:1px solid #444; color:white;">
+                {{ message }}
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+
+    <!-- MANGA WARP OVERLAY -->
+    <div id="manga-warp-overlay" class="warp-overlay">
+      <div class="warp-core"></div>
+      <div class="warp-ring"></div>
+      <div class="warp-halo"></div>
+
+      <div class="warp-particles">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div class="warp-label">ENTERING MANGA UNIVERSE…</div>
+    </div>
+
+    <!-- Manga warp trigger -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const mangaLink = document.getElementById("manga-link");
+        if (!mangaLink) return;
+
+        mangaLink.addEventListener("click", function (e) {
+          e.preventDefault();
+
+          const target = this.dataset.target;
+          if (!target) return;
+
+          // restart animation class
+          document.body.classList.remove("manga-warp");
+          void document.body.offsetWidth;
+          document.body.classList.add("manga-warp");
+
+          setTimeout(function () {
+            window.location.href = target;
+          }, 950); // match CSS animation length
+        });
+      });
+    </script>
+
+    <!-- Bootstrap bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- MANGA WARP OVERLAY -->
+<div id="manga-warp-overlay" class="warp-overlay">
+  <div class="warp-core"></div>
+  <div class="warp-ring"></div>
+  <div class="warp-halo"></div>
+
+  <!-- little particles -->
+  <div class="warp-particles">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+
+  <!-- BIG TEXT IN THE CENTER -->
+  <div class="warp-label">ENTERING MANGA UNIVERSE...</div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const link = document.getElementById("manga-link");
+    if (!link) return;
+
+    link.addEventListener("click", function (e) {
+      e.preventDefault();
+
+      const target = this.dataset.target || this.getAttribute("href");
+
+      // restart animation each time
+      document.body.classList.remove("manga-warp");
+      void document.body.offsetWidth; // force reflow
+      document.body.classList.add("manga-warp");
+
+      // let the portal play, then go to /manga
+      setTimeout(function () {
+        window.location.href = target;
+      }, 1100); // 1.1s, slightly longer than the CSS keyframes
+    });
+  });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const mangaLink = document.getElementById("nav-manga");
+    const overlay   = document.getElementById("manga-warp-overlay");
+
+    if (!mangaLink || !overlay) return;
+
+    mangaLink.addEventListener("click", function (e) {
+      e.preventDefault(); // play animation first
+
+      overlay.classList.add("show");
+      document.body.classList.add("manga-warp"); // for background dim / blur
+
+      // Duration should roughly match your CSS animation (~900ms)
+      setTimeout(() => {
+        window.location.href = this.href;
+      }, 900);
+    });
+  });
+</script>
+
+    <!-- Dropdown + delete helper -->
+    <script>
+      function toggleDropdown(button) {
+        const dropdown = button.closest(".dropdown-nav");
+        const content = dropdown.querySelector(".dropdown-content");
+        const arrow   = dropdown.querySelector(".nav-logo-arrow");
+
+        const isOpen = content.style.display === "block";
+
+        // Close all dropdowns
+        document.querySelectorAll(".dropdown-content").forEach(el => {
+          el.style.display = "none";
+        });
+        document.querySelectorAll(".nav-logo-arrow").forEach(el => {
+          el.style.transform = "translateY(2px) rotate(180deg)";
+        });
+
+        // Open this one if it was closed
+        if (!isOpen) {
+          content.style.display = "block";
+          arrow.style.transform = "translateY(2px) rotate(0deg)";
+        }
+      }
+
+      function confirmDelete() {
+        return confirm("Are you sure you want to permanently delete this book?");
+      }
+    </script>
+  </body>
+</html>

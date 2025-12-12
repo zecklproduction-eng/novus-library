@@ -1,0 +1,3866 @@
+/* ================================================= */
+/* 1. GLOBAL THEME VARIABLES & BASE STYLES           */
+/* ================================================= */
+
+:root {
+  --bg-main: #1f1f1f; /* Main background */
+  --bg-card: #2a2a2a; /* Cards / panels */
+  --bg-input: #151515; /* Inputs */
+  --text-primary: #e0e0e0;
+  --text-muted: #999;
+  --neon-blue: #00d4ff;
+  --border-subtle: #383838;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: "Segoe UI", Arial, sans-serif;
+  margin: 0;
+}
+
+/* Remove default link underline globally; we’ll control it manually */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: none;
+}
+
+/* ================================================= */
+/* 2. SIDEBAR                                        */
+/* ================================================= */
+
+.sidebar {
+  height: 100vh;
+  width: 90px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: var(--bg-card);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 30px;
+  overflow-y: auto; /* vertical scroll OK */
+  overflow-x: visible;
+  z-index: 1000;
+}
+
+.sidebar-logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid var(--neon-blue);
+  padding: 2px;
+  background: white;
+  margin-bottom: 40px;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+  object-fit: cover;
+}
+
+.nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  align-items: center;
+}
+
+/* Sidebar icons */
+.nav-item {
+  width: 50px;
+  height: 50px;
+  background-color: #383838;
+  border-radius: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #888;
+  text-decoration: none;
+  font-size: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.nav-item i {
+  text-indent: 0;
+}
+
+/* Hover style for the square button */
+.nav-item:hover {
+  background-color: var(--neon-blue);
+  color: #000;
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+}
+
+/* Special styling for the sidebar logout icon */
+.nav-item-logout {
+  margin-top: 20px;
+  background-color: #2c1a1a;
+}
+
+.nav-item-logout i {
+  color: #ff4444;
+}
+
+/* Optional: stronger effect on hover */
+.nav-item-logout:hover {
+  background-color: #ff4444;
+  color: #000;
+}
+
+.nav-item-logout:hover i {
+  color: #000;
+}
+
+/* Tooltip that appears to the right of the icon */
+.tooltip-text {
+  position: absolute;
+  left: 70px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #333;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: bold;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+}
+
+.nav-item:hover .tooltip-text {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Vertical “NOVUS” text at bottom */
+.brand-bottom {
+  margin-top: auto;
+  margin-bottom: 30px;
+  font-weight: bold;
+  color: white;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-align: center;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+/* ================================================= */
+/* 3. MAIN CONTENT & TOP NAV                         */
+/* ================================================= */
+
+.main-content {
+  margin-left: 90px; /* matches sidebar width */
+  padding: 0 30px;
+}
+
+/* Sticky minimal top header */
+.top-header-minimal {
+  background: var(--bg-main);
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  padding: 15px 0;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #333;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo-text-top {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--neon-blue);
+  letter-spacing: 2px;
+}
+
+/* Links on the right (Settings, User Management, Help & Info) */
+.top-menu-links {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  margin-right: 50px;
+}
+
+.nav-link-item {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: 0.3s;
+  padding: 5px 15px;
+  border-radius: 6px;
+}
+
+.nav-link-item:hover {
+  color: var(--neon-blue);
+  background-color: #262626;
+}
+
+/* ================================================= */
+/* 4. DROPDOWN (Help & Info)                         */
+/* ================================================= */
+
+.dropdown-nav {
+  position: relative;
+}
+
+.dropdown-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 0;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: 0.3s;
+}
+
+.dropdown-btn:hover {
+  color: var(--neon-blue);
+}
+
+.dropdown-content {
+  position: absolute;
+  right: 0;
+  background-color: #303030;
+  min-width: 180px;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.7);
+  z-index: 50;
+  border-radius: 4px;
+  padding: 0;
+  margin-top: 8px;
+  border: 1px solid #404040;
+  display: none; /* toggled by JS */
+}
+
+.dropdown-content a {
+  color: #eee;
+  padding: 10px 18px;
+  text-decoration: none;
+  display: block;
+  font-size: 0.95rem;
+  transition: background-color 0.1s;
+}
+
+.dropdown-content a:hover {
+  background-color: #404040;
+  color: white;
+}
+
+.nav-logo-arrow {
+  transform: translateY(2px) rotate(180deg);
+  color: var(--neon-blue);
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+}
+
+/* ================================================= */
+/* 5. CTA BUTTONS (Top-right Log In / Log Out)       */
+/* ================================================= */
+
+.cta-button {
+  background-color: var(--neon-blue);
+  color: black !important;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  border: none;
+  transition: 0.3s;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+  text-decoration: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* space between icon and text */
+}
+
+.cta-button:hover,
+.cta-button:focus,
+.cta-button:active {
+  background-color: white;
+  box-shadow: 0 0 15px var(--neon-blue);
+  text-decoration: none !important;
+  color: black !important;
+}
+
+a.cta-button {
+  text-decoration: none !important;
+}
+
+/* Generic neon button used in forms etc. */
+.btn-neon {
+  background-color: var(--neon-blue);
+  color: black !important;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  border: none;
+  transition: 0.3s;
+}
+.btn-neon:hover {
+  background-color: white;
+  box-shadow: 0 0 15px var(--neon-blue);
+  color: black !important;
+}
+
+/* ================================================= */
+/* 6. FORM & CARD STYLING                            */
+/* ================================================= */
+
+.section-container {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.form-label {
+  color: #ccc;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.form-control,
+.form-select {
+  background-color: var(--bg-input) !important;
+  border: 1px solid #4a4a4a !important;
+  color: white !important;
+  padding: 10px 15px;
+}
+
+.form-control::placeholder {
+  color: #777;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--neon-blue) !important;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1) !important;
+}
+
+/* Remover button for uploaded files (X) */
+.remove-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: auto;
+  color: #ff4444 !important;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  z-index: 10;
+}
+
+/* Cards on dashboard (books) */
+.card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  color: white;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.7);
+}
+
+/* ================================================= */
+/* 7. UPLOAD DROP ZONE                               */
+/* ================================================= */
+
+.upload-drop-zone-final {
+  border: 2px dashed #4a4a4a;
+  background-color: #202020;
+  border-radius: 8px;
+  padding: 30px 15px;
+  height: 180px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.upload-drop-zone-final:hover {
+  border-color: var(--neon-blue);
+  background-color: #2a2a2a;
+}
+
+.upload-drop-zone-final i {
+  font-size: 2.5rem;
+  color: var(--neon-blue);
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+}
+
+.upload-drop-zone-final p,
+.upload-drop-zone-final small {
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
+}
+
+.upload-drop-zone-final p {
+  margin-top: 5px;
+}
+
+.upload-drop-zone-final small {
+  margin-top: 2px;
+  font-size: 0.75rem;
+}
+
+/* ================================================= */
+/* 8. SMALL UTILITIES                                */
+/* ================================================= */
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.badge-category {
+  background-color: #111;
+  border: 1px solid #444;
+  color: #ddd;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 0 15px;
+  }
+
+  .top-menu-links {
+    margin-right: 0;
+    gap: 15px;
+  }
+}
+
+/* ================================================= */
+/* 9. WATCHLIST PAGE                                  */
+/* ================================================= */
+
+.watchlist-page {
+  padding-top: 10px;
+  padding-bottom: 40px;
+}
+
+.watchlist-header {
+  gap: 10px;
+}
+
+.watchlist-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #2c2c2c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.7);
+}
+
+.watchlist-icon i {
+  font-size: 1.2rem;
+  color: var(--neon-blue);
+}
+
+.watchlist-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.watchlist-subtitle {
+  font-size: 0.85rem;
+}
+
+/* Search box on top right */
+.watchlist-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #262626;
+  border-radius: 999px;
+  padding: 8px 14px;
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.watchlist-search i {
+  color: #888;
+}
+
+.watchlist-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #eee;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+/* Filter buttons row */
+.watchlist-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.watchlist-filter-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  color: #111;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.1s ease;
+}
+
+/* Colors similar to screenshot */
+.watchlist-filter-btn:nth-child(1) {
+  background-color: #2684ff;
+}
+.watchlist-filter-btn:nth-child(2) {
+  background-color: #34c759;
+}
+.watchlist-filter-btn:nth-child(3) {
+  background-color: #ffcc00;
+}
+.watchlist-filter-btn:nth-child(4) {
+  background-color: #ff3b30;
+}
+
+.watchlist-filter-btn.active {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.watchlist-filter-btn:not(.active) {
+  opacity: 0.85;
+}
+
+/* Section titles */
+.watchlist-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.watchlist-section-tag {
+  font-size: 0.8rem;
+}
+
+/* Featured cards row */
+.watchlist-cards-row {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.watchlist-card {
+  width: 190px;
+  min-width: 170px;
+  border-radius: 18px;
+  background-color: #141414;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.75);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.watchlist-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.85);
+}
+
+/* Pseudo book cover */
+.watchlist-card-cover {
+  height: 220px;
+  background: linear-gradient(135deg, #ff7e5f, #feb47b);
+  display: flex;
+  align-items: flex-end;
+  padding: 14px;
+}
+
+.watchlist-card-cover-text {
+  color: #fff;
+}
+
+.watchlist-card-author {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
+.watchlist-card-title {
+  display: block;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* Card bottom (progress circle) */
+.watchlist-card-footer {
+  padding: 12px 14px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.watchlist-progress-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 4px solid var(--neon-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.watchlist-progress-circle span {
+  position: relative;
+}
+
+.watchlist-card-status {
+  font-size: 0.8rem;
+}
+
+/* Tags row above table */
+.watchlist-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.watchlist-tag {
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: #333;
+  color: #ccc;
+  cursor: pointer;
+}
+
+.watchlist-tag.active {
+  background-color: var(--neon-blue);
+  color: #000;
+}
+
+/* Table list */
+.watchlist-table-wrapper {
+  background-color: #242424;
+  border-radius: 12px;
+  border: 1px solid #333;
+  overflow: hidden;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.85);
+}
+
+.watchlist-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.watchlist-table tr {
+  border-bottom: 1px solid #333;
+}
+
+.watchlist-table tr:last-child {
+  border-bottom: none;
+}
+
+.watchlist-table td {
+  padding: 10px 14px;
+  font-size: 0.9rem;
+}
+
+.watchlist-table-cover {
+  width: 54px;
+}
+
+.watchlist-table-cover-thumb {
+  width: 38px;
+  height: 52px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #6a82fb, #fc5c7d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.watchlist-table-title {
+  font-weight: 500;
+}
+
+.watchlist-table-author,
+.watchlist-table-year {
+  font-size: 0.82rem;
+}
+
+.watchlist-table-rating i {
+  color: #ffcc00;
+  font-size: 0.8rem;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .watchlist-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .watchlist-search {
+    width: 100%;
+  }
+
+  .watchlist-filter-bar {
+    margin-top: 8px;
+  }
+
+  .watchlist-table td {
+    padding: 8px 10px;
+  }
+}
+/* ================================================= */
+/* 10. DASHBOARD / INDEX PAGE                        */
+/* ================================================= */
+
+.page-title {
+  font-weight: 600;
+  color: white;
+}
+
+/* Emoji book icon on each card */
+.book-card-icon {
+  font-size: 50px;
+}
+
+/* Outline neon button (used for "View Details") */
+.btn-neon-outline {
+  border: 1px solid var(--neon-blue);
+  color: var(--neon-blue) !important;
+  background-color: transparent;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.btn-neon-outline:hover {
+  background-color: var(--neon-blue);
+  color: black !important;
+  box-shadow: 0 0 15px var(--neon-blue);
+}
+/* ================================================= */
+/* 11. PROFILE PAGE                                  */
+/* ================================================= */
+
+.profile-page .avatar-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: #2b2b2b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.7);
+  color: var(--neon-blue);
+  font-size: 1.2rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.stat-card {
+  background: #202020;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+}
+.stat-label {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* small card covers row (recent finished) */
+.covers-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.cover-thumb {
+  width: 110px;
+}
+.cover-thumb-img {
+  width: 100%;
+  height: 150px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ff7e5f, #feb47b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.2rem;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
+}
+.cover-thumb-title {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: #ddd;
+  max-width: 100%;
+}
+
+/* activity list */
+.activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.activity-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid #333;
+}
+.activity-item:last-child {
+  border-bottom: none;
+}
+.activity-item i {
+  color: #9ad6ff;
+  width: 22px;
+  text-align: center;
+  margin-top: 2px;
+}
+.activity-text {
+  color: #e6e6e6;
+}
+
+/* responsive */
+@media (max-width: 992px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 576px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .cover-thumb {
+    width: 44%;
+  }
+}
+/* =======================
+   ABOUT / TEAM PAGE
+   ======================= */
+.about-hero h1 {
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+.about-hero {
+  background: #242424;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 992px) {
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 576px) {
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.team-card {
+  background: #1f1f1f;
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.team-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.85);
+}
+
+.team-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  background: #2a2a2a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #3a3a3a;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.team-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.team-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.4rem;
+  color: #fff;
+  background: linear-gradient(135deg, #6a82fb, #fc5c7d);
+}
+
+.team-name {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: #fff;
+}
+.team-role {
+  font-size: 0.9rem;
+}
+.team-bio {
+  font-size: 0.9rem;
+  color: #cfcfcf;
+  margin-top: 8px;
+}
+
+.team-links {
+  margin-top: 12px;
+}
+.badge-soft {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #2b2b2b;
+  border: 1px solid #3a3a3a;
+  color: #ddd;
+  font-size: 0.78rem;
+}
+/* =========================
+   CATALOG DASHBOARD (Home)
+   ========================= */
+.catalog-hero {
+  height: 220px;
+  background-image: url("{{ url_for('static', filename='img/banner.jpg') if false else '' }}");
+  /* if you have a banner image: put it at /static/img/banner.jpg and uncomment next line */
+  background: url("/static/img/banner.jpg") center/cover no-repeat,
+    radial-gradient(60% 60% at 50% 40%, #444 0, #222 70%);
+  border-bottom: 1px solid #3a3a3a;
+}
+.catalog-hero-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+.catalog-title {
+  color: #fff;
+  font-weight: 900;
+  font-size: 2.4rem;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+.catalog-subtitle {
+  color: #ddd;
+  margin: 4px 0 0 2px;
+}
+
+.breadcrumb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #bbb;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-top: -26px;
+  margin-bottom: 18px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55);
+}
+.breadcrumb-row a {
+  color: #e6e6e6;
+  text-decoration: none;
+}
+.breadcrumb-row .crumb-current {
+  color: #fff;
+  font-weight: 700;
+}
+
+.content-row {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 22px;
+}
+@media (max-width: 992px) {
+  .content-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.grid-col {
+}
+.sidebar-col {
+}
+
+.grid-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.result-count {
+  color: #cfcfcf;
+}
+.sort-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.sort-form .form-select {
+  background: #1f1f1f;
+  border: 1px solid #3a3a3a;
+  color: #ddd;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 1200px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 576px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.product-card {
+  background: #ffffff0a;
+  backdrop-filter: saturate(120%) blur(0px);
+  border: 1px solid #3a3a3a;
+  border-radius: 14px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.65);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.product-thumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #11131b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.7);
+}
+
+.product-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.book-icon {
+  font-size: 2.4rem;
+  color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.product-title {
+  font-weight: 700;
+  color: #fff;
+}
+.product-meta {
+  font-size: 0.9rem;
+  color: #b9b9b9;
+}
+
+.product-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 0;
+  cursor: pointer;
+}
+.btn-orange {
+  background: #e45b2f;
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(228, 91, 47, 0.35);
+}
+.btn-orange:hover {
+  filter: brightness(1.05);
+}
+.btn-ghost {
+  background: #222;
+  color: #ddd;
+  border: 1px solid #3a3a3a;
+}
+.btn-ghost:hover {
+  border-color: #e45b2f;
+  color: #fff;
+}
+
+.empty-note {
+  color: #bfbfbf;
+  background: #1f1f1f;
+  border: 1px solid #2e2e2e;
+  border-radius: 10px;
+  padding: 18px;
+  text-align: center;
+}
+
+.sidebar-card {
+  background: #1f1f1f;
+  border: 1px solid #2f2f2f;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
+}
+.sidebar-title {
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 12px;
+}
+.category-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.category-list a {
+  display: block;
+  background: #262626;
+  border: 1px solid #343434;
+  color: #ddd;
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: 0.15s;
+}
+.category-list a:hover {
+  border-color: #e45b2f;
+  color: #fff;
+}
+.category-list a.is-active {
+  border-color: #e45b2f;
+  background: #2d2d2d;
+  color: #fff;
+}
+/* ===========================
+   SIDEBAR LAYOUT + SCROLL
+   =========================== */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 80px; /* narrow but clean */
+  height: 100vh;
+  background: #181a1f;
+  padding: 18px 0 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  overflow-y: auto; /* 🔹 make sidebar scrollable */
+  scrollbar-width: thin; /* Firefox */
+}
+
+/* Optional: thinner scrollbar in WebKit */
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+
+/* ===========================
+   SIDEBAR LOGO + HOVER ANIM
+   =========================== */
+
+.sidebar-logo {
+  margin-bottom: 12px;
+}
+
+.sidebar-logo-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 20%, #4fd0ff, #1b1f27 60%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 0 rgba(79, 208, 255, 0);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+}
+
+/* logo image itself a bit smaller */
+.sidebar-logo-img {
+  width: 30px;
+  height: auto;
+}
+
+/* 🔹 subtle hover animation */
+.sidebar-logo-circle:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 0 16px 2px rgba(79, 208, 255, 0.8);
+  filter: brightness(1.1);
+}
+
+/* ===========================
+   NAV ICON BUTTONS
+   =========================== */
+
+.sidebar .nav {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar .nav-link {
+  width: 52px; /* 🔹 slightly smaller than before */
+  height: 52px;
+  border-radius: 20px;
+  margin: 6px auto; /* more breathing room */
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #252932;
+  color: #b9c0d0;
+  border: none;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+/* active / current page */
+.sidebar .nav-link.active {
+  background: #2f80ff;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(47, 128, 255, 0.7);
+}
+
+/* hover state */
+.sidebar .nav-link:hover {
+  background: #323846;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* 🔹 smaller icons themselves */
+.sidebar .nav-link i {
+  font-size: 1.2rem; /* was probably ~1.5–1.8rem */
+}
+
+/* if you have svg icons inside */
+.sidebar .nav-link svg {
+  width: 20px;
+  height: 20px;
+}
+/* Hide sidebar scrollbar but keep scrolling */
+.sidebar {
+  overflow-y: auto; /* still scrolls with wheel / trackpad */
+  scrollbar-width: none; /* Firefox: hide scrollbar */
+}
+
+/* Chrome / Edge / Safari: hide scrollbar */
+.sidebar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.sidebar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border: none;
+}
+/* ===========================
+   LOGO HOVER ANIMATION
+   =========================== */
+.sidebar-logo:hover {
+  animation: logoPulseGlow 1s 0.3s normal;
+}
+@keyframes logoPulseGlow {
+  0% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 0 rgba(79, 208, 255, 0);
+    filter: brightness(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.08);
+    box-shadow: 0 0 18px rgba(79, 208, 255, 0.95);
+    filter: brightness(1.05);
+  }
+  100% {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow: 0 0 10px rgba(79, 208, 255, 0.7);
+    filter: brightness(1.1);
+  }
+}
+/* ===========================
+   NOVUS TEXT HOVER ANIMATION
+   =========================== */
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-bottom: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+/* vertical NOVUS text */
+.sidebar-brand-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: default;
+  transition: color 0.3s ease, text-shadow 0.3s ease, transform 0.3s ease,
+    letter-spacing 0.3s ease;
+}
+
+/* subtle glow + slide on hover */
+.sidebar-brand-text:hover {
+  color: #4fd0ff;
+  text-shadow: 0 0 8px rgba(79, 208, 255, 0.9);
+  transform: translateY(-4px);
+  letter-spacing: 0.25em;
+}
+/* Sidebar: only vertical scrolling, no horizontal */
+.sidebar {
+  overflow-y: auto; /* keep up/down */
+  overflow-x: hidden; /* ❌ disable left/right scroll */
+}
+.sidebar {
+  overflow-y: auto;
+  overflow-x: hidden; /* no side scroll */
+}
+/* ===========================
+   MANGA WARP TRANSITION
+   =========================== */
+
+#manga-warp-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 240, 255, 0),
+    rgba(0, 0, 0, 0) 60%
+  );
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.45s ease, transform 0.45s ease, background 0.45s ease;
+  z-index: 999;
+}
+
+#manga-warp-overlay.show {
+  opacity: 1;
+  transform: scale(1.05);
+  background: radial-gradient(
+      circle at center,
+      rgba(0, 240, 255, 0.35),
+      rgba(5, 8, 20, 0.98) 55%
+    ),
+    radial-gradient(
+      circle at 10% 10%,
+      rgba(255, 45, 117, 0.35),
+      transparent 60%
+    );
+}
+
+body.manga-warping {
+  filter: blur(1px) brightness(0.7);
+  transition: filter 0.45s ease;
+}
+/* ===========================
+   MANGA REALM THEME
+   Applied when body has class="manga-theme"
+   =========================== */
+
+.manga-theme {
+  background: radial-gradient(
+    circle at top,
+    #1b1035 0,
+    #050814 50%,
+    #02040a 100%
+  );
+  color: #f7f7ff;
+  font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont,
+    sans-serif;
+}
+
+/* Main content area inside manga theme */
+.manga-theme .content-wrapper,
+.manga-theme main,
+.manga-theme .container-fluid {
+  background: transparent;
+}
+
+/* Hero section */
+.manga-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.5fr);
+  gap: 24px;
+  padding: 24px 28px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #0f172a, #050816);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+  margin-bottom: 28px;
+}
+
+.manga-hero-eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #00f0ff;
+  opacity: 0.85;
+}
+
+.manga-hero-title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin: 4px 0 8px;
+  background: linear-gradient(90deg, #ffffff, #ff2d75, #00f0ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.manga-hero-sub {
+  font-size: 0.95rem;
+  color: rgba(226, 232, 255, 0.8);
+  max-width: 440px;
+}
+
+/* Tag chips */
+.manga-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.manga-chip {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 255, 0.5);
+  color: #e5e7ff;
+  background: rgba(15, 23, 42, 0.8);
+}
+
+/* Hero visual column */
+.manga-hero-art {
+  position: relative;
+  min-height: 160px;
+  border-radius: 24px;
+  background: radial-gradient(
+      circle at 20% 0%,
+      rgba(0, 240, 255, 0.25),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 80% 100%,
+      rgba(255, 45, 117, 0.3),
+      transparent 60%
+    ),
+    radial-gradient(circle at 50% 40%, #020617, #020617 55%, transparent 56%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.manga-hero-orbit {
+  flex: 0.9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;          /* ⬅️ important so core centers correctly */
+}
+
+
+.manga-hero-orbit-inner {
+  width: 90px;
+  height: 90px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #111827, #1f2937);
+  box-shadow: 0 0 0 1px rgba(148, 163, 255, 0.3),
+    0 18px 35px rgba(15, 23, 42, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: #e5e7ff;
+  text-align: center;
+}
+
+/* Filters row under hero */
+.manga-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  gap: 12px;
+}
+
+.manga-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.manga-tab {
+  font-size: 0.78rem;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 255, 0.35);
+  background: rgba(15, 23, 42, 0.8);
+  color: rgba(226, 232, 255, 0.9);
+  cursor: pointer;
+}
+
+.manga-tab.manga-tab-active {
+  border-color: #ff2d75;
+  background: linear-gradient(135deg, #ff2d75, #ff7a55);
+  color: #0b1020;
+}
+
+/* Grid of manga cards */
+.manga-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 18px;
+}
+
+.manga-card {
+  border-radius: 18px;
+  padding: 14px 14px 16px;
+  background: radial-gradient(circle at top, #111827, #020617 60%);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(15, 23, 42, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.manga-card-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.manga-cover-pill {
+  width: 42px;
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #ff2d75, #ff7a55);
+  box-shadow: 0 8px 18px rgba(248, 113, 113, 0.5);
+}
+
+.manga-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.manga-title {
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.manga-vibe {
+  font-size: 0.75rem;
+  color: rgba(156, 163, 175, 0.9);
+}
+
+.manga-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: rgba(209, 213, 219, 0.9);
+}
+
+.manga-status-pill {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(55, 65, 81, 0.9);
+  border: 1px solid rgba(148, 163, 255, 0.4);
+}
+
+.manga-status-pill--ongoing {
+  border-color: #00f0ff;
+}
+
+.manga-status-pill--oneshot {
+  border-color: #a855f7;
+}
+
+.manga-card-footer span:last-child {
+  opacity: 0.8;
+}
+
+@keyframes mangaPortalFlash {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+/* ===========================
+   MANGA NAV BUTTON STYLE
+   =========================== */
+
+.nav-manga {
+  background: radial-gradient(circle at 30% 20%, #ff6ad5, #5830ff);
+  color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(255, 80, 200, 0.6);
+}
+
+.nav-manga i {
+  font-size: 1.25rem;
+}
+
+.nav-manga:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 0 14px rgba(255, 80, 200, 0.9);
+}
+
+/* ===========================
+   MANGA THEME – GLOBAL
+   =========================== */
+
+body.manga-theme {
+  background: radial-gradient(
+    circle at top,
+    #222437 0%,
+    #050612 50%,
+    #050509 100%
+  );
+  font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
+.manga-page {
+  padding: 32px 40px;
+}
+
+/* make main area a bit wider & centered if you have a content container */
+.manga-page .container,
+.manga-page .main-content {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* ===========================
+   HERO SECTION
+   =========================== */
+
+.manga-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+.manga-hero-text h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #fdfbff;
+  letter-spacing: 0.04em;
+}
+
+.manga-tagline {
+  margin-top: 14px;
+  max-width: 480px;
+  color: #c6c6ff;
+  font-size: 0.98rem;
+}
+
+.manga-hero-actions {
+  margin: 24px 0 12px;
+  display: flex;
+  gap: 12px;
+}
+
+.manga-subtext {
+  font-size: 0.9rem;
+  color: #9b9bc5;
+}
+
+.manga-subtext span {
+  color: #ff8fe0;
+  font-weight: 600;
+}
+
+/* orb / portal visual on the hero right side */
+.manga-hero-orb {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 20%,
+    #ff9cf2,
+    #4b5dff 60%,
+    #050518 100%
+  );
+  box-shadow: 0 0 50px rgba(130, 100, 255, 0.9);
+  overflow: hidden;
+}
+
+.manga-hero-orb-inner {
+  position: absolute;
+  inset: 24px;
+  border-radius: inherit;
+  background: radial-gradient(circle at bottom, #07050c, #111324 60%);
+}
+
+.manga-hero-orb-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  animation: mangaRingSpin 14s linear infinite;
+}
+
+@keyframes mangaRingSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===========================
+   BUTTONS
+   =========================== */
+
+.btn-manga-primary {
+  border-radius: 999px;
+  padding: 10px 22px;
+  border: none;
+  outline: none;
+  background: linear-gradient(135deg, #ff6ad5, #6c5ce7);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  box-shadow: 0 0 16px rgba(255, 106, 213, 0.6);
+}
+
+.btn-manga-primary:hover {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
+.btn-manga-ghost {
+  border-radius: 999px;
+  padding: 10px 18px;
+  border: 1px solid rgba(200, 190, 255, 0.4);
+  color: #d6d6ff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  background: rgba(9, 10, 20, 0.7);
+}
+
+.btn-manga-ghost:hover {
+  border-color: #ff9cf2;
+  color: #ffffff;
+}
+
+/* card button */
+.btn-manga-card {
+  width: 100%;
+  border-radius: 12px;
+  border: none;
+  padding: 8px 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #ff9cf2, #5f8cff);
+  color: #050512;
+}
+
+/* ===========================
+   MANGA GRID
+   =========================== */
+
+.manga-grid-section {
+  margin-top: 12px;
+}
+
+.manga-grid-header h2 {
+  color: #f7f5ff;
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+.manga-grid-header p {
+  color: #a5a6da;
+  font-size: 0.9rem;
+}
+
+.manga-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.manga-card {
+  background: radial-gradient(circle at top, #282b3f, #141623);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+}
+
+.manga-card-cover {
+  position: relative;
+  height: 160px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* three different “cover” colors */
+.cover-neon-pink {
+  background: linear-gradient(135deg, #ff7ad9, #ff5f8a);
+}
+
+.cover-neon-blue {
+  background: linear-gradient(135deg, #5ac8ff, #5273ff);
+}
+
+.cover-neon-green {
+  background: linear-gradient(135deg, #7bffcf, #38d996);
+}
+
+.manga-card-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(5, 5, 15, 0.8);
+  color: #ffffff;
+}
+
+.manga-card-title-overlay {
+  width: 100%;
+  padding: 10px 14px;
+  background: linear-gradient(to top, rgba(5, 5, 14, 0.95), transparent);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.manga-card-body {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.manga-card-body h3 {
+  font-size: 1rem;
+  color: #f9f7ff;
+}
+
+.manga-card-body p {
+  font-size: 0.86rem;
+  color: #b9bcde;
+}
+
+.manga-card-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #a4a7d7;
+}
+/* =========================================
+   MANGA DIMENSIONAL PAGE-FLIP TRANSITION
+   Inspired by: Digital Page-Flip + Color Flash
+   ========================================= */
+
+body.manga-transition {
+  position: relative;
+  overflow: hidden; /* avoid weird scrollbars during flash */
+}
+
+/* Darken current world slightly */
+body.manga-transition::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(67, 42, 180, 0.6) 60%
+  );
+  pointer-events: none;
+  z-index: 998;
+  opacity: 0;
+  animation: mangaDimFade 0.35s ease-out forwards;
+}
+
+/* =========================
+   MANGA WARP OVERLAY (VORTEX)
+   ========================== */
+
+/* base overlay – hidden until body has .manga-warp */
+.warp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background:
+    /* blue glow around the vortex */ radial-gradient(
+      circle at center,
+      rgba(90, 190, 255, 0.45) 0%,
+      rgba(90, 190, 255, 0) 55%
+    ),
+    /* soft white halo fading out */
+      radial-gradient(
+        circle at center,
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0) 65%
+      ),
+    /* solid purple base so corners are purple, not black */ #6c46de;
+  background: radial-gradient(
+    circle at center,
+    rgba(120, 210, 255, 0.35) 0%,
+    rgba(30, 0, 80, 0.95) 55%,
+    rgba(5, 0, 25, 0.98) 100%
+  );
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s linear;
+}
+/* Dim everything behind the portal */
+body.manga-warp .main-content,
+body.manga-warp .sidebar,
+body.manga-warp .top-header-minimal {
+  filter: blur(2px) brightness(0.25);
+}
+
+/* show overlay when user clicks Manga */
+body.manga-warp .warp-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* --- core + ring + halo --- */
+.warp-core {
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #0fb4ff 0%, #0090ff 45%, #00194a 100%);
+  box-shadow: 0 0 55px rgba(30, 178, 255, 0.85),
+    0 0 120px rgba(0, 200, 255, 0.85);
+  animation: warpSpin 0.9s ease-in-out forwards;
+}
+
+.warp-ring {
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(245, 245, 255, 0.9),
+    0 0 35px rgba(255, 255, 255, 0.95), 0 0 110px rgba(0, 170, 255, 0.9);
+  background: radial-gradient(
+    circle,
+    transparent 62%,
+    rgba(255, 255, 255, 0.96) 70%,
+    rgba(255, 255, 255, 0) 80%
+  );
+  animation: warpPulse 0.9s ease-out forwards;
+}
+
+.warp-halo {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(0, 170, 255, 0.55) 0%,
+    rgba(0, 30, 120, 0) 70%
+  );
+  filter: blur(3px);
+  animation: warpGlow 0.75s ease-out forwards;
+}
+
+/* --- CENTER TEXT LABEL --- */
+.warp-label {
+  position: absolute; /* relative to the overlay */
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 80px); /* just under centre */
+  z-index: 2;
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #ffffff;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.8), 0 0 18px rgba(59, 210, 255, 0.9);
+  opacity: 0;
+}
+
+//* =========================
+MANGA WARP OVERLAY (VORTEX)
+   ========================== */
+
+/* Hidden by default */
+.warp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 150, 255, 0.3) 0%,
+    rgba(0, 18, 70, 0.95) 55%,
+    rgba(0, 5, 40, 1) 100%
+  );
+  display: none; /* default: off */
+  align-items: center;
+  justify-content: center;
+}
+
+/* Show + fade in when JS adds .show */
+.warp-overlay.show {
+  display: flex;
+  animation: warpOverlayFade 0.2s linear forwards;
+}
+
+/* Faint fade-in for overall overlay */
+@keyframes warpOverlayFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* --- core + ring + halo --- */
+.warp-core,
+.warp-ring,
+.warp-halo {
+  position: absolute;
+  border-radius: 50%;
+}
+
+/* center glowing blue core */
+.warp-core {
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, #0fb4ff 0%, #0090ff 45%, #00194a 100%);
+  box-shadow: 0 0 55px rgba(30, 178, 255, 0.85),
+    0 0 120px rgba(0, 200, 255, 0.85);
+  animation: warpSpin 0.9s ease-in-out forwards;
+}
+
+.warp-ring {
+  width: 360px;
+  height: 360px;
+  box-shadow: 0 0 0 5px rgba(245, 245, 255, 0.9),
+    0 0 35px rgba(255, 255, 255, 0.95), 0 0 110px rgba(0, 170, 255, 0.9);
+  background: radial-gradient(
+    circle,
+    transparent 62%,
+    rgba(255, 255, 255, 0.96) 70%,
+    rgba(255, 255, 255, 0) 80%
+  );
+  animation: warpPulse 0.9s ease-out forwards;
+}
+
+.warp-halo {
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(
+    circle,
+    rgba(0, 170, 255, 0.55) 0%,
+    rgba(0, 30, 120, 0) 70%
+  );
+  filter: blur(3px);
+  animation: warpGlow 0.75s ease-out forwards;
+}
+
+/* --- CENTER TEXT LABEL --- */
+.warp-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 80px); /* under centre */
+  z-index: 2;
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #ffffff;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.8), 0 0 18px rgba(59, 210, 255, 0.9);
+  opacity: 0;
+}
+
+/* Fade label in whenever overlay is shown */
+.warp-overlay.show .warp-label {
+  animation: warpLabelFade 0.45s ease-out forwards 0.15s;
+}
+
+/* --- PARTICLES --- */
+.warp-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.warp-particles span {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(140, 220, 255, 0.95);
+  box-shadow: 0 0 12px rgba(140, 220, 255, 0.95);
+  animation: warpDrift 0.9s ease-out forwards;
+}
+
+/* positions around the ring */
+.warp-particles span:nth-child(1) {
+  top: 38%;
+  left: 47%;
+}
+.warp-particles span:nth-child(2) {
+  top: 32%;
+  left: 54%;
+}
+.warp-particles span:nth-child(3) {
+  top: 45%;
+  left: 60%;
+}
+.warp-particles span:nth-child(4) {
+  top: 56%;
+  left: 52%;
+}
+.warp-particles span:nth-child(5) {
+  top: 48%;
+  left: 40%;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes warpPulse {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes warpSpin {
+  0% {
+    transform: rotate(0deg) scale(0.6);
+  }
+  100% {
+    transform: rotate(360deg) scale(1.02);
+  }
+}
+
+@keyframes warpGlow {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes warpDrift {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -95%) scale(1.1);
+    opacity: 0;
+  }
+}
+
+@keyframes warpLabelFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 90px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 80px);
+  }
+}
+/* ---------- BOOK DETAIL LAYOUT ---------- */
+
+.book-detail-wrapper {
+  padding: 24px 28px 32px;
+}
+
+.book-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-bottom: 14px;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.book-back-link:hover {
+  color: var(--neon-blue);
+  transform: translateX(-2px);
+}
+
+/* Main glass card */
+.book-detail-card {
+  margin-top: 8px;
+  background: radial-gradient(
+      circle at top left,
+      rgba(59, 130, 246, 0.35),
+      transparent 60%
+    ),
+    var(--bg-card);
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(15, 23, 42, 0.8);
+  padding: 32px 40px;
+  display: flex;
+  gap: 40px;
+  align-items: center;
+}
+
+/* LEFT SIDE ------------------------------------------------- */
+
+.book-detail-left {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.book-cover-glow {
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.4), transparent 70%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.book-cover-shell {
+  position: relative;
+  width: 190px;
+  height: 230px;
+  border-radius: 26px;
+  background: radial-gradient(
+      circle at 20% 0%,
+      rgba(56, 189, 248, 0.5),
+      transparent 55%
+    ),
+    #11131b;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.75);
+}
+
+.book-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 26px;
+  position: relative;
+  z-index: 1;
+}
+
+/* if you still use book-cover-inner as fallback icon */
+.book-cover-inner {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, #ffffff, #dde6ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 58px;
+  color: #2563eb;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+}
+
+.book-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* chips */
+.chip {
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  color: var(--text-muted);
+}
+
+.chip-category {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(56, 189, 248, 0.9);
+  color: var(--neon-blue);
+}
+
+.chip-format {
+  background: rgba(15, 23, 42, 0.95);
+}
+
+/* RIGHT SIDE ------------------------------------------------ */
+
+.book-detail-right {
+  flex: 1;
+  max-width: 720px;
+}
+
+.book-detail-label {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.book-detail-title {
+  font-size: clamp(2.4rem, 3vw, 3rem);
+  font-weight: 800;
+  margin: 0;
+  color: #4ba8ff;
+}
+
+.book-detail-author {
+  margin-top: 0.25rem;
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  margin-bottom: 1.7rem;
+}
+
+/* main CTA button */
+.btn-neon-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  border: none;
+  color: white;
+  border-radius: 999px;
+  padding: 0.85rem 2.4rem;
+  font-weight: 600;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.6);
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.btn-neon-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 45px rgba(37, 99, 235, 0.8);
+  filter: brightness(1.05);
+}
+
+.btn-neon-primary.disabled,
+.btn-neon-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+/* AUDIO CARD ----------------------------------------------- */
+
+.audio-card {
+  margin-top: 24px;
+  padding: 18px 20px 16px;
+  border-radius: 18px;
+  background: radial-gradient(
+    circle at top left,
+    rgba(34, 197, 94, 0.2),
+    rgba(15, 23, 42, 1)
+  );
+  border: 1px solid rgba(148, 163, 184, 0.45);
+}
+
+.audio-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #c4f1ff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.audio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.9);
+}
+
+.audio-player {
+  width: 100%;
+  filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.75));
+}
+
+/* RESPONSIVE ----------------------------------------------- */
+
+@media (max-width: 992px) {
+  .book-detail-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px 20px;
+  }
+
+  .book-detail-left {
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 20px;
+  }
+
+  .book-cover-shell {
+    width: 150px;
+    height: 190px;
+  }
+
+  .book-detail-right {
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .book-detail-wrapper {
+    padding-inline: 16px;
+  }
+
+  .book-detail-card {
+    padding-inline: 16px;
+  }
+
+  .book-detail-left {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+/* ===== MANGA PAGE WRAPPER ===== */
+.manga-page {
+  padding: 25px 0 40px;
+  background: radial-gradient(circle at top, #1b2348 0%, #050612 55%, #050612 100%);
+}
+
+/* Match your existing hero card look */
+.manga-hero-shell {
+  padding: 10px 40px 40px 130px;
+}
+
+.manga-hero {
+  max-width: 1100px;
+  margin: 0 auto 20px;
+  padding: 36px 42px;
+  border-radius: 28px;
+  background: radial-gradient(circle at top right, #2f2f73 0%, #050612 55%);
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+/* Left side text */
+.manga-hero-text {
+  flex: 1.2;
+}
+
+.manga-hero-title {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+.manga-hero-subtitle {
+  color: rgba(255, 255, 255, 0.65);
+  max-width: 520px;
+  margin-bottom: 22px;
+}
+
+.manga-hero-actions {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.manga-hero-footnote {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+.manga-hero-footnote span {
+  color: #ff64ff;
+}
+
+/* Hero buttons */
+.btn-manga-primary {
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff64ff, #7a5cff);
+  color: #fff;
+  border: none;
+  text-decoration: none;
+  font-weight: 600;
+  box-shadow: 0 0 18px rgba(255, 100, 255, 0.5);
+}
+.btn-manga-ghost {
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* Hero portal on the right */
+.manga-hero-orbit {
+  flex: 0.9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* GLOWING, BREATHING RING */
+.manga-hero-orbit-ring {
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 3px solid rgba(196, 168, 255, 0.9);
+  box-shadow:
+    0 0 30px rgba(80, 120, 255, 0.9),
+    0 0 120px rgba(80, 120, 255, 0.7);
+  animation: heroRingPulse 5s ease-in-out infinite,
+             heroRingSpin 18s linear infinite;
+}
+
+/* GLOWING CORE */
+.manga-hero-orbit-core {
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #3bc2ff 0%, #111545 70%);
+  box-shadow:
+    0 0 25px rgba(59, 194, 255, 0.9),
+    0 0 70px rgba(59, 194, 255, 0.5);
+  animation: heroCorePulse 4s ease-in-out infinite alternate;
+}
+
+/* ===== KEYFRAMES ===== */
+
+@keyframes heroRingPulse {
+  0% {
+    box-shadow:
+      0 0 18px rgba(80, 120, 255, 0.6),
+      0 0 60px rgba(80, 120, 255, 0.4);
+    transform: scale(0.98);
+  }
+  50% {
+    box-shadow:
+      0 0 38px rgba(80, 120, 255, 1),
+      0 0 140px rgba(80, 120, 255, 0.9);
+    transform: scale(1.03);
+  }
+  100% {
+    box-shadow:
+      0 0 18px rgba(80, 120, 255, 0.6),
+      0 0 60px rgba(80, 120, 255, 0.4);
+    transform: scale(0.98);
+  }
+}
+
+@keyframes heroRingSpin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes heroCorePulse {
+  0% {
+    transform: scale(0.96);
+    filter: blur(0px);
+  }
+  50% {
+    transform: scale(1.02);
+    filter: blur(1px);
+  }
+  100% {
+    transform: scale(0.98);
+    filter: blur(0.5px);
+  }
+}
+
+
+/* ===== MANGAVERSE TOP BAR ===== */
+.mangaverse-bar {
+  margin: 8px auto 24px;
+  padding: 0 40px 0 130px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.mv-left {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.mv-logo-main {
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+}
+.mv-logo-accent {
+  font-size: 1.4rem;
+  font-weight: 900;
+  margin-left: 6px;
+  letter-spacing: 0.18em;
+  color: #39c5ff;
+}
+
+/* Tabs */
+.mv-tabs {
+  display: flex;
+  gap: 14px;
+}
+.mv-tab {
+  border: none;
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.mv-tab-active,
+.mv-tab:hover {
+  background: #38c6ff;
+  color: #02030a;
+  box-shadow: 0 0 12px rgba(56, 198, 255, 0.7);
+}
+
+/* Search */
+.mv-search {
+  flex: 0 0 340px;
+  display: flex;
+  align-items: stretch;
+  border-radius: 999px;
+  border: 1px solid #283769;
+  overflow: hidden;
+  background: rgba(4, 9, 30, 0.8);
+}
+.mv-search input {
+  flex: 1;
+  border: none;
+  padding: 10px 16px;
+  background: transparent;
+  color: #e3ebff;
+  font-size: 0.95rem;
+}
+.mv-search input::placeholder {
+  color: #7080b1;
+}
+.mv-search button {
+  border: none;
+  width: 64px;
+  background: #38c6ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+.mv-search button i {
+  color: #02030a;
+  font-size: 1rem;
+}
+
+/* ===== MAIN LAYOUT ===== */
+.manga-main {
+  padding: 0 40px 0 130px;
+  display: flex;
+  gap: 32px;
+}
+
+/* Left column */
+.manga-grid-col {
+  flex: 3;
+}
+
+.manga-section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.manga-section-subtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin-bottom: 18px;
+}
+
+/* Cards */
+.manga-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 22px;
+}
+
+.manga-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  overflow: hidden;
+  background: radial-gradient(circle at top, #363a64 0%, #141625 45%, #090a14 100%);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+
+.manga-card-cover {
+  height: 150px;
+  border-radius: 20px 20px 0 0;
+}
+.cover-pink {
+  background: linear-gradient(135deg, #ff9ad5, #ff6ab0);
+}
+.cover-blue {
+  background: linear-gradient(135deg, #7cc7ff, #5084ff);
+}
+.cover-green {
+  background: linear-gradient(135deg, #a5ffd8, #4ee3ac);
+}
+
+.manga-card-body {
+  padding: 16px 18px 18px;
+}
+.manga-tag-pill {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+}
+.pill-popular { background: rgba(57, 197, 255, 0.15); color: #7cd0ff; }
+.pill-ongoing { background: rgba(165, 255, 216, 0.16); color: #9fffd0; }
+
+.manga-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.manga-card-desc {
+  font-size: 0.9rem;
+  color: rgba(230, 236, 255, 0.8);
+  margin-bottom: 10px;
+}
+.manga-card-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #98a2d0;
+  margin-bottom: 12px;
+}
+
+.btn-manga-card {
+  width: 100%;
+  border-radius: 999px;
+  padding: 8px 12px;
+  border: none;
+  background: linear-gradient(135deg, #38c6ff, #61d5ff);
+  color: #02030a;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Right sidebar */
+.manga-filter-col {
+  flex: 1.8;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.manga-filter-card {
+  padding: 16px 16px 14px;
+  border-radius: 18px;
+  background: radial-gradient(circle at top, #212545 0%, #070714 55%);
+  border: 1px solid rgba(72, 91, 170, 0.5);
+}
+
+.filter-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+/* Genre chips */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  border-radius: 999px;
+  border: 1px solid rgba(95, 118, 196, 0.6);
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  background: transparent;
+  color: #cdd5ff;
+  cursor: pointer;
+}
+.chip-active,
+.chip:hover {
+  background: rgba(56, 198, 255, 0.25);
+  border-color: #38c6ff;
+}
+
+/* Status */
+.status-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #d7ddff;
+  margin-bottom: 6px;
+}
+.status-check input {
+  width: 16px;
+  height: 16px;
+}
+
+/* Top this week */
+.manga-top-list {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+}
+.manga-top-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.rank-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #38c6ff;
+  color: #02030a;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+.top-info .top-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.top-info .top-sub {
+  font-size: 0.75rem;
+  color: #9ca6dc;
+}
+.auth-center-wrapper {
+  min-height: calc(100vh - 80px); /* 80px ~ header height, adjust if needed */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+.auth-page-wrapper {
+  min-height: calc(100vh - 80px);
+}
+
+.auth-card {
+  background: #181b22;
+  border-radius: 18px;
+  padding: 30px 32px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.auth-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.auth-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted, #9da5b4);
+}
+
+.auth-input {
+  background: #111319;
+  border-radius: 10px;
+  border: 1px solid #252a36;
+  color: #fff;
+}
+
+.auth-input:focus {
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
+}
+
+.auth-footer-text {
+  font-size: 0.85rem;
+  color: var(--text-muted, #9da5b4);
+}
+
+.auth-link {
+  color: var(--neon-blue);
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+.back-link {
+  color: var(--neon-blue);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.section-container {
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 24px 28px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+}
+/* ===========================================
+   BOOK READING PAGE – COMMUNITY & DISCOVERY
+   =========================================== */
+
+.reading-page {
+  padding-bottom: 40px;
+}
+
+.reading-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #191919;
+  border: 1px solid #333;
+  text-decoration: none;
+}
+.reading-back-link:hover {
+  color: #fff;
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+}
+
+.reading-hero {
+  background: radial-gradient(140% 160% at 0 0, #283446 0, #131313 55%);
+}
+
+.reading-title {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: #fff;
+}
+.reading-author {
+  font-size: 1.1rem;
+}
+
+.reading-tagline {
+  color: #c4c4c4;
+  max-width: 460px;
+}
+
+.reading-cover-frame {
+  width: 210px;
+  height: 300px;
+  margin: 0 auto;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 2px solid #404b63;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.9);
+}
+.reading-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.reading-cover-placeholder {
+  width: 210px;
+  height: 300px;
+  margin: 0 auto;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #3b3b3b, #202020);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  color: #d0d0d0;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.9);
+}
+
+.reading-audio {
+  background: #101010;
+  border-radius: 12px;
+  border: 1px solid #333;
+  padding: 14px 16px;
+}
+
+/* --- Community layout --- */
+
+.community-section {
+  margin-top: 30px;
+}
+
+.community-title {
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #f5f5f5;
+}
+.community-subtitle {
+  font-size: 0.85rem;
+  color: #a8b3d1;
+}
+
+.community-grid {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1.5fr;
+  gap: 18px;
+}
+@media (max-width: 1200px) {
+  .community-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 768px) {
+  .community-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.community-panel {
+  background: radial-gradient(140% 200% at 0 0, #1f2738 0, #101119 55%);
+  border-radius: 18px;
+  border: 1px solid #30364b;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.85);
+  padding: 16px 16px 14px;
+}
+
+.community-panel-header {
+  margin-bottom: 10px;
+}
+.community-panel-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: #e1e6ff;
+}
+.community-panel-sub {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: #9aa3c5;
+}
+
+/* --- Reviews --- */
+
+.review-list {
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.review-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+.review-item:last-child {
+  border-bottom: none;
+}
+
+.review-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 0, #ffdd87, #ff9e4f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #111;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.8);
+}
+
+.review-body {
+  font-size: 0.86rem;
+}
+.review-user {
+  font-weight: 700;
+  color: #fefefe;
+}
+.review-stars i {
+  color: #ffcc00;
+  font-size: 0.75rem;
+}
+.review-text {
+  color: #e2e2e2;
+}
+.review-meta {
+  font-size: 0.7rem;
+  color: #9ba1b7;
+  margin-top: 2px;
+}
+
+.review-form textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+.form-label-sm {
+  font-size: 0.8rem;
+}
+.review-rating-select {
+  min-width: 90px;
+}
+
+/* --- Recommendations --- */
+
+.recommend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 576px) {
+  .recommend-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* === TOP RECOMMENDATIONS – ROOMIER LAYOUT === */
+
+.rec-section {
+  margin-top: 32px;
+}
+
+.rec-section h3 {
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #e5e7eb;
+  margin-bottom: 4px;
+}
+
+.rec-section p {
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+/* make cards bigger + spaced out */
+.rec-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.8rem;            /* more space between cards */
+}
+
+/* whole card */
+.rec-card {
+  background: radial-gradient(circle at top left, #1f2937 0%, #020617 70%);
+  border-radius: 22px;
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(148, 163, 184, 0.12);
+}
+
+/* tall gradient “cover” */
+.rec-cover {
+  flex-shrink: 0;
+  width: 110px;
+  height: 220px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #60a5ff, #f973eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.4rem;
+  letter-spacing: 0.15em;
+  color: #ffffff;
+  text-shadow: 0 0 14px rgba(15, 23, 42, 0.9);
+}
+
+/* text area */
+.rec-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.rec-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #e5e7eb;
+  margin-bottom: 4px;
+}
+
+.rec-meta {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-bottom: 10px;
+}
+
+.rec-tagline {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #38bdf8;
+}
+
+
+/* --- Wishlist --- */
+
+.wishlist-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+.wishlist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.wishlist-rank {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #34c3ff;
+  color: #020613;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.9);
+}
+.wishlist-main {
+  flex: 1;
+}
+.wishlist-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fbfbfb;
+}
+.wishlist-meta {
+  font-size: 0.78rem;
+  color: #a3acc9;
+}
+/* ===== COMMUNITY & DISCOVERY STRIP ON BOOK PAGE ===== */
+
+.book-community {
+  margin-top: 40px;
+  padding: 28px 30px 34px;
+  border-radius: 26px;
+  background: radial-gradient(circle at top left, #1f2937 0, #020617 55%, #020617 100%);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+}
+
+.bc-main-title h2 {
+  font-size: 1.3rem;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 18px;
+}
+
+/* --- READER REVIEWS --- */
+
+.bc-reviews-card {
+  background: radial-gradient(circle at top left, #0f172a, #020617 70%);
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 22px 24px 24px;
+  margin-bottom: 26px;
+}
+
+.bc-reviews-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.bc-reviews-header h3 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.bc-subtitle {
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.bc-rating-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top left, #22c55e, #16a34a);
+  color: #0b1120;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 0 18px rgba(34, 197, 94, 0.55);
+}
+
+.bc-rating-count {
+  font-weight: 500;
+}
+
+/* layout: list + form */
+.bc-reviews-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2.1fr) minmax(0, 1.3fr);
+  gap: 22px;
+}
+
+.bc-reviews-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.bc-review-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+}
+
+.bc-review-item:last-child {
+  border-bottom: none;
+}
+
+.bc-review-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top left, #38bdf8, #0ea5e9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #0b1120;
+  flex-shrink: 0;
+}
+
+.bc-review-content {
+  font-size: 0.9rem;
+}
+
+.bc-review-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.bc-review-user {
+  font-weight: 600;
+}
+
+.bc-review-stars {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #facc15;
+  font-size: 0.85rem;
+}
+
+.bc-review-text {
+  margin: 0 0 4px;
+  color: #e5e7eb;
+}
+
+.bc-review-date {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.bc-empty-state {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+/* form side */
+.bc-review-form {
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 18px;
+  padding: 14px 16px 16px;
+  border: 1px solid rgba(55, 65, 81, 0.85);
+}
+
+.bc-review-form h4 {
+  font-size: 1.05rem;
+  margin-bottom: 10px;
+}
+
+.bc-field-label {
+  font-size: 0.85rem;
+  color: #e5e7eb;
+}
+
+.bc-select,
+.bc-textarea {
+  background-color: #020617;
+  border-color: #1e293b;
+  color: #e5e7eb;
+}
+
+.bc-select:focus,
+.bc-textarea:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
+}
+
+.bc-login-note {
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+/* --- TOP RECOMMENDATIONS STRIP --- */
+
+.bc-top-rec-strip {
+  margin-top: 10px;
+  padding: 18px 16px 6px;
+  border-radius: 22px;
+  background: radial-gradient(circle at top left, #020617, #020617);
+  border: 1px solid rgba(30, 64, 175, 0.9);
+}
+
+.bc-strip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.bc-strip-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bc-rec-row {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.bc-rec-card {
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at top left, #111827, #020617);
+  border-radius: 18px;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  width: 210px;
+  flex-shrink: 0;
+  padding: 10px;
+}
+
+.bc-rec-cover {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.bc-rec-cover img {
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+  display: block;
+}
+
+.bc-rec-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bc-rec-title {
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.bc-rec-meta {
+  font-size: 0.8rem;
+  color: #a5b4fc;
+}
+
+.bc-rec-btn {
+  margin-top: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.7);
+  background: transparent;
+  color: #e5e7eb;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+}
+
+.bc-rec-btn:hover {
+  background: rgba(56, 189, 248, 0.12);
+}
+
+/* responsive */
+@media (max-width: 950px) {
+  .bc-reviews-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bc-review-form {
+    order: -1;
+  }
+
+  .book-community {
+    padding: 22px 18px 24px;
+  }
+}
+/* COMMUNITY & DISCOVERY (Book Detail bottom section) */
+.cd-section{margin-top:28px}
+.cd-head h2{
+  text-align:center;
+  letter-spacing:.18em;
+  font-weight:800;
+  color:#cfefff;
+  opacity:.9;
+  margin:10px 0 18px;
+}
+
+.cd-grid{
+  display:grid;
+  grid-template-columns: 1.4fr .9fr;
+  gap:18px;
+}
+
+.cd-card{
+  background: rgba(10,12,18,.55);
+  border:1px solid rgba(64,220,255,.28);
+  border-radius:18px;
+  box-shadow: 0 0 28px rgba(0,0,0,.35);
+  padding:18px;
+  backdrop-filter: blur(10px);
+}
+
+.cd-title h3{
+  margin:0;
+  font-weight:900;
+  letter-spacing:.12em;
+  color:#eaf9ff;
+}
+.cd-title p{margin:4px 0 14px;color:#9fb3c7}
+
+.cd-reviews{grid-column:1/2}
+.cd-wishlist{grid-column:2/3}
+.cd-recs{grid-column:1/3}
+
+.cd-review-list{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+.cd-review-item{
+  display:flex; gap:12px;
+  background: rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;
+  padding:12px;
+}
+.cd-avatar{
+  width:44px;height:44px;border-radius:50%;
+  display:grid;place-items:center;
+  color:#001018;font-weight:900;
+  background: radial-gradient(circle at 30% 30%, #7ee7ff, #3ad0ff);
+  box-shadow:0 0 16px rgba(64,220,255,.35);
+}
+.cd-review-name{font-weight:800;color:#fff}
+.cd-stars{color:#53dcff; letter-spacing:.08em; margin:2px 0 6px}
+.cd-review-text{color:#d8e5f2; opacity:.92; font-size:.95rem}
+
+.cd-review-form{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap:10px;
+  align-items:center;
+}
+.cd-input{
+  width:100%;
+  background: rgba(0,0,0,.35);
+  border:1px solid rgba(64,220,255,.22);
+  color:#fff;
+  border-radius:12px;
+  padding:10px 12px;
+  outline:none;
+}
+.cd-input:focus{border-color: rgba(64,220,255,.55); box-shadow:0 0 0 3px rgba(64,220,255,.12)}
+.cd-btn{
+  background: rgba(64,220,255,.2);
+  border:1px solid rgba(64,220,255,.45);
+  color:#cfefff;
+  font-weight:800;
+  padding:10px 14px;
+  border-radius:12px;
+}
+.cd-btn:hover{filter:brightness(1.15)}
+
+.cd-wish-list{display:flex;flex-direction:column;gap:12px}
+.cd-wish-item{
+  display:grid;
+  grid-template-columns: 56px 1fr;
+  gap:12px;
+  align-items:center;
+  background: rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;
+  padding:10px;
+}
+.cd-cover{
+  width:56px;height:56px;border-radius:12px;
+  object-fit:cover;
+  border:1px solid rgba(255,255,255,.10);
+}
+.cd-cover-ph{
+  display:grid;place-items:center;
+  color:#fff;font-weight:900;
+  background: linear-gradient(135deg,#8a5cff,#53dcff);
+}
+.cd-wish-title{font-weight:800;color:#fff}
+.cd-wish-sub{color:#9fb3c7;font-size:.9rem}
+
+.cd-recs-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap:14px;
+}
+.cd-rec{
+  display:grid;
+  grid-template-columns: 92px 1fr;
+  gap:14px;
+  text-decoration:none;
+  background: rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:14px;
+}
+.cd-rec:hover{border-color: rgba(64,220,255,.35); box-shadow:0 0 18px rgba(64,220,255,.12)}
+.cd-rec-img{
+  width:92px;height:124px;border-radius:14px;
+  object-fit:cover;
+  border:1px solid rgba(255,255,255,.12);
+}
+.cd-rec-info{display:flex;flex-direction:column;gap:6px}
+.cd-rec-title{color:#fff;font-weight:900;font-size:1.08rem}
+.cd-rec-sub{color:#9fb3c7}
+.cd-rec-btn{
+  margin-top:auto;
+  width:max-content;
+  padding:8px 12px;
+  border-radius:12px;
+  border:1px solid rgba(64,220,255,.45);
+  background: rgba(64,220,255,.16);
+  color:#cfefff;
+  font-weight:800;
+}
+
+.cd-empty{color:#9fb3c7; padding:10px 0}
+@media (max-width: 980px){
+  .cd-grid{grid-template-columns:1fr}
+  .cd-recs{grid-column:auto}
+}

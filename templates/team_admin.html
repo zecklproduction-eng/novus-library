@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Team Admin | NOVUS{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+  <div class="section-container mb-4">
+    <div class="section-title">Add Team Member</div>
+    <form action="{{ url_for('team_admin') }}" method="post" enctype="multipart/form-data" class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Full Name *</label>
+        <input name="full_name" class="form-control" required placeholder="NAME----">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Role</label>
+        <input name="role" class="form-control" placeholder="what he contributed?">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Bio</label>
+        <textarea name="bio" rows="3" class="form-control" placeholder="Short description..."></textarea>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Avatar (optional)</label>
+        <input type="file" name="avatar" class="form-control" accept="image/*">
+        <small class="text-muted">Saved under /static/img/team/</small>
+      </div>
+      <div class="col-12 d-flex justify-content-end">
+        <button class="btn btn-neon">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="section-container">
+    <div class="section-title">Members</div>
+    <div class="table-responsive">
+      <table class="table table-dark table-borderless align-middle">
+        <thead><tr><th>Name</th><th>Role</th><th>Bio</th><th>Avatar</th><th class="text-end">Actions</th></tr></thead>
+        <tbody>
+          {% for m in members %}
+          <tr>
+            <td>{{ m[1] }}</td>
+            <td>{{ m[2] }}</td>
+            <td class="text-muted">{{ m[3] }}</td>
+            <td>
+              {% if m[4] %}
+                <img src="{{ url_for('static', filename=m[4]) }}" style="height:40px;border-radius:8px;">
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <form action="{{ url_for('team_delete', member_id=m[0]) }}" method="post" class="d-inline">
+                <button class="btn btn-sm btn-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted">No members yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Register | NOVUS{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-center-wrapper">
+  <div class="auth-card register-card">
+    <h1 class="auth-title">Create your NOVUS account</h1>
+    <p class="auth-subtitle">
+      Choose how you want to use the library.
+    </p>
+
+    <form method="POST" action="{{ url_for('register') }}">
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input
+          type="text"
+          name="username"
+          class="form-control"
+          placeholder="Pick a unique username"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Email Address</label>
+        <input
+          type="email"
+          name="email"
+          class="form-control"
+          placeholder="Enter your email"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input
+          type="password"
+          name="password"
+          class="form-control"
+          placeholder="Choose a password"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Confirm Password</label>
+        <input
+          type="password"
+          name="confirm_password"
+          class="form-control"
+          placeholder="Confirm your password"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Account type</label>
+
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            name="account_type"
+            id="reader"
+            value="reader"
+            checked
+          />
+          <label class="form-check-label" for="reader">
+            <strong>Reader</strong><br />
+            <span class="text-muted">
+              Normal student account. Browse and read books.
+            </span>
+          </label>
+        </div>
+
+        <div class="form-check mt-2">
+          <input
+            class="form-check-input"
+            type="radio"
+            name="account_type"
+            id="publisher"
+            value="publisher"
+          />
+          <label class="form-check-label" for="publisher">
+            <strong>Publisher</strong><br />
+            <span class="text-muted">
+              I want to upload and manage books. (Admin approval required)
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-neon w-100">
+        Create Account
+      </button>
+    </form>
+  </div>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Manga Universe | NOVUS{% endblock %}
+
+{% block content %}
+<div class="manga-page">
+
+  <!-- ================= HERO (use the one you already like) ================= -->
+  <section class="manga-hero-shell">
+    <div class="manga-hero">
+      <div class="manga-hero-text">
+        <h1 class="manga-hero-title">Manga Universe</h1>
+        <p class="manga-hero-subtitle">
+          Step through the portal into a world of panels, motion, and emotion.
+          NOVUS isn’t just a library anymore — it’s a multiverse of stories.
+        </p>
+
+        <div class="manga-hero-actions">
+          <a href="#manga-latest" class="btn-manga-primary">Explore Series</a>
+          <a href="{{ url_for('home') }}" class="btn-manga-ghost">Back to Library</a>
+        </div>
+
+        <p class="manga-hero-footnote">
+          Books. Audiobooks. <span>Manga.</span> Each with its own atmosphere.
+        </p>
+      </div>
+
+      <div class="manga-hero-orbit">
+  <div class="manga-hero-orbit-ring"></div>
+  <div class="manga-hero-orbit-core"></div>
+</div>
+
+
+    </div>
+  </section>
+
+  <!-- ================= MANGAVERSE TOP BAR ================= -->
+  <section class="mangaverse-bar container">
+    <div class="mv-left">
+      <div class="mv-logo">
+        <span class="mv-logo-main">MANGA</span>
+        <span class="mv-logo-accent">VERSE</span>
+      </div>
+
+      <div class="mv-tabs">
+        <button class="mv-tab mv-tab-active" data-filter="latest">Latest</button>
+        <button class="mv-tab" data-filter="popular">Popular</button>
+        <button class="mv-tab" data-filter="completed">Completed</button>
+      </div>
+    </div>
+
+    <form class="mv-search" method="get" action="{{ url_for('manga') }}">
+      <input
+        type="text"
+        name="q"
+        placeholder="Search manga title or author..."
+        value="{{ request.args.get('q', '') }}"
+      />
+      <button type="submit">
+        <i class="fas fa-search"></i>
+      </button>
+    </form>
+  </section>
+
+  <!-- ================= MAIN GRID + SIDEBAR ================= -->
+  <section class="manga-main container" id="manga-latest">
+    <!-- LEFT: MANGA CARDS -->
+    <div class="manga-grid-col">
+      <h2 class="manga-section-title">Featured Manga Worlds</h2>
+      <p class="manga-section-subtitle">
+        {% if mangas %}
+          Explore our collection of manga series.
+        {% else %}
+          No manga available yet. Check back soon!
+        {% endif %}
+      </p>
+
+      <div class="manga-card-grid">
+        {% if mangas %}
+          {% for m in mangas %}
+          <article class="manga-card">
+            <div class="manga-card-cover" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+              {% if m[6] %}
+                <img src="{{ url_for('static', filename=m[6]) }}" alt="{{ m[1] }}" style="width: 100%; height: 100%; object-fit: cover;">
+              {% else %}
+                <div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 50px;">📖</div>
+              {% endif %}
+            </div>
+            <div class="manga-card-body">
+              <h3 class="manga-card-title">{{ m[1] }}</h3>
+              <p class="manga-card-desc">
+                By {{ m[2] or 'Unknown Author' }}
+              </p>
+              <div class="manga-card-meta">
+                <span>{{ m[3] }}</span>
+              </div>
+              <a href="{{ url_for('read_manga', id=m[0]) }}" class="btn-manga-card">Read Now</a>
+            </div>
+          </article>
+          {% endfor %}
+        {% else %}
+          <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #999;">
+            <p style="font-size: 18px; margin-bottom: 10px;">No manga found</p>
+            <p>Start by uploading a manga from the "Add New Book" section!</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- RIGHT: FILTER SIDEBAR -->
+    <aside class="manga-filter-col">
+      <!-- Categories -->
+      <div class="manga-filter-card">
+        <h3 class="filter-title">Categories</h3>
+        <div class="chip-row">
+          <a href="{{ url_for('manga') }}" class="chip {% if not selected_category %}chip-active{% endif %}">All</a>
+          {% for cat in categories %}
+          <a href="{{ url_for('manga', category=cat) }}" class="chip {% if cat == selected_category %}chip-active{% endif %}">{{ cat }}</a>
+          {% endfor %}
+        </div>
+      </div>
+    </aside>
+  </section>
+</div>
+{% endblock %}

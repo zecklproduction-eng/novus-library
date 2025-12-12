@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}{{ book[1] }} | NOVUS{% endblock %}
+
+{% block content %}
+<div class="reading-page">
+  <div class="container mt-3 mb-5">
+
+    <a href="{{ url_for('home') }}" class="reading-back-link">
+      <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+
+    <!-- MAIN BOOK PANEL -->
+    <div class="section-container reading-hero mt-3">
+      <div class="row g-4 align-items-center">
+        <!-- Cover -->
+      <div class="col-md-4 text-center">
+    {% if book[6] %}
+        <img
+          src="{{ url_for('static', filename=book[6]) }}"
+          alt="{{ book[1] }} cover"
+          class="img-fluid rounded shadow-sm"
+          style="max-height: 260px; object-fit: cover;"
+        >
+    {% else %}
+        <div style="font-size: 100px;">📖</div>
+    {% endif %}
+</div>
+
+
+        <!-- Text / actions -->
+        <div class="col-md-8">
+          <h1 class="reading-title">{{ book[1] }}</h1>
+          <h4 class="reading-author text-muted mb-2">
+            By {{ book[2] or "Unknown Author" }}
+          </h4>
+          <span class="badge badge-category">{{ book[3] }}</span>
+
+
+          
+<!-- Watchlist dropdown lives here -->
+<div class="mt-3 d-flex align-items-center gap-2">
+  <span class="text-muted me-2">My List:</span>
+  <form method="post" action="{{ url_for('watchlist_book', book_id=book[0]) }}">
+    <div class="dropdown">
+      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false">
+        {% if current_status %}
+          {{ status_labels.get(current_status, 'Add to List') }}
+        {% else %}
+          + Add to List
+        {% endif %}
+      </button>
+      <ul class="dropdown-menu dropdown-menu-dark">
+        <li>
+          <button class="dropdown-item" type="submit" name="status" value="watching">
+            Watching
+          </button>
+        </li>
+        <li>
+          <button class="dropdown-item" type="submit" name="status" value="on_hold">
+            On-Hold
+          </button>
+        </li>
+        <li>
+          <button class="dropdown-item" type="submit" name="status" value="planned">
+            Plan to Watch
+          </button>
+        </li>
+        <li>
+          <button class="dropdown-item" type="submit" name="status" value="dropped">
+            Dropped
+          </button>
+        </li>
+        <li>
+          <button class="dropdown-item" type="submit" name="status" value="completed">
+            Completed
+          </button>
+        </li>
+        {% if current_status %}
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <button class="dropdown-item text-danger" type="submit" name="status" value="remove">
+            Remove from List
+          </button>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+  </form>
+</div><br>
+
+
+          <div class="d-flex flex-wrap gap-2">
+            {% if book[4] %}
+            <a
+              href="{{ url_for('static', filename='books/' + book[4]) }}"
+              target="_blank"
+              class="btn btn-neon"
+            >
+              <i class="fas fa-file-pdf me-2"></i>Read E-Book (PDF)
+            </a>
+            {% else %}
+            <button class="btn btn-ghost" disabled>
+              <i class="fas fa-file-pdf me-2"></i>No PDF Available
+            </button>
+            {% endif %}
+
+            {% if book[5] %}
+            <a
+              href="#audio-player"
+              class="btn btn-neon-outline"
+            >
+              <i class="fas fa-headphones me-2"></i>Jump to Audiobook
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% if book[5] %}
+      <!-- Audiobook block -->
+      <div id="audio-player" class="reading-audio mt-4">
+        <label class="text-success mb-2">
+          🎧 <strong>Audiobook Player</strong>
+        </label>
+        <audio controls style="width: 100%;">
+          <source
+            src="{{ url_for('static', filename='audio/' + book[5]) }}"
+            type="audio/mpeg"
+          />
+          Your browser does not support audio.
+        </audio>
+      </div>
+      {% endif %}
+    </div>
+
+   {# --- COMMUNITY & DISCOVERY --- #}
+<section class="book-community">
+
+  <!-- Title -->
+  <div class="bc-main-title">
+    <h2>Community &amp; Discovery</h2>
+  </div>
+
+  <!-- ===== READER REVIEWS (FULL WIDTH CARD) ===== -->
+  <div class="bc-reviews-card">
+    <div class="bc-reviews-header">
+      <div>
+        <h3>Reader Reviews</h3>
+        <p class="bc-subtitle">The latest thoughts from NOVUS readers.</p>
+      </div>
+
+      {% if review_count %}
+      <div class="bc-rating-pill">
+        ★ {{ "%.1f"|format(avg_rating or 0) }}
+        <span class="bc-rating-count">
+          • {{ review_count }} review{{ 's' if review_count != 1 else '' }}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="bc-reviews-layout">
+      <!-- LEFT: list of reviews -->
+      <div class="bc-reviews-list">
+        {% if reviews %}
+          {% for r in reviews %}
+          <article class="bc-review-item">
+            <div class="bc-review-avatar">
+              {{ r[4][0]|upper }}
+            </div>
+            <div class="bc-review-content">
+              <div class="bc-review-topline">
+                <span class="bc-review-user">{{ r[4] }}</span>
+                <span class="bc-review-stars">
+                  {% for _ in range(r[2] or 0) %}★{% endfor %}
+                  {% for _ in range(5 - (r[2] or 0)) %}☆{% endfor %}
+                </span>
+              </div>
+              <p class="bc-review-text">{{ r[1] }}</p>
+              <span class="bc-review-date">
+                {{ r[3] or '' }}
+              </span>
+            </div>
+          </article>
+          {% endfor %}
+        {% else %}
+          <p class="bc-empty-state">
+            No reviews yet. Be the first to share what you think about this book.
+          </p>
+        {% endif %}
+      </div>
+
+      <!-- RIGHT: leave a comment -->
+      <div class="bc-review-form">
+        <h4>Leave a comment</h4>
+
+        {% if session.get('user_id') %}
+        <form action="{{ url_for('add_review', id=book[0]) }}" method="post">
+          <label class="bc-field-label">Your rating</label>
+          <select name="rating" class="form-select bc-select">
+            <option value="5">★★★★★ – Loved it</option>
+            <option value="4">★★★★☆ – Great</option>
+            <option value="3">★★★☆☆ – Good</option>
+            <option value="2">★★☆☆☆ – Meh</option>
+            <option value="1">★☆☆☆☆ – Not for me</option>
+          </select>
+
+          <label class="bc-field-label mt-3">Your thoughts</label>
+          <textarea
+            name="content"
+            rows="4"
+            class="form-control bc-textarea"
+            placeholder="What stood out to you? Characters, pacing, vibes..."
+          ></textarea>
+
+          <button type="submit" class="btn btn-orange w-100 mt-3">
+            Post review
+          </button>
+        </form>
+        {% else %}
+        <p class="bc-login-note">
+          <a href="{{ url_for('login') }}">Log in</a> to leave a review and join the discussion.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOP RECOMMENDATIONS (FULL-WIDTH STRIP AT BOTTOM) ===== -->
+  <div class="bc-top-rec-strip">
+    <div class="bc-strip-header">
+      <div>
+        <h3>Top Recommendations</h3>
+        <p class="bc-subtitle">Our weekly picks from the NOVUS universe.</p>
+      </div>
+    </div>
+
+    <div class="bc-rec-row">
+      {% if recommendations and recommendations|length > 0 %}
+        {% for rec in recommendations %}
+        <div class="bc-rec-card">
+          <div class="bc-rec-cover">
+            {% if rec[4] %}
+            <img
+              src="{{ url_for('static', filename=rec[4]) }}"
+              alt="{{ rec[1] }} cover"
+            />
+            {% else %}
+            <div style="font-size: 50px;">📖</div>
+            {% endif %}
+          </div>
+          <div class="bc-rec-info">
+            <div class="bc-rec-title">{{ rec[1] }}</div>
+            <div class="bc-rec-meta">{{ rec[3] or 'Category' }}</div>
+            <a href="{{ url_for('view_book', id=rec[0]) }}" class="bc-rec-btn">View details</a>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <!-- Static placeholders -->
+        <div class="bc-rec-card">
+          <div class="bc-rec-cover">
+            <div style="font-size: 50px;">📖</div>
+          </div>
+          <div class="bc-rec-info">
+            <div class="bc-rec-title">Cyber Samurai Saga</div>
+            <div class="bc-rec-meta">Sci-Fi • Action</div>
+            <button class="bc-rec-btn" type="button" disabled>Coming soon</button>
+          </div>
+        </div>
+
+        <div class="bc-rec-card">
+          <div class="bc-rec-cover">
+            <div style="font-size: 50px;">📖</div>
+          </div>
+          <div class="bc-rec-info">
+            <div class="bc-rec-title">Voyage of Stardust</div>
+            <div class="bc-rec-meta">Fantasy • Adventure</div>
+            <button class="bc-rec-btn" type="button" disabled>Coming soon</button>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+  </div>
+</div>
+{% endblock %}

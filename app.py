@@ -240,8 +240,9 @@ def home():
     db_categories = [row[0] for row in c.fetchall()]
 
     extra_categories = [
-        "Action", "Thriller", "Adventure", "Fantasy",
-        "Supernatural", "Romance", "Science Fiction",
+        "Action", "Adventure", "Children", "Comedy", "Drama", "Fantasy",
+        "General", "Historical", "Horror", "Mystery", "Poetry",
+        "Romance", "Science Fiction", "Supernatural", "Thriller", "Young Adult",
     ]
     categories = sorted(set(db_categories + extra_categories + ["General"]))
 
@@ -1595,6 +1596,13 @@ def approve_publisher(req_id):
 
     flash(f"User upgraded to {requested_role}.", "success")
     return redirect(url_for("user_management"))
+
+
+# -------------------- FAQ ROUTE --------------------
+@app.route("/faq")
+def faq():
+    """Display FAQ & Guidelines page"""
+    return render_template("faq.html")
 
 
 # -------------------- MAIN --------------------

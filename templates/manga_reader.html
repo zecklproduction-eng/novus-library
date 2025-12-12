@@ -1,0 +1,779 @@
+{% extends "base.html" %}
+{% block title %}{{ manga[1] }} - Read Manga | NOVUS{% endblock %}
+
+{% block content %}
+<div class="manga-reader-page">
+  <!-- TOP BAR -->
+  <div class="reader-top-bar">
+    <div class="reader-bar-left">
+      <button class="reader-btn-icon" onclick="window.history.back()">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <div class="reader-title-group">
+        <h1 class="reader-manga-title">{{ manga[1] }}</h1>
+        <p class="reader-manga-author">{{ manga[2] }}</p>
+      </div>
+    </div>
+
+    <div class="reader-bar-right">
+      <button class="reader-btn" onclick="toggleSettings()">
+        <i class="fas fa-cog"></i>
+        <span>Settings</span>
+      </button>
+      <a href="{{ url_for('manga') }}" class="reader-btn reader-btn-primary">
+        <i class="fas fa-home"></i>
+        <span>Back to Library</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- MAIN READER CONTAINER -->
+  <div class="reader-container">
+    <!-- LEFT SIDEBAR: Series Info -->
+    <aside class="reader-sidebar reader-sidebar-left">
+      <div class="sidebar-card">
+        <div class="series-cover">
+          {% if manga[5] %}
+            <img src="{{ url_for('static', filename=manga[5]) }}" alt="{{ manga[1] }}">
+          {% else %}
+            <div class="cover-placeholder">📖</div>
+          {% endif %}
+        </div>
+        <h3 class="series-title">{{ manga[1] }}</h3>
+        <p class="series-author">by {{ manga[2] or 'Unknown' }}</p>
+        <p class="series-category"><span class="badge">{{ manga[3] }}</span></p>
+        
+        <div class="series-description">
+          <p>{{ manga[1] }} is now available to read on NOVUS.</p>
+        </div>
+
+        <button class="btn btn-primary w-100 mb-2" onclick="toggleChapters()">
+          <i class="fas fa-list"></i> View Chapters
+        </button>
+      </div>
+
+      <!-- Chapters List (Hidden by default) -->
+      <div class="chapters-list" id="chaptersList" style="display: none; margin-top: 20px;">
+        <h4>Chapters</h4>
+        <ul class="chapter-items">
+          <li class="chapter-item active">
+            <a href="#" class="chapter-link">Chapter 1</a>
+          </li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- CENTER: READER -->
+    <main class="reader-main">
+      <!-- READER HEADER -->
+      <div class="reader-header">
+        <div class="chapter-selector">
+          <button class="chapter-btn" onclick="previousChapter()">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <select class="chapter-dropdown" id="chapterSelect" onchange="changeChapter()">
+            <option value="1">Chapter 1</option>
+          </select>
+          <button class="chapter-btn" onclick="nextChapter()">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+
+        <div class="reader-actions">
+          <button class="reader-action-btn" title="Settings">
+            <i class="fas fa-sliders-h"></i>
+          </button>
+          <button class="reader-action-btn" title="Share">
+            <i class="fas fa-share-alt"></i>
+          </button>
+          <button class="reader-action-btn" title="Report">
+            <i class="fas fa-flag"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- MANGA VIEWER -->
+      <div class="manga-viewer" id="mangaViewer">
+        {% if manga[4] %}
+          <!-- PDF Viewer -->
+          <div class="pdf-viewer-wrapper">
+            <iframe 
+              id="pdfViewer"
+              src="{{ url_for('static', filename='books/' + manga[4]) }}" 
+              type="application/pdf"
+              width="100%" 
+              height="100%"
+              style="border: none;">
+            </iframe>
+          </div>
+        {% else %}
+          <!-- Fallback: No PDF Available -->
+          <div class="no-content">
+            <div class="no-content-icon">📄</div>
+            <h3>No manga file available</h3>
+            <p>This manga doesn't have a file attached yet.</p>
+            <a href="{{ url_for('manga') }}" class="btn btn-primary">Back to Manga</a>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- NAVIGATION BAR -->
+      <div class="reader-footer">
+        <button class="nav-btn" onclick="previousPage()" title="Previous Page">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <div class="progress-control">
+          <div class="progress-bar-container">
+            <input 
+              type="range" 
+              id="progressSlider" 
+              class="progress-slider" 
+              min="0" 
+              max="100" 
+              value="0"
+              oninput="updatePage(this.value)"
+            >
+          </div>
+          <span class="page-indicator" id="pageIndicator">Page <span id="currentPage">1</span> / <span id="totalPages">1</span></span>
+        </div>
+
+        <button class="nav-btn" onclick="nextPage()" title="Next Page">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR: Quick Links -->
+    <aside class="reader-sidebar reader-sidebar-right">
+      <div class="sidebar-card">
+        <h4>More Manga</h4>
+        <ul class="related-list">
+          {% for rel_manga in related_manga %}
+            {% if rel_manga[0] != manga[0] %}
+              <li>
+                <a href="{{ url_for('read_manga', id=rel_manga[0]) }}" class="related-link">
+                  {{ rel_manga[1] }}
+                </a>
+              </li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="settings-modal" id="settingsModal" style="display: none;">
+    <div class="settings-content">
+      <div class="settings-header">
+        <h3>Reader Settings</h3>
+        <button class="close-btn" onclick="toggleSettings()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="settings-body">
+        <div class="setting-group">
+          <label>Reading Mode</label>
+          <div class="setting-options">
+            <button class="setting-option active">Single Page</button>
+            <button class="setting-option">Continuous</button>
+            <button class="setting-option">Webtoon</button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label>Background Color</label>
+          <div class="setting-options">
+            <button class="setting-option active" style="background: #fff; border: 2px solid #667eea;">Light</button>
+            <button class="setting-option" style="background: #1a1a1a; border: 2px solid #333;">Dark</button>
+            <button class="setting-option" style="background: #f5f0e8; border: 2px solid #d4c5b9;">Sepia</button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label>
+            <input type="checkbox" checked> Remember progress
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.manga-reader-page {
+  background: #0a0e27;
+  min-height: 100vh;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.reader-top-bar {
+  background: rgba(10, 14, 39, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.reader-bar-left, .reader-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.reader-bar-right {
+  gap: 10px;
+}
+
+.reader-btn-icon {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.reader-btn-icon:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.reader-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reader-manga-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.reader-manga-author {
+  margin: 0;
+  font-size: 12px;
+  color: #999;
+}
+
+.reader-btn {
+  background: none;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  color: #667eea;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.reader-btn:hover {
+  background: rgba(102, 126, 234, 0.1);
+  border-color: #667eea;
+}
+
+.reader-btn-primary {
+  background: #667eea;
+  border-color: #667eea;
+  color: #fff;
+}
+
+.reader-btn-primary:hover {
+  background: #5568d3;
+}
+
+.reader-container {
+  display: grid;
+  grid-template-columns: 280px 1fr 280px;
+  gap: 20px;
+  flex: 1;
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 1200px) {
+  .reader-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .reader-sidebar {
+    display: none !important;
+  }
+}
+
+.reader-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+  max-height: calc(100vh - 150px);
+}
+
+.sidebar-card {
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  padding: 15px;
+}
+
+.series-cover {
+  width: 100%;
+  aspect-ratio: 2/3;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  margin-bottom: 15px;
+  overflow: hidden;
+}
+
+.series-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60px;
+}
+
+.series-title {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.series-author {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  color: #999;
+}
+
+.series-category .badge {
+  background: rgba(102, 126, 234, 0.3);
+  color: #667eea;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.series-description {
+  margin: 15px 0;
+  font-size: 12px;
+  color: #bbb;
+  line-height: 1.5;
+}
+
+.chapters-list {
+  border-top: 1px solid rgba(102, 126, 234, 0.2);
+  padding-top: 15px;
+}
+
+.chapters-list h4 {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  color: #999;
+}
+
+.chapter-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.chapter-item {
+  margin-bottom: 8px;
+}
+
+.chapter-link {
+  color: #667eea;
+  text-decoration: none;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  display: block;
+  transition: all 0.2s;
+}
+
+.chapter-link:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.chapter-item.active .chapter-link {
+  background: rgba(102, 126, 234, 0.2);
+  font-weight: 600;
+}
+
+.reader-main {
+  display: flex;
+  flex-direction: column;
+  background: rgba(102, 126, 234, 0.05);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.reader-header {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.chapter-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chapter-btn {
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  color: #667eea;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.chapter-btn:hover {
+  background: rgba(102, 126, 234, 0.2);
+}
+
+.chapter-dropdown {
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  min-width: 150px;
+  cursor: pointer;
+}
+
+.chapter-dropdown option {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.reader-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.reader-action-btn {
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  color: #667eea;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.reader-action-btn:hover {
+  background: rgba(102, 126, 234, 0.2);
+}
+
+.manga-viewer {
+  flex: 1;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+  overflow: auto;
+  position: relative;
+}
+
+.pdf-viewer-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.no-content {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.no-content-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+}
+
+.no-content h3 {
+  margin: 0 0 10px 0;
+  color: #fff;
+}
+
+.reader-footer {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 15px 20px;
+  border-top: 1px solid rgba(102, 126, 234, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.nav-btn {
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  color: #667eea;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.nav-btn:hover {
+  background: rgba(102, 126, 234, 0.2);
+}
+
+.progress-control {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-bar-container {
+  flex: 1;
+}
+
+.progress-slider {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(102, 126, 234, 0.2);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #667eea;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+}
+
+.progress-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #667eea;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+}
+
+.page-indicator {
+  font-size: 12px;
+  color: #999;
+  white-space: nowrap;
+}
+
+.settings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.settings-content {
+  background: #1a1a2e;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.settings-header {
+  padding: 20px;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.settings-body {
+  padding: 20px;
+}
+
+.setting-group {
+  margin-bottom: 20px;
+}
+
+.setting-group:last-child {
+  margin-bottom: 0;
+}
+
+.setting-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #ddd;
+}
+
+.setting-options {
+  display: flex;
+  gap: 8px;
+}
+
+.setting-option {
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  color: #667eea;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.setting-option:hover {
+  border-color: #667eea;
+}
+
+.setting-option.active {
+  background: rgba(102, 126, 234, 0.3);
+  border-color: #667eea;
+}
+
+.related-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.related-item {
+  margin-bottom: 8px;
+}
+
+.related-link {
+  color: #667eea;
+  text-decoration: none;
+  font-size: 13px;
+  padding: 8px;
+  border-radius: 4px;
+  display: block;
+  transition: all 0.2s;
+}
+
+.related-link:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+</style>
+
+<script>
+function toggleSettings() {
+  const modal = document.getElementById('settingsModal');
+  modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+}
+
+function toggleChapters() {
+  const list = document.getElementById('chaptersList');
+  list.style.display = list.style.display === 'none' ? 'block' : 'none';
+}
+
+function changeChapter() {
+  const select = document.getElementById('chapterSelect');
+  console.log('Chapter changed to:', select.value);
+}
+
+function previousChapter() {
+  alert('Previous chapter');
+}
+
+function nextChapter() {
+  alert('Next chapter');
+}
+
+function previousPage() {
+  const slider = document.getElementById('progressSlider');
+  slider.value = Math.max(0, parseInt(slider.value) - 5);
+  updatePage(slider.value);
+}
+
+function nextPage() {
+  const slider = document.getElementById('progressSlider');
+  slider.value = Math.min(100, parseInt(slider.value) + 5);
+  updatePage(slider.value);
+}
+
+function updatePage(value) {
+  document.getElementById('currentPage').textContent = value;
+  document.getElementById('progressSlider').value = value;
+}
+
+// Close settings modal when clicking outside
+document.addEventListener('click', function(event) {
+  const modal = document.getElementById('settingsModal');
+  const content = modal.querySelector('.settings-content');
+  if (event.target === modal) {
+    modal.style.display = 'none';
+  }
+});
+</script>
+{% endblock %}
