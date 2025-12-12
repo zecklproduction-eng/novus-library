@@ -71,47 +71,11 @@
     </div>
   </div>
 
-  <!-- STATUS CARDS (middle section) -->
-  <div class="watchlist-section mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h5 class="watchlist-section-title mb-0">Status View</h5>
-      <span class="watchlist-section-tag text-muted">Showing: <span id="status-name">Planned</span></span>
-    </div>
-
-    <div class="watchlist-tags-row mb-3">
-      <span class="watchlist-tag active" onclick="filterByCategory('all')">All</span>
-      {% for cat in categories %}
-      <span class="watchlist-tag" onclick="filterByCategory('{{ cat }}')">{{ cat }}</span>
-      {% endfor %}
-    </div>
-
-    <div class="watchlist-status-cards-row">
-      {% for book in table_books %}
-      <div class="status-card" data-status="{{ book.status }}" data-category="{{ book.category }}" data-title="{{ book.title.lower() }}" data-author="{{ book.author.lower() }}">
-        <div class="status-card-cover">
-          {% if book.cover %}
-            <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }}" style="width:100%; height:180px; object-fit:cover; border-radius:8px;">
-          {% else %}
-            <div style="width:100%; height:180px; background: linear-gradient(135deg,#667eea,#764ba2); border-radius:8px;"></div>
-          {% endif %}
-          <div class="status-card-meta">
-            <div class="status-card-author">{{ book.author }}</div>
-            <div class="status-card-title">{{ book.title }}</div>
-          </div>
-        </div>
-        <div class="status-card-footer">
-          <div class="watchlist-progress-circle small"><span>{{ book.progress or 0 }}%</span></div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- TABLE SECTION (like the list at the bottom of the screenshot) -->
+  <!-- READING SECTION -->
   <div class="watchlist-section">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h5 class="watchlist-section-title mb-0">Planned to Read</h5>
-      <span class="watchlist-section-tag text-muted">Started today!</span>
+      <h5 class="watchlist-section-title mb-0">Reading</h5>
+      <span class="watchlist-section-tag text-muted">Currently reading</span>
     </div>
 
     <div class="watchlist-tags-row mb-3">
@@ -200,19 +164,11 @@
 </div>
 
 <script>
-  let currentFilter = 'planned';
+  let currentFilter = 'reading';
   let currentCategory = 'all';
-
-  function updateStatusName() {
-    const mapping = { planned: 'Planned', reading: 'Reading', on_hold: 'On Hold', dropped: 'Dropped' };
-    const name = mapping[currentFilter] || currentFilter;
-    const el = document.getElementById('status-name');
-    if (el) el.textContent = name;
-  }
 
   function filterByStatus(status) {
     currentFilter = status;
-    updateStatusName();
     const buttons = document.querySelectorAll('.watchlist-filter-btn');
     buttons.forEach(btn => btn.classList.remove('active'));
     if (event && event.target) event.target.classList.add('active');
@@ -234,30 +190,17 @@
   function applyFilters() {
     const searchTerm = (document.getElementById('watchlist-search') || {value:''}).value.toLowerCase();
 
-    // Table rows: filter by status + category + search
+    // Reading section table rows: filter by reading status + category + search
     const rows = document.querySelectorAll('.watchlist-row');
     rows.forEach(row => {
       const status = row.getAttribute('data-status');
       const title = row.getAttribute('data-title') || '';
       const author = row.getAttribute('data-author') || '';
       const category = row.getAttribute('data-category') || '';
-      const statusMatch = status === currentFilter;
+      const statusMatch = status === 'reading';
       const searchMatch = title.includes(searchTerm) || author.includes(searchTerm);
       const categoryMatch = currentCategory === 'all' || category === currentCategory;
       row.style.display = (statusMatch && searchMatch && categoryMatch) ? '' : 'none';
-    });
-
-    // Status cards (middle): same filters as rows
-    const sCards = document.querySelectorAll('.status-card');
-    sCards.forEach(card => {
-      const status = card.getAttribute('data-status');
-      const title = card.getAttribute('data-title') || '';
-      const author = card.getAttribute('data-author') || '';
-      const category = card.getAttribute('data-category') || '';
-      const statusMatch = status === currentFilter;
-      const searchMatch = title.includes(searchTerm) || author.includes(searchTerm);
-      const categoryMatch = currentCategory === 'all' || category === currentCategory;
-      card.style.display = (statusMatch && searchMatch && categoryMatch) ? '' : 'none';
     });
 
     // All cards (down section): ignore status, filter by category + search
@@ -273,7 +216,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    updateStatusName();
     applyFilters();
   });
 </script>
