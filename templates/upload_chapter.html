@@ -55,13 +55,18 @@
       </div>
 
       <div style="margin-bottom: 30px;">
-        <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">PDF File *</label>
-        <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterFile').click()" id="dropZone">
-          <input type="file" name="chapter_file" id="chapterFile" accept=".pdf" style="display:none">
-          <i class="fas fa-file-pdf" style="color: var(--neon-blue); font-size: 40px;"></i>
+        <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter Pages *</label>
+        <p style="color: #999; font-size: 12px; margin-bottom: 12px;">Upload multiple page images (JPG, PNG). They will be automatically ordered by upload order.</p>
+        <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterPages').click()" id="dropZone">
+          <input type="file" name="chapter_pages" id="chapterPages" accept="image/jpeg,image/png" multiple style="display:none">
+          <i class="fas fa-images" style="color: var(--neon-blue); font-size: 40px;"></i>
           <p style="margin: 15px 0; color: #bbb;">Drag & Drop or Browse</p>
-          <small style="color: #999;">PDF only (Max 50MB)</small>
-          <div id="fileName" style="display: none; color: #667eea; margin-top: 15px; font-weight: 500;"></div>
+          <small style="color: #999;">Image files (JPG, PNG - Max 5MB each)</small>
+          <div id="pageCount" style="display: none; color: #667eea; margin-top: 15px; font-weight: 500;"></div>
+        </div>
+        <div id="pagePreviewContainer" style="margin-top: 15px; max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; display: none;">
+          <p style="color: #aaa; font-size: 12px; margin: 0 0 10px 0;">Page Preview:</p>
+          <div id="pagesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px;"></div>
         </div>
       </div>
 
@@ -89,6 +94,43 @@ const dropZone = document.getElementById('dropZone');
   dropZone.addEventListener(eventName, preventDefaults, false);
 });
 
+const chapterPages = document.getElementById('chapterPages');
+if (chapterPages) {
+  chapterPages.addEventListener('change', function() {
+    const files = this.files;
+    const countDiv = document.getElementById('pageCount');
+    const previewDiv = document.getElementById('pagePreviewContainer');
+    const pagesList = document.getElementById('pagesList');
+    
+    if (files.length > 0) {
+      countDiv.textContent = `✓ ${files.length} page${files.length !== 1 ? 's' : ''} selected`;
+      countDiv.style.display = 'block';
+      previewDiv.style.display = 'block';
+      pagesList.innerHTML = '';
+      
+      // Show preview of each page
+      Array.from(files).forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const thumbContainer = document.createElement('div');
+          thumbContainer.style.cssText = 'position: relative; cursor: pointer; border-radius: 4px; overflow: hidden;';
+          thumbContainer.innerHTML = `
+            <img src="${e.target.result}" style="width: 100%; height: 100px; object-fit: cover; border: 1px solid rgba(102,126,234,0.3); border-radius: 4px;">
+            <span style="position: absolute; top: 2px; right: 2px; background: var(--neon-blue); color: #000; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px;">${index + 1}</span>
+          `;
+          pagesList.appendChild(thumbContainer);
+        };
+        reader.readAsDataURL(file);
+      });
+    } else {
+      countDiv.style.display = 'none';
+      previewDiv.style.display = 'none';
+    }
+  });
+}
+
+const dropZone = document.getElementById('dropZone');
+
 function preventDefaults(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -111,11 +153,11 @@ function preventDefaults(e) {
 dropZone.addEventListener('drop', (e) => {
   const dt = e.dataTransfer;
   const files = dt.files;
-  document.getElementById('chapterFile').files = files;
+  document.getElementById('chapterPages').files = files;
   
   // Trigger change event
   const event = new Event('change', { bubbles: true });
-  document.getElementById('chapterFile').dispatchEvent(event);
+  document.getElementById('chapterPages').dispatchEvent(event);
 });
 </script>
 {% endblock %}

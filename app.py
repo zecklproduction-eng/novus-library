@@ -16,13 +16,16 @@ DB_PATH = os.path.join(APP_ROOT, "library.db")
 UPLOAD_FOLDER_PDF    = os.path.join(APP_ROOT, "static", "books")
 UPLOAD_FOLDER_AUDIO  = os.path.join(APP_ROOT, "static", "audio")
 UPLOAD_FOLDER_COVERS = os.path.join(APP_ROOT, "static", "covers")
+UPLOAD_FOLDER_MANGA  = os.path.join(APP_ROOT, "static", "manga")
 
 os.makedirs(UPLOAD_FOLDER_PDF, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_AUDIO, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_COVERS, exist_ok=True)
+os.makedirs(UPLOAD_FOLDER_MANGA, exist_ok=True)
 
 ALLOWED_PDF   = {"pdf"}
 ALLOWED_AUDIO = {"mp3"}
+ALLOWED_IMG   = {"jpg", "jpeg", "png"}
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "novus_secret_key")
@@ -134,6 +137,13 @@ def init_db():
         # Column already exists, that's fine
         pass
 
+    # Add description column if it doesn't exist (migration for existing DBs)
+    try:
+        c.execute("ALTER TABLE books ADD COLUMN description TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
     # created_at trigger
     c.execute("""
         CREATE TRIGGER IF NOT EXISTS books_created_at_default
@@ -200,11 +210,19 @@ def init_db():
             chapter_num INTEGER NOT NULL,
             title       TEXT,
             pdf_filename TEXT,
+            page_count  INTEGER DEFAULT 0,
             created_at  TEXT DEFAULT (DATETIME('now')),
             FOREIGN KEY (manga_id) REFERENCES books(id),
             UNIQUE(manga_id, chapter_num)
         )
     """)
+
+    # Add page_count column to chapters if it doesn't exist (migration for existing DBs)
+    try:
+        c.execute("ALTER TABLE chapters ADD COLUMN page_count INTEGER DEFAULT 0")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
 
 
     # default users
@@ -676,24 +694,39 @@ def add_book():
         # Get the newly created manga ID
         manga_id = c.lastrowid
 
-        # Handle first chapter upload
-        chapter_file = request.files.get("chapter_file")
-        if chapter_file and chapter_file.filename:
-            ext = chapter_file.filename.rsplit(".", 1)[-1].lower()
-            if ext in ALLOWED_PDF:
-                pdf_filename = secure_filename(chapter_file.filename)
-                chapter_file.save(os.path.join(UPLOAD_FOLDER_PDF, pdf_filename))
-
-                # Insert chapter 1
+        # Handle first chapter upload - now support multiple images
+        chapter_pages = request.files.getlist("chapter_pages")
+        
+        if chapter_pages and len(chapter_pages) > 0:
+            # Create manga chapter directory
+            chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch1")
+            os.makedirs(chapter_dir, exist_ok=True)
+            
+            page_files = []
+            page_count = 0
+            
+            for idx, page_file in enumerate(chapter_pages, 1):
+                if page_file and page_file.filename:
+                    ext = page_file.filename.rsplit(".", 1)[-1].lower()
+                    if ext in ALLOWED_IMG:
+                        # Save with page number for ordering
+                        page_filename = f"page_{idx:03d}.{ext}"
+                        page_file.save(os.path.join(chapter_dir, page_filename))
+                        page_files.append(page_filename)
+                        page_count += 1
+            
+            if page_count > 0:
+                # Store page files info in chapters table (comma-separated)
+                pages_data = ",".join(page_files)
                 c.execute("""
-                INSERT INTO chapters (manga_id, chapter_num, title, pdf_filename)
-                VALUES (?, ?, ?, ?)
-            """, (manga_id, 1, f"Chapter 1", pdf_filename))
+                    INSERT INTO chapters (manga_id, chapter_num, title, pdf_filename, page_count)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (manga_id, 1, "Chapter 1", pages_data, page_count))
                 conn.commit()
 
         conn.close()
 
-        flash("Manga series created successfully. You can add more chapters anytime.", "success")
+        flash(f"Manga series created successfully with {page_count} pages in Chapter 1. You can add more chapters anytime.", "success")
         return redirect(url_for("manga"))
 
 
@@ -1249,10 +1282,10 @@ def upload_chapter(manga_id):
     # POST - upload chapter
     chapter_num = request.form.get("chapter_num", "").strip()
     chapter_title = request.form.get("chapter_title", f"Chapter {chapter_num}").strip()
-    chapter_file = request.files.get("chapter_file")
+    chapter_pages = request.files.getlist("chapter_pages")
 
-    if not chapter_num or not chapter_file or not chapter_file.filename:
-        flash("Chapter number and PDF file are required.", "danger")
+    if not chapter_num or not chapter_pages or len(chapter_pages) == 0:
+        flash("Chapter number and at least one page image are required.", "danger")
         return redirect(url_for("upload_chapter", manga_id=manga_id))
 
     try:
@@ -1287,25 +1320,38 @@ def upload_chapter(manga_id):
         flash("Manga not found.", "danger")
         return redirect(url_for("manga"))
 
-    # Save chapter PDF
-    ext = chapter_file.filename.rsplit(".", 1)[-1].lower()
-    if ext not in ALLOWED_PDF:
+    # Save chapter pages
+    chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch{chapter_num}")
+    os.makedirs(chapter_dir, exist_ok=True)
+    
+    page_files = []
+    page_count = 0
+    
+    for idx, page_file in enumerate(chapter_pages, 1):
+        if page_file and page_file.filename:
+            ext = page_file.filename.rsplit(".", 1)[-1].lower()
+            if ext in ALLOWED_IMG:
+                # Save with page number for ordering
+                page_filename = f"page_{idx:03d}.{ext}"
+                page_file.save(os.path.join(chapter_dir, page_filename))
+                page_files.append(page_filename)
+                page_count += 1
+    
+    if page_count == 0:
         conn.close()
-        flash("Chapter file must be a PDF.", "danger")
+        flash("No valid image files were uploaded.", "danger")
         return redirect(url_for("upload_chapter", manga_id=manga_id))
 
-    pdf_filename = secure_filename(chapter_file.filename)
-    chapter_file.save(os.path.join(UPLOAD_FOLDER_PDF, pdf_filename))
-
-    # Insert chapter
+    # Store page files info in chapters table (comma-separated)
+    pages_data = ",".join(page_files)
     c.execute("""
-        INSERT INTO chapters (manga_id, chapter_num, title, pdf_filename)
-        VALUES (?, ?, ?, ?)
-    """, (manga_id, chapter_num, chapter_title, pdf_filename))
+        INSERT INTO chapters (manga_id, chapter_num, title, pdf_filename, page_count)
+        VALUES (?, ?, ?, ?, ?)
+    """, (manga_id, chapter_num, chapter_title, pages_data, page_count))
     conn.commit()
     conn.close()
 
-    flash(f"Chapter {chapter_num} uploaded successfully!", "success")
+    flash(f"Chapter {chapter_num} uploaded successfully with {page_count} pages!", "success")
     return redirect(url_for("upload_chapter", manga_id=manga_id))
 
 
