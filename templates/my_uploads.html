@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}My Uploads | NOVUS{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+
+  <div class="section-container mb-3">
+    <h2 class="page-title mb-1">My Uploads</h2>
+    <p class="text-muted mb-0">
+      {% if is_admin %}
+        Showing all books and manga in the catalog (admin view).
+      {% else %}
+        These are the books and manga you have published to NOVUS.
+      {% endif %}
+    </p>
+  </div>
+
+  {% if books %}
+  <div class="section-container">
+    <div class="grid-toolbar">
+      <div class="result-count">
+        {{ books|length }} item{{ books|length != 1 and 's' or '' }} found
+      </div>
+    </div>
+
+    <div class="product-grid">
+      {% for b in books %}
+      <div class="product-card">
+        <div class="product-thumb">
+          {% if b[6] %}
+            <img src="{{ url_for('static', filename=b[6]) }}" alt="{{ b[1] }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
+          {% else %}
+            {% if b[8] == 'manga' %}
+              <div class="book-icon">🎨</div>
+            {% else %}
+              <div class="book-icon">📚</div>
+            {% endif %}
+          {% endif %}
+        </div>
+
+        <div class="product-title">
+          {{ b[1] }}
+          {% if b[8] == 'manga' %}
+            <span style="font-size: 10px; background: #667eea; color: white; padding: 2px 6px; border-radius: 3px; margin-left: 5px;">MANGA</span>
+          {% endif %}
+        </div>
+        <div class="product-meta">
+          <div>Author: <strong>{{ b[2] or 'Unknown' }}</strong></div>
+          <div>Category: {{ b[3] }}</div>
+          {% if b[8] == 'manga' and b[0] in manga_chapters %}
+          <div style="color: #667eea; font-weight: 500;">
+            <i class="fas fa-file-pdf" style="margin-right: 5px;"></i>
+            {{ manga_chapters[b[0]] }} chapter{{ manga_chapters[b[0]] != 1 and 's' or '' }}
+          </div>
+          {% endif %}
+          <div class="text-muted" style="font-size: 0.75rem;">
+            Added on: {{ b[7] or 'N/A' }}
+          </div>
+        </div>
+
+        <div class="product-actions">
+          {% if b[8] == 'manga' %}
+            <a href="{{ url_for('upload_chapter', manga_id=b[0]) }}" class="btn btn-ghost" title="Upload Chapter">
+              <i class="fas fa-plus"></i> Chapter
+            </a>
+          {% endif %}
+          
+          <a href="{% if b[8] == 'manga' %}{{ url_for('read_manga', id=b[0]) }}{% else %}{{ url_for('view_book', id=b[0]) }}{% endif %}" class="btn btn-ghost">
+            View
+          </a>
+
+          <a href="{{ url_for('edit_book', id=b[0]) }}" class="btn btn-orange">
+            Edit
+          </a>
+
+          <form method="POST"
+                action="{{ url_for('delete_book', id=b[0]) }}"
+                onsubmit="return confirm('Delete this {{ 'manga' if b[8] == 'manga' else 'book' }} permanently?');"
+                style="margin: 0;">
+            <button type="submit" class="btn btn-danger">
+              Delete
+            </button>
+          </form>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="section-container empty-note">
+    {% if is_admin %}
+      No books or manga have been uploaded yet.
+    {% else %}
+      You haven't uploaded any books or manga yet.
+      <br>
+      <a href="{{ url_for('add_book') }}" class="btn-neon mt-3">Upload Your First Book</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Watchlist | NOVUS{% endblock %}
+
+{% block content %}
+<div class="watchlist-page">
+  <!-- Top heading + search -->
+  <div
+    class="watchlist-header d-flex justify-content-between align-items-center mb-4"
+  >
+    <div class="d-flex align-items-center gap-3">
+      <div class="watchlist-icon">
+        <i class="fas fa-layer-group"></i>
+      </div>
+      <div>
+        <h2 class="watchlist-title">Watchlist</h2>
+        <p class="watchlist-subtitle text-muted mb-0">
+          Keep track of what you want to read next and what you're currently
+          reading.
+        </p>
+      </div>
+    </div>
+
+    <div class="watchlist-search">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Search in watchlist..." />
+    </div>
+  </div>
+
+  <!-- Status filter buttons (top colored row) -->
+  <div class="watchlist-filter-bar mb-4">
+    <button class="watchlist-filter-btn active">Planned to Read</button>
+    <button class="watchlist-filter-btn">Finishing Reading</button>
+    <button class="watchlist-filter-btn">On Hold</button>
+    <button class="watchlist-filter-btn">Dropped</button>
+  </div>
+
+  <!-- FEATURED CARDS (like the covers row in the screenshot) -->
+  <div class="watchlist-section mb-4">
+    <h5 class="watchlist-section-title">Planned to Read</h5>
+
+    <div class="watchlist-cards-row">
+      {% for book in featured_books %}
+      <div class="watchlist-card">
+        <div class="watchlist-card-cover">
+          {% if book.cover %}
+            <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
+            <div class="watchlist-card-cover-text" style="position:absolute; left:10px; bottom:10px;">
+              <span class="watchlist-card-author">{{ book.author }}</span>
+              <span class="watchlist-card-title">{{ book.title }}</span>
+            </div>
+          {% else %}
+            <div class="watchlist-card-cover-text">
+              <span class="watchlist-card-author">{{ book.author }}</span>
+              <span class="watchlist-card-title">{{ book.title }}</span>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="watchlist-card-footer">
+          <div class="watchlist-progress-circle">
+            <span>{{ book.progress }}%</span>
+          </div>
+          <div class="watchlist-card-status text-muted">
+            {{ book.progress }}% read
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- TABLE SECTION (like the list at the bottom of the screenshot) -->
+  <div class="watchlist-section">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="watchlist-section-title mb-0">Planned to Read</h5>
+      <span class="watchlist-section-tag text-muted">Started today!</span>
+    </div>
+
+    <div class="watchlist-tags-row mb-3">
+      <span class="watchlist-tag active">All</span>
+      <span class="watchlist-tag">Frank Herbert</span>
+      <span class="watchlist-tag">Madeline Miller</span>
+      <span class="watchlist-tag">Matt Haig</span>
+    </div>
+
+    <div class="watchlist-table-wrapper">
+      <table class="watchlist-table">
+        <tbody>
+          {% for book in table_books %}
+          <tr>
+            <td class="watchlist-table-cover">
+              <div class="watchlist-table-cover-thumb">
+                {% if book.cover %}
+                  <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }}" style="width:48px; height:64px; object-fit:cover; border-radius:4px;">
+                {% else %}
+                  <span>{{ book.title[0] }}</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="watchlist-table-title">
+              {{ book.title }}
+            </td>
+            <td class="watchlist-table-author text-muted">
+              {{ book.author }}
+            </td>
+            <td class="watchlist-table-year text-muted">
+              {{ book.year }}
+            </td>
+            <td class="watchlist-table-rating text-end">
+              {% for _ in range(book.rating) %}
+              <i class="fas fa-star"></i>
+              {% endfor %}
+            </td>
+            <td class="watchlist-table-actions">
+              <a href="{{ url_for('view_book', id=book.id) }}" class="btn btn-ghost btn-sm">View</a>
+
+              <form method="post" action="{{ url_for('watchlist_update') }}" style="display:inline-block;">
+                <input type="hidden" name="book_id" value="{{ book.id }}">
+                <select name="status" class="form-select form-select-sm" style="display:inline-block; width:auto;">
+                  <option value="planned" {% if book.status=='planned' %}selected{% endif %}>Planned</option>
+                  <option value="reading" {% if book.status=='reading' %}selected{% endif %}>Reading</option>
+                  <option value="on_hold" {% if book.status=='on_hold' %}selected{% endif %}>On Hold</option>
+                  <option value="dropped" {% if book.status=='dropped' %}selected{% endif %}>Dropped</option>
+                </select>
+                <input type="number" name="progress" min="0" max="100" value="{{ book.progress or 0 }}" style="width:70px; display:inline-block;" class="form-control form-control-sm">
+                <button type="submit" class="btn btn-sm btn-orange">Save</button>
+              </form>
+
+              <form method="post" action="{{ url_for('watchlist_remove') }}" style="display:inline-block; margin-left:8px;" onsubmit="return confirm('Remove this from your watchlist?');">
+                <input type="hidden" name="book_id" value="{{ book.id }}">
+                <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

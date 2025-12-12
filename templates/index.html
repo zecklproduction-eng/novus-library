@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}E-library | Dashboard{% endblock %}
+
+{% block content %}
+<div class="catalog-page">
+
+  <!-- Hero banner -->
+  <div class="catalog-hero">
+    <div class="catalog-hero-inner container">
+      <h1 class="catalog-title">NOVUS</h1>
+      <p class="catalog-subtitle">A New Way to Read.</p>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb-row">
+      <a href="{{ url_for(page_endpoint or 'home') }}">Home</a>
+      <span>›</span>
+      <a href="{{ url_for(page_endpoint or 'home') }}">Books</a>
+
+      {% if selected_category %}
+      <span>›</span>
+      <span class="crumb-current">{{ selected_category }}</span>
+      {% endif %}
+    </nav>
+
+    <div class="content-row">
+      <!-- Left: Grid -->
+      <div class="grid-col">
+
+        <!-- Grid header -->
+        <div class="grid-toolbar">
+          <div class="result-count">
+            Showing <strong>{{ books|length }}</strong> result{{ books|length != 1 and 's' or '' }}
+            {% if selected_category %} in <strong>{{ selected_category }}</strong>{% endif %}
+          </div>
+
+          <form method="get" class="sort-form" style="display:flex; gap:8px; align-items:center;">
+            <input type="text" name="q" placeholder="Search title or author..." value="{{ search_query or '' }}" class="form-control" style="min-width:200px;">
+            <select name="category" class="form-select">
+              <option value="">All categories</option>
+              {% for cat in categories %}
+                <option value="{{ cat }}" {% if cat==selected_category %}selected{% endif %}>{{ cat }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-orange" type="submit">Search</button>
+          </form>
+        </div>
+
+        <!-- Product grid -->
+        <div class="product-grid">
+  {% if books %}
+  {% for b in books %}
+  <div class="product-card">
+    <div class="product-thumb">
+      {% if b[6] %}
+        <img
+          src="{{ url_for('static', filename=b[6]) }}"
+          alt="{{ b[1] }} cover"
+          class="product-cover-img"
+        />
+      {% else %}
+        <div class="book-icon">
+          <i class="fas fa-book-open"></i>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="product-body">
+      <div class="product-title">{{ b[1] }}</div>
+      <div class="product-meta text-muted">
+        {{ b[2] or 'Unknown Author' }} &nbsp;•&nbsp; {{ b[3] or 'General' }}
+      </div>
+    </div>
+
+    <div class="product-actions">
+      <a href="{{ url_for('view_book', id=b[0]) }}" class="btn btn-orange">
+        Read
+      </a>
+
+      {% if user_role == 'admin' %}
+      <form method="post" action="{{ url_for('watchlist_book', book_id=b[0]) }}">
+  <input type="hidden" name="status" value="planned">
+  <button class="btn btn-ghost" type="submit">Add to Watchlist</button>
+</form>
+
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+          <div class="empty-note">
+            No books yet. {% if user_role=='admin' %}<a href="{{ url_for('add_book') }}">Add your first book</a>.{% endif %}
+          </div>
+  {% endif %}
+        </div>
+
+      </div>
+
+      <!-- Right: Sidebar categories -->
+      <aside class="sidebar-col">
+        <div class="sidebar-card">
+          <div class="sidebar-title">Product Categories</div>
+          <ul class="category-list">
+            <li>
+              <a class="{{ ''==selected_category and 'is-active' or '' }}" href="{{ url_for('home') }}">All</a>
+            </li>
+            {% for cat in categories %}
+            <li>
+              <a class="{{ cat==selected_category and 'is-active' or '' }}"
+                 href="{{ url_for('home') }}?category={{ cat|urlencode }}">{{ cat }}</a>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+{% endblock %}

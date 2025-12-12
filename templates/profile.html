@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Profile | NOVUS{% endblock %}
+
+{% block content %}
+<div class="container py-3 profile-page">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="avatar-badge">
+        <i class="fas fa-user"></i>
+      </div>
+      <div>
+        <h2 class="mb-0">{{ username or 'ReaderOne' }}</h2>
+        <p class="text-muted mb-0">Welcome back 👋</p>
+      </div>
+    </div>
+
+    <a href="#" class="btn btn-neon d-flex align-items-center">
+      <i class="fas fa-pen-to-square me-2"></i> Edit Profile
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <!-- LEFT: Stats + Shelves -->
+    <div class="col-lg-8">
+      <!-- Stats -->
+      <div class="section-container mb-4">
+        <div class="section-title">Reading Stats</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">{{ count }}</div>
+            <div class="stat-label">Books Read</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ pages_read or '—' }}</div>
+            <div class="stat-label">Pages Read</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ avg_rating or '—' }}</div>
+            <div class="stat-label">Average Rating</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ fav or '—' }}</div>
+            <div class="stat-label">Favorite Genre</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Currently Reading -->
+      <div class="section-container mb-4">
+        <div class="section-title">Currently Reading</div>
+        <div class="watchlist-cards-row">
+          {% for b in currently_reading %}
+          <div class="watchlist-card">
+            <div class="watchlist-card-cover" style="position:relative;">
+              {% if b.cover %}
+                <img src="{{ url_for('static', filename=b.cover) }}" alt="{{ b.title }}" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
+              {% else %}
+                <div style="background: linear-gradient(135deg,#6a82fb,#fc5c7d); width:100%; height:100%; border-radius:6px;"></div>
+              {% endif %}
+              <div class="watchlist-card-cover-text" style="position:absolute; left:10px; bottom:10px;">
+                <span class="watchlist-card-author">{{ b.author or 'Unknown' }}</span>
+                <span class="watchlist-card-title">{{ b.title }}</span>
+              </div>
+            </div>
+            <div class="watchlist-card-footer">
+              <div class="watchlist-progress-circle"><span>{{ b.progress }}%</span></div>
+              <div class="watchlist-card-status text-muted">{{ b.progress }}% read</div>
+            </div>
+          </div>
+          {% else %}
+          <p class="text-muted mb-0">No books marked as 'reading' yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Recent Books Finished -->
+      <div class="section-container">
+        <div class="section-title">Recent Books Finished</div>
+        <div class="covers-row">
+          {% for b in recent_finished %}
+          <div class="cover-thumb">
+            {% if b.cover %}
+              <img src="{{ url_for('static', filename=b.cover) }}" alt="{{ b.title }}" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
+            {% else %}
+              <div class="cover-thumb-img">{{ b.title[0] }}</div>
+            {% endif %}
+            <div class="cover-thumb-title text-truncate" title="{{ b.title }}">{{ b.title }}</div>
+          </div>
+          {% else %}
+          <p class="text-muted mb-0">Finish a book to see it here.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Bio + Recent Activity -->
+    <div class="col-lg-4">
+      <div class="section-container mb-4">
+        <div class="section-title">About</div>
+        <p class="text-muted small mb-0">
+          You can drop a short bio here. This block matches the look in your screenshot.
+        </p>
+      </div>
+
+      <div class="section-container">
+        <div class="section-title">Recent Activity</div>
+        <ul class="activity-list">
+          {% for a in recent_activity %}
+          <li class="activity-item">
+            <i class="fas {{ a.icon }}"></i>
+            <div>
+              <div class="activity-text">{{ a.text|safe }}</div>
+              <div class="activity-time text-muted small">{{ a.when }}</div>
+            </div>
+          </li>
+          {% else %}
+          <li class="text-muted small">No activity yet.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
