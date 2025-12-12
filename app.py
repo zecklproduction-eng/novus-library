@@ -917,25 +917,25 @@ def watchlist():
     c = conn.cursor()
     rows = c.execute("""
         SELECT b.id, b.title, b.author, COALESCE(b.category, 'General'),
-               b.pdf_filename, b.audio_filename, b.cover_path,
+               b.pdf_filename, b.audio_filename, b.cover_path, COALESCE(b.book_type,'book'),
                w.status, w.progress, w.created_at
         FROM watchlist w
         JOIN books b ON b.id = w.book_id
         WHERE w.user_id = ?
         ORDER BY datetime(w.created_at) DESC
     """, (session["user_id"],)).fetchall()
-    
+
     # Get unique categories from watchlist
     categories = sorted(set([row[3] for row in rows]))
-    
+
     conn.close()
 
     featured_books = [
-        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "progress": r[8] or 0, "cover": r[6], "status": r[7]}
+        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "book_type": r[7], "progress": r[9] or 0, "cover": r[6], "status": r[8]}
         for r in rows[:3]
     ]
     table_books = [
-        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "year": "", "rating": 4, "cover": r[6], "status": r[7], "progress": r[8]}
+        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "book_type": r[7], "year": "", "rating": 4, "cover": r[6], "status": r[8], "progress": r[9]}
         for r in rows
     ]
     return render_template("watchlist.html", featured_books=featured_books, table_books=table_books, categories=categories)
