@@ -698,11 +698,18 @@ a.cta-button {
   background-color: #333;
   color: #ccc;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.watchlist-tag:hover {
+  background-color: #444;
+  color: #fff;
 }
 
 .watchlist-tag.active {
   background-color: var(--neon-blue);
   color: #000;
+  font-weight: 600;
 }
 
 /* Table list */

@@ -79,17 +79,17 @@
     </div>
 
     <div class="watchlist-tags-row mb-3">
-      <span class="watchlist-tag active">All</span>
-      <span class="watchlist-tag">Frank Herbert</span>
-      <span class="watchlist-tag">Madeline Miller</span>
-      <span class="watchlist-tag">Matt Haig</span>
+      <span class="watchlist-tag active" onclick="filterByCategory('all')">All</span>
+      {% for cat in categories %}
+      <span class="watchlist-tag" onclick="filterByCategory('{{ cat }}')">{{ cat }}</span>
+      {% endfor %}
     </div>
 
     <div class="watchlist-table-wrapper">
       <table class="watchlist-table">
         <tbody>
           {% for book in table_books %}
-          <tr class="watchlist-row" data-title="{{ book.title.lower() }}" data-author="{{ book.author.lower() }}" data-status="{{ book.status }}">
+          <tr class="watchlist-row" data-title="{{ book.title.lower() }}" data-author="{{ book.author.lower() }}" data-status="{{ book.status }}" data-category="{{ book.category }}">
             <td class="watchlist-table-cover">
               <div class="watchlist-table-cover-thumb">
                 {% if book.cover %}
@@ -143,11 +143,20 @@
 
 <script>
   let currentFilter = 'planned';
+  let currentCategory = 'all';
 
   function filterByStatus(status) {
     currentFilter = status;
     const buttons = document.querySelectorAll('.watchlist-filter-btn');
     buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    applyFilters();
+  }
+
+  function filterByCategory(category) {
+    currentCategory = category;
+    const tags = document.querySelectorAll('.watchlist-tag');
+    tags.forEach(tag => tag.classList.remove('active'));
     event.target.classList.add('active');
     applyFilters();
   }
@@ -164,11 +173,13 @@
       const status = row.getAttribute('data-status');
       const title = row.getAttribute('data-title');
       const author = row.getAttribute('data-author');
+      const category = row.getAttribute('data-category');
       
       const statusMatch = status === currentFilter;
       const searchMatch = title.includes(searchTerm) || author.includes(searchTerm);
+      const categoryMatch = currentCategory === 'all' || category === currentCategory;
       
-      row.style.display = (statusMatch && searchMatch) ? '' : 'none';
+      row.style.display = (statusMatch && searchMatch && categoryMatch) ? '' : 'none';
     });
   }
 
