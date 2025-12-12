@@ -915,30 +915,50 @@ def watchlist():
 
     conn = get_conn()
     c = conn.cursor()
+    
+    # Watchlist books
     rows = c.execute("""
         SELECT b.id, b.title, b.author, COALESCE(b.category, 'General'),
-               b.pdf_filename, b.audio_filename, b.cover_path, COALESCE(b.book_type,'book'),
+               b.pdf_filename, b.audio_filename, b.cover_path,
                w.status, w.progress, w.created_at
         FROM watchlist w
         JOIN books b ON b.id = w.book_id
         WHERE w.user_id = ?
         ORDER BY datetime(w.created_at) DESC
     """, (session["user_id"],)).fetchall()
-
+    
+    # Recently read books from history
+    recently_read = c.execute("""
+        SELECT b.id, b.title, b.author, COALESCE(b.category, 'General'),
+               b.pdf_filename, b.audio_filename, b.cover_path,
+               h.date_read
+        FROM history h
+        JOIN books b ON b.id = h.book_id
+        WHERE h.user_id = ?
+        ORDER BY h.date_read DESC
+        LIMIT 20
+    """, (session["user_id"],)).fetchall()
+    
     # Get unique categories from watchlist
     categories = sorted(set([row[3] for row in rows]))
-
+    
     conn.close()
 
     featured_books = [
-        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "book_type": r[7], "progress": r[9] or 0, "cover": r[6], "status": r[8]}
+        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "progress": r[8] or 0, "cover": r[6], "status": r[7]}
         for r in rows[:3]
     ]
     table_books = [
-        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "book_type": r[7], "year": "", "rating": 4, "cover": r[6], "status": r[8], "progress": r[9]}
+        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "year": "", "rating": 4, "cover": r[6], "status": r[7], "progress": r[8]}
         for r in rows
     ]
-    return render_template("watchlist.html", featured_books=featured_books, table_books=table_books, categories=categories)
+    
+    recently_read_books = [
+        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "cover": r[6], "date_read": r[7]}
+        for r in recently_read
+    ]
+    
+    return render_template("watchlist.html", featured_books=featured_books, table_books=table_books, categories=categories, recently_read_books=recently_read_books)
 
 
 @app.post("/watchlist/add")

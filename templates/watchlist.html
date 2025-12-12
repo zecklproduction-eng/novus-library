@@ -4,10 +4,8 @@
 
 {% block content %}
 <div class="watchlist-page">
-  <!-- Top heading + search -->
-  <div
-    class="watchlist-header d-flex justify-content-between align-items-center mb-4"
-  >
+  <!-- Top heading + tabs -->
+  <div class="d-flex justify-content-between align-items-center mb-4" style="flex-wrap: wrap; gap: 15px;">
     <div class="d-flex align-items-center gap-3">
       <div class="watchlist-icon">
         <i class="fas fa-layer-group"></i>
@@ -15,67 +13,79 @@
       <div>
         <h2 class="watchlist-title">Watchlist</h2>
         <p class="watchlist-subtitle text-muted mb-0">
-          Keep track of what you want to read next and what you're currently
-          reading.
+          Keep track of what you want to read next and what you're currently reading.
         </p>
       </div>
     </div>
 
-    <div class="watchlist-search">
-      <i class="fas fa-search"></i>
-      <input type="text" id="watchlist-search" placeholder="Search in watchlist..." onkeyup="searchWatchlist()" />
+    <!-- Tab navigation -->
+    <div style="display: flex; gap: 10px; border-bottom: 2px solid rgba(102, 126, 234, 0.2);">
+      <button class="watchlist-main-tab active" onclick="switchTab('watchlist')" style="background: none; border: none; color: #999; padding: 10px 15px; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.3s;">
+        <i class="fas fa-list me-2"></i>My Watchlist
+      </button>
+      <button class="watchlist-main-tab" onclick="switchTab('recently-read')" style="background: none; border: none; color: #999; padding: 10px 15px; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.3s;">
+        <i class="fas fa-clock me-2"></i>Recently Read
+      </button>
     </div>
   </div>
 
-  <!-- Status filter buttons (top colored row) -->
-  <div class="watchlist-filter-bar mb-4">
-    <button class="watchlist-filter-btn active" onclick="filterByStatus('planned')">Planned to Read</button>
-    <button class="watchlist-filter-btn" onclick="filterByStatus('reading')">Reading</button>
-    <button class="watchlist-filter-btn" onclick="filterByStatus('on_hold')">On Hold</button>
-    <button class="watchlist-filter-btn" onclick="filterByStatus('dropped')">Dropped</button>
+  <!-- Search -->
+  <div class="watchlist-search" style="margin-bottom: 20px;">
+    <i class="fas fa-search"></i>
+    <input type="text" id="watchlist-search" placeholder="Search in watchlist..." onkeyup="searchWatchlist()" />
   </div>
 
-  <!-- FEATURED CARDS (like the covers row in the screenshot) -->
-  <div class="watchlist-section mb-4">
-    <h5 class="watchlist-section-title">Planned to Read</h5>
+  <!-- WATCHLIST TAB -->
+  <div id="watchlist-tab" class="watchlist-content-tab">
+    <!-- Status filter buttons (top colored row) -->
+    <div class="watchlist-filter-bar mb-4">
+      <button class="watchlist-filter-btn active" onclick="filterByStatus('planned')">Planned to Read</button>
+      <button class="watchlist-filter-btn" onclick="filterByStatus('reading')">Reading</button>
+      <button class="watchlist-filter-btn" onclick="filterByStatus('on_hold')">On Hold</button>
+      <button class="watchlist-filter-btn" onclick="filterByStatus('dropped')">Dropped</button>
+    </div>
 
-    <div class="watchlist-cards-row">
-      {% for book in featured_books %}
-      <div class="watchlist-card">
-        <div class="watchlist-card-cover" style="position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
-          {% if book.cover %}
-            <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px; position: absolute; top: 0; left: 0;">
-            <div class="watchlist-card-cover-text" style="position:relative; left:10px; bottom:10px; z-index:2; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:4px; color: white;">
-              <span class="watchlist-card-author" style="display:block; font-size:12px; margin-bottom:4px;">{{ book.author }}</span>
-              <span class="watchlist-card-title" style="display:block; font-weight:bold; font-size:14px;">{{ book.title }}</span>
-            </div>
-          {% else %}
-            <div style="width:100%; height:100%; background: linear-gradient(135deg,#667eea,#764ba2); border-radius:6px;"></div>
-            <div class="watchlist-card-cover-text" style="position:relative; left:10px; bottom:10px; z-index:2; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:4px; color: white;">
-              <span class="watchlist-card-author" style="display:block; font-size:12px; margin-bottom:4px;">{{ book.author }}</span>
-              <span class="watchlist-card-title" style="display:block; font-weight:bold; font-size:14px;">{{ book.title }}</span>
-            </div>
-          {% endif %}
-        </div>
+    <!-- FEATURED CARDS (like the covers row in the screenshot) -->
+    <div class="watchlist-section mb-4">
+      <h5 class="watchlist-section-title">Planned to Read</h5>
 
-        <div class="watchlist-card-footer">
-          <div class="watchlist-progress-circle">
-            <span>{{ book.progress }}%</span>
+      <div class="watchlist-cards-row">
+        {% for book in featured_books %}
+        <div class="watchlist-card">
+          <div class="watchlist-card-cover" style="position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
+            {% if book.cover %}
+              <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px; position: absolute; top: 0; left: 0;">
+              <div class="watchlist-card-cover-text" style="position:relative; left:10px; bottom:10px; z-index:2; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:4px; color: white;">
+                <span class="watchlist-card-author" style="display:block; font-size:12px; margin-bottom:4px;">{{ book.author }}</span>
+                <span class="watchlist-card-title" style="display:block; font-weight:bold; font-size:14px;">{{ book.title }}</span>
+              </div>
+            {% else %}
+              <div style="width:100%; height:100%; background: linear-gradient(135deg,#667eea,#764ba2); border-radius:6px;"></div>
+              <div class="watchlist-card-cover-text" style="position:relative; left:10px; bottom:10px; z-index:2; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:4px; color: white;">
+                <span class="watchlist-card-author" style="display:block; font-size:12px; margin-bottom:4px;">{{ book.author }}</span>
+                <span class="watchlist-card-title" style="display:block; font-weight:bold; font-size:14px;">{{ book.title }}</span>
+              </div>
+            {% endif %}
           </div>
-          <div class="watchlist-card-status text-muted">
-            {{ book.progress }}% read
+
+          <div class="watchlist-card-footer">
+            <div class="watchlist-progress-circle">
+              <span>{{ book.progress }}%</span>
+            </div>
+            <div class="watchlist-card-status text-muted">
+              {{ book.progress }}% read
+            </div>
           </div>
         </div>
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
-  </div>
 
-  <!-- READING SECTION -->
+  <!-- TABLE SECTION (like the list at the bottom of the screenshot) -->
   <div class="watchlist-section">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h5 class="watchlist-section-title mb-0">Reading</h5>
-      <span class="watchlist-section-tag text-muted">Currently reading</span>
+      <h5 class="watchlist-section-title mb-0">Planned to Read</h5>
+      <span class="watchlist-section-tag text-muted">Started today!</span>
     </div>
 
     <div class="watchlist-tags-row mb-3">
@@ -138,40 +148,77 @@
         </tbody>
       </table>
     </div>
-
-  <!-- ALL GRID (down section showing all watchlist items) -->
-  <div class="watchlist-section mt-4">
-    <h5 class="watchlist-section-title">All in Watchlist</h5>
-    <div class="watchlist-all-grid">
-      {% for book in table_books %}
-      <div class="all-card" data-category="{{ book.category }}" data-title="{{ book.title.lower() }}" data-author="{{ book.author.lower() }}">
-        <div class="all-card-cover">
-          {% if book.cover %}
-            <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }}" style="width:100%; height:240px; object-fit:cover; border-radius:8px;">
-          {% else %}
-            <div style="width:100%; height:240px; background: linear-gradient(135deg,#667eea,#764ba2); border-radius:8px;"></div>
-          {% endif %}
-        </div>
-        <div class="all-card-meta">
-          <div class="all-card-title">{{ book.title }}</div>
-          <div class="all-card-author text-muted">{{ book.author }}</div>
-        </div>
-      </div>
-      {% endfor %}
     </div>
   </div>
 
+  <!-- RECENTLY READ TAB -->
+  <div id="recently-read-tab" class="watchlist-content-tab" style="display: none;">
+    <div class="watchlist-section">
+      <h5 class="watchlist-section-title">Books You've Read</h5>
+      {% if recently_read_books %}
+      <div class="watchlist-cards-row">
+        {% for book in recently_read_books %}
+        <div class="watchlist-card">
+          <div class="watchlist-card-cover" style="position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
+            {% if book.cover %}
+              <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px; position: absolute; top: 0; left: 0;">
+            {% else %}
+              <div style="width:100%; height:100%; background: linear-gradient(135deg,#667eea,#764ba2); border-radius:6px;"></div>
+            {% endif %}
+            <div class="watchlist-card-cover-text" style="position:relative; left:10px; bottom:10px; z-index:2; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:4px; color: white;">
+              <span class="watchlist-card-author" style="display:block; font-size:12px; margin-bottom:4px;">{{ book.author }}</span>
+              <span class="watchlist-card-title" style="display:block; font-weight:bold; font-size:14px;">{{ book.title }}</span>
+            </div>
+          </div>
+
+          <div class="watchlist-card-footer">
+            <div class="watchlist-progress-circle">
+              <span style="font-size: 12px;">✓</span>
+            </div>
+            <div class="watchlist-card-status text-muted">
+              <small>{{ book.date_read or 'Recently' }}</small>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+        <i class="fas fa-book-open" style="font-size: 40px; margin-bottom: 15px; opacity: 0.5;"></i>
+        <p>No books read yet. Start reading to see them here!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
 <script>
-  let currentFilter = 'reading';
+  let currentFilter = 'planned';
   let currentCategory = 'all';
+
+  function switchTab(tabName) {
+    // Hide all tabs
+    document.getElementById('watchlist-tab').style.display = 'none';
+    document.getElementById('recently-read-tab').style.display = 'none';
+    
+    // Remove active class from all buttons
+    document.querySelectorAll('.watchlist-main-tab').forEach(btn => btn.classList.remove('active'));
+    
+    // Show selected tab
+    if (tabName === 'watchlist') {
+      document.getElementById('watchlist-tab').style.display = 'block';
+      event.target.classList.add('active');
+    } else if (tabName === 'recently-read') {
+      document.getElementById('recently-read-tab').style.display = 'block';
+      event.target.classList.add('active');
+    }
+  }
 
   function filterByStatus(status) {
     currentFilter = status;
     const buttons = document.querySelectorAll('.watchlist-filter-btn');
     buttons.forEach(btn => btn.classList.remove('active'));
-    if (event && event.target) event.target.classList.add('active');
+    event.target.classList.add('active');
     applyFilters();
   }
 
@@ -179,7 +226,7 @@
     currentCategory = category;
     const tags = document.querySelectorAll('.watchlist-tag');
     tags.forEach(tag => tag.classList.remove('active'));
-    if (event && event.target) event.target.classList.add('active');
+    event.target.classList.add('active');
     applyFilters();
   }
 
@@ -188,33 +235,24 @@
   }
 
   function applyFilters() {
-    const searchTerm = (document.getElementById('watchlist-search') || {value:''}).value.toLowerCase();
-
-    // Reading section table rows: filter by reading status + category + search
+    const searchTerm = document.getElementById('watchlist-search').value.toLowerCase();
     const rows = document.querySelectorAll('.watchlist-row');
+    
     rows.forEach(row => {
       const status = row.getAttribute('data-status');
-      const title = row.getAttribute('data-title') || '';
-      const author = row.getAttribute('data-author') || '';
-      const category = row.getAttribute('data-category') || '';
-      const statusMatch = status === 'reading';
+      const title = row.getAttribute('data-title');
+      const author = row.getAttribute('data-author');
+      const category = row.getAttribute('data-category');
+      
+      const statusMatch = status === currentFilter;
       const searchMatch = title.includes(searchTerm) || author.includes(searchTerm);
       const categoryMatch = currentCategory === 'all' || category === currentCategory;
+      
       row.style.display = (statusMatch && searchMatch && categoryMatch) ? '' : 'none';
-    });
-
-    // All cards (down section): ignore status, filter by category + search
-    const allCards = document.querySelectorAll('.all-card');
-    allCards.forEach(card => {
-      const title = card.getAttribute('data-title') || '';
-      const author = card.getAttribute('data-author') || '';
-      const category = card.getAttribute('data-category') || '';
-      const searchMatch = title.includes(searchTerm) || author.includes(searchTerm);
-      const categoryMatch = currentCategory === 'all' || category === currentCategory;
-      card.style.display = (searchMatch && categoryMatch) ? '' : 'none';
     });
   }
 
+  // Initialize with 'planned' status filter on page load
   document.addEventListener('DOMContentLoaded', () => {
     applyFilters();
   });
