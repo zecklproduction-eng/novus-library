@@ -7,10 +7,3 @@ FLASK_ENV = "production"
 
 [nix]
 channel = "stable-23_05"
-
-**Save the file** (Ctrl+S)
-
-
-### **Step 1.4 - Check requirements.txt**
-
-Make sure your `requirements.txt` has everything needed:
