@@ -44,26 +44,61 @@
             </select>
 
             <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Category</label>
-              <select name="category" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" required>
-                <option value="">Select a Category</option>
-                <option>Action</option>
-                <option>Adventure</option>
-                <option>Children</option>
-                <option>Comedy</option>
-                <option>Drama</option>
-                <option>Fantasy</option>
-                <option>General</option>
-                <option>Historical</option>
-                <option>Horror</option>
-                <option>Mystery</option>
-                <option>Poetry</option>
-                <option>Romance</option>
-                <option>Science Fiction</option>
-                <option>Supernatural</option>
-                <option>Thriller</option>
-                <option>Young Adult</option>
-              </select>
+              <label style="margin-bottom: 12px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-bookmark" style="color: var(--neon-blue);"></i>
+                Categories
+              </label>
+              <div id="bookCategoriesContainer" class="categories-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Action" onchange="updateBookCategoryCount()"> Action
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Adventure" onchange="updateBookCategoryCount()"> Adventure
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Children" onchange="updateBookCategoryCount()"> Children
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Comedy" onchange="updateBookCategoryCount()"> Comedy
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Drama" onchange="updateBookCategoryCount()"> Drama
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Fantasy" onchange="updateBookCategoryCount()"> Fantasy
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="General" onchange="updateBookCategoryCount()"> General
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Historical" onchange="updateBookCategoryCount()"> Historical
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Horror" onchange="updateBookCategoryCount()"> Horror
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Mystery" onchange="updateBookCategoryCount()"> Mystery
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Poetry" onchange="updateBookCategoryCount()"> Poetry
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Romance" onchange="updateBookCategoryCount()"> Romance
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Science Fiction" onchange="updateBookCategoryCount()"> Sci-Fi
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Supernatural" onchange="updateBookCategoryCount()"> Supernatural
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Thriller" onchange="updateBookCategoryCount()"> Thriller
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Young Adult" onchange="updateBookCategoryCount()"> YA
+                </label>
+              </div>
+              <div id="bookCategoryCount" style="color: var(--neon-blue); font-size: 12px; margin-top: 10px; font-weight: 500; display: flex; align-items: center; gap: 6px;"><i class="fas fa-check-circle"></i><span>Select at least one category</span></div>
             </div>
 
             <!-- DESCRIPTION -->
@@ -205,35 +240,54 @@
             </div>
 
             <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Category</label>
-              <select name="category" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" required>
-                <option value="">Select Category</option>
-                <option>Action</option>
-                <option>Adventure</option>
-                <option>Comedy</option>
-                <option>Drama</option>
-                <option>Fantasy</option>
-                <option>Historical</option>
-                <option>Horror</option>
-                <option>Medical</option>
-                <option>Music</option>
-                <option>Post-Apocalyptic</option>
-                <option>Psychological</option>
-                <option>Romance</option>
-                <option>School</option>
-                <option>Sci-Fi</option>
-                <option>Slice of Life</option>
-                <option>Sports</option>
-                <option>Supernatural</option>
-              </select>
+              <label style="margin-bottom: 12px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-bookmark" style="color: var(--neon-blue);"></i>
+                Categories
+              </label>
+              <div id="mangaCategoriesContainer" class="categories-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Action" onchange="updateMangaCategoryCount()"> Action
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Adventure" onchange="updateMangaCategoryCount()"> Adventure
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Comedy" onchange="updateMangaCategoryCount()"> Comedy
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Drama" onchange="updateMangaCategoryCount()"> Drama
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Fantasy" onchange="updateMangaCategoryCount()"> Fantasy
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Historical" onchange="updateMangaCategoryCount()"> Historical
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Horror" onchange="updateMangaCategoryCount()"> Horror
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Romance" onchange="updateMangaCategoryCount()"> Romance
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Sci-Fi" onchange="updateMangaCategoryCount()"> Sci-Fi
+                </label>
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <input type="checkbox" name="categories" value="Supernatural" onchange="updateMangaCategoryCount()"> Supernatural
+                </label>
+              </div>
+              <div id="mangaCategoryCount" style="color: var(--neon-blue); font-size: 12px; margin-top: 10px; font-weight: 500; display: flex; align-items: center; gap: 6px;"><i class="fas fa-check-circle"></i><span>Select at least one category</span></div>
             </div>
 
             <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Publishing Status</label>
-              <select name="status" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" required>
-                <option value="ongoing">Ongoing</option>
-                <option value="completed">Completed</option>
-                <option value="hiatus">On Hiatus</option>
+              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-sync-alt" style="color: var(--neon-blue);"></i>
+                Publishing Status
+              </label>
+              <select name="status" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(102, 126, 234, 0.05) 100%); border: 2px solid rgba(102, 126, 234, 0.3); color: #fff; border-radius: 8px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box; cursor: pointer; transition: all 0.3s ease;" required>
+                <option value="ongoing" style="background: #2a2a2a; color: #fff;">🔄 Ongoing</option>
+                <option value="completed" style="background: #2a2a2a; color: #fff;">✅ Completed</option>
+                <option value="hiatus" style="background: #2a2a2a; color: #fff;">⏸️ On Hiatus</option>
               </select>
             </div>
 
@@ -248,6 +302,21 @@
             <p style="color: #999; font-size: 13px; margin-bottom: 15px;">Upload the first chapter here. You can add more chapters later.</p>
 
             <div style="margin-bottom: 20px;">
+              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Upload Format</label>
+              <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; cursor: pointer; color: #bbb;">
+                  <input type="radio" name="chapter_format" value="images" checked onchange="toggleChapterFormat()" style="margin-right: 8px; cursor: pointer;">
+                  <span>Images (Multiple Pages)</span>
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer; color: #bbb;">
+                  <input type="radio" name="chapter_format" value="pdf" onchange="toggleChapterFormat()" style="margin-right: 8px; cursor: pointer;">
+                  <span>PDF File</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Images Upload Section -->
+            <div id="imagesSection" style="margin-bottom: 20px;">
               <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter 1 Pages</label>
               <p style="color: #999; font-size: 12px; margin-bottom: 12px;">Upload multiple page images (JPG, PNG). They will be automatically ordered by upload order.</p>
               <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 30px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterPages').click()">
@@ -260,6 +329,19 @@
               <div id="pagePreviewContainer" style="margin-top: 15px; max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; display: none;">
                 <p style="color: #aaa; font-size: 12px; margin: 0 0 10px 0;">Page Preview:</p>
                 <div id="pagesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px;"></div>
+              </div>
+            </div>
+
+            <!-- PDF Upload Section -->
+            <div id="pdfSection" style="margin-bottom: 20px; display: none;">
+              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter 1 PDF</label>
+              <p style="color: #999; font-size: 12px; margin-bottom: 12px;">Upload a single PDF file for this chapter.</p>
+              <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 30px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterPdf').click()">
+                <input type="file" name="chapter_pdf" id="chapterPdf" accept="application/pdf" style="display:none">
+                <i class="fas fa-file-pdf" style="color: var(--neon-blue); font-size: 30px;"></i>
+                <p style="margin: 10px 0; color: #bbb;">Drag & Drop or Browse</p>
+                <small style="color: #999;">PDF file (Max 50MB)</small>
+                <div id="chapterPdfName" style="display: none; color: #667eea; margin-top: 10px; font-weight: 600;"></div>
               </div>
             </div>
           </div>
@@ -336,6 +418,40 @@ button[type="submit"]:hover {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Update category count for book
+  window.updateBookCategoryCount = function() {
+    const countDiv = document.getElementById('bookCategoryCount');
+    const checkboxes = document.querySelectorAll('#bookCategoriesContainer input[type="checkbox"]:checked');
+    if (checkboxes.length === 0) {
+      countDiv.innerHTML = '<i class="fas fa-check-circle"></i><span>Select at least one category</span>';
+      countDiv.style.color = '#999';
+    } else if (checkboxes.length === 1) {
+      const selectedText = checkboxes[0].parentElement.textContent.trim();
+      countDiv.innerHTML = `<i class="fas fa-check-circle"></i><span>✓ ${selectedText}</span>`;
+      countDiv.style.color = 'var(--neon-blue)';
+    } else {
+      countDiv.innerHTML = `<i class="fas fa-check-circle"></i><span>✓ ${checkboxes.length} categories selected</span>`;
+      countDiv.style.color = 'var(--neon-blue)';
+    }
+  };
+
+  // Update category count for manga
+  window.updateMangaCategoryCount = function() {
+    const countDiv = document.getElementById('mangaCategoryCount');
+    const checkboxes = document.querySelectorAll('#mangaCategoriesContainer input[type="checkbox"]:checked');
+    if (checkboxes.length === 0) {
+      countDiv.innerHTML = '<i class="fas fa-check-circle"></i><span>Select at least one category</span>';
+      countDiv.style.color = '#999';
+    } else if (checkboxes.length === 1) {
+      const selectedText = checkboxes[0].parentElement.textContent.trim();
+      countDiv.innerHTML = `<i class="fas fa-check-circle"></i><span>✓ ${selectedText}</span>`;
+      countDiv.style.color = 'var(--neon-blue)';
+    } else {
+      countDiv.innerHTML = `<i class="fas fa-check-circle"></i><span>✓ ${checkboxes.length} categories selected</span>`;
+      countDiv.style.color = 'var(--neon-blue)';
+    }
+  };
+
   function switchTab(tab) {
     const bookTab = document.getElementById('bookTab');
     const mangaTab = document.getElementById('mangaTab');
@@ -511,6 +627,33 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+
+  // Handle PDF file selection
+  const chapterPdf = document.getElementById('chapterPdf');
+  if (chapterPdf) {
+    chapterPdf.addEventListener('change', function() {
+      const nameDiv = document.getElementById('chapterPdfName');
+      if (nameDiv) {
+        nameDiv.textContent = this.files[0] ? `✓ ${this.files[0].name}` : '';
+        nameDiv.style.display = this.files[0] ? 'block' : 'none';
+      }
+    });
+  }
+
+  // Toggle between images and PDF format
+  window.toggleChapterFormat = function() {
+    const format = document.querySelector('input[name="chapter_format"]:checked').value;
+    const imagesSection = document.getElementById('imagesSection');
+    const pdfSection = document.getElementById('pdfSection');
+    
+    if (format === 'images') {
+      imagesSection.style.display = 'block';
+      pdfSection.style.display = 'none';
+    } else {
+      imagesSection.style.display = 'none';
+      pdfSection.style.display = 'block';
+    }
+  };
 });
 </script>
 {% endblock %}

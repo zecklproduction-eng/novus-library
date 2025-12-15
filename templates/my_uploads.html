@@ -61,24 +61,24 @@
         <div class="product-actions">
           {% if b[8] == 'manga' %}
             <a href="{{ url_for('upload_chapter', manga_id=b[0]) }}" class="btn btn-ghost" title="Upload Chapter">
-              <i class="fas fa-plus"></i> Chapter
+              <i class="fas fa-plus"></i><span>Ch</span>
             </a>
           {% endif %}
           
           <a href="{% if b[8] == 'manga' %}{{ url_for('read_manga', id=b[0]) }}{% else %}{{ url_for('view_book', id=b[0]) }}{% endif %}" class="btn btn-ghost">
-            View
+            <i class="fas fa-eye"></i><span>View</span>
           </a>
 
           <a href="{{ url_for('edit_book', id=b[0]) }}" class="btn btn-orange">
-            Edit
+            <i class="fas fa-edit"></i><span>Edit</span>
           </a>
 
           <form method="POST"
                 action="{{ url_for('delete_book', id=b[0]) }}"
                 onsubmit="return confirm('Delete this {{ 'manga' if b[8] == 'manga' else 'book' }} permanently?');"
-                style="margin: 0;">
-            <button type="submit" class="btn btn-danger">
-              Delete
+                style="width: 100%;">
+            <button type="submit" class="btn btn-danger" title="Delete" style="width: 100%;">
+              <i class="fas fa-trash"></i><span>Del</span>
             </button>
           </form>
         </div>

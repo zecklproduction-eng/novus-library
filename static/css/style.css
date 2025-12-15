@@ -214,66 +214,7 @@ a:hover {
   background-color: #262626;
 }
 
-/* ================================================= */
-/* 4. DROPDOWN (Help & Info)                         */
-/* ================================================= */
 
-.dropdown-nav {
-  position: relative;
-}
-
-.dropdown-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 10px 0;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: 0.3s;
-}
-
-.dropdown-btn:hover {
-  color: var(--neon-blue);
-}
-
-.dropdown-content {
-  position: absolute;
-  right: 0;
-  background-color: #303030;
-  min-width: 180px;
-  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.7);
-  z-index: 50;
-  border-radius: 4px;
-  padding: 0;
-  margin-top: 8px;
-  border: 1px solid #404040;
-  display: none; /* toggled by JS */
-}
-
-.dropdown-content a {
-  color: #eee;
-  padding: 10px 18px;
-  text-decoration: none;
-  display: block;
-  font-size: 0.95rem;
-  transition: background-color 0.1s;
-}
-
-.dropdown-content a:hover {
-  background-color: #404040;
-  color: white;
-}
-
-.nav-logo-arrow {
-  transform: translateY(2px) rotate(180deg);
-  color: var(--neon-blue);
-  font-size: 0.8rem;
-  transition: transform 0.3s ease;
-}
 
 /* ================================================= */
 /* 5. CTA BUTTONS (Top-right Log In / Log Out)       */
@@ -373,6 +314,84 @@ a.cta-button {
   box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1) !important;
 }
 
+/* Enhanced Category Select Styling */
+.category-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300d4ff' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 20px !important;
+  padding-right: 40px !important;
+}
+
+.category-select:hover {
+  border-color: rgba(0, 212, 255, 0.5) !important;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(102, 126, 234, 0.08) 100%) !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15) !important;
+}
+
+.category-select:focus {
+  border-color: var(--neon-blue) !important;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(102, 126, 234, 0.1) 100%) !important;
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2), inset 0 0 0 1px rgba(0, 212, 255, 0.1) !important;
+}
+
+/* Category Checkbox Styling */
+.categories-checkbox-grid input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  margin-right: 8px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.categories-checkbox-grid input[type="checkbox"]:hover {
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+.categories-checkbox-grid input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, #00d4ff 0%, #667eea 100%);
+  border-color: #00d4ff;
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+}
+
+.categories-checkbox-grid input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.category-checkbox {
+  transition: all 0.2s ease !important;
+}
+
+.category-checkbox:has(input[type="checkbox"]:checked) {
+  background: rgba(0, 212, 255, 0.15) !important;
+  border-color: rgba(0, 212, 255, 0.5) !important;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+.category-checkbox:hover {
+  border-color: rgba(0, 212, 255, 0.4) !important;
+  background: rgba(102, 126, 234, 0.12) !important;
+}
+
 /* Remover button for uploaded files (X) */
 .remove-btn {
   position: absolute;
@@ -398,58 +417,6 @@ a.cta-button {
 .card:hover {
   transform: translateY(-3px);
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.7);
-}
-
-/* ================================================= */
-/* 7. UPLOAD DROP ZONE                               */
-/* ================================================= */
-
-.upload-drop-zone-final {
-  border: 2px dashed #4a4a4a;
-  background-color: #202020;
-  border-radius: 8px;
-  padding: 30px 15px;
-  height: 180px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.upload-drop-zone-final:hover {
-  border-color: var(--neon-blue);
-  background-color: #2a2a2a;
-}
-
-.upload-drop-zone-final i {
-  font-size: 2.5rem;
-  color: var(--neon-blue);
-  margin: 0;
-  padding: 0;
-  line-height: 1;
-}
-
-.upload-drop-zone-final p,
-.upload-drop-zone-final small {
-  margin: 0;
-  padding: 0;
-  line-height: 1.2;
-}
-
-.upload-drop-zone-final p {
-  margin-top: 5px;
-}
-
-.upload-drop-zone-final small {
-  margin-top: 2px;
-  font-size: 0.75rem;
 }
 
 /* ================================================= */
@@ -818,22 +785,6 @@ a.cta-button {
   font-size: 50px;
 }
 
-/* Outline neon button (used for "View Details") */
-.btn-neon-outline {
-  border: 1px solid var(--neon-blue);
-  color: var(--neon-blue) !important;
-  background-color: transparent;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: 0.3s;
-}
-
-.btn-neon-outline:hover {
-  background-color: var(--neon-blue);
-  color: black !important;
-  box-shadow: 0 0 15px var(--neon-blue);
-}
 /* ================================================= */
 /* 11. PROFILE PAGE                                  */
 /* ================================================= */
@@ -1162,6 +1113,8 @@ a.cta-button {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow: hidden;
+  min-height: 0;
 }
 .product-thumb {
   width: 100%;
@@ -1201,30 +1154,53 @@ a.cta-button {
 }
 
 .product-actions {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
   margin-top: auto;
+  width: 100%;
+  overflow: hidden;
 }
 
 .btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-weight: 700;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-weight: 600;
   text-decoration: none;
   border: 0;
   cursor: pointer;
+  font-size: 12px;
+  min-width: 0;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.btn span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 .btn-orange {
   background: #e45b2f;
   color: #fff;
-  box-shadow: 0 6px 14px rgba(228, 91, 47, 0.35);
+  box-shadow: 0 4px 10px rgba(228, 91, 47, 0.3);
 }
 .btn-orange:hover {
   filter: brightness(1.05);
 }
+
 .btn-ghost {
   background: #222;
   color: #ddd;
@@ -1233,6 +1209,16 @@ a.cta-button {
 .btn-ghost:hover {
   border-color: #e45b2f;
   color: #fff;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+}
+
+.btn-danger:hover {
+  filter: brightness(1.05);
 }
 
 .empty-note {
@@ -1660,12 +1646,6 @@ body.manga-warping {
   background: rgba(15, 23, 42, 0.8);
   color: rgba(226, 232, 255, 0.9);
   cursor: pointer;
-}
-
-.manga-tab.manga-tab-active {
-  border-color: #ff2d75;
-  background: linear-gradient(135deg, #ff2d75, #ff7a55);
-  color: #0b1020;
 }
 
 /* Grid of manga cards */
@@ -2266,46 +2246,6 @@ MANGA WARP OVERLAY (VORTEX)
   animation: warpLabelFade 0.45s ease-out forwards 0.15s;
 }
 
-/* --- PARTICLES --- */
-.warp-particles {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.warp-particles span {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(140, 220, 255, 0.95);
-  box-shadow: 0 0 12px rgba(140, 220, 255, 0.95);
-  animation: warpDrift 0.9s ease-out forwards;
-}
-
-/* positions around the ring */
-.warp-particles span:nth-child(1) {
-  top: 38%;
-  left: 47%;
-}
-.warp-particles span:nth-child(2) {
-  top: 32%;
-  left: 54%;
-}
-.warp-particles span:nth-child(3) {
-  top: 45%;
-  left: 60%;
-}
-.warp-particles span:nth-child(4) {
-  top: 56%;
-  left: 52%;
-}
-.warp-particles span:nth-child(5) {
-  top: 48%;
-  left: 40%;
-}
-
 /* --- ANIMATIONS --- */
 @keyframes warpPulse {
   0% {
@@ -2338,20 +2278,6 @@ MANGA WARP OVERLAY (VORTEX)
   100% {
     opacity: 1;
     transform: scale(1);
-  }
-}
-
-@keyframes warpDrift {
-  0% {
-    transform: translate(-50%, -50%) scale(0.3);
-    opacity: 0;
-  }
-  40% {
-    opacity: 1;
-  }
-  100% {
-    transform: translate(-50%, -95%) scale(1.1);
-    opacity: 0;
   }
 }
 
@@ -3885,4 +3811,30 @@ MANGA WARP OVERLAY (VORTEX)
 @media (max-width: 980px){
   .cd-grid{grid-template-columns:1fr}
   .cd-recs{grid-column:auto}
+}
+
+/* ================================================= */
+/* MANGA READER SETTINGS                             */
+/* ================================================= */
+.setting-option {
+  padding: 10px 15px;
+  background-color: rgba(102, 126, 234, 0.1);
+  border: 1px solid #667eea;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  text-align: center;
+}
+
+.setting-option:hover {
+  background-color: rgba(102, 126, 234, 0.2);
+  border-color: #00d4ff;
+}
+
+.setting-option.active {
+  background-color: #667eea;
+  border-color: #00d4ff;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
 }

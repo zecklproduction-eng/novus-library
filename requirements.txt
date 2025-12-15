@@ -1,0 +1,6 @@
+flask>=2.0
+python-dotenv
+requests>=2.28.0
+pdf2image
+werkzeug
+Pillowgunicorn>=20.1.0

@@ -1,779 +1,1085 @@
 {% extends "base.html" %}
-{% block title %}{{ manga[1] }} - Read Manga | NOVUS{% endblock %}
+{% block title %}{{ manga[1] }} | NOVUS{% endblock %}
 
 {% block content %}
-<div class="manga-reader-page">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: #1a1a2e;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  .manga-reader-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .manga-reader-container.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+  }
+
+  .manga-reader-container.fullscreen .reader-top-bar {
+    position: relative;
+  }
+
+  /* TOP BAR */
+  .reader-top-bar {
+    background: linear-gradient(90deg, rgba(26, 26, 46, 0.98) 0%, rgba(22, 33, 62, 0.98) 100%);
+    border-bottom: 2px solid #00d4ff;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+  }
+
+  .chapter-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    color: #e0e0e0;
+  }
+
+  .chapter-title i {
+    color: #00d4ff;
+  }
+
+  .top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn-cyan {
+    background: #00d4ff;
+    color: #000;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.3s ease;
+  }
+
+  .btn-cyan:hover {
+    background: #00a8cc;
+    transform: translateY(-2px);
+  }
+
+  .btn-icon {
+    background: transparent;
+    border: none;
+    color: #00d4ff;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .btn-icon:hover {
+    color: #00a8cc;
+    transform: scale(1.1);
+  }
+
+  /* MAIN CONTENT */
+  .reader-main-content {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* LEFT: MANGA VIEWER */
+  .reader-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 20px;
+    background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+  }
+
+  .manga-pages {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    overflow: auto;
+    margin-bottom: 20px;
+  }
+
+  .manga-pages::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .manga-pages::-webkit-scrollbar-track {
+    background: #2a2a4e;
+  }
+
+  .manga-pages::-webkit-scrollbar-thumb {
+    background: #00d4ff;
+    border-radius: 4px;
+  }
+
+  .manga-page {
+    max-height: 100%;
+    max-width: 45%;
+    object-fit: contain;
+    border: 2px solid #00d4ff;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 212, 255, 0.1);
+  }
+
+  .manga-page-single {
+    max-width: 90%;
+  }
+
+  .manga-loading {
+    text-align: center;
+    color: #888;
+  }
+
+  .manga-loading i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    display: block;
+    animation: spin 2s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* NAVIGATION BAR */
+  .reader-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 15px 0;
+    border-top: 2px solid #00d4ff;
+    padding-top: 15px;
+    flex-shrink: 0;
+  }
+
+  .nav-btn {
+    background: transparent;
+    border: 2px solid #00d4ff;
+    color: #00d4ff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
+
+  .nav-btn:hover {
+    background: #00d4ff;
+    color: #000;
+  }
+
+  .progress-control {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .progress-slider {
+    flex: 1;
+    height: 6px;
+    background: #2a2a4e;
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+  }
+
+  .progress-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #00d4ff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  }
+
+  .progress-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #00d4ff;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  }
+
+  .page-counter {
+    color: #00d4ff;
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 80px;
+    text-align: center;
+  }
+
+  .next-btn-large {
+    background: #00d4ff;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .next-btn-large:hover {
+    background: #00a8cc;
+    transform: translateY(-2px);
+  }
+
+  /* RIGHT SIDEBAR */
+  .reader-right {
+    width: 380px;
+    background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
+    border-left: 2px solid #00d4ff;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 20px;
+    gap: 20px;
+  }
+
+  .reader-right::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .reader-right::-webkit-scrollbar-track {
+    background: #2a2a4e;
+  }
+
+  .reader-right::-webkit-scrollbar-thumb {
+    background: #00d4ff;
+    border-radius: 4px;
+  }
+
+  .sidebar-card {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    border: 2px solid #00d4ff;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #00d4ff;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .sidebar-header i {
+    font-size: 16px;
+  }
+
+  .ai-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .ai-tab {
+    background: transparent;
+    border: 2px solid #2a2a4e;
+    color: #888;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .ai-tab.active {
+    border-color: #00d4ff;
+    color: #00d4ff;
+    background: rgba(0, 212, 255, 0.1);
+  }
+
+  .ai-tab:hover {
+    border-color: #00d4ff;
+  }
+
+  .ai-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 12px 0;
+  }
+
+  .toggle-switch {
+    width: 48px;
+    height: 28px;
+    background: #2a2a4e;
+    border-radius: 14px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s ease;
+    border: 2px solid #00d4ff;
+  }
+
+  .toggle-switch.active {
+    background: #00d4ff;
+  }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: left 0.3s ease;
+  }
+
+  .toggle-switch.active::after {
+    left: 24px;
+  }
+
+  .ai-content {
+    color: #b0b0b0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .ai-summary {
+    margin: 10px 0;
+  }
+
+  .ai-summary-point {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0;
+  }
+
+  .ai-summary-point::before {
+    content: '•';
+    color: #00d4ff;
+    font-weight: bold;
+    min-width: 8px;
+  }
+
+  .view-analysis-btn {
+    background: #00d4ff;
+    color: #000;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12px;
+    width: 100%;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .view-analysis-btn:hover {
+    background: #00a8cc;
+  }
+
+  .character-profiles {
+    margin-top: 10px;
+  }
+
+  .character-item {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+    align-items: center;
+  }
+
+  .character-avatar {
+    width: 36px;
+    height: 36px;
+    background: #2a2a4e;
+    border-radius: 50%;
+    border: 2px solid #00d4ff;
+    flex-shrink: 0;
+  }
+
+  .character-info {
+    flex: 1;
+  }
+
+  .character-name {
+    color: #e0e0e0;
+    font-weight: 600;
+    font-size: 12px;
+  }
+
+  .character-trait {
+    color: #888;
+    font-size: 11px;
+  }
+
+  .voice-actor-badge {
+    background: #00d4ff;
+    color: #000;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .expand-btn {
+    margin-top: 8px;
+    color: #888;
+    cursor: pointer;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  /* SETTINGS MODAL */
+  .settings-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .settings-modal.active {
+    display: flex;
+  }
+
+  .settings-modal-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 2px solid #00d4ff;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    color: #e0e0e0;
+  }
+
+  .settings-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #00d4ff;
+    margin-bottom: 20px;
+  }
+
+  .setting-item {
+    margin-bottom: 20px;
+  }
+
+  .setting-label {
+    display: block;
+    color: #b0b0b0;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .setting-options {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .setting-option {
+    background: transparent;
+    border: 2px solid #2a2a4e;
+    color: #888;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .setting-option:hover {
+    border-color: #00d4ff;
+  }
+
+  .setting-option.active {
+    background: #00d4ff;
+    color: #000;
+    border-color: #00d4ff;
+    font-weight: 600;
+  }
+
+  .close-modal-btn {
+    background: #00d4ff;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .close-modal-btn:hover {
+    background: #00a8cc;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 1200px) {
+    .reader-right {
+      width: 300px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .reader-main-content {
+      flex-direction: column;
+    }
+
+    .reader-right {
+      width: 100%;
+      border-left: none;
+      border-top: 2px solid #00d4ff;
+      max-height: 40vh;
+    }
+
+    .manga-page {
+      max-width: 100%;
+    }
+
+    .top-bar-left, .top-bar-right {
+      flex: none;
+    }
+  }
+</style>
+
+<div class="manga-reader-container">
   <!-- TOP BAR -->
   <div class="reader-top-bar">
-    <div class="reader-bar-left">
-      <button class="reader-btn-icon" onclick="window.history.back()">
-        <i class="fas fa-arrow-left"></i>
-      </button>
-      <div class="reader-title-group">
-        <h1 class="reader-manga-title">{{ manga[1] }}</h1>
-        <p class="reader-manga-author">{{ manga[2] }}</p>
+    <div class="top-bar-left">
+      <div class="chapter-title">
+        <i class="fas fa-book"></i>
+        <span id="chapterDisplay">{{ manga[1] }}</span>
       </div>
     </div>
-
-    <div class="reader-bar-right">
-      <button class="reader-btn" onclick="toggleSettings()">
+    <div class="top-bar-right">
+      <button class="btn-cyan" id="aiInsightsBtn">
+        <i class="fas fa-lightbulb"></i> AI INSIGHTS
+      </button>
+      <button class="btn-icon" id="settingsBtn" title="Settings">
         <i class="fas fa-cog"></i>
-        <span>Settings</span>
       </button>
-      <a href="{{ url_for('manga') }}" class="reader-btn reader-btn-primary">
-        <i class="fas fa-home"></i>
-        <span>Back to Library</span>
-      </a>
+      <button class="btn-icon" id="reportBtn" title="Report Issue">
+        <i class="fas fa-flag"></i>
+      </button>
+      <button class="btn-icon" id="fullscreenBtn" title="Fullscreen">
+        <i class="fas fa-expand"></i>
+      </button>
+      <button class="btn-icon" title="Menu">
+        <i class="fas fa-bars"></i>
+      </button>
     </div>
   </div>
 
-  <!-- MAIN READER CONTAINER -->
-  <div class="reader-container">
-    <!-- LEFT SIDEBAR: Series Info -->
-    <aside class="reader-sidebar reader-sidebar-left">
-      <div class="sidebar-card">
-        <div class="series-cover">
-          {% if manga[5] %}
-            <img src="{{ url_for('static', filename=manga[5]) }}" alt="{{ manga[1] }}">
-          {% else %}
-            <div class="cover-placeholder">📖</div>
-          {% endif %}
+  <!-- MAIN CONTENT -->
+  <div class="reader-main-content">
+    <!-- LEFT: MANGA VIEWER -->
+    <div class="reader-left">
+      <div class="manga-pages" id="mangaPages">
+        <div class="manga-loading">
+          <i class="fas fa-book"></i>
+          <p>Select a chapter to start reading</p>
         </div>
-        <h3 class="series-title">{{ manga[1] }}</h3>
-        <p class="series-author">by {{ manga[2] or 'Unknown' }}</p>
-        <p class="series-category"><span class="badge">{{ manga[3] }}</span></p>
-        
-        <div class="series-description">
-          <p>{{ manga[1] }} is now available to read on NOVUS.</p>
-        </div>
+      </div>
 
-        <button class="btn btn-primary w-100 mb-2" onclick="toggleChapters()">
-          <i class="fas fa-list"></i> View Chapters
+      <!-- NAVIGATION -->
+      <div class="reader-nav-bar">
+        <button class="nav-btn" id="prevBtn" onclick="previousPage()">
+          <i class="fas fa-chevron-left"></i> PREV
         </button>
-      </div>
-
-      <!-- Chapters List (Hidden by default) -->
-      <div class="chapters-list" id="chaptersList" style="display: none; margin-top: 20px;">
-        <h4>Chapters</h4>
-        <ul class="chapter-items">
-          <li class="chapter-item active">
-            <a href="#" class="chapter-link">Chapter 1</a>
-          </li>
-        </ul>
-      </div>
-    </aside>
-
-    <!-- CENTER: READER -->
-    <main class="reader-main">
-      <!-- READER HEADER -->
-      <div class="reader-header">
-        <div class="chapter-selector">
-          <button class="chapter-btn" onclick="previousChapter()">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <select class="chapter-dropdown" id="chapterSelect" onchange="changeChapter()">
-            <option value="1">Chapter 1</option>
-          </select>
-          <button class="chapter-btn" onclick="nextChapter()">
-            <i class="fas fa-chevron-right"></i>
-          </button>
-        </div>
-
-        <div class="reader-actions">
-          <button class="reader-action-btn" title="Settings">
-            <i class="fas fa-sliders-h"></i>
-          </button>
-          <button class="reader-action-btn" title="Share">
-            <i class="fas fa-share-alt"></i>
-          </button>
-          <button class="reader-action-btn" title="Report">
-            <i class="fas fa-flag"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- MANGA VIEWER -->
-      <div class="manga-viewer" id="mangaViewer">
-        {% if manga[4] %}
-          <!-- PDF Viewer -->
-          <div class="pdf-viewer-wrapper">
-            <iframe 
-              id="pdfViewer"
-              src="{{ url_for('static', filename='books/' + manga[4]) }}" 
-              type="application/pdf"
-              width="100%" 
-              height="100%"
-              style="border: none;">
-            </iframe>
-          </div>
-        {% else %}
-          <!-- Fallback: No PDF Available -->
-          <div class="no-content">
-            <div class="no-content-icon">📄</div>
-            <h3>No manga file available</h3>
-            <p>This manga doesn't have a file attached yet.</p>
-            <a href="{{ url_for('manga') }}" class="btn btn-primary">Back to Manga</a>
-          </div>
-        {% endif %}
-      </div>
-
-      <!-- NAVIGATION BAR -->
-      <div class="reader-footer">
-        <button class="nav-btn" onclick="previousPage()" title="Previous Page">
-          <i class="fas fa-chevron-left"></i>
-        </button>
-
         <div class="progress-control">
-          <div class="progress-bar-container">
-            <input 
-              type="range" 
-              id="progressSlider" 
-              class="progress-slider" 
-              min="0" 
-              max="100" 
-              value="0"
-              oninput="updatePage(this.value)"
-            >
-          </div>
-          <span class="page-indicator" id="pageIndicator">Page <span id="currentPage">1</span> / <span id="totalPages">1</span></span>
+          <input type="range" id="progressSlider" class="progress-slider" min="0" max="100" value="0">
+          <span class="page-counter" id="pageCounter">Page 1/1</span>
         </div>
-
-        <button class="nav-btn" onclick="nextPage()" title="Next Page">
-          <i class="fas fa-chevron-right"></i>
+        <button class="next-btn-large" id="nextBtn" onclick="nextPage()">
+          NEXT <i class="fas fa-chevron-right"></i>
         </button>
       </div>
-    </main>
+    </div>
 
-    <!-- RIGHT SIDEBAR: Quick Links -->
-    <aside class="reader-sidebar reader-sidebar-right">
+    <!-- RIGHT SIDEBAR -->
+    <div class="reader-right">
+      <!-- AI CHATBOT CARD -->
       <div class="sidebar-card">
-        <h4>More Manga</h4>
-        <ul class="related-list">
-          {% for rel_manga in related_manga %}
-            {% if rel_manga[0] != manga[0] %}
-              <li>
-                <a href="{{ url_for('read_manga', id=rel_manga[0]) }}" class="related-link">
-                  {{ rel_manga[1] }}
-                </a>
-              </li>
-            {% endif %}
-          {% endfor %}
-        </ul>
-      </div>
-    </aside>
-  </div>
-
-  <!-- SETTINGS MODAL -->
-  <div class="settings-modal" id="settingsModal" style="display: none;">
-    <div class="settings-content">
-      <div class="settings-header">
-        <h3>Reader Settings</h3>
-        <button class="close-btn" onclick="toggleSettings()">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      
-      <div class="settings-body">
-        <div class="setting-group">
-          <label>Reading Mode</label>
-          <div class="setting-options">
-            <button class="setting-option active">Single Page</button>
-            <button class="setting-option">Continuous</button>
-            <button class="setting-option">Webtoon</button>
-          </div>
+        <div class="sidebar-header">
+          <i class="fas fa-robot"></i>
+          AI CHATBOT
         </div>
-
-        <div class="setting-group">
-          <label>Background Color</label>
-          <div class="setting-options">
-            <button class="setting-option active" style="background: #fff; border: 2px solid #667eea;">Light</button>
-            <button class="setting-option" style="background: #1a1a1a; border: 2px solid #333;">Dark</button>
-            <button class="setting-option" style="background: #f5f0e8; border: 2px solid #d4c5b9;">Sepia</button>
-          </div>
+        <div class="ai-tabs">
+          <button class="ai-tab active" data-tab="chatbot">AI CHATBOT</button>
+          <button class="ai-tab" data-tab="translate">AI TRANSLATE PANEL</button>
         </div>
+        <div class="ai-toggle">
+          <span>AI ASSISTANT</span>
+          <div class="toggle-switch active" id="aiToggle"></div>
+        </div>
+      </div>
 
-        <div class="setting-group">
-          <label>
-            <input type="checkbox" checked> Remember progress
-          </label>
+      <!-- AI INSIGHTS CARD -->
+      <div class="sidebar-card">
+        <div class="sidebar-header">
+          <i class="fas fa-sparkles"></i>
+          AI ASSISTANT
+        </div>
+        <div class="ai-content">
+          <div style="font-weight: 600; margin-bottom: 10px;">Smart Summary</div>
+          <div class="ai-summary">
+            <div class="ai-summary-point">Epic battle scenes and character development.</div>
+            <div class="ai-summary-point">Major plot twist revealed with backstory.</div>
+            <div class="ai-summary-point">New power-ups and abilities introduced.</div>
+          </div>
+          <button class="view-analysis-btn">VIEW FULL ANALYSIS</button>
+        </div>
+      </div>
+
+      <!-- CHARACTER PROFILES CARD -->
+      <div class="sidebar-card">
+        <div class="sidebar-header">
+          <i class="fas fa-users"></i>
+          Character Profiles
+        </div>
+        <div class="character-profiles" id="characterProfiles">
+          <p style="color: #888; font-size: 12px; text-align: center;">Loading characters...</p>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<style>
-.manga-reader-page {
-  background: #0a0e27;
-  min-height: 100vh;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-}
-
-.reader-top-bar {
-  background: rgba(10, 14, 39, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
-  padding: 12px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.reader-bar-left, .reader-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.reader-bar-right {
-  gap: 10px;
-}
-
-.reader-btn-icon {
-  background: none;
-  border: none;
-  color: #667eea;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.reader-btn-icon:hover {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.reader-title-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.reader-manga-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.reader-manga-author {
-  margin: 0;
-  font-size: 12px;
-  color: #999;
-}
-
-.reader-btn {
-  background: none;
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  color: #667eea;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s;
-}
-
-.reader-btn:hover {
-  background: rgba(102, 126, 234, 0.1);
-  border-color: #667eea;
-}
-
-.reader-btn-primary {
-  background: #667eea;
-  border-color: #667eea;
-  color: #fff;
-}
-
-.reader-btn-primary:hover {
-  background: #5568d3;
-}
-
-.reader-container {
-  display: grid;
-  grid-template-columns: 280px 1fr 280px;
-  gap: 20px;
-  flex: 1;
-  padding: 20px;
-  max-width: 1600px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-@media (max-width: 1200px) {
-  .reader-container {
-    grid-template-columns: 1fr;
-  }
-  
-  .reader-sidebar {
-    display: none !important;
-  }
-}
-
-.reader-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  overflow-y: auto;
-  max-height: calc(100vh - 150px);
-}
-
-.sidebar-card {
-  background: rgba(102, 126, 234, 0.08);
-  border: 1px solid rgba(102, 126, 234, 0.2);
-  border-radius: 12px;
-  padding: 15px;
-}
-
-.series-cover {
-  width: 100%;
-  aspect-ratio: 2/3;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  margin-bottom: 15px;
-  overflow: hidden;
-}
-
-.series-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.cover-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 60px;
-}
-
-.series-title {
-  margin: 0 0 5px 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.series-author {
-  margin: 0 0 10px 0;
-  font-size: 12px;
-  color: #999;
-}
-
-.series-category .badge {
-  background: rgba(102, 126, 234, 0.3);
-  color: #667eea;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-}
-
-.series-description {
-  margin: 15px 0;
-  font-size: 12px;
-  color: #bbb;
-  line-height: 1.5;
-}
-
-.chapters-list {
-  border-top: 1px solid rgba(102, 126, 234, 0.2);
-  padding-top: 15px;
-}
-
-.chapters-list h4 {
-  margin: 0 0 10px 0;
-  font-size: 13px;
-  color: #999;
-}
-
-.chapter-items {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.chapter-item {
-  margin-bottom: 8px;
-}
-
-.chapter-link {
-  color: #667eea;
-  text-decoration: none;
-  font-size: 13px;
-  padding: 6px 8px;
-  border-radius: 4px;
-  display: block;
-  transition: all 0.2s;
-}
-
-.chapter-link:hover {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.chapter-item.active .chapter-link {
-  background: rgba(102, 126, 234, 0.2);
-  font-weight: 600;
-}
-
-.reader-main {
-  display: flex;
-  flex-direction: column;
-  background: rgba(102, 126, 234, 0.05);
-  border: 1px solid rgba(102, 126, 234, 0.2);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.reader-header {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 15px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
-}
-
-.chapter-selector {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.chapter-btn {
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  color: #667eea;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.chapter-btn:hover {
-  background: rgba(102, 126, 234, 0.2);
-}
-
-.chapter-dropdown {
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 6px;
-  min-width: 150px;
-  cursor: pointer;
-}
-
-.chapter-dropdown option {
-  background: #1a1a2e;
-  color: #fff;
-}
-
-.reader-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.reader-action-btn {
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  color: #667eea;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.reader-action-btn:hover {
-  background: rgba(102, 126, 234, 0.2);
-}
-
-.manga-viewer {
-  flex: 1;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 500px;
-  overflow: auto;
-  position: relative;
-}
-
-.pdf-viewer-wrapper {
-  width: 100%;
-  height: 100%;
-}
-
-.no-content {
-  text-align: center;
-  padding: 60px 20px;
-  color: #999;
-}
-
-.no-content-icon {
-  font-size: 80px;
-  margin-bottom: 20px;
-}
-
-.no-content h3 {
-  margin: 0 0 10px 0;
-  color: #fff;
-}
-
-.reader-footer {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 15px 20px;
-  border-top: 1px solid rgba(102, 126, 234, 0.2);
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.nav-btn {
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  color: #667eea;
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.nav-btn:hover {
-  background: rgba(102, 126, 234, 0.2);
-}
-
-.progress-control {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.progress-bar-container {
-  flex: 1;
-}
-
-.progress-slider {
-  width: 100%;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(102, 126, 234, 0.2);
-  outline: none;
-  -webkit-appearance: none;
-  appearance: none;
-  cursor: pointer;
-}
-
-.progress-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #667eea;
-  cursor: pointer;
-  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
-}
-
-.progress-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #667eea;
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
-}
-
-.page-indicator {
-  font-size: 12px;
-  color: #999;
-  white-space: nowrap;
-}
-
-.settings-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.settings-content {
-  background: #1a1a2e;
-  border-radius: 12px;
-  max-width: 500px;
-  width: 90%;
-  border: 1px solid rgba(102, 126, 234, 0.3);
-}
-
-.settings-header {
-  padding: 20px;
-  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.settings-header h3 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: #667eea;
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.settings-body {
-  padding: 20px;
-}
-
-.setting-group {
-  margin-bottom: 20px;
-}
-
-.setting-group:last-child {
-  margin-bottom: 0;
-}
-
-.setting-group label {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 13px;
-  color: #ddd;
-}
-
-.setting-options {
-  display: flex;
-  gap: 8px;
-}
-
-.setting-option {
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  color: #667eea;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-}
-
-.setting-option:hover {
-  border-color: #667eea;
-}
-
-.setting-option.active {
-  background: rgba(102, 126, 234, 0.3);
-  border-color: #667eea;
-}
-
-.related-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.related-item {
-  margin-bottom: 8px;
-}
-
-.related-link {
-  color: #667eea;
-  text-decoration: none;
-  font-size: 13px;
-  padding: 8px;
-  border-radius: 4px;
-  display: block;
-  transition: all 0.2s;
-}
-
-.related-link:hover {
-  background: rgba(102, 126, 234, 0.1);
-}
-</style>
+<!-- SETTINGS MODAL -->
+<div class="settings-modal" id="settingsModal">
+  <div class="settings-modal-content">
+    <div class="settings-title">Reader Settings</div>
+
+    <div class="setting-item">
+      <label class="setting-label">Reading Mode</label>
+      <div class="setting-options">
+        <button class="setting-option active" data-setting="reading" data-value="single">Single</button>
+        <button class="setting-option" data-setting="reading" data-value="double">Double</button>
+        <button class="setting-option" data-setting="reading" data-value="vertical">Vertical</button>
+        <button class="setting-option" data-setting="reading" data-value="horizontal">Horizontal</button>
+      </div>
+    </div>
+
+    <div class="setting-item">
+      <label class="setting-label">Background</label>
+      <div class="setting-options">
+        <button class="setting-option active" data-setting="background" data-value="light">Light</button>
+        <button class="setting-option" data-setting="background" data-value="dark">Dark</button>
+        <button class="setting-option" data-setting="background" data-value="sepia">Sepia</button>
+      </div>
+    </div>
+
+    <div class="setting-item">
+      <label class="setting-label">Brightness</label>
+      <input type="range" id="brightnessSlider" min="0" max="200" value="100" style="width: 100%; cursor: pointer;">
+    </div>
+
+    <div class="setting-item">
+      <label class="setting-label">Font Size</label>
+      <div class="setting-options">
+        <button class="setting-option" data-setting="fontSize" data-value="small">Small</button>
+        <button class="setting-option active" data-setting="fontSize" data-value="medium">Medium</button>
+        <button class="setting-option" data-setting="fontSize" data-value="large">Large</button>
+      </div>
+    </div>
+
+    <button class="close-modal-btn" onclick="closeSettings()">Close</button>
+  </div>
+</div>
 
 <script>
-function toggleSettings() {
-  const modal = document.getElementById('settingsModal');
-  modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
-}
+  let currentChapterId = {{ chapter[0] if chapter else chapters[0][0] if chapters else 0 }};
+  let chapters = {{ chapters|tojson }};
+  let currentPageIndex = 0;
+  let totalPages = 1;
+  let readingMode = 'single';
 
-function toggleChapters() {
-  const list = document.getElementById('chaptersList');
-  list.style.display = list.style.display === 'none' ? 'block' : 'none';
-}
+  // Settings
+  const defaultSettings = {
+    readingMode: 'single',
+    backgroundColor: 'light',
+    brightness: 100,
+    fontSize: 'medium',
+    aiAssistantEnabled: true
+  };
 
-function changeChapter() {
-  const select = document.getElementById('chapterSelect');
-  console.log('Chapter changed to:', select.value);
-}
+  let readerSettings = { ...defaultSettings };
 
-function previousChapter() {
-  alert('Previous chapter');
-}
-
-function nextChapter() {
-  alert('Next chapter');
-}
-
-function previousPage() {
-  const slider = document.getElementById('progressSlider');
-  slider.value = Math.max(0, parseInt(slider.value) - 5);
-  updatePage(slider.value);
-}
-
-function nextPage() {
-  const slider = document.getElementById('progressSlider');
-  slider.value = Math.min(100, parseInt(slider.value) + 5);
-  updatePage(slider.value);
-}
-
-function updatePage(value) {
-  document.getElementById('currentPage').textContent = value;
-  document.getElementById('progressSlider').value = value;
-}
-
-// Close settings modal when clicking outside
-document.addEventListener('click', function(event) {
-  const modal = document.getElementById('settingsModal');
-  const content = modal.querySelector('.settings-content');
-  if (event.target === modal) {
-    modal.style.display = 'none';
+  // Load settings from localStorage
+  function loadSettings() {
+    const saved = localStorage.getItem('mangaReaderSettings');
+    if (saved) {
+      readerSettings = { ...readerSettings, ...JSON.parse(saved) };
+    }
   }
-});
+
+  // Save settings to localStorage
+  function saveSettings() {
+    localStorage.setItem('mangaReaderSettings', JSON.stringify(readerSettings));
+  }
+
+  // Initialize
+  loadSettings();
+
+  // Settings Button
+  document.getElementById('settingsBtn')?.addEventListener('click', () => {
+    document.getElementById('settingsModal').classList.add('active');
+  });
+
+  function closeSettings() {
+    document.getElementById('settingsModal').classList.remove('active');
+  }
+
+  // Fullscreen Button
+  document.getElementById('fullscreenBtn')?.addEventListener('click', () => {
+    const container = document.querySelector('.manga-reader-container');
+    const btn = document.getElementById('fullscreenBtn');
+    const icon = btn.querySelector('i');
+    
+    container.classList.toggle('fullscreen');
+    
+    if (container.classList.contains('fullscreen')) {
+      icon.className = 'fas fa-compress';
+      btn.title = 'Exit Fullscreen';
+      // Hide sidebar in fullscreen
+      document.querySelector('.reader-right').style.display = 'none';
+    } else {
+      icon.className = 'fas fa-expand';
+      btn.title = 'Fullscreen';
+      // Show sidebar
+      document.querySelector('.reader-right').style.display = 'flex';
+    }
+  });
+
+  // Setting Options
+  document.querySelectorAll('.setting-option').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const setting = this.dataset.setting;
+      const value = this.dataset.value;
+      
+      document.querySelectorAll(`[data-setting="${setting}"]`).forEach(b => {
+        b.classList.remove('active');
+      });
+      this.classList.add('active');
+      
+      readerSettings[setting] = value;
+      readingMode = value;
+      saveSettings();
+      applyReadingMode();
+    });
+  });
+
+  // Apply reading mode
+  function applyReadingMode() {
+    const container = document.getElementById('mangaPages');
+    const images = container.querySelectorAll('img');
+    
+    container.style.flexDirection = (readingMode === 'vertical' || readingMode === 'horizontal') ? 'column' : 'row';
+    
+    images.forEach(img => {
+      if (readingMode === 'double') {
+        img.style.maxWidth = '45%';
+      } else if (readingMode === 'vertical') {
+        img.style.maxWidth = '100%';
+      } else {
+        img.style.maxWidth = '90%';
+      }
+    });
+  }
+
+  // Brightness slider
+  document.getElementById('brightnessSlider')?.addEventListener('input', function() {
+    readerSettings.brightness = this.value;
+    document.getElementById('mangaPages').style.filter = `brightness(${this.value}%)`;
+    saveSettings();
+  });
+
+  // AI Toggle
+  document.getElementById('aiToggle')?.addEventListener('click', function() {
+    this.classList.toggle('active');
+    readerSettings.aiAssistantEnabled = this.classList.contains('active');
+    saveSettings();
+  });
+
+  // AI Insights Button
+  document.getElementById('aiInsightsBtn')?.addEventListener('click', () => {
+    alert('Opening AI Insights for this series...');
+  });
+
+  // Report Button
+  document.getElementById('reportBtn')?.addEventListener('click', async () => {
+    const reason = prompt('Report Issue:\n\nDescribe the issue:');
+    if (reason) {
+      try {
+        const resp = await fetch('/report_manga', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ manga_id: {{ manga[0] }}, reason: reason })
+        });
+        if (resp.ok) {
+          alert('Report submitted successfully. Thank you!');
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Failed to submit report.');
+      }
+    }
+  });
+
+  // Navigation functions
+  function previousPage() {
+    if (currentPageIndex > 0) {
+      currentPageIndex--;
+      document.getElementById('progressSlider').value = (currentPageIndex / Math.max(totalPages - 1, 1)) * 100;
+      updatePageCounter();
+    }
+  }
+
+  function nextPage() {
+    if (currentPageIndex < totalPages - 1) {
+      currentPageIndex++;
+      document.getElementById('progressSlider').value = (currentPageIndex / Math.max(totalPages - 1, 1)) * 100;
+      updatePageCounter();
+    }
+  }
+
+  function updatePageCounter() {
+    document.getElementById('pageCounter').textContent = `Page ${currentPageIndex + 1}/${totalPages}`;
+  }
+
+  function expandCharacters() {
+    alert('More characters coming soon!');
+  }
+
+  // Load and display characters
+  async function loadCharacters(mangaId) {
+    try {
+      const response = await fetch(`/api/manga/${mangaId}/characters`);
+      if (!response.ok) throw new Error('Failed to load characters');
+      
+      const characters = await response.json();
+      const container = document.getElementById('characterProfiles');
+      
+      if (characters.length === 0) {
+        container.innerHTML = '<p style="color: #888; font-size: 12px; text-align: center;">No characters added yet</p>';
+        return;
+      }
+      
+      container.innerHTML = '';
+      characters.forEach((char, idx) => {
+        if (idx < 3) { // Show first 3, rest are hidden
+          const item = document.createElement('div');
+          item.className = 'character-item';
+          const avatarContent = char.avatar_url 
+            ? `<img src="${char.avatar_url}" alt="${char.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+            : `<span style="font-weight: bold; color: #fff; font-size: 12px;">${char.name.substring(0, 2).toUpperCase()}</span>`;
+          item.innerHTML = `
+            <div class="character-avatar" style="background: linear-gradient(135deg, #00d4ff 0%, #0f3460 100%); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; font-size: 12px;">
+              ${avatarContent}
+            </div>
+            <div class="character-info">
+              <div class="character-name">${char.name}</div>
+              <div class="character-trait">${char.role || 'Supporting'}</div>
+            </div>
+          `;
+          if (char.description) {
+            item.title = char.description;
+          }
+          container.appendChild(item);
+        }
+      });
+      
+      if (characters.length > 3) {
+        const expandBtn = document.createElement('div');
+        expandBtn.className = 'expand-btn';
+        expandBtn.textContent = `↓ Show ${characters.length - 3} more`;
+        expandBtn.style.cursor = 'pointer';
+        expandBtn.onclick = () => showAllCharacters(characters);
+        container.appendChild(expandBtn);
+      }
+    } catch (error) {
+      console.error('Error loading characters:', error);
+      document.getElementById('characterProfiles').innerHTML = '<p style="color: #888; font-size: 12px;">Error loading characters</p>';
+    }
+  }
+
+  // Show all characters in expanded view
+  function showAllCharacters(characters) {
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center;';
+    
+    const content = document.createElement('div');
+    content.style.cssText = 'background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid #00d4ff; border-radius: 12px; padding: 20px; max-width: 600px; max-height: 80vh; overflow-y: auto; color: #e0e0e0;';
+    
+    let html = '<h2 style="color: #00d4ff; margin-bottom: 20px;">All Characters</h2>';
+    characters.forEach(char => {
+      const avatarContent = char.avatar_url 
+        ? `<img src="${char.avatar_url}" alt="${char.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 2px solid #00d4ff;">`
+        : `<span style="color: #fff; font-weight: bold;">${char.name.substring(0, 2).toUpperCase()}</span>`;
+      html += `
+        <div style="display: flex; gap: 12px; margin-bottom: 15px; padding: 12px; background: #0f3460; border-radius: 6px; border-left: 3px solid #00d4ff;">
+          <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #00d4ff 0%, #0f3460 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            ${avatarContent}
+          </div>
+          <div style="flex: 1;">
+            <div style="font-weight: 600; color: #00d4ff;">${char.name}</div>
+            <div style="font-size: 12px; color: #888;">${char.role || 'Supporting Role'}</div>
+            ${char.description ? `<div style="font-size: 12px; color: #b0b0b0; margin-top: 4px;">${char.description}</div>` : ''}
+          </div>
+        </div>
+      `;
+    });
+    html += '<button onclick="this.closest(\'div\').parentElement.remove()" style="background: #00d4ff; color: #000; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; margin-top: 20px;">Close</button>';
+    
+    content.innerHTML = html;
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+  }
+
+  // Progress slider
+  document.getElementById('progressSlider')?.addEventListener('input', function() {
+    const percentage = parseFloat(this.value);
+    currentPageIndex = Math.floor((percentage / 100) * Math.max(totalPages - 1, 1));
+    updatePageCounter();
+  });
+
+  // Load chapter pages
+  async function loadChapter(chapterId, chapterNum) {
+    const mangaPages = document.getElementById('mangaPages');
+    mangaPages.innerHTML = '<div class="manga-loading"><i class="fas fa-spinner"></i><p>Loading chapter...</p></div>';
+    
+    try {
+      // Fetch chapter image list from server
+      const response = await fetch(`/api/chapter/${chapterId}/pages`);
+      if (!response.ok) throw new Error('Failed to load chapter');
+      
+      const pages = await response.json();
+      mangaPages.innerHTML = '';
+      
+      if (pages.length === 0) {
+        mangaPages.innerHTML = '<div class="manga-loading"><i class="fas fa-exclamation-circle"></i><p>No pages found for this chapter</p></div>';
+        totalPages = 0;
+        return;
+      }
+      
+      // Load images
+      pages.forEach(page => {
+        const img = document.createElement('img');
+        img.src = page.url;
+        img.alt = `Page ${page.page_num}`;
+        img.className = 'manga-page';
+        img.onerror = () => {
+          img.src = '/static/img/placeholder.png';
+        };
+        mangaPages.appendChild(img);
+      });
+      
+      totalPages = pages.length;
+      currentPageIndex = 0;
+      updatePageCounter();
+      applyReadingMode();
+    } catch (error) {
+      console.error('Error loading chapter:', error);
+      mangaPages.innerHTML = '<div class="manga-loading"><i class="fas fa-exclamation-circle"></i><p>Error loading chapter pages</p></div>';
+    }
+  }
+
+  // Initial load
+  document.addEventListener('DOMContentLoaded', () => {
+    if (chapters.length > 0) {
+      // Load first chapter
+      const chapter = chapters[0];
+      currentChapterId = chapter[0];
+      document.getElementById('chapterDisplay').textContent = `Chapter ${chapter[1]}: ${chapter[2]}`;
+      loadChapter(chapter[0], chapter[1]);
+      
+      // Load characters
+      loadCharacters({{ manga[0] }});
+      
+      // Add chapter selector if there are multiple chapters
+      if (chapters.length > 1) {
+        const topBarLeft = document.querySelector('.top-bar-left');
+        const selector = document.createElement('select');
+        selector.id = 'chapterSelector';
+        selector.style.cssText = 'background: #2a2a4e; color: #e0e0e0; border: 2px solid #00d4ff; padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;';
+        
+        chapters.forEach(ch => {
+          const option = document.createElement('option');
+          option.value = ch[0];
+          option.textContent = `Ch ${ch[1]}: ${ch[2]}`;
+          if (ch[0] === chapter[0]) option.selected = true;
+          selector.appendChild(option);
+        });
+        
+        selector.addEventListener('change', (e) => {
+          const selectedId = parseInt(e.target.value);
+          const selectedChapter = chapters.find(ch => ch[0] === selectedId);
+          if (selectedChapter) {
+            currentChapterId = selectedId;
+            document.getElementById('chapterDisplay').textContent = `Chapter ${selectedChapter[1]}: ${selectedChapter[2]}`;
+            loadChapter(selectedId, selectedChapter[1]);
+          }
+        });
+        
+        topBarLeft.appendChild(selector);
+      }
+    }
+  });
 </script>
 {% endblock %}

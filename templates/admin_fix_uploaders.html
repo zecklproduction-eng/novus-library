@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Fix Book Uploaders | NOVUS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h1>Books Missing Uploader</h1>
+  <p class="text-muted">Assign selected books to the current admin user.</p>
+
+  <div class="mb-3">
+    <button id="assignSelected" class="btn btn-neon btn-sm">Assign Selected To Me</button>
+  </div>
+
+  <table class="table table-dark table-striped">
+    <thead><tr><th><input id="chkAll" type="checkbox"></th><th>ID</th><th>Title</th><th>Author</th><th>Created</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr data-id="{{ r[0] }}"><td><input class="rowChk" type="checkbox" value="{{ r[0] }}"></td><td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td></tr>
+      {% else %}
+      <tr><td colspan="5">No books without uploader found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function selectedIds(){ return Array.from(document.querySelectorAll('.rowChk:checked')).map(n=>n.value); }
+document.getElementById('chkAll')?.addEventListener('change', function(){ document.querySelectorAll('.rowChk').forEach(cb=>cb.checked=this.checked); });
+
+document.getElementById('assignSelected')?.addEventListener('click', async function(){
+  const ids = selectedIds(); if(!ids.length) return alert('No books selected');
+  if(!confirm('Assign selected books to you?')) return;
+  const resp = await fetch('/admin/fix_uploaders', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ids: ids})});
+  const j = await resp.json();
+  if (j.updated>0) { showToast('Updated '+j.updated+' books','success'); window.location.reload(); } else { showToast('No books updated','info'); }
+});
+</script>
+{% endblock %}

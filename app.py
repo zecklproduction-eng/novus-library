@@ -1,13 +1,35 @@
 from flask import (
     Flask, render_template, request, redirect,
-    session, url_for, flash
+    session, url_for, flash, jsonify
 )
 import sqlite3
 from datetime import datetime
+from datetime import timedelta
 from collections import Counter
 import os
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not required
+
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except Exception:
+    requests = None
+    REQUESTS_AVAILABLE = False
+    print('Warning: Python package "requests" not found. Optional features (OpenAI calls, external tests) will be disabled. Install with: pip install requests')
 from werkzeug.utils import secure_filename
 from functools import wraps
+try:
+    from pdf2image import convert_from_path
+    PDF_EXTRACTION_AVAILABLE = True
+except ImportError:
+    PDF_EXTRACTION_AVAILABLE = False
+    print('Warning: pdf2image not available. PDF to image conversion will be disabled. Install with: pip install pdf2image')
 
 # -------------------- PATHS / CONFIG --------------------
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -144,6 +166,19 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    # AI summaries cache table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS ai_summaries (
+            id INTEGER PRIMARY KEY,
+            item_type TEXT,
+            item_id INTEGER,
+            summary TEXT,
+            model TEXT,
+            created_at TEXT,
+            UNIQUE(item_type, item_id)
+        )
+    """)
+
     # created_at trigger
     c.execute("""
         CREATE TRIGGER IF NOT EXISTS books_created_at_default
@@ -176,6 +211,17 @@ def init_db():
             progress   INTEGER DEFAULT 0,
             created_at TEXT DEFAULT (DATETIME('now')),
             UNIQUE(user_id, book_id)
+        )
+    """)
+
+    # reports (user reports on manga/books)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER,
+            manga_id INTEGER,
+            reason TEXT,
+            created_at TEXT DEFAULT (DATETIME('now'))
         )
     """)
 
@@ -224,6 +270,19 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    # manga characters (for character profiles in reader)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS manga_characters (
+            id          INTEGER PRIMARY KEY,
+            manga_id    INTEGER NOT NULL,
+            name        TEXT NOT NULL,
+            description TEXT,
+            role        TEXT,
+            avatar_url  TEXT,
+            created_at  TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (manga_id) REFERENCES books(id)
+        )
+    """)
 
     # default users
     try:
@@ -437,7 +496,7 @@ def view_book(id):
 
     # fetch book
     c.execute(
-        "SELECT id, title, author, category, pdf_filename, audio_filename, cover_path  FROM books WHERE id=?",
+        "SELECT id, title, author, category, pdf_filename, audio_filename, cover_path, description FROM books WHERE id=?",
         (id,),
     )
     book = c.fetchone()
@@ -539,6 +598,254 @@ def view_book(id):
 )
 
 
+# ---------- AI Summary Endpoint ----------
+@app.route('/ai_summary', methods=['POST'])
+def ai_summary():
+    """Return a short AI-style summary for provided text.
+    POST JSON: { text: string, max_sentences: int (optional) }
+    """
+    data = request.get_json() or {}
+    text = (data.get('text') or '').strip()
+    try:
+        max_sents = int(data.get('max_sentences', 3))
+    except Exception:
+        max_sents = 3
+
+    if not text:
+        return jsonify({'error': 'No text provided.'}), 400
+
+    # Optional caching parameters
+    item_type = (data.get('item_type') or '').strip() or None
+    try:
+        item_id = int(data.get('item_id')) if data.get('item_id') is not None else None
+    except Exception:
+        item_id = None
+    force = bool(data.get('force'))
+
+    # Check cache with optional TTL
+    if item_type and item_id and not force:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT id, summary, model, created_at FROM ai_summaries WHERE item_type=? AND item_id=?", (item_type, item_id))
+        row = c.fetchone()
+        if row:
+            rid, summary_text, model_name, created_at = row
+            ttl_days = int(os.environ.get('AI_SUMMARY_TTL_DAYS', '0') or '0')
+            if ttl_days > 0:
+                try:
+                    created_dt = datetime.fromisoformat(created_at)
+                    age = datetime.utcnow() - created_dt
+                    if age.days >= ttl_days:
+                        # expired, remove
+                        c.execute("DELETE FROM ai_summaries WHERE id=?", (rid,))
+                        conn.commit()
+                        row = None
+                except Exception:
+                    # if parsing fails, proceed to use cached value
+                    pass
+        conn.close()
+        if row:
+            # return cached
+            return jsonify({'summary': summary_text, 'cached': True, 'model': model_name, 'cached_at': created_at})
+
+    def simple_summarize(src, max_sentences=3):
+        import re
+        src = src.replace('\n', ' ').strip()
+        # Split into sentences
+        sents = re.split(r'(?<=[.!?])\s+', src)
+        # If short text, produce a concise variant rather than returning identical text
+        if len(src) < 250:
+            if len(sents) == 1:
+                # single sentence: truncate to ~30 words
+                words = sents[0].split()
+                if len(words) <= 30:
+                    return sents[0]
+                return ' '.join(words[:30]).rstrip() + '…'
+            else:
+                # multiple sentences: return up to max_sentences sentences
+                return ' '.join(sents[:max_sentences])
+
+        # Build frequency table
+        words = re.findall(r"\w+", src.lower())
+        stopwords = set(["the","and","a","an","of","in","to","is","it","that","for","on","with","as","was","are","by","this","be"])
+        freq = {}
+        for w in words:
+            if w in stopwords or len(w) < 3:
+                continue
+            freq[w] = freq.get(w, 0) + 1
+
+        scores = []
+        for i, s in enumerate(sents):
+            s_words = re.findall(r"\w+", s.lower())
+            score = sum(freq.get(w, 0) for w in s_words)
+            scores.append((i, score, s))
+
+        # Pick top sentences
+        top = sorted(scores, key=lambda x: x[1], reverse=True)[:max_sentences]
+        top_sorted = sorted(top, key=lambda x: x[0])
+        summary = ' '.join(s for (_, _, s) in top_sorted)
+        return summary
+
+    # Try using external LLM if configured
+    summary = None
+    used_model = 'simple'
+    OPENAI_KEY = os.environ.get('OPENAI_API_KEY')
+    USE_OPENAI = os.environ.get('USE_OPENAI', '0') in ('1', 'true', 'True')
+
+    def call_openai_summary(src, max_sentences=3):
+        # ensure requests is available and API key present
+        if not REQUESTS_AVAILABLE or not OPENAI_KEY:
+            return None, None
+        model = os.environ.get('OPENAI_MODEL', 'gpt-3.5-turbo')
+        prompt = f"Summarize the following text in {max_sentences} concise sentences:\n\n{src}"
+        headers = {'Authorization': f'Bearer {OPENAI_KEY}', 'Content-Type': 'application/json'}
+        payload = {
+            'model': model,
+            'messages': [{'role': 'user', 'content': prompt}],
+            'max_tokens': 300,
+            'temperature': 0.3,
+        }
+        try:
+            resp = requests.post('https://api.openai.com/v1/chat/completions', json=payload, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                j = resp.json()
+                txt = j['choices'][0]['message']['content'].strip()
+                return txt, model
+        except Exception:
+            pass
+        return None, None
+
+    if OPENAI_KEY and USE_OPENAI:
+        txt, model = call_openai_summary(text, max_sents)
+        if txt:
+            summary = txt
+            used_model = model
+
+    if not summary:
+        summary = simple_summarize(text, max_sents)
+        used_model = 'simple'
+
+    # Store cache if item provided
+    if item_type and item_id:
+        conn = get_conn()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        try:
+            c.execute("INSERT OR REPLACE INTO ai_summaries (item_type, item_id, summary, model, created_at) VALUES (?, ?, ?, ?, ?)",
+                      (item_type, item_id, summary, used_model, now))
+            conn.commit()
+        except Exception:
+            pass
+        finally:
+            conn.close()
+
+    return jsonify({'summary': summary, 'cached': False, 'model': used_model})
+
+
+# ---------- Admin: AI Summaries Management ----------
+@app.route('/admin/ai_summaries')
+@admin_required
+def admin_ai_summaries():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT id, item_type, item_id, model, created_at, summary FROM ai_summaries ORDER BY created_at DESC")
+    rows = c.fetchall()
+    conn.close()
+
+    ttl_days = int(os.environ.get('AI_SUMMARY_TTL_DAYS', '0') or '0')
+    return render_template('admin_ai_summaries.html', rows=rows, ttl_days=ttl_days)
+
+
+@app.route('/admin/fix_uploaders', methods=['GET', 'POST'])
+@admin_required
+def admin_fix_uploaders():
+    conn = get_conn(); c = conn.cursor()
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        ids = data.get('ids') or []
+        try:
+            ids = [int(i) for i in ids]
+        except Exception:
+            conn.close()
+            return jsonify({'error': 'invalid ids'}), 400
+        if not ids:
+            conn.close(); return jsonify({'updated': 0})
+        uid = session.get('user_id')
+        placeholders = ','.join('?' for _ in ids)
+        c.execute(f"UPDATE books SET uploader_id=? WHERE id IN ({placeholders})", tuple([uid]+ids))
+        conn.commit(); updated = c.rowcount; conn.close()
+        return jsonify({'updated': updated})
+
+    # GET: show books with missing uploader
+    c.execute("SELECT id, title, author, created_at FROM books WHERE uploader_id IS NULL ORDER BY created_at DESC")
+    rows = c.fetchall()
+    conn.close()
+    return render_template('admin_fix_uploaders.html', rows=rows)
+
+
+@app.route('/admin/ai_summaries/clear', methods=['POST'])
+@admin_required
+def admin_ai_summaries_clear():
+    data = request.get_json() or {}
+    action = data.get('action')
+    conn = get_conn()
+    c = conn.cursor()
+
+    if action == 'selected':
+        ids = data.get('ids') or []
+        if not ids:
+            conn.close()
+            return jsonify({'deleted': 0})
+        # ensure ints
+        try:
+            ids = [int(i) for i in ids]
+        except Exception:
+            conn.close()
+            return jsonify({'error': 'invalid ids'}), 400
+
+        placeholders = ','.join('?' for _ in ids)
+        c.execute(f"DELETE FROM ai_summaries WHERE id IN ({placeholders})", tuple(ids))
+        deleted = c.rowcount
+        conn.commit()
+        conn.close()
+        return jsonify({'deleted': deleted})
+
+    elif action == 'expired':
+        ttl_days = int(os.environ.get('AI_SUMMARY_TTL_DAYS', '0') or '0')
+        if ttl_days <= 0:
+            conn.close()
+            return jsonify({'deleted': 0, 'error': 'TTL not set or zero'}), 400
+
+        cutoff = datetime.utcnow() - timedelta(days=ttl_days)
+        # delete entries older than cutoff
+        c.execute("SELECT id, created_at FROM ai_summaries")
+        rows = c.fetchall()
+        to_delete = []
+        for rid, created_at in rows:
+            try:
+                created_dt = datetime.fromisoformat(created_at)
+                if created_dt < cutoff:
+                    to_delete.append(rid)
+            except Exception:
+                # if parsing fails, skip
+                continue
+
+        if not to_delete:
+            conn.close()
+            return jsonify({'deleted': 0})
+
+        placeholders = ','.join('?' for _ in to_delete)
+        c.execute(f"DELETE FROM ai_summaries WHERE id IN ({placeholders})", tuple(to_delete))
+        deleted = c.rowcount
+        conn.commit()
+        conn.close()
+        return jsonify({'deleted': deleted})
+
+    else:
+        conn.close()
+        return jsonify({'error': 'unknown action'}), 400
+
+
 
 @app.post("/book/<int:id>/review")
 def add_review(id):
@@ -611,7 +918,9 @@ def add_book():
 
     title    = (request.form.get("title") or "").strip()
     author   = (request.form.get("author") or "").strip()
-    category = (request.form.get("category") or "").strip()
+    # Handle multiple categories (comma-separated)
+    categories_list = request.form.getlist("categories")
+    category = ",".join([c.strip() for c in categories_list if c.strip()]) if categories_list else "General"
     book_type = (request.form.get("book_type") or "book").lower().strip()
 
     if not title:
@@ -657,10 +966,12 @@ def add_book():
 
         conn = get_conn()
         c = conn.cursor()
+        # record uploader_id so the user who created the book can edit it later
+        uploader_id = session.get('user_id')
         c.execute("""
-        INSERT INTO books (title, author, category, pdf_filename, audio_filename, cover_path, book_type)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (title, author, category, pdf_filename, audio_filename, cover_path, book_type))
+        INSERT INTO books (title, author, category, pdf_filename, audio_filename, cover_path, book_type, uploader_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (title, author, category, pdf_filename, audio_filename, cover_path, book_type, uploader_id))
         conn.commit()
         conn.close()
 
@@ -694,35 +1005,53 @@ def add_book():
         # Get the newly created manga ID
         manga_id = c.lastrowid
 
-        # Handle first chapter upload - now support multiple images
-        chapter_pages = request.files.getlist("chapter_pages")
-        
-        if chapter_pages and len(chapter_pages) > 0:
-            # Create manga chapter directory
-            chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch1")
-            os.makedirs(chapter_dir, exist_ok=True)
+        # Handle first chapter upload - support both PDF and multiple images
+        chapter_format = (request.form.get("chapter_format") or "images").lower().strip()
+        page_count = 0
+        pages_data = None
+
+        if chapter_format == "pdf":
+            # Handle PDF upload
+            chapter_pdf = request.files.get("chapter_pdf")
+            if chapter_pdf and chapter_pdf.filename:
+                ext = chapter_pdf.filename.rsplit(".", 1)[-1].lower()
+                if ext in ALLOWED_PDF:
+                    pdf_filename = secure_filename(chapter_pdf.filename)
+                    chapter_pdf.save(os.path.join(UPLOAD_FOLDER_PDF, pdf_filename))
+                    pages_data = pdf_filename
+                    page_count = 1
+        else:
+            # Handle image uploads (multiple pages)
+            chapter_pages = request.files.getlist("chapter_pages")
             
-            page_files = []
-            page_count = 0
-            
-            for idx, page_file in enumerate(chapter_pages, 1):
-                if page_file and page_file.filename:
-                    ext = page_file.filename.rsplit(".", 1)[-1].lower()
-                    if ext in ALLOWED_IMG:
-                        # Save with page number for ordering
-                        page_filename = f"page_{idx:03d}.{ext}"
-                        page_file.save(os.path.join(chapter_dir, page_filename))
-                        page_files.append(page_filename)
-                        page_count += 1
-            
-            if page_count > 0:
-                # Store page files info in chapters table (comma-separated)
-                pages_data = ",".join(page_files)
-                c.execute("""
-                    INSERT INTO chapters (manga_id, chapter_num, title, pdf_filename, page_count)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (manga_id, 1, "Chapter 1", pages_data, page_count))
-                conn.commit()
+            if chapter_pages and len(chapter_pages) > 0:
+                # Create manga chapter directory
+                chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch1")
+                os.makedirs(chapter_dir, exist_ok=True)
+                
+                page_files = []
+                
+                for idx, page_file in enumerate(chapter_pages, 1):
+                    if page_file and page_file.filename:
+                        ext = page_file.filename.rsplit(".", 1)[-1].lower()
+                        if ext in ALLOWED_IMG:
+                            # Save with page number for ordering
+                            page_filename = f"page_{idx:03d}.{ext}"
+                            page_file.save(os.path.join(chapter_dir, page_filename))
+                            page_files.append(page_filename)
+                            page_count += 1
+                
+                if page_count > 0:
+                    # Store page files info (comma-separated)
+                    pages_data = ",".join(page_files)
+
+        if pages_data and page_count > 0:
+            # Insert chapter into database
+            c.execute("""
+                INSERT INTO chapters (manga_id, chapter_num, title, pdf_filename, page_count)
+                VALUES (?, ?, ?, ?, ?)
+            """, (manga_id, 1, "Chapter 1", pages_data, page_count))
+            conn.commit()
 
         conn.close()
 
@@ -734,107 +1063,133 @@ def add_book():
 @app.route("/book/<int:id>/edit", methods=["GET", "POST"])
 @role_required("admin", "publisher")
 def edit_book(id):
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+    try:
+        if "user_id" not in session:
+            return redirect(url_for("login"))
 
-    conn = get_conn()
-    c = conn.cursor()
+        conn = get_conn()
+        c = conn.cursor()
 
-    # pull everything we need, including cover + uploader
-    c.execute("""
-        SELECT id, title, author, category,
-               pdf_filename, audio_filename, cover_path, uploader_id
-        FROM books
-        WHERE id = ?
-    """, (id,))
-    row = c.fetchone()
-
-    if not row:
-        conn.close()
-        flash("Book not found.", "danger")
-        return redirect(url_for("home"))
-
-    book = {
-        "id": row[0],
-        "title": row[1],
-        "author": row[2],
-        "category": row[3],
-        "pdf_filename": row[4],
-        "audio_filename": row[5],
-        "cover_path": row[6],
-        "uploader_id": row[7],
-    }
-
-    # --- permission: only admin or the publisher who uploaded it ---
-    user_id = session["user_id"]
-    role = session.get("role")
-    if not (role == "admin" or (book["uploader_id"] and book["uploader_id"] == user_id)):
-        conn.close()
-        flash("You are not allowed to edit this book.", "danger")
-        return redirect(url_for("view_book", id=id))
-
-    if request.method == "POST":
-        title = (request.form.get("title") or "").strip()
-        author = (request.form.get("author") or "").strip()
-        category = (request.form.get("category") or "").strip()
-
-        if not title:
-            flash("Title is required.", "danger")
-            conn.close()
-            return redirect(url_for("edit_book", id=id))
-
-        # Start with existing values
-        pdf_filename = book["pdf_filename"]
-        audio_filename = book["audio_filename"]
-        cover_path = book["cover_path"]
-
-        # ----- PDF file (optional replacement) -----
-        pdf_file = request.files.get("pdf_file")
-        if pdf_file and pdf_file.filename:
-            ext = pdf_file.filename.rsplit(".", 1)[-1].lower()
-            if ext in ALLOWED_PDF:
-                pdf_filename = secure_filename(pdf_file.filename)
-                pdf_file.save(os.path.join(UPLOAD_FOLDER_PDF, pdf_filename))
-            else:
-                flash("PDF must be a .pdf file.", "danger")
-
-        # ----- Audio file (optional replacement) -----
-        audio_file = request.files.get("audio_file")
-        if audio_file and audio_file.filename:
-            ext = audio_file.filename.rsplit(".", 1)[-1].lower()
-            if ext in ALLOWED_AUDIO:
-                audio_filename = secure_filename(audio_file.filename)
-                audio_file.save(os.path.join(UPLOAD_FOLDER_AUDIO, audio_filename))
-            else:
-                flash("Audio must be a .mp3 file.", "danger")
-
-        # ----- Cover image (optional replacement) -----
-        cover_file = request.files.get("cover_file")
-        if cover_file and cover_file.filename:
-            fname = secure_filename(cover_file.filename)
-            cover_file.save(os.path.join(UPLOAD_FOLDER_COVERS, fname))
-            cover_path = f"covers/{fname}"   # relative to /static
-
-        # Save everything back
+        # pull everything we need, including description and uploader
         c.execute("""
-            UPDATE books
-               SET title = ?,
-                   author = ?,
-                   category = ?,
-                   pdf_filename = ?,
-                   audio_filename = ?,
-                   cover_path = ?
-             WHERE id = ?
-        """, (title, author, category, pdf_filename, audio_filename, cover_path, id))
+            SELECT id, title, author, category, description,
+                   pdf_filename, audio_filename, cover_path, uploader_id, book_type
+            FROM books
+            WHERE id = ?
+        """, (id,))
+        row = c.fetchone()
 
-        conn.commit()
+        if not row:
+            conn.close()
+            flash("Book not found.", "danger")
+            return redirect(url_for("home"))
+
+        book = {
+            "id": row[0],
+            "title": row[1],
+            "author": row[2],
+            "category": row[3],
+            "description": row[4],
+            "pdf_filename": row[5],
+            "audio_filename": row[6],
+            "cover_path": row[7],
+            "uploader_id": row[8],
+            "book_type": row[9],
+        }
+
+        # --- permission: only admin or the publisher who uploaded it ---
+        user_id = session["user_id"]
+        role = session.get("role")
+        if not (role == "admin" or (book["uploader_id"] and book["uploader_id"] == user_id)):
+            conn.close()
+            flash("You are not allowed to edit this book.", "danger")
+            return redirect(url_for("view_book", id=id))
+
+        if request.method == "POST":
+            title = (request.form.get("title") or "").strip()
+            author = (request.form.get("author") or "").strip()
+
+            # support multiple categories (checkboxes named 'categories')
+            categories_list = request.form.getlist('categories')
+            if categories_list:
+                category = ",".join([c.strip() for c in categories_list if c.strip()])
+            else:
+                category = (request.form.get("category") or "").strip()
+
+            description = (request.form.get('description') or '').strip()
+
+            if not title:
+                flash("Title is required.", "danger")
+                conn.close()
+                return redirect(url_for("edit_book", id=id))
+
+            # Start with existing values
+            pdf_filename = book["pdf_filename"]
+            audio_filename = book["audio_filename"]
+            cover_path = book["cover_path"]
+
+            # ----- PDF file (optional replacement) -----
+            pdf_file = request.files.get("pdf_file")
+            if pdf_file and pdf_file.filename:
+                ext = pdf_file.filename.rsplit(".", 1)[-1].lower()
+                if ext in ALLOWED_PDF:
+                    pdf_filename = secure_filename(pdf_file.filename)
+                    pdf_file.save(os.path.join(UPLOAD_FOLDER_PDF, pdf_filename))
+                else:
+                    flash("PDF must be a .pdf file.", "danger")
+
+            # ----- Audio file (optional replacement) -----
+            audio_file = request.files.get("audio_file")
+            if audio_file and audio_file.filename:
+                ext = audio_file.filename.rsplit(".", 1)[-1].lower()
+                if ext in ALLOWED_AUDIO:
+                    audio_filename = secure_filename(audio_file.filename)
+                    audio_file.save(os.path.join(UPLOAD_FOLDER_AUDIO, audio_filename))
+                else:
+                    flash("Audio must be a .mp3 file.", "danger")
+
+            # ----- Cover image (optional replacement) -----
+            cover_file = request.files.get("cover_file")
+            if cover_file and cover_file.filename:
+                fname = secure_filename(cover_file.filename)
+                cover_file.save(os.path.join(UPLOAD_FOLDER_COVERS, fname))
+                cover_path = f"covers/{fname}"   # relative to /static
+
+            # Save everything back
+            c.execute("""
+                UPDATE books
+                   SET title = ?,
+                       author = ?,
+                       category = ?,
+                       description = ?,
+                       pdf_filename = ?,
+                       audio_filename = ?,
+                       cover_path = ?
+                 WHERE id = ?
+            """, (title, author, category, description, pdf_filename, audio_filename, cover_path, id))
+
+            conn.commit()
+            conn.close()
+            flash("Book updated successfully.", "success")
+            return redirect(url_for("view_book", id=id))
+
+        # GET: show the form
+        # prepare category list for template (avoid depending on Jinja split filter)
+        selected_categories = []
+        if book.get('category'):
+            selected_categories = [c.strip() for c in book['category'].split(',') if c.strip()]
         conn.close()
-        flash("Book updated successfully.", "success")
-        return redirect(url_for("view_book", id=id))
+        return render_template("edit_book.html", book=book, selected_categories=selected_categories)
 
-    # GET: show the form
-    conn.close()
-    return render_template("edit_book.html", book=book)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        try:
+            conn.close()
+        except Exception:
+            pass
+        flash(f"Error loading edit page: {str(e)}", "danger")
+        return redirect(url_for('home'))
 
 
 @app.post("/book/<int:id>/delete")
@@ -1217,7 +1572,7 @@ def read_manga(id):
 
     # Fetch manga details
     c.execute("""
-        SELECT id, title, author, category, pdf_filename, cover_path, book_type
+        SELECT id, title, author, category, pdf_filename, cover_path, description, book_type
         FROM books
         WHERE id = ? AND COALESCE(book_type, 'book') = 'manga'
     """, (id,))
@@ -1228,7 +1583,16 @@ def read_manga(id):
         flash("Manga not found.", "danger")
         return redirect(url_for("manga"))
 
-    # Get all manga for series list (same author or category)
+    # Get chapters for this manga
+    c.execute("""
+        SELECT id, chapter_num, title, pdf_filename, created_at, page_count
+        FROM chapters
+        WHERE manga_id = ?
+        ORDER BY chapter_num ASC
+    """, (id,))
+    chapters = c.fetchall()
+
+    # Get all manga for series list
     c.execute("""
         SELECT id, title, author
         FROM books
@@ -1241,9 +1605,53 @@ def read_manga(id):
     conn.close()
 
     return render_template(
-        "manga_reader.html",
+        "manga_reader_new.html",
         manga=manga,
-        related_manga=related_manga
+        chapters=chapters,
+        related_manga=related_manga,
+        chapter=chapters[0] if chapters else None
+    )
+
+
+# ---------- Modern Manga Reader (v2) ----------
+@app.route("/manga/<int:id>")
+def manga_reader_v2(id):
+    """Modern manga reader with AI features."""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    # Fetch manga details
+    c.execute("""
+        SELECT id, title, author, category, pdf_filename, cover_path, description, book_type
+        FROM books
+        WHERE id = ? AND COALESCE(book_type, 'book') = 'manga'
+    """, (id,))
+    manga = c.fetchone()
+
+    if not manga:
+        conn.close()
+        flash("Manga not found.", "danger")
+        return redirect(url_for("manga"))
+
+    # Get chapters for this manga
+    c.execute("""
+        SELECT id, chapter_num, title, pdf_filename, created_at, page_count
+        FROM chapters
+        WHERE manga_id = ?
+        ORDER BY chapter_num ASC
+    """, (id,))
+    chapters = c.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "manga_reader_new.html",
+        manga=manga,
+        chapters=chapters,
+        chapter=chapters[0] if chapters else None
     )
 
 
@@ -1282,10 +1690,10 @@ def upload_chapter(manga_id):
     # POST - upload chapter
     chapter_num = request.form.get("chapter_num", "").strip()
     chapter_title = request.form.get("chapter_title", f"Chapter {chapter_num}").strip()
-    chapter_pages = request.files.getlist("chapter_pages")
+    chapter_format = (request.form.get("chapter_format") or "images").lower().strip()
 
-    if not chapter_num or not chapter_pages or len(chapter_pages) == 0:
-        flash("Chapter number and at least one page image are required.", "danger")
+    if not chapter_num:
+        flash("Chapter number is required.", "danger")
         return redirect(url_for("upload_chapter", manga_id=manga_id))
 
     try:
@@ -1320,30 +1728,97 @@ def upload_chapter(manga_id):
         flash("Manga not found.", "danger")
         return redirect(url_for("manga"))
 
-    # Save chapter pages
-    chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch{chapter_num}")
-    os.makedirs(chapter_dir, exist_ok=True)
-    
-    page_files = []
     page_count = 0
-    
-    for idx, page_file in enumerate(chapter_pages, 1):
-        if page_file and page_file.filename:
-            ext = page_file.filename.rsplit(".", 1)[-1].lower()
-            if ext in ALLOWED_IMG:
-                # Save with page number for ordering
-                page_filename = f"page_{idx:03d}.{ext}"
-                page_file.save(os.path.join(chapter_dir, page_filename))
-                page_files.append(page_filename)
-                page_count += 1
-    
-    if page_count == 0:
-        conn.close()
-        flash("No valid image files were uploaded.", "danger")
-        return redirect(url_for("upload_chapter", manga_id=manga_id))
+    pages_data = None
 
-    # Store page files info in chapters table (comma-separated)
-    pages_data = ",".join(page_files)
+    if chapter_format == "pdf":
+        # Handle PDF upload - extract pages as images
+        chapter_pdf = request.files.get("chapter_pdf")
+        if not chapter_pdf or not chapter_pdf.filename:
+            conn.close()
+            flash("PDF file is required.", "danger")
+            return redirect(url_for("upload_chapter", manga_id=manga_id))
+        
+        ext = chapter_pdf.filename.rsplit(".", 1)[-1].lower()
+        if ext not in ALLOWED_PDF:
+            conn.close()
+            flash("Only PDF files are allowed.", "danger")
+            return redirect(url_for("upload_chapter", manga_id=manga_id))
+        
+        # Save PDF temporarily
+        pdf_filename = secure_filename(chapter_pdf.filename)
+        pdf_path = os.path.join(UPLOAD_FOLDER_PDF, pdf_filename)
+        chapter_pdf.save(pdf_path)
+        
+        # Create chapter directory for images
+        chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch{chapter_num}")
+        os.makedirs(chapter_dir, exist_ok=True)
+        
+        # Try to extract PDF pages as images
+        if PDF_EXTRACTION_AVAILABLE:
+            try:
+                from PIL import Image
+                images = convert_from_path(pdf_path, dpi=150)
+                page_count = len(images)
+                
+                for idx, img in enumerate(images, 1):
+                    page_filename = f"page_{idx:03d}.png"
+                    img_path = os.path.join(chapter_dir, page_filename)
+                    img.save(img_path, 'PNG')
+                
+                pages_data = ",".join([f"page_{i:03d}.png" for i in range(1, page_count + 1)])
+                flash(f"PDF extracted successfully! {page_count} pages found.", "info")
+            except Exception as e:
+                # Fallback: store PDF filename if extraction fails
+                # Copy PDF to chapter directory so it can be displayed
+                import shutil
+                pdf_dest = os.path.join(chapter_dir, pdf_filename)
+                shutil.copy(pdf_path, pdf_dest)
+                pages_data = pdf_filename
+                page_count = 1
+                flash(f"PDF uploaded (extraction failed, will display PDF in reader): {str(e)}", "warning")
+        else:
+            # If pdf2image not available, copy PDF to chapter directory
+            import shutil
+            pdf_dest = os.path.join(chapter_dir, pdf_filename)
+            shutil.copy(pdf_path, pdf_dest)
+            pages_data = pdf_filename
+            page_count = 1
+            flash("PDF uploaded (install pdf2image for page extraction: pip install pdf2image). PDF will display in reader.", "info")
+    else:
+        # Handle image uploads (multiple pages)
+        chapter_pages = request.files.getlist("chapter_pages")
+        
+        if not chapter_pages or len(chapter_pages) == 0:
+            conn.close()
+            flash("At least one image file is required.", "danger")
+            return redirect(url_for("upload_chapter", manga_id=manga_id))
+
+        # Save chapter pages
+        chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch{chapter_num}")
+        os.makedirs(chapter_dir, exist_ok=True)
+        
+        page_files = []
+        
+        for idx, page_file in enumerate(chapter_pages, 1):
+            if page_file and page_file.filename:
+                ext = page_file.filename.rsplit(".", 1)[-1].lower()
+                if ext in ALLOWED_IMG:
+                    # Save with page number for ordering
+                    page_filename = f"page_{idx:03d}.{ext}"
+                    page_file.save(os.path.join(chapter_dir, page_filename))
+                    page_files.append(page_filename)
+                    page_count += 1
+        
+        if page_count == 0:
+            conn.close()
+            flash("No valid image files were uploaded.", "danger")
+            return redirect(url_for("upload_chapter", manga_id=manga_id))
+
+        # Store page files info (comma-separated)
+        pages_data = ",".join(page_files)
+
+    # Insert chapter into database
     c.execute("""
         INSERT INTO chapters (manga_id, chapter_num, title, pdf_filename, page_count)
         VALUES (?, ?, ?, ?, ?)
@@ -1351,8 +1826,703 @@ def upload_chapter(manga_id):
     conn.commit()
     conn.close()
 
-    flash(f"Chapter {chapter_num} uploaded successfully with {page_count} pages!", "success")
+    format_label = "PDF" if chapter_format == "pdf" else f"{page_count} pages"
+    flash(f"Chapter {chapter_num} uploaded successfully ({format_label})!", "success")
     return redirect(url_for("upload_chapter", manga_id=manga_id))
+
+
+# ---------- Edit Chapter ----------
+@app.route("/manga/<int:manga_id>/chapter/<int:chapter_num>/edit", methods=["GET", "POST"])
+def edit_chapter(manga_id, chapter_num):
+    if request.method == "GET":
+        # Show edit form
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Get manga info
+        c.execute("""
+            SELECT id, title, author
+            FROM books
+            WHERE id = ? AND COALESCE(book_type, 'book') = 'manga'
+        """, (manga_id,))
+        manga = c.fetchone()
+
+        if not manga:
+            conn.close()
+            flash("Manga not found.", "danger")
+            return redirect(url_for("manga"))
+
+        # Get chapter info
+        c.execute("""
+            SELECT id, chapter_num, title, pdf_filename, page_count
+            FROM chapters
+            WHERE manga_id = ? AND chapter_num = ?
+        """, (manga_id, chapter_num))
+        chapter = c.fetchone()
+
+        if not chapter:
+            conn.close()
+            flash("Chapter not found.", "danger")
+            return redirect(url_for("upload_chapter", manga_id=manga_id))
+
+        conn.close()
+
+        return render_template("edit_chapter.html", 
+                             manga=manga,
+                             chapter_id=chapter[0],
+                             chapter_num=chapter[1],
+                             chapter_title=chapter[2],
+                             page_count=chapter[4])
+
+    # POST - update chapter
+    chapter_title = request.form.get("chapter_title", "").strip()
+    chapter_format = (request.form.get("chapter_format") or "images").lower().strip()
+
+    # Get current chapter info
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        SELECT id, title, pdf_filename
+        FROM chapters
+        WHERE manga_id = ? AND chapter_num = ?
+    """, (manga_id, chapter_num))
+    chapter = c.fetchone()
+
+    if not chapter:
+        conn.close()
+        flash("Chapter not found.", "danger")
+        return redirect(url_for("upload_chapter", manga_id=manga_id))
+
+    chapter_id = chapter[0]
+    current_title = chapter[1]
+    
+    # Update title if provided
+    if chapter_title:
+        c.execute("""
+            UPDATE chapters
+            SET title = ?
+            WHERE id = ?
+        """, (chapter_title, chapter_id))
+    
+    page_count = 0
+    pages_data = None
+
+    # Handle file uploads
+    if chapter_format == "pdf":
+        chapter_pdf = request.files.get("chapter_pdf")
+        if not chapter_pdf or not chapter_pdf.filename:
+            conn.commit()
+            conn.close()
+            flash("No files selected. Chapter title updated.", "info")
+            return redirect(url_for("upload_chapter", manga_id=manga_id))
+        
+        ext = chapter_pdf.filename.rsplit(".", 1)[-1].lower()
+        if ext not in ALLOWED_PDF:
+            conn.close()
+            flash("Only PDF files are allowed.", "danger")
+            return redirect(url_for("edit_chapter", manga_id=manga_id, chapter_num=chapter_num))
+        
+        # Save PDF temporarily
+        pdf_filename = secure_filename(chapter_pdf.filename)
+        pdf_path = os.path.join(UPLOAD_FOLDER_PDF, pdf_filename)
+        chapter_pdf.save(pdf_path)
+        
+        # Create/clear chapter directory for images
+        chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch{chapter_num}")
+        if os.path.exists(chapter_dir):
+            import shutil
+            shutil.rmtree(chapter_dir)
+        os.makedirs(chapter_dir, exist_ok=True)
+        
+        # Try to extract PDF pages as images
+        if PDF_EXTRACTION_AVAILABLE:
+            try:
+                from PIL import Image
+                images = convert_from_path(pdf_path, dpi=150)
+                page_count = len(images)
+                
+                for idx, img in enumerate(images, 1):
+                    page_filename = f"page_{idx:03d}.png"
+                    img_path = os.path.join(chapter_dir, page_filename)
+                    img.save(img_path, 'PNG')
+                
+                pages_data = ",".join([f"page_{i:03d}.png" for i in range(1, page_count + 1)])
+                flash(f"PDF extracted successfully! {page_count} pages found.", "info")
+            except Exception as e:
+                # Fallback: copy PDF to chapter directory
+                import shutil
+                pdf_dest = os.path.join(chapter_dir, pdf_filename)
+                shutil.copy(pdf_path, pdf_dest)
+                pages_data = pdf_filename
+                page_count = 1
+                flash(f"PDF uploaded (extraction failed, will display PDF in reader): {str(e)}", "warning")
+        else:
+            # Copy PDF to chapter directory if extraction not available
+            import shutil
+            pdf_dest = os.path.join(chapter_dir, pdf_filename)
+            shutil.copy(pdf_path, pdf_dest)
+            pages_data = pdf_filename
+            page_count = 1
+            flash("PDF uploaded (install pdf2image for page extraction). PDF will display in reader.", "info")
+        
+        # Update chapter with new data
+        c.execute("""
+            UPDATE chapters
+            SET pdf_filename = ?, page_count = ?
+            WHERE id = ?
+        """, (pages_data, page_count, chapter_id))
+    
+    else:
+        # Handle image uploads
+        chapter_pages = request.files.getlist("chapter_pages")
+        
+        if not chapter_pages or len(chapter_pages) == 0:
+            conn.commit()
+            conn.close()
+            flash("No files selected. Chapter title updated.", "info")
+            return redirect(url_for("upload_chapter", manga_id=manga_id))
+
+        # Clear chapter directory
+        chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch{chapter_num}")
+        if os.path.exists(chapter_dir):
+            import shutil
+            shutil.rmtree(chapter_dir)
+        os.makedirs(chapter_dir, exist_ok=True)
+        
+        page_files = []
+        
+        for idx, page_file in enumerate(chapter_pages, 1):
+            if page_file and page_file.filename:
+                ext = page_file.filename.rsplit(".", 1)[-1].lower()
+                if ext in ALLOWED_IMG:
+                    page_filename = f"page_{idx:03d}.{ext}"
+                    page_file.save(os.path.join(chapter_dir, page_filename))
+                    page_files.append(page_filename)
+                    page_count += 1
+        
+        if page_count == 0:
+            conn.close()
+            flash("No valid image files were uploaded.", "danger")
+            return redirect(url_for("edit_chapter", manga_id=manga_id, chapter_num=chapter_num))
+
+        pages_data = ",".join(page_files)
+        
+        # Update chapter with new data
+        c.execute("""
+            UPDATE chapters
+            SET pdf_filename = ?, page_count = ?
+            WHERE id = ?
+        """, (pages_data, page_count, chapter_id))
+    
+    conn.commit()
+    conn.close()
+
+    format_label = "PDF" if chapter_format == "pdf" else f"{page_count} pages"
+    flash(f"Chapter {chapter_num} updated successfully ({format_label})!", "success")
+    return redirect(url_for("upload_chapter", manga_id=manga_id))
+
+
+# ---------- Delete Chapter (by number) ----------
+@app.route("/manga/<int:manga_id>/chapter/<int:chapter_num>/delete", methods=["GET"])
+def delete_chapter_by_num(manga_id, chapter_num):
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get chapter info
+    c.execute("""
+        SELECT id
+        FROM chapters
+        WHERE manga_id = ? AND chapter_num = ?
+    """, (manga_id, chapter_num))
+    chapter = c.fetchone()
+
+    if not chapter:
+        conn.close()
+        flash("Chapter not found.", "danger")
+        return redirect(url_for("upload_chapter", manga_id=manga_id))
+
+    chapter_id = chapter[0]
+    
+    # Delete chapter directory
+    chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch{chapter_num}")
+    if os.path.exists(chapter_dir):
+        import shutil
+        shutil.rmtree(chapter_dir)
+    
+    # Delete from database
+    c.execute("DELETE FROM chapters WHERE id = ?", (chapter_id,))
+    conn.commit()
+    conn.close()
+
+    flash(f"Chapter {chapter_num} deleted successfully!", "success")
+    return redirect(url_for("upload_chapter", manga_id=manga_id))
+
+
+# ---------- View Chapter ----------
+@app.route("/manga/<int:manga_id>/chapter/<int:chapter_id>")
+def view_chapter(manga_id, chapter_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    # Fetch manga details
+    c.execute("""
+        SELECT id, title, author, category, cover_path, description
+        FROM books
+        WHERE id = ? AND COALESCE(book_type, 'book') = 'manga'
+    """, (manga_id,))
+    manga = c.fetchone()
+
+    if not manga:
+        conn.close()
+        flash("Manga not found.", "danger")
+        return redirect(url_for("manga"))
+
+    # Fetch chapter details
+    c.execute("""
+        SELECT id, chapter_num, title, pdf_filename, page_count, created_at
+        FROM chapters
+        WHERE id = ? AND manga_id = ?
+    """, (chapter_id, manga_id))
+    chapter = c.fetchone()
+
+    if not chapter:
+        conn.close()
+        flash("Chapter not found.", "danger")
+        return redirect(url_for("read_manga", id=manga_id))
+
+    # Get all chapters for navigation
+    c.execute("""
+        SELECT id, chapter_num, title
+        FROM chapters
+        WHERE manga_id = ?
+        ORDER BY chapter_num ASC
+    """, (manga_id,))
+    chapters = c.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "chapter_viewer.html",
+        manga=manga,
+        chapter=chapter,
+        chapters=chapters
+    )
+
+
+# API endpoint to fetch chapter pages
+@app.route('/api/chapter/<int:chapter_id>/pages', methods=['GET'])
+def get_chapter_pages(chapter_id):
+    """Fetch list of pages for a chapter."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get chapter info
+    c.execute("""
+        SELECT id, manga_id, chapter_num, pdf_filename, page_count
+        FROM chapters
+        WHERE id = ?
+    """, (chapter_id,))
+    chapter = c.fetchone()
+    conn.close()
+    
+    if not chapter:
+        return jsonify({'error': 'chapter not found'}), 404
+    
+    chapter_id, manga_id, chapter_num, pdf_filename, page_count = chapter
+    
+    # Get list of image files in chapter directory
+    chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch{chapter_num}")
+    pages = []
+    
+    if os.path.exists(chapter_dir):
+        # Get all image files
+        image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+        files = sorted([f for f in os.listdir(chapter_dir) 
+                       if os.path.splitext(f)[1].lower() in image_extensions],
+                      key=lambda x: int(''.join(filter(str.isdigit, x)) or '0'))
+        
+        for idx, filename in enumerate(files, 1):
+            pages.append({
+                'page_num': idx,
+                'url': f'/static/manga/manga_{manga_id}_ch{chapter_num}/{filename}'
+            })
+    
+    return jsonify(pages)
+
+
+# API endpoint to get chapters for a manga
+@app.route('/api/manga/<int:manga_id>/chapters', methods=['GET'])
+def get_manga_chapters(manga_id):
+    """Get all chapters for a manga."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get chapters
+    c.execute("""
+        SELECT id, chapter_num, title, page_count
+        FROM chapters
+        WHERE manga_id = ?
+        ORDER BY chapter_num ASC
+    """, (manga_id,))
+    chapters = c.fetchall()
+    conn.close()
+    
+    return jsonify([{
+        'id': ch[0],
+        'chapter_num': ch[1],
+        'title': ch[2],
+        'page_count': ch[3]
+    } for ch in chapters])
+
+
+# API endpoint to update chapter
+@app.route('/api/chapter/<int:chapter_id>', methods=['PUT'])
+def update_chapter(chapter_id):
+    """Update chapter title."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    data = request.get_json(silent=True) or {}
+    title = (data.get('title') or '').strip()
+    
+    if not title:
+        return jsonify({'error': 'title required'}), 400
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get chapter and verify permissions
+    c.execute("SELECT manga_id FROM chapters WHERE id = ?", (chapter_id,))
+    chapter = c.fetchone()
+    if not chapter:
+        conn.close()
+        return jsonify({'error': 'chapter not found'}), 404
+    
+    manga_id = chapter[0]
+    c.execute("SELECT author FROM books WHERE id = ?", (manga_id,))
+    manga = c.fetchone()
+    
+    user_id = session.get('user_id')
+    c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+    user = c.fetchone()
+    
+    # Only admin, publisher, or manga author can edit chapters
+    if user[0] not in ('admin', 'publisher') and manga[0] != user_id:
+        conn.close()
+        return jsonify({'error': 'permission denied'}), 403
+    
+    try:
+        c.execute("UPDATE chapters SET title = ? WHERE id = ?", (title, chapter_id))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 400
+
+
+# API endpoint to delete chapter
+@app.route('/api/chapter/<int:chapter_id>', methods=['DELETE'])
+def delete_chapter(chapter_id):
+    """Delete a chapter."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get chapter and verify permissions
+    c.execute("SELECT manga_id, chapter_num FROM chapters WHERE id = ?", (chapter_id,))
+    chapter = c.fetchone()
+    if not chapter:
+        conn.close()
+        return jsonify({'error': 'chapter not found'}), 404
+    
+    manga_id, chapter_num = chapter
+    c.execute("SELECT author FROM books WHERE id = ?", (manga_id,))
+    manga = c.fetchone()
+    
+    user_id = session.get('user_id')
+    c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+    user = c.fetchone()
+    
+    # Only admin, publisher, or manga author can delete chapters
+    if user[0] not in ('admin', 'publisher') and manga[0] != user_id:
+        conn.close()
+        return jsonify({'error': 'permission denied'}), 403
+    
+    try:
+        # Delete chapter from database
+        c.execute("DELETE FROM chapters WHERE id = ?", (chapter_id,))
+        conn.commit()
+        conn.close()
+        
+        # Optionally delete chapter files
+        import shutil
+        chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch{chapter_num}")
+        if os.path.exists(chapter_dir):
+            try:
+                shutil.rmtree(chapter_dir)
+            except Exception as e:
+                print(f"Warning: Could not delete chapter directory: {e}")
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/report_manga', methods=['POST'])
+def report_manga():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'login required'}), 401
+
+    data = request.get_json(silent=True) or request.form or {}
+    try:
+        manga_id = int(data.get('manga_id'))
+    except Exception:
+        return jsonify({'success': False, 'error': 'invalid manga id'}), 400
+
+    reason = (data.get('reason') or '').strip()[:1000]
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO reports (user_id, manga_id, reason)
+        VALUES (?, ?, ?)
+    """, (session.get('user_id'), manga_id, reason))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True})
+
+
+# ---------- Manga Character Management ----------
+@app.route('/api/manga/<int:manga_id>/characters', methods=['GET'])
+def get_manga_characters(manga_id):
+    """Get all characters for a manga."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Verify manga exists
+    c.execute("SELECT id FROM books WHERE id = ? AND COALESCE(book_type, 'book') = 'manga'", (manga_id,))
+    if not c.fetchone():
+        conn.close()
+        return jsonify({'error': 'manga not found'}), 404
+    
+    # Get characters
+    c.execute("""
+        SELECT id, name, description, role, avatar_url
+        FROM manga_characters
+        WHERE manga_id = ?
+        ORDER BY id ASC
+    """, (manga_id,))
+    characters = c.fetchall()
+    conn.close()
+    
+    return jsonify([{
+        'id': ch[0],
+        'name': ch[1],
+        'description': ch[2],
+        'role': ch[3],
+        'avatar_url': ch[4]
+    } for ch in characters])
+
+
+@app.route('/api/manga/<int:manga_id>/characters', methods=['POST'])
+def add_manga_character(manga_id):
+    """Add a new character to a manga."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    name = (request.form.get('name') or '').strip()
+    description = (request.form.get('description') or '').strip()
+    role = (request.form.get('role') or '').strip()
+    avatar_file = request.files.get('avatar')
+    
+    if not name:
+        return jsonify({'error': 'character name required'}), 400
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Verify manga exists and user can edit it
+    c.execute("SELECT id, uploader_id FROM books WHERE id = ? AND COALESCE(book_type, 'book') = 'manga'", (manga_id,))
+    manga = c.fetchone()
+    if not manga:
+        conn.close()
+        return jsonify({'error': 'manga not found'}), 404
+    
+    user_id = session.get('user_id')
+    c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+    user = c.fetchone()
+    
+    # Only admin, publisher, or manga author can add characters
+    if user[0] not in ('admin', 'publisher') and manga[1] != session.get('user_id'):
+        conn.close()
+        return jsonify({'error': 'permission denied'}), 403
+    
+    avatar_url = None
+    
+    # Handle avatar upload
+    if avatar_file and avatar_file.filename:
+        ext = avatar_file.filename.rsplit(".", 1)[-1].lower()
+        if ext in ALLOWED_IMG:
+            fname = secure_filename(f"char_{manga_id}_{int(datetime.now().timestamp())}.{ext}")
+            avatar_file.save(os.path.join(UPLOAD_FOLDER_COVERS, fname))
+            avatar_url = f"/static/covers/{fname}"
+    
+    try:
+        c.execute("""
+            INSERT INTO manga_characters (manga_id, name, description, role, avatar_url)
+            VALUES (?, ?, ?, ?, ?)
+        """, (manga_id, name, description, role, avatar_url))
+        conn.commit()
+        
+        char_id = c.lastrowid
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'id': char_id,
+            'name': name,
+            'description': description,
+            'role': role,
+            'avatar_url': avatar_url
+        }), 201
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/manga/character/<int:character_id>', methods=['PUT'])
+def update_manga_character(character_id):
+    """Update a manga character."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    name = (request.form.get('name') or '').strip()
+    description = (request.form.get('description') or '').strip()
+    role = (request.form.get('role') or '').strip()
+    avatar_file = request.files.get('avatar')
+    
+    if not name:
+        return jsonify({'error': 'character name required'}), 400
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get character and verify permissions
+    c.execute("SELECT manga_id, avatar_url FROM manga_characters WHERE id = ?", (character_id,))
+    char = c.fetchone()
+    if not char:
+        conn.close()
+        return jsonify({'error': 'character not found'}), 404
+    
+    manga_id = char[0]
+    current_avatar = char[1]
+    
+    c.execute("SELECT uploader_id FROM books WHERE id = ?", (manga_id,))
+    manga = c.fetchone()
+    
+    user_id = session.get('user_id')
+    c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+    user = c.fetchone()
+    
+    if user[0] not in ('admin', 'publisher') and manga[0] != user_id:
+        conn.close()
+        return jsonify({'error': 'permission denied'}), 403
+    
+    avatar_url = current_avatar
+    
+    # Handle avatar upload
+    if avatar_file and avatar_file.filename:
+        ext = avatar_file.filename.rsplit(".", 1)[-1].lower()
+        if ext in ALLOWED_IMG:
+            fname = secure_filename(f"char_{character_id}_{int(datetime.now().timestamp())}.{ext}")
+            avatar_file.save(os.path.join(UPLOAD_FOLDER_COVERS, fname))
+            avatar_url = f"/static/covers/{fname}"
+    
+    try:
+        c.execute("""
+            UPDATE manga_characters
+            SET name = ?, description = ?, role = ?, avatar_url = ?
+            WHERE id = ?
+        """, (name, description, role, avatar_url or None, character_id))
+        conn.commit()
+        
+        # Return updated character
+        c.execute("""
+            SELECT id, manga_id, name, description, role, avatar_url, created_at
+            FROM manga_characters
+            WHERE id = ?
+        """, (character_id,))
+        updated = c.fetchone()
+        conn.close()
+        
+        return jsonify({
+            'id': updated[0],
+            'manga_id': updated[1],
+            'name': updated[2],
+            'description': updated[3],
+            'role': updated[4],
+            'avatar_url': updated[5],
+            'created_at': updated[6]
+        })
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/manga/character/<int:character_id>', methods=['DELETE'])
+def delete_manga_character(character_id):
+    """Delete a manga character."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get character and verify permissions
+    c.execute("SELECT manga_id FROM manga_characters WHERE id = ?", (character_id,))
+    char = c.fetchone()
+    if not char:
+        conn.close()
+        return jsonify({'error': 'character not found'}), 404
+    
+    manga_id = char[0]
+    c.execute("SELECT author FROM books WHERE id = ?", (manga_id,))
+    manga = c.fetchone()
+    
+    user_id = session.get('user_id')
+    c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+    user = c.fetchone()
+    
+    if user[0] not in ('admin', 'publisher') and manga[0] != user_id:
+        conn.close()
+        return jsonify({'error': 'permission denied'}), 403
+    
+    try:
+        c.execute("DELETE FROM manga_characters WHERE id = ?", (character_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 400
 
 
 # ---------- About (Team) ----------
@@ -1444,42 +2614,54 @@ def my_uploads():
 @app.route("/admin/team", methods=["GET", "POST"])
 @admin_required
 def team_admin():
-    conn = get_conn()
-    c = conn.cursor()
+    try:
+        conn = get_conn()
+        c = conn.cursor()
 
-    if request.method == "POST":
-        full_name = (request.form.get("full_name") or "").strip()
-        role      = (request.form.get("role") or "").strip() or "Developer"
-        bio       = (request.form.get("bio") or "").strip() or "Member of the NOVUS project."
-        initials  = "".join([p[0] for p in full_name.split()[:2]]).upper() if full_name else ""
+        if request.method == "POST":
+            full_name = (request.form.get("full_name") or "").strip()
+            role      = (request.form.get("role") or "").strip() or "Developer"
+            bio       = (request.form.get("bio") or "").strip() or "Member of the NOVUS project."
+            initials  = "".join([p[0] for p in full_name.split()[:2]]).upper() if full_name else ""
 
-        # optional avatar upload
-        avatar_rel = None
-        file = request.files.get("avatar")
-        if file and file.filename:
-            os.makedirs(os.path.join(app.root_path, "static", "img", "team"), exist_ok=True)
-            fname = secure_filename(file.filename)
-            abs_path = os.path.join(app.root_path, "static", "img", "team", fname)
-            file.save(abs_path)
-            avatar_rel = f"img/team/{fname}"
+            # optional avatar upload
+            avatar_rel = None
+            file = request.files.get("avatar")
+            if file and file.filename:
+                os.makedirs(os.path.join(app.root_path, "static", "img", "team"), exist_ok=True)
+                fname = secure_filename(file.filename)
+                abs_path = os.path.join(app.root_path, "static", "img", "team", fname)
+                file.save(abs_path)
+                avatar_rel = f"img/team/{fname}"
 
-        c.execute(
-            """
-            INSERT INTO team(full_name, role, bio, avatar_path, initials, created_at)
-            VALUES (?, ?, ?, ?, ?, DATETIME('now'))
-            """,
-            (full_name, role, bio, avatar_rel, initials),
-        )
-        conn.commit()
+            c.execute(
+                """
+                INSERT INTO team(full_name, role, bio, avatar_path, initials, created_at)
+                VALUES (?, ?, ?, ?, ?, DATETIME('now'))
+                """,
+                (full_name, role, bio, avatar_rel, initials),
+            )
+            conn.commit()
+            conn.close()
+            flash("Team member added.", "success")
+            return redirect(url_for("team_admin"))
+
+        # GET: load members and render page
+        members = c.execute(
+            "SELECT id, full_name, role, bio, avatar_path FROM team ORDER BY id"
+        ).fetchall()
         conn.close()
-        flash("Team member added.", "success")
-        return redirect(url_for("team_admin"))
-
-    # GET: load members and render page
-    members = c.execute(
-        "SELECT id, full_name, role, bio, avatar_path FROM team ORDER BY id"
-    ).fetchall()
-    conn.close()
+        return render_template('team_admin.html', members=members)
+    except Exception as e:
+        # Log the traceback to server logs for debugging and show friendly message
+        import traceback
+        traceback.print_exc()
+        try:
+            conn.close()
+        except Exception:
+            pass
+        flash(f"Error loading Team Admin: {str(e)}", "danger")
+        return redirect(url_for('home'))
     return render_template("team_admin.html", members=members)
 
 @app.route("/admin/users")
@@ -1487,72 +2669,23 @@ def team_admin():
 def admin_users():
     conn = get_conn()
     c = conn.cursor()
-    c.execute("""
-        SELECT id,
-        username,
-        role,
-        CASE
-        WHEN role='admin' THEN 0
-        ELSE COALESCE(is_banned,0)
-        END AS is_banned
-        FROM users
-        ORDER BY (role='admin') DESC, username COLLATE NOCASE
-        """)
+    
+    # all users
+    c.execute("SELECT id, username, role FROM users ORDER BY id")
     users = c.fetchall()
+
+    # pending publisher requests
+    c.execute("""
+        SELECT r.id, u.username, r.requested_role, r.created_at
+        FROM role_requests r
+        JOIN users u ON u.id = r.user_id
+        WHERE r.status = 'pending'
+        ORDER BY r.created_at ASC
+    """)
+    pending = c.fetchall()
+
     conn.close()
-    return render_template("user_management.html", users=users)
-
-
-@app.post("/admin/users/<int:user_id>/ban")
-@admin_required
-def ban_user(user_id):
-    if user_id == session.get("user_id"):
-        flash("You can't ban yourself.", "danger")
-        return redirect(url_for("admin_users"))
-
-    conn = get_conn()
-    c = conn.cursor()
-    # Prevent banning admins
-    c.execute("UPDATE users SET is_banned=1 WHERE id=? AND role!='admin'", (user_id,))
-    conn.commit()
-    conn.close()
-    flash("User banned.", "success")
-    return redirect(url_for("admin_users"))
-
-
-@app.post("/admin/users/<int:user_id>/unban")
-@admin_required
-def unban_user(user_id):
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("UPDATE users SET is_banned=0 WHERE id=?", (user_id,))
-    conn.commit()
-    conn.close()
-    flash("User unbanned.", "success")
-    return redirect(url_for("admin_users"))
-
-@app.post("/admin/users/<int:user_id>/ban")
-@admin_required
-def user_ban(user_id):
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("UPDATE users SET status='banned' WHERE id=? AND role!='admin'", (user_id,))
-    conn.commit()
-    conn.close()
-    flash("User has been banned (if not admin).", "warning")
-    return redirect(url_for("user_management"))
-
-
-@app.post("/admin/users/<int:user_id>/unban")
-@admin_required
-def user_unban(user_id):
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("UPDATE users SET status='active' WHERE id=?", (user_id,))
-    conn.commit()
-    conn.close()
-    flash("User has been unbanned.", "success")
-    return redirect(url_for("user_management"))
+    return render_template("user_management.html", users=users, pending=pending)
 
 
 
@@ -1569,12 +2702,12 @@ def user_delete(user_id):
     if not row:
         conn.close()
         flash("User not found.", "danger")
-        return redirect(url_for("user_admin"))
+        return redirect(url_for("admin_users"))
 
     if row[0] == "admin" or user_id == current_id:
         conn.close()
         flash("You cannot delete this admin user.", "danger")
-        return redirect(url_for("user_admin"))
+        return redirect(url_for("admin_users"))
 
     # optional: clean up their reviews, history, watchlist
     c.execute("DELETE FROM reviews WHERE user_id=?", (user_id,))
@@ -1584,18 +2717,7 @@ def user_delete(user_id):
     conn.commit()
     conn.close()
     flash("User deleted.", "success")
-    return redirect(url_for("user_management"))
-
-
-    conn = get_conn()
-    c = conn.cursor()
-    members = c.execute("""
-        SELECT id, full_name, role, bio, avatar_path
-        FROM team
-        ORDER BY id
-    """).fetchall()
-    conn.close()
-    return render_template("team_admin.html", members=members)
+    return redirect(url_for("admin_users"))
 
 
 @app.post("/admin/team/delete/<int:member_id>")
@@ -1631,42 +2753,6 @@ def user_management():
     conn.close()
     return render_template("user_management.html", users=users, pending=pending)
 
-@app.post("/admin/users/approve/<int:req_id>")
-@admin_required
-def approve_publisher(req_id):
-    conn = get_conn()
-    c = conn.cursor()
-
-    # find request + user_id
-    c.execute("""
-        SELECT user_id, requested_role
-        FROM role_requests
-        WHERE id = ? AND status = 'pending'
-    """, (req_id,))
-    row = c.fetchone()
-
-    if not row:
-        conn.close()
-        flash("Request not found or already processed.", "warning")
-        return redirect(url_for("user_management"))
-
-    user_id, requested_role = row
-
-    # update user role
-    c.execute("UPDATE users SET role = ? WHERE id = ?", (requested_role, user_id))
-
-    # mark request as approved
-    c.execute(
-        "UPDATE role_requests SET status = 'approved' WHERE id = ?",
-        (req_id,),
-    )
-
-    conn.commit()
-    conn.close()
-
-    flash(f"User upgraded to {requested_role}.", "success")
-    return redirect(url_for("user_management"))
-
 
 # -------------------- FAQ ROUTE --------------------
 @app.route("/faq")
@@ -1678,7 +2764,8 @@ def faq():
 # -------------------- MAIN --------------------
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True)
+    # Bind to all interfaces and run without the reloader so external tests can connect reliably
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
 # Ensure DB is initialized exactly once when the app receives requests
 _db_init_done = False
@@ -1691,3 +2778,186 @@ def _ensure_db_initialized():
         except Exception:
             pass
         _db_init_done = True
+
+
+# Development helper to run internal tests via HTTP (local use only)
+@app.route('/_dev_run_manga_tests')
+def _dev_run_manga_tests():
+    if request.remote_addr not in ('127.0.0.1', '::1'):
+        return jsonify({'error': 'forbidden'}), 403
+
+    results = []
+    try:
+        from tests.test_manga_reader_features import (
+            test_ai_summary_endpoint,
+            test_manga_reader_template_contains_ui_elements,
+        )
+    except Exception as e:
+        return jsonify({'error': 'import_failed', 'exc': str(e)}), 500
+
+    for fn in (test_ai_summary_endpoint, test_manga_reader_template_contains_ui_elements):
+        try:
+            fn()
+            results.append({'name': fn.__name__, 'ok': True})
+        except AssertionError as ae:
+            results.append({'name': fn.__name__, 'ok': False, 'err': str(ae)})
+        except Exception as ex:
+            results.append({'name': fn.__name__, 'ok': False, 'exc': str(ex)})
+
+    return jsonify({'results': results})
+
+
+# -------------------- IMAGE-TO-SUMMARY AI --------------------
+try:
+    from image_summary_ai import ImageSummaryAI
+    IMAGE_AI_AVAILABLE = True
+except ImportError:
+    IMAGE_AI_AVAILABLE = False
+    print('Warning: image_summary_ai module not found')
+
+
+@app.route('/api/manga/page/<int:chapter_id>/<int:page_num>/summarize', methods=['POST'])
+def summarize_manga_page(chapter_id, page_num):
+    """Generate AI summary for a manga page image"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    if not IMAGE_AI_AVAILABLE:
+        return jsonify({'error': 'AI summarization not available'}), 503
+    
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Get chapter and verify access
+        c.execute("""
+            SELECT ch.id, ch.manga_id, b.id 
+            FROM manga_chapters ch
+            JOIN books b ON ch.manga_id = b.id
+            WHERE ch.id = ?
+        """, (chapter_id,))
+        chapter_info = c.fetchone()
+        
+        if not chapter_info:
+            conn.close()
+            return jsonify({'error': 'chapter not found'}), 404
+        
+        # Construct image path
+        manga_id = chapter_info[1]
+        image_path = os.path.join(
+            UPLOAD_FOLDER_MANGA,
+            f"manga_{manga_id}",
+            f"chapter_{chapter_id}",
+            f"page_{page_num:03d}.jpg"
+        )
+        
+        # Check if image exists
+        if not os.path.exists(image_path):
+            conn.close()
+            return jsonify({'error': 'page image not found'}), 404
+        
+        # Generate summary
+        ai = ImageSummaryAI()
+        summary = ai.summarize_manga_page(image_path)
+        
+        # Store summary in database
+        c.execute("""
+            INSERT OR REPLACE INTO image_summaries 
+            (chapter_id, page_num, image_path, summary)
+            VALUES (?, ?, ?, ?)
+        """, (chapter_id, page_num, image_path, summary))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'page_num': page_num,
+            'summary': summary
+        })
+    
+    except Exception as e:
+        return jsonify({'error': f'Summarization failed: {str(e)}'}), 500
+
+
+@app.route('/api/book/<int:book_id>/cover/analyze', methods=['POST'])
+def analyze_book_cover(book_id):
+    """Analyze book/manga cover image using AI"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    if not IMAGE_AI_AVAILABLE:
+        return jsonify({'error': 'AI analysis not available'}), 503
+    
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Get book and cover path
+        c.execute("SELECT cover_path FROM books WHERE id = ?", (book_id,))
+        book = c.fetchone()
+        if not book or not book[0]:
+            conn.close()
+            return jsonify({'error': 'book or cover not found'}), 404
+        
+        cover_path = os.path.join(APP_ROOT, book[0].lstrip('/'))
+        
+        if not os.path.exists(cover_path):
+            conn.close()
+            return jsonify({'error': 'cover image not found'}), 404
+        
+        # Analyze cover
+        ai = ImageSummaryAI()
+        analysis = ai.summarize_book_cover(cover_path)
+        
+        conn.close()
+        return jsonify({
+            'success': True,
+            'book_id': book_id,
+            'analysis': analysis
+        })
+    
+    except Exception as e:
+        return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+
+
+@app.route('/api/image/extract-text', methods=['POST'])
+def extract_image_text():
+    """Extract text from uploaded image"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    if not IMAGE_AI_AVAILABLE:
+        return jsonify({'error': 'Text extraction not available'}), 503
+    
+    try:
+        image_file = request.files.get('image')
+        if not image_file:
+            return jsonify({'error': 'no image provided'}), 400
+        
+        # Save temp image
+        ext = image_file.filename.rsplit('.', 1)[-1].lower()
+        if ext not in ALLOWED_IMG:
+            return jsonify({'error': 'invalid image format'}), 400
+        
+        temp_filename = secure_filename(f"temp_{int(datetime.now().timestamp())}.{ext}")
+        temp_path = os.path.join(APP_ROOT, 'static', 'temp', temp_filename)
+        os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+        image_file.save(temp_path)
+        
+        # Extract text
+        ai = ImageSummaryAI()
+        text = ai.extract_text_from_image(temp_path)
+        
+        # Clean up temp file
+        try:
+            os.remove(temp_path)
+        except:
+            pass
+        
+        return jsonify({
+            'success': True,
+            'extracted_text': text
+        })
+    
+    except Exception as e:
+        return jsonify({'error': f'Text extraction failed: {str(e)}'}), 500

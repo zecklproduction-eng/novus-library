@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}AI Summaries Cache | NOVUS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h1>AI Summaries Cache</h1>
+  <p class="text-muted">TTL (days): {{ ttl_days }}</p>
+
+  <div class="mb-3">
+    <button id="clearSelected" class="btn btn-danger btn-sm">Clear selected</button>
+    <button id="clearExpired" class="btn btn-outline-light btn-sm">Clear expired</button>
+  </div>
+
+  <table class="table table-dark table-striped">
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="chkAll" /></th>
+        <th>ID</th>
+        <th>Type</th>
+        <th>Item ID</th>
+        <th>Model</th>
+        <th>Created At</th>
+        <th>Summary</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr data-id="{{ r[0] }}">
+        <td><input class="rowChk" type="checkbox" value="{{ r[0] }}" /></td>
+        <td>{{ r[0] }}</td>
+        <td>{{ r[1] or '' }}</td>
+        <td>{{ r[2] or '' }}</td>
+        <td>{{ r[3] or '' }}</td>
+        <td>{{ r[4] or '' }}</td>
+        <td style="max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ r[5] or '' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7">No cached summaries found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function getSelectedIds(){
+  return Array.from(document.querySelectorAll('.rowChk:checked')).map(n=>n.value);
+}
+
+document.getElementById('chkAll')?.addEventListener('change', function(){
+  const checked = this.checked;
+  document.querySelectorAll('.rowChk').forEach(cb => cb.checked = checked);
+});
+
+async function postAction(action, ids){
+  const resp = await fetch('/admin/ai_summaries/clear', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ action: action, ids: ids })
+  });
+  return resp.json();
+}
+
+document.getElementById('clearSelected')?.addEventListener('click', async function(){
+  const ids = getSelectedIds();
+  if (!ids.length) return alert('No rows selected.');
+  if (!confirm('Clear selected summaries?')) return;
+  const data = await postAction('selected', ids);
+  if (data && data.deleted){
+    showToast(`Deleted ${data.deleted} summaries`, 'success');
+    // remove rows
+    ids.forEach(id => {
+      const tr = document.querySelector(`tr[data-id="${id}"]`);
+      if (tr) tr.remove();
+    });
+  } else {
+    showToast('Nothing deleted', 'info');
+  }
+});
+
+document.getElementById('clearExpired')?.addEventListener('click', async function(){
+  if (!confirm('Clear expired summaries?')) return;
+  const data = await postAction('expired', []);
+  if (data && data.deleted){
+    showToast(`Deleted ${data.deleted} expired summaries`, 'success');
+    window.location.reload();
+  } else if (data && data.error){
+    showToast(data.error, 'danger');
+  } else {
+    showToast('Nothing deleted', 'info');
+  }
+});
+</script>
+
+{% endblock %}

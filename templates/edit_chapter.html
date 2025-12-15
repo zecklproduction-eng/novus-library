@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width: 900px; margin: 30px auto; padding: 0 20px;">
+  <div style="margin-bottom: 30px;">
+    <a href="{{ url_for('upload_chapter', manga_id=manga[0]) }}" style="color: #667eea; text-decoration: none; display: flex; align-items: center; gap: 5px; font-size: 14px;">
+      <i class="fas fa-arrow-left"></i> Back to Chapters
+    </a>
+  </div>
+
+  <h2 style="color: var(--text-primary); margin-bottom: 10px;">
+    <i class="fas fa-edit me-2" style="color: var(--neon-blue)"></i>
+    Edit Chapter
+  </h2>
+  <p style="color: #999; margin-bottom: 30px;">{{ manga[1] }} by {{ manga[2] }}</p>
+
+  <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 8px; padding: 30px;">
+    
+    <!-- CHAPTER INFO -->
+    <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
+      <h5 style="font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 15px;">
+        <i class="fas fa-info-circle me-2"></i>Current Chapter Info
+      </h5>
+      <div style="background: rgba(102, 126, 234, 0.05); border-left: 3px solid #667eea; padding: 15px; border-radius: 4px;">
+        <p style="margin: 8px 0; color: #bbb;"><strong style="color: #ddd;">Chapter:</strong> {{ chapter_num }}</p>
+        <p style="margin: 8px 0; color: #bbb;"><strong style="color: #ddd;">Title:</strong> {{ chapter_title }}</p>
+        <p style="margin: 8px 0; color: #bbb;"><strong style="color: #ddd;">Pages:</strong> {{ page_count }}</p>
+      </div>
+    </div>
+
+    <!-- EDIT FORM -->
+    <h5 style="font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px;">
+      <i class="fas fa-file-upload me-2"></i>Re-upload Chapter Content
+    </h5>
+
+    <form method="POST" enctype="multipart/form-data">
+      <div style="margin-bottom: 20px;">
+        <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter Title (Optional)</label>
+        <input type="text" name="chapter_title" value="{{ chapter_title }}" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" placeholder="e.g., The Beginning">
+        <small style="color: #999; display: block; margin-top: 5px;">Leave blank to keep current title</small>
+      </div>
+
+      <div style="margin-bottom: 30px;">
+        <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Upload Format *</label>
+        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+          <label style="display: flex; align-items: center; cursor: pointer; color: #bbb;">
+            <input type="radio" name="chapter_format" value="images" checked onchange="toggleUploadFormat()" style="margin-right: 8px; cursor: pointer;">
+            <span>Images (Multiple Pages)</span>
+          </label>
+          <label style="display: flex; align-items: center; cursor: pointer; color: #bbb;">
+            <input type="radio" name="chapter_format" value="pdf" onchange="toggleUploadFormat()" style="margin-right: 8px; cursor: pointer;">
+            <span>PDF File</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Images Upload Section -->
+      <div id="imagesUploadSection" style="margin-bottom: 30px;">
+        <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter Pages *</label>
+        <p style="color: #999; font-size: 12px; margin-bottom: 12px;">Upload new page images (JPG, PNG). They will replace the current pages. They will be automatically ordered by upload order.</p>
+        <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterPages').click()" id="dropZone">
+          <input type="file" name="chapter_pages" id="chapterPages" accept="image/jpeg,image/png" multiple style="display:none">
+          <i class="fas fa-images" style="color: var(--neon-blue); font-size: 40px;"></i>
+          <p style="margin: 15px 0; color: #bbb;">Drag & Drop or Browse</p>
+          <small style="color: #999;">Image files (JPG, PNG - Max 5MB each)</small>
+          <div id="pageCount" style="display: none; color: #667eea; margin-top: 15px; font-weight: 500;"></div>
+        </div>
+        <div id="pagePreviewContainer" style="margin-top: 15px; max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; display: none;">
+          <p style="color: #aaa; font-size: 12px; margin: 0 0 10px 0;">Page Preview:</p>
+          <div id="pagesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px;"></div>
+        </div>
+      </div>
+
+      <!-- PDF Upload Section -->
+      <div id="pdfUploadSection" style="margin-bottom: 30px; display: none;">
+        <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter PDF *</label>
+        <p style="color: #999; font-size: 12px; margin-bottom: 12px;">Upload a new PDF file for this chapter (will replace current pages).</p>
+        <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterPdf').click()" id="pdfDropZone">
+          <input type="file" name="chapter_pdf" id="chapterPdf" accept="application/pdf" style="display:none">
+          <i class="fas fa-file-pdf" style="color: var(--neon-blue); font-size: 40px;"></i>
+          <p style="margin: 15px 0; color: #bbb;">Drag & Drop or Browse</p>
+          <small style="color: #999;">PDF file (Max 50MB)</small>
+          <div id="pdfFileName" style="display: none; color: #667eea; margin-top: 15px; font-weight: 500;"></div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: #fff; font-weight: 600; border-radius: 6px; transition: all 0.3s; cursor: pointer; flex: 1; font-size: 16px; padding: 12px;">
+          <i class="fas fa-save me-2"></i>SAVE CHANGES
+        </button>
+        <a href="{{ url_for('delete_chapter_by_num', manga_id=manga[0], chapter_num=chapter_num) }}" style="background: rgba(255, 68, 68, 0.2); border: 1px solid rgba(255, 68, 68, 0.4); color: #ff4444; font-weight: 600; border-radius: 6px; transition: all 0.3s; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; padding: 12px; text-decoration: none; min-width: 150px;" onclick="return confirm('Are you sure you want to delete this chapter?');">
+          <i class="fas fa-trash me-2"></i>DELETE
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Toggle between images and PDF format
+  window.toggleUploadFormat = function() {
+    const format = document.querySelector('input[name="chapter_format"]:checked').value;
+    const imagesSection = document.getElementById('imagesUploadSection');
+    const pdfSection = document.getElementById('pdfUploadSection');
+    
+    if (format === 'images') {
+      imagesSection.style.display = 'block';
+      pdfSection.style.display = 'none';
+    } else {
+      imagesSection.style.display = 'none';
+      pdfSection.style.display = 'block';
+    }
+  };
+
+  // Handle images upload
+  const chapterPages = document.getElementById('chapterPages');
+  if (chapterPages) {
+    chapterPages.addEventListener('change', function() {
+      const files = this.files;
+      const countDiv = document.getElementById('pageCount');
+      const previewDiv = document.getElementById('pagePreviewContainer');
+      const pagesList = document.getElementById('pagesList');
+      
+      if (files.length > 0) {
+        countDiv.textContent = `✓ ${files.length} page${files.length !== 1 ? 's' : ''} selected`;
+        countDiv.style.display = 'block';
+        previewDiv.style.display = 'block';
+        pagesList.innerHTML = '';
+        
+        // Show preview of each page
+        Array.from(files).forEach((file, index) => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const thumbContainer = document.createElement('div');
+            thumbContainer.style.cssText = 'position: relative; cursor: pointer; border-radius: 4px; overflow: hidden;';
+            thumbContainer.innerHTML = `
+              <img src="${e.target.result}" style="width: 100%; height: 100px; object-fit: cover; border: 1px solid rgba(102,126,234,0.3); border-radius: 4px;">
+              <span style="position: absolute; top: 2px; right: 2px; background: var(--neon-blue); color: #000; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px;">${index + 1}</span>
+            `;
+            pagesList.appendChild(thumbContainer);
+          };
+          reader.readAsDataURL(file);
+        });
+      } else {
+        countDiv.style.display = 'none';
+        previewDiv.style.display = 'none';
+      }
+    });
+  }
+
+  // Handle PDF upload
+  const chapterPdf = document.getElementById('chapterPdf');
+  if (chapterPdf) {
+    chapterPdf.addEventListener('change', function() {
+      const nameDiv = document.getElementById('pdfFileName');
+      if (nameDiv) {
+        nameDiv.textContent = this.files[0] ? `✓ ${this.files[0].name}` : '';
+        nameDiv.style.display = this.files[0] ? 'block' : 'none';
+      }
+    });
+  }
+
+  // Drag and drop for images
+  const dropZone = document.getElementById('dropZone');
+  if (dropZone) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.style.borderColor = '#667eea';
+        dropZone.style.background = 'rgba(102, 126, 234, 0.15)';
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+        dropZone.style.background = 'rgba(102, 126, 234, 0.05)';
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      document.getElementById('chapterPages').files = files;
+      
+      // Trigger change event
+      const event = new Event('change', { bubbles: true });
+      document.getElementById('chapterPages').dispatchEvent(event);
+    });
+  }
+
+  // Drag and drop for PDF
+  const pdfDropZone = document.getElementById('pdfDropZone');
+  if (pdfDropZone) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      pdfDropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      pdfDropZone.addEventListener(eventName, () => {
+        pdfDropZone.style.borderColor = '#667eea';
+        pdfDropZone.style.background = 'rgba(102, 126, 234, 0.15)';
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      pdfDropZone.addEventListener(eventName, () => {
+        pdfDropZone.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+        pdfDropZone.style.background = 'rgba(102, 126, 234, 0.05)';
+      });
+    });
+
+    pdfDropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      document.getElementById('chapterPdf').files = files;
+      
+      // Trigger change event
+      const event = new Event('change', { bubbles: true });
+      document.getElementById('chapterPdf').dispatchEvent(event);
+    });
+  }
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+});
+</script>
+{% endblock %}

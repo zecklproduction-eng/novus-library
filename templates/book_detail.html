@@ -34,6 +34,26 @@
             By {{ book[2] or "Unknown Author" }}
           </h4>
           <span class="badge badge-category">{{ book[3] }}</span>
+ 
+          <!-- Description + AI summary -->
+          <div class="mt-3">
+            <h5>Description</h5>
+            <p id="bookDescription">{{ book[7] or 'No description available.' }}</p>
+
+            <div class="mt-2" style="display:flex; gap:8px; align-items:center;">
+              <button id="bookAiBtn" class="btn btn-outline-light btn-sm"><i class="fas fa-robot me-2"></i>AI Summary</button>
+              <button id="bookAiForceBtn" class="btn btn-outline-light btn-sm" style="display:none">Regenerate</button>
+              <button id="bookAiCopy" class="btn btn-ghost btn-sm" style="display:none;">Copy</button>
+            </div>
+
+            <div id="bookAiResult" class="mt-3" style="display:none; background: rgba(255,255,255,0.03); padding:12px; border-radius:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                <strong id="bookAiMeta" style="font-size:12px; color:#ccc;">&nbsp;</strong>
+              </div>
+              <p id="bookAiText" style="margin:6px 0"></p>
+            </div>
+            <div id="bookAiSpinner" style="display:none; margin-top:8px;"><small>Generating summary…</small></div>
+          </div>
 
 
           
@@ -284,6 +304,64 @@
     </div>
   </div>
 </section>
+
+<script>
+const bookAiBtn = document.getElementById('bookAiBtn');
+const bookAiForceBtn = document.getElementById('bookAiForceBtn');
+const bookAiSpinner = document.getElementById('bookAiSpinner');
+const bookAiMeta = document.getElementById('bookAiMeta');
+
+async function fetchBookSummary(force=false){
+  const btn = bookAiBtn;
+  const text = document.getElementById('bookDescription')?.textContent || '';
+  if (!text.trim()) return alert('No description available to summarize.');
+
+  try {
+    btn.disabled = true; btn.textContent = 'Generating...';
+    bookAiSpinner.style.display = 'inline-block';
+    const resp = await fetch('/ai_summary', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text, max_sentences: 3, item_type: 'book', item_id: {{ book[0] }}, force: force })
+    });
+    const data = await resp.json();
+    if (data.summary) {
+      document.getElementById('bookAiText').textContent = data.summary;
+      document.getElementById('bookAiResult').style.display = 'block';
+      document.getElementById('bookAiCopy').style.display = 'inline-block';
+      // show meta
+      const model = data.model || 'unknown';
+      const cached = data.cached ? ' (cached)' : '';
+      bookAiMeta.textContent = `Model: ${model}${cached}`;
+      if (data.cached){
+        bookAiForceBtn.style.display = 'inline-block';
+      } else {
+        bookAiForceBtn.style.display = 'none';
+      }
+      // show toast
+      showToast('Summary generated'+(data.cached? ' (cached)':'') , 'success');
+    } else {
+      alert('No summary returned.');
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('Error generating summary', 'danger');
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-robot me-2"></i>AI Summary';
+    bookAiSpinner.style.display = 'none';
+  }
+}
+
+bookAiBtn?.addEventListener('click', function(){ fetchBookSummary(false); });
+bookAiForceBtn?.addEventListener('click', function(){ fetchBookSummary(true); });
+
+document.getElementById('bookAiCopy')?.addEventListener('click', function() {
+  const txt = document.getElementById('bookAiText')?.textContent || '';
+  if (!txt) return;
+  navigator.clipboard?.writeText(txt).then(()=>{
+    this.textContent = 'Copied'; setTimeout(()=> this.style.display='none', 1200);
+  });
+});
+</script>
 
   </div>
 </div>

@@ -21,11 +21,14 @@
       <h5 style="font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px;">
         <i class="fas fa-list me-2"></i>Existing Chapters ({{ chapters|length }})
       </h5>
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px;">
         {% for chapter in chapters %}
-        <div style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 6px; padding: 15px; text-align: center;">
+        <div style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 6px; padding: 15px;">
           <div style="font-size: 24px; font-weight: 700; color: #667eea; margin-bottom: 8px;">{{ chapter[0] }}</div>
-          <p style="color: #ddd; font-size: 13px; margin: 0;">{{ chapter[1] }}</p>
+          <p style="color: #ddd; font-size: 13px; margin: 0 0 12px 0;">{{ chapter[1] }}</p>
+          <a href="{{ url_for('edit_chapter', manga_id=manga[0], chapter_num=chapter[0]) }}" style="display: inline-block; background: rgba(102, 126, 234, 0.2); color: #667eea; border: 1px solid rgba(102, 126, 234, 0.4); padding: 6px 12px; border-radius: 4px; font-size: 11px; text-decoration: none; transition: all 0.3s; cursor: pointer; font-weight: 600;">
+            <i class="fas fa-edit" style="margin-right: 4px;"></i>EDIT
+          </a>
         </div>
         {% endfor %}
       </div>
@@ -55,6 +58,21 @@
       </div>
 
       <div style="margin-bottom: 30px;">
+        <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Upload Format *</label>
+        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+          <label style="display: flex; align-items: center; cursor: pointer; color: #bbb;">
+            <input type="radio" name="chapter_format" value="images" checked onchange="toggleUploadFormat()" style="margin-right: 8px; cursor: pointer;">
+            <span>Images (Multiple Pages)</span>
+          </label>
+          <label style="display: flex; align-items: center; cursor: pointer; color: #bbb;">
+            <input type="radio" name="chapter_format" value="pdf" onchange="toggleUploadFormat()" style="margin-right: 8px; cursor: pointer;">
+            <span>PDF File</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Images Upload Section -->
+      <div id="imagesUploadSection" style="margin-bottom: 30px;">
         <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter Pages *</label>
         <p style="color: #999; font-size: 12px; margin-bottom: 12px;">Upload multiple page images (JPG, PNG). They will be automatically ordered by upload order.</p>
         <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterPages').click()" id="dropZone">
@@ -70,6 +88,19 @@
         </div>
       </div>
 
+      <!-- PDF Upload Section -->
+      <div id="pdfUploadSection" style="margin-bottom: 30px; display: none;">
+        <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter PDF *</label>
+        <p style="color: #999; font-size: 12px; margin-bottom: 12px;">Upload a single PDF file for this chapter.</p>
+        <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterPdf').click()" id="pdfDropZone">
+          <input type="file" name="chapter_pdf" id="chapterPdf" accept="application/pdf" style="display:none">
+          <i class="fas fa-file-pdf" style="color: var(--neon-blue); font-size: 40px;"></i>
+          <p style="margin: 15px 0; color: #bbb;">Drag & Drop or Browse</p>
+          <small style="color: #999;">PDF file (Max 50MB)</small>
+          <div id="pdfFileName" style="display: none; color: #667eea; margin-top: 15px; font-weight: 500;"></div>
+        </div>
+      </div>
+
       <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: #fff; font-weight: 600; border-radius: 6px; transition: all 0.3s; cursor: pointer; width: 100%; font-size: 16px; padding: 12px;">
         <i class="fas fa-upload me-2"></i>UPLOAD CHAPTER
       </button>
@@ -78,86 +109,138 @@
 </div>
 
 <script>
-document.getElementById('chapterFile').addEventListener('change', function() {
-  const fileName = document.getElementById('fileName');
-  if (this.files[0]) {
-    fileName.textContent = '✓ ' + this.files[0].name;
-    fileName.style.display = 'block';
-  } else {
-    fileName.style.display = 'none';
-  }
-});
-
-// Drag and drop
-const dropZone = document.getElementById('dropZone');
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-  dropZone.addEventListener(eventName, preventDefaults, false);
-});
-
-const chapterPages = document.getElementById('chapterPages');
-if (chapterPages) {
-  chapterPages.addEventListener('change', function() {
-    const files = this.files;
-    const countDiv = document.getElementById('pageCount');
-    const previewDiv = document.getElementById('pagePreviewContainer');
-    const pagesList = document.getElementById('pagesList');
+document.addEventListener('DOMContentLoaded', function() {
+  // Toggle between images and PDF format
+  window.toggleUploadFormat = function() {
+    const format = document.querySelector('input[name="chapter_format"]:checked').value;
+    const imagesSection = document.getElementById('imagesUploadSection');
+    const pdfSection = document.getElementById('pdfUploadSection');
     
-    if (files.length > 0) {
-      countDiv.textContent = `✓ ${files.length} page${files.length !== 1 ? 's' : ''} selected`;
-      countDiv.style.display = 'block';
-      previewDiv.style.display = 'block';
-      pagesList.innerHTML = '';
-      
-      // Show preview of each page
-      Array.from(files).forEach((file, index) => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const thumbContainer = document.createElement('div');
-          thumbContainer.style.cssText = 'position: relative; cursor: pointer; border-radius: 4px; overflow: hidden;';
-          thumbContainer.innerHTML = `
-            <img src="${e.target.result}" style="width: 100%; height: 100px; object-fit: cover; border: 1px solid rgba(102,126,234,0.3); border-radius: 4px;">
-            <span style="position: absolute; top: 2px; right: 2px; background: var(--neon-blue); color: #000; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px;">${index + 1}</span>
-          `;
-          pagesList.appendChild(thumbContainer);
-        };
-        reader.readAsDataURL(file);
-      });
+    if (format === 'images') {
+      imagesSection.style.display = 'block';
+      pdfSection.style.display = 'none';
     } else {
-      countDiv.style.display = 'none';
-      previewDiv.style.display = 'none';
+      imagesSection.style.display = 'none';
+      pdfSection.style.display = 'block';
     }
-  });
-}
+  };
 
-const dropZone = document.getElementById('dropZone');
+  // Handle images upload
+  const chapterPages = document.getElementById('chapterPages');
+  if (chapterPages) {
+    chapterPages.addEventListener('change', function() {
+      const files = this.files;
+      const countDiv = document.getElementById('pageCount');
+      const previewDiv = document.getElementById('pagePreviewContainer');
+      const pagesList = document.getElementById('pagesList');
+      
+      if (files.length > 0) {
+        countDiv.textContent = `✓ ${files.length} page${files.length !== 1 ? 's' : ''} selected`;
+        countDiv.style.display = 'block';
+        previewDiv.style.display = 'block';
+        pagesList.innerHTML = '';
+        
+        // Show preview of each page
+        Array.from(files).forEach((file, index) => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const thumbContainer = document.createElement('div');
+            thumbContainer.style.cssText = 'position: relative; cursor: pointer; border-radius: 4px; overflow: hidden;';
+            thumbContainer.innerHTML = `
+              <img src="${e.target.result}" style="width: 100%; height: 100px; object-fit: cover; border: 1px solid rgba(102,126,234,0.3); border-radius: 4px;">
+              <span style="position: absolute; top: 2px; right: 2px; background: var(--neon-blue); color: #000; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px;">${index + 1}</span>
+            `;
+            pagesList.appendChild(thumbContainer);
+          };
+          reader.readAsDataURL(file);
+        });
+      } else {
+        countDiv.style.display = 'none';
+        previewDiv.style.display = 'none';
+      }
+    });
+  }
 
-function preventDefaults(e) {
-  e.preventDefault();
-  e.stopPropagation();
-}
+  // Handle PDF upload
+  const chapterPdf = document.getElementById('chapterPdf');
+  if (chapterPdf) {
+    chapterPdf.addEventListener('change', function() {
+      const nameDiv = document.getElementById('pdfFileName');
+      if (nameDiv) {
+        nameDiv.textContent = this.files[0] ? `✓ ${this.files[0].name}` : '';
+        nameDiv.style.display = this.files[0] ? 'block' : 'none';
+      }
+    });
+  }
 
-['dragenter', 'dragover'].forEach(eventName => {
-  dropZone.addEventListener(eventName, () => {
-    dropZone.style.borderColor = '#667eea';
-    dropZone.style.background = 'rgba(102, 126, 234, 0.15)';
-  });
-});
+  // Drag and drop for images
+  const dropZone = document.getElementById('dropZone');
+  if (dropZone) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, preventDefaults, false);
+    });
 
-['dragleave', 'drop'].forEach(eventName => {
-  dropZone.addEventListener(eventName, () => {
-    dropZone.style.borderColor = 'rgba(102, 126, 234, 0.3)';
-    dropZone.style.background = 'rgba(102, 126, 234, 0.05)';
-  });
-});
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.style.borderColor = '#667eea';
+        dropZone.style.background = 'rgba(102, 126, 234, 0.15)';
+      });
+    });
 
-dropZone.addEventListener('drop', (e) => {
-  const dt = e.dataTransfer;
-  const files = dt.files;
-  document.getElementById('chapterPages').files = files;
-  
-  // Trigger change event
-  const event = new Event('change', { bubbles: true });
-  document.getElementById('chapterPages').dispatchEvent(event);
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+        dropZone.style.background = 'rgba(102, 126, 234, 0.05)';
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      document.getElementById('chapterPages').files = files;
+      
+      // Trigger change event
+      const event = new Event('change', { bubbles: true });
+      document.getElementById('chapterPages').dispatchEvent(event);
+    });
+  }
+
+  // Drag and drop for PDF
+  const pdfDropZone = document.getElementById('pdfDropZone');
+  if (pdfDropZone) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      pdfDropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      pdfDropZone.addEventListener(eventName, () => {
+        pdfDropZone.style.borderColor = '#667eea';
+        pdfDropZone.style.background = 'rgba(102, 126, 234, 0.15)';
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      pdfDropZone.addEventListener(eventName, () => {
+        pdfDropZone.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+        pdfDropZone.style.background = 'rgba(102, 126, 234, 0.05)';
+      });
+    });
+
+    pdfDropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      document.getElementById('chapterPdf').files = files;
+      
+      // Trigger change event
+      const event = new Event('change', { bubbles: true });
+      document.getElementById('chapterPdf').dispatchEvent(event);
+    });
+  }
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
 });
 </script>
 {% endblock %}

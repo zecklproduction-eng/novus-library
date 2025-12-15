@@ -38,13 +38,23 @@
 
           <div class="mb-3">
             <label class="form-label">Category</label>
-            <input
-              type="text"
-              name="category"
-              class="form-control"
-              value="{{ book.category or '' }}"
-              placeholder="e.g. Fiction, Fantasy"
-            />
+            <div id="bookCategoriesContainer" class="categories-checkbox-grid">
+              {% set selected = selected_categories or [] %}
+              {% for cat in ['Action','Adventure','Children','Comedy','Drama','Fantasy','General','Historical','Horror','Mystery','Poetry','Romance','Science Fiction','Supernatural','Thriller','Young Adult'] %}
+                <label class="category-checkbox" style="display:inline-block; margin-right:8px;">
+                  <input type="checkbox" name="categories" value="{{ cat }}" {% if cat in selected %}checked{% endif %}> {{ cat }}
+                </label>
+              {% endfor %}
+            </div>
+            <div class="form-text">Select one or more categories.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <div class="description-editor-container">
+              <div id="description" class="form-control description-area" contenteditable="true" style="min-height:120px;">{{ book.description or '' }}</div>
+              <textarea id="description_hidden" name="description" hidden></textarea>
+            </div>
           </div>
 
           <!-- MOBILE submit button -->
@@ -128,6 +138,83 @@
           <div class="form-text">Upload a new MP3 to replace the current one.</div>
         </div>
 
+        <!-- CHAPTER MANAGEMENT (for Manga) -->
+        {% if book.book_type == 'manga' %}
+        <div class="mb-4 p-4" style="background: #f8f9fa; border-radius: 6px; border: 1px solid #667eea; color: #000;">
+          <h5 style="color: #667eea; margin-bottom: 15px;">
+            <i class="fas fa-book-open"></i> Manage Chapters
+          </h5>
+          <p class="text-muted small mb-3">Edit, delete, or rename chapters.</p>
+          
+          <div id="chaptersList" style="margin-bottom: 15px; max-height: 400px; overflow-y: auto;">
+            <!-- Chapters will be loaded here by JavaScript -->
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- CHARACTER MANAGEMENT (for Manga) -->
+        {% if book.book_type == 'manga' %}
+        <div class="mb-4 p-4" style="background: #f8f9fa; border-radius: 6px; border: 1px solid #00d4ff; color: #000;">
+          <h5 style="color: #00d4ff; margin-bottom: 15px;">
+            <i class="fas fa-users"></i> Add Character Info
+          </h5>
+          <p class="text-muted small mb-3">Add and manage character profiles that will appear in the manga reader.</p>
+          
+          <div id="charactersList" style="margin-bottom: 15px;">
+            <!-- Characters will be loaded here by JavaScript -->
+          </div>
+
+          <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #ddd;">
+            <h6 style="margin-bottom: 12px;">Add New Character</h6>
+            
+            <div class="mb-3">
+              <label class="form-label form-label-sm">Character Name *</label>
+              <input
+                type="text"
+                id="charName"
+                class="form-control form-control-sm"
+                placeholder="e.g., Tanjiro Kamado"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label form-label-sm">Role</label>
+              <input
+                type="text"
+                id="charRole"
+                class="form-control form-control-sm"
+                placeholder="e.g., Protagonist, Antagonist"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label form-label-sm">Description</label>
+              <textarea
+                id="charDescription"
+                class="form-control form-control-sm"
+                rows="3"
+                placeholder="Brief character description..."
+              ></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label form-label-sm">Character Photo</label>
+              <input
+                type="file"
+                id="charAvatar"
+                class="form-control form-control-sm"
+                accept="image/*"
+              />
+              <small class="form-text text-muted">Optional: Upload a character image</small>
+            </div>
+
+            <button type="button" id="addCharBtn" class="btn btn-sm" style="background: #00d4ff; color: #000; border: none; font-weight: 600;">
+              <i class="fas fa-plus"></i> Add Character
+            </button>
+          </div>
+        </div>
+        {% endif %}
+
         <!-- DESKTOP submit button -->
         <button type="submit" class="btn btn-neon w-100 d-none d-md-block">
           Save Changes
@@ -137,5 +224,365 @@
       </div>
     </div>
   </div>
+  <script>
+    // copy editable description into hidden textarea before submit
+    document.querySelector('form')?.addEventListener('submit', function(e){
+      const hidden = document.getElementById('description_hidden');
+      if (hidden){ hidden.value = document.getElementById('description').innerText.trim(); }
+    });
+
+    // Character management for manga
+    {% if book.book_type == 'manga' %}
+    const mangaId = {{ book.id }};
+    let characters = [];
+    let chapters = [];
+
+    // Load chapters from server
+    async function loadChapters() {
+      try {
+        const response = await fetch(`/api/manga/${mangaId}/chapters`);
+        if (!response.ok) throw new Error('Failed to load chapters');
+        
+        chapters = await response.json();
+        renderChaptersList();
+      } catch (error) {
+        console.error('Error loading chapters:', error);
+      }
+    }
+
+    // Render chapters list
+    function renderChaptersList() {
+      const container = document.getElementById('chaptersList');
+      
+      if (chapters.length === 0) {
+        container.innerHTML = '<p class="text-muted small">No chapters added yet</p>';
+        return;
+      }
+
+      let html = '<div style="margin-bottom: 15px;"><h6 class="mb-3">Chapters (' + chapters.length + ')</h6>';
+      chapters.forEach((ch, idx) => {
+        html += `
+          <div style="background: white; padding: 12px; border-radius: 4px; border-left: 3px solid #667eea; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1;">
+              <strong style="color: #667eea;">Ch. ${ch.chapter_num}: ${escapeHtml(ch.title || 'Untitled')}</strong>
+              <div class="small text-muted">${ch.page_count || 0} pages</div>
+            </div>
+            <div style="display: flex; gap: 5px;">
+              <button type="button" class="btn btn-sm btn-warning" onclick="editChapter(${ch.id}, ${idx})" style="padding: 3px 10px; font-size: 12px;">Edit</button>
+              <button type="button" class="btn btn-sm btn-danger" onclick="deleteChapter(${ch.id})" style="padding: 3px 10px; font-size: 12px;">Delete</button>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    // Edit chapter
+    function editChapter(chapterId, idx) {
+      const chapter = chapters[idx];
+      const newTitle = prompt('Edit Chapter Title:', chapter.title || '');
+      
+      if (newTitle === null) return; // User cancelled
+      
+      if (!newTitle.trim()) {
+        alert('Chapter title cannot be empty');
+        return;
+      }
+
+      updateChapter(chapterId, newTitle.trim());
+    }
+
+    // Update chapter
+    async function updateChapter(chapterId, newTitle) {
+      try {
+        const response = await fetch(`/api/chapter/${chapterId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newTitle })
+        });
+
+        if (!response.ok) {
+          alert('Failed to update chapter');
+          return;
+        }
+
+        const idx = chapters.findIndex(c => c.id === chapterId);
+        if (idx !== -1) {
+          chapters[idx].title = newTitle;
+          renderChaptersList();
+          alert('Chapter updated!');
+        }
+      } catch (error) {
+        console.error('Error updating chapter:', error);
+        alert('Failed to update chapter');
+      }
+    }
+
+    // Delete chapter
+    async function deleteChapter(chapterId) {
+      if (!confirm('Delete this chapter? This cannot be undone.')) return;
+
+      try {
+        const response = await fetch(`/api/chapter/${chapterId}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          alert('Failed to delete chapter');
+          return;
+        }
+
+        chapters = chapters.filter(c => c.id !== chapterId);
+        renderChaptersList();
+        alert('Chapter deleted!');
+      } catch (error) {
+        console.error('Error deleting chapter:', error);
+        alert('Failed to delete chapter');
+      }
+    }
+
+    // Load characters from server
+    async function loadCharacters() {
+      try {
+        const response = await fetch(`/api/manga/${mangaId}/characters`);
+        if (!response.ok) throw new Error('Failed to load characters');
+        
+        characters = await response.json();
+        renderCharactersList();
+      } catch (error) {
+        console.error('Error loading characters:', error);
+      }
+    }
+
+    // Render characters list
+    function renderCharactersList() {
+      const container = document.getElementById('charactersList');
+      
+      if (characters.length === 0) {
+        container.innerHTML = '<p class="text-muted small">No characters added yet</p>';
+        return;
+      }
+
+      let html = '<div style="margin-bottom: 15px;"><h6 class="mb-3">Characters (' + characters.length + ')</h6>';
+      characters.forEach(char => {
+        html += `
+          <div style="background: white; padding: 12px; border-radius: 4px; border-left: 3px solid #00d4ff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1; display: flex; gap: 10px;">
+              ${char.avatar_url ? `<img src="${escapeHtml(char.avatar_url)}" alt="${escapeHtml(char.name)}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">` : `<div style="width: 50px; height: 50px; border-radius: 50%; background: #00d4ff; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">${char.name.charAt(0).toUpperCase()}</div>`}
+              <div style="flex: 1;">
+                <strong style="color: #00d4ff;">${escapeHtml(char.name)}</strong>
+                <div class="small text-muted">${escapeHtml(char.role || 'Supporting Role')}</div>
+                ${char.description ? `<div class="small mt-1" style="color: #666;">${escapeHtml(char.description)}</div>` : ''}
+              </div>
+            </div>
+            <div style="display: flex; gap: 5px;">
+              <button type="button" class="btn btn-sm btn-warning" onclick="editCharacter(${char.id})" style="padding: 3px 10px; font-size: 12px;">Edit</button>
+              <button type="button" class="btn btn-sm btn-danger" onclick="deleteCharacter(${char.id})" style="padding: 3px 10px; font-size: 12px;">Delete</button>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    // Edit character - show modal
+    function editCharacter(charId) {
+      const char = characters.find(c => c.id === charId);
+      if (!char) return;
+
+      // Create modal
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7); display: flex; align-items: center;
+        justify-content: center; z-index: 9999;
+      `;
+      
+      modal.innerHTML = `
+        <div style="background: white; border-radius: 8px; padding: 25px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+          <h5 style="margin-bottom: 20px; color: #00d4ff;"><i class="fas fa-edit"></i> Edit Character</h5>
+          
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Character Name *</label>
+            <input type="text" id="editCharName" class="form-control form-control-sm" value="${escapeHtml(char.name)}" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Role</label>
+            <input type="text" id="editCharRole" class="form-control form-control-sm" value="${escapeHtml(char.role || '')}" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Description</label>
+            <textarea id="editCharDescription" class="form-control form-control-sm" rows="3">${escapeHtml(char.description || '')}</textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Character Photo</label>
+            ${char.avatar_url ? `<div style="margin-bottom: 10px;"><img src="${escapeHtml(char.avatar_url)}" alt="${escapeHtml(char.name)}" style="max-width: 150px; max-height: 150px; border-radius: 6px;"></div>` : ''}
+            <input type="file" id="editCharAvatar" class="form-control form-control-sm" accept="image/*" />
+            <small class="form-text text-muted">Upload a new photo to replace the current one</small>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn btn-sm" style="background: #00d4ff; color: #000; border: none; font-weight: 600; flex: 1;" onclick="updateCharacter(${charId})">
+              <i class="fas fa-save"></i> Save Changes
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" style="flex: 1;" onclick="document.body.removeChild(this.closest('div').parentElement)">
+              Cancel
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      modal.onclick = (e) => {
+        if (e.target === modal) {
+          document.body.removeChild(modal);
+        }
+      };
+    }
+
+    // Update character
+    async function updateCharacter(charId) {
+      const name = document.getElementById('editCharName').value.trim();
+      const role = document.getElementById('editCharRole').value.trim();
+      const description = document.getElementById('editCharDescription').value.trim();
+      const avatarFile = document.getElementById('editCharAvatar').files[0];
+
+      if (!name) {
+        alert('Character name cannot be empty');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('role', role);
+      formData.append('description', description);
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+
+      try {
+        const response = await fetch(`/api/manga/character/${charId}`, {
+          method: 'PUT',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          alert('Error: ' + (error.error || 'Failed to update character'));
+          return;
+        }
+
+        const updated = await response.json();
+        const idx = characters.findIndex(c => c.id === charId);
+        if (idx !== -1) {
+          characters[idx] = updated;
+          renderCharactersList();
+          
+          // Close modal
+          document.querySelector('[style*="position: fixed"]')?.parentElement?.removeChild(document.querySelector('[style*="position: fixed"]'));
+          alert('Character updated successfully!');
+        }
+      } catch (error) {
+        console.error('Error updating character:', error);
+        alert('Failed to update character');
+      }
+    }
+
+    // Add character
+    document.getElementById('addCharBtn')?.addEventListener('click', async () => {
+      const name = document.getElementById('charName').value.trim();
+      const role = document.getElementById('charRole').value.trim();
+      const description = document.getElementById('charDescription').value.trim();
+      const avatarFile = document.getElementById('charAvatar').files[0];
+
+      if (!name) {
+        alert('Please enter a character name');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('role', role);
+      formData.append('description', description);
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+
+      try {
+        const response = await fetch(`/api/manga/${mangaId}/characters`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          alert('Error: ' + (error.error || 'Failed to add character'));
+          return;
+        }
+
+        const result = await response.json();
+        characters.push(result);
+        
+        // Clear inputs
+        document.getElementById('charName').value = '';
+        document.getElementById('charRole').value = '';
+        document.getElementById('charDescription').value = '';
+        document.getElementById('charAvatar').value = '';
+        
+        renderCharactersList();
+        alert('Character added successfully!');
+      } catch (error) {
+        console.error('Error adding character:', error);
+        alert('Failed to add character');
+      }
+    });
+
+    // Delete character
+    async function deleteCharacter(charId) {
+      if (!confirm('Delete this character?')) return;
+
+      try {
+        const response = await fetch(`/api/manga/character/${charId}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          alert('Failed to delete character');
+          return;
+        }
+
+        characters = characters.filter(c => c.id !== charId);
+        renderCharactersList();
+        alert('Character deleted!');
+      } catch (error) {
+        console.error('Error deleting character:', error);
+        alert('Failed to delete character');
+      }
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // Load characters and chapters on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadChapters();
+      loadCharacters();
+    });
+    {% endif %}
+  </script>
 </div>
 {% endblock %}
