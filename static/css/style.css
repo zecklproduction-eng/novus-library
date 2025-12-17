@@ -214,6 +214,52 @@ a:hover {
   background-color: #262626;
 }
 
+/* Make Help & Info button match .nav-link-item */
+.dropdown-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: 0.3s;
+  padding: 5px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdown-btn:hover {
+  color: var(--neon-blue);
+  background-color: #262626;
+}
+.dropdown-nav { position: relative; }
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--bg-card);
+  border: 1px solid #333;
+  border-radius: 10px;
+  min-width: 180px;
+  padding: 8px;
+  z-index: 2000;
+}
+
+.dropdown-content a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: #ddd;
+}
+
+.dropdown-content a:hover {
+  background: #262626;
+  color: var(--neon-blue);
+}
 
 
 /* ================================================= */
