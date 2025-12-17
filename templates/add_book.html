@@ -105,8 +105,10 @@
             <div style="margin-bottom: 20px;">
               <h5 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Description</h5>
               <div class="description-editor-container">
-                <div class="toolbar" id="editor-toolbar" style="margin-bottom:8px;">
-                  <button type="button" class="btn btn-sm" style="background:none; color:#ddd; border:none;" onclick="formatText('bold')"><i class="fas fa-bold"></i></button>
+                <div class="toolbar" id="editor-toolbar" style="margin-bottom:8px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">>
+                  <button type="button" class="btn btn-sm"
+        style="display:inline-flex; align-items:center; justify-content:center; background:none; color:#ddd; border:none;"
+        onclick="formatText('bold')">
                   <button type="button" class="btn btn-sm" style="background:none; color:#ddd; border:none;" onclick="formatText('italic')"><i class="fas fa-italic"></i></button>
                   <button type="button" class="btn btn-sm" style="background:none; color:#ddd; border:none;" onclick="formatText('underline')"><i class="fas fa-underline"></i></button>
                   <span class="mx-2" style="color:#555">|</span>
@@ -115,11 +117,14 @@
                 </div>
 
                 <!-- visible editor -->
-                <div id="description" class="form-control description-area" contenteditable="true" style="min-height:150px; padding:15px; background: rgba(255,255,255,0.03); border-radius:6px; border:1px solid rgba(102,126,234,0.12); color:#fff;">
-                  Type your book description here...
-                </div>
-                <!-- hidden field that actually posts -->
-                <textarea id="description_hidden" name="description" hidden></textarea>
+                <div id="description"
+     class="form-control description-area"
+     contenteditable="true"
+     data-placeholder="Type your book description here..."
+     style="min-height:150px; padding:15px; background: rgba(255,255,255,0.03); border-radius:6px; border:1px solid rgba(102,126,234,0.12); color:#fff;"></div>
+
+<textarea id="description_hidden" name="description" hidden></textarea>
+
               </div>
             </div>
           </div>

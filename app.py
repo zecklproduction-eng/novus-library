@@ -370,6 +370,7 @@ def home():
 
 # ---------- Auth ----------
 @app.route("/login", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -378,26 +379,12 @@ def login():
         conn = get_conn()
         c = conn.cursor()
         c.execute("""
-    SELECT id, username, password, role,
-           COALESCE(is_banned,0),
-           COALESCE(status,'active')
-    FROM users
-    WHERE username=? AND password=?
-""", (username, password))
-
-user = c.fetchone()
-conn.close()
-
-if not user:
-    return render_template("login.html", error="Invalid username or password.")
-
-# user[4] = is_banned (0/1), user[5] = status ('active'/'banned')
-if int(user[4]) == 1 or user[5] == "banned":
-    return render_template(
-        "login.html",
-        error="Your account has been banned. Please contact the administrator."
-    )
-
+            SELECT id, username, password, role,
+                   COALESCE(is_banned,0),
+                   COALESCE(status,'active')
+            FROM users
+            WHERE username=? AND password=?
+        """, (username, password))
 
         user = c.fetchone()
         conn.close()
@@ -405,13 +392,12 @@ if int(user[4]) == 1 or user[5] == "banned":
         if not user:
             return render_template("login.html", error="Invalid username or password.")
 
-        # status index = 4
-        if user[4] == "banned":
+        # user[4] = is_banned (0/1), user[5] = status ('active'/'banned')
+        if int(user[4]) == 1 or user[5] == "banned":
             return render_template(
                 "login.html",
                 error="Your account has been banned. Please contact the administrator."
-                  )
-
+            )
 
         session["user_id"] = user[0]
         session["username"] = user[1]
@@ -2683,6 +2669,91 @@ def team_admin():
         flash(f"Error loading Team Admin: {str(e)}", "danger")
         return redirect(url_for('home'))
     return render_template("team_admin.html", members=members)
+@app.get("/admin/users")
+@admin_required
+def admin_users():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        SELECT id, username, role, COALESCE(status,'active') AS status
+        FROM users
+        ORDER BY id DESC
+    """)
+    users = c.fetchall()
+    conn.close()
+    return render_template("admin_users.html", users=users)
+
+
+@app.post("/admin/users/<int:user_id>/ban")
+@admin_required
+def user_ban(user_id):
+    # prevent self-ban
+    if user_id == session.get("user_id"):
+        flash("You cannot ban yourself.", "danger")
+        return redirect(url_for("admin_users"))
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    # prevent banning admins
+    c.execute("SELECT role FROM users WHERE id=?", (user_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        flash("User not found.", "danger")
+        return redirect(url_for("admin_users"))
+    if row[0] == "admin":
+        conn.close()
+        flash("You cannot ban another admin.", "danger")
+        return redirect(url_for("admin_users"))
+
+    c.execute("UPDATE users SET status='banned', is_banned=1 WHERE id=?", (user_id,))
+    conn.commit()
+    conn.close()
+    flash("User banned.", "success")
+    return redirect(url_for("admin_users"))
+
+
+@app.post("/admin/users/<int:user_id>/unban")
+@admin_required
+def user_unban(user_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE users SET status='active', is_banned=0 WHERE id=?", (user_id,))
+    conn.commit()
+    conn.close()
+    flash("User unbanned.", "success")
+    return redirect(url_for("admin_users"))
+
+
+@app.post("/admin/users/<int:user_id>/delete")
+@admin_required
+def user_delete(user_id):
+    if user_id == session.get("user_id"):
+        flash("You cannot delete yourself.", "danger")
+        return redirect(url_for("admin_users"))
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    # prevent deleting admins
+    c.execute("SELECT role FROM users WHERE id=?", (user_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        flash("User not found.", "danger")
+        return redirect(url_for("admin_users"))
+    if row[0] == "admin":
+        conn.close()
+        flash("You cannot delete an admin.", "danger")
+        return redirect(url_for("admin_users"))
+
+    c.execute("DELETE FROM users WHERE id=?", (user_id,))
+    conn.commit()
+    conn.close()
+    flash("User deleted.", "success")
+    return redirect(url_for("admin_users"))
+
 
 @app.route("/admin/users")
 @admin_required
@@ -2707,6 +2778,48 @@ def admin_users():
     conn.close()
     return render_template("user_management.html", users=users, pending=pending)
 
+@app.route("/admin/users")
+@admin_required
+def user_management():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT id, username, email, role, COALESCE(status,'active'), COALESCE(is_banned,0) FROM users ORDER BY id")
+    users = c.fetchall()
+
+    c.execute("""
+        SELECT rr.id, rr.user_id, u.username, rr.requested_role, rr.status, rr.created_at
+        FROM role_requests rr
+        JOIN users u ON u.id = rr.user_id
+        WHERE rr.status = 'pending'
+        ORDER BY rr.created_at ASC
+    """)
+    requests = c.fetchall()
+
+    conn.close()
+    return render_template("admin_users.html", users=users, requests=requests)
+
+@app.post("/admin/users/<int:user_id>/ban")
+@admin_required
+def admin_ban_user(user_id):
+    if user_id == session.get("user_id"):
+        flash("You cannot ban yourself.", "danger")
+        return redirect(url_for("user_management"))
+
+    conn = get_conn()
+    c = conn.cursor()
+    # don’t ban other admins
+    c.execute("SELECT role FROM users WHERE id=?", (user_id,))
+    row = c.fetchone()
+    if row and row[0] == "admin":
+        conn.close()
+        flash("You cannot ban another admin.", "danger")
+        return redirect(url_for("user_management"))
+
+    c.execute("UPDATE users SET status='banned', is_banned=1 WHERE id=?", (user_id,))
+    conn.commit()
+    conn.close()
+    flash("User banned.", "success")
+    return redirect(url_for("user_management"))
 
 
 @app.post("/admin/users/<int:user_id>/delete")

@@ -3884,3 +3884,7 @@ MANGA WARP OVERLAY (VORTEX)
   color: #fff;
   box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
 }
+.description-area:empty:before {
+  content: attr(data-placeholder);
+  opacity: 0.6;
+}
