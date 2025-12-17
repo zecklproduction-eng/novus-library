@@ -59,7 +59,6 @@ def get_conn():
     return sqlite3.connect(DB_PATH)
 
 @app.before_request
-@app.before_request
 def check_banned():
     uid = session.get("user_id")
     if not uid:
@@ -229,6 +228,20 @@ def init_db():
         )
     """)
 
+    # reviews (book/manga reviews)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS reviews (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            book_id INTEGER NOT NULL,
+            rating INTEGER,
+            content TEXT,
+            created_at TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (book_id) REFERENCES books(id)
+        )
+    """)
+
     # team
     c.execute("""
         CREATE TABLE IF NOT EXISTS team (
@@ -369,7 +382,6 @@ def home():
     )
 
 # ---------- Auth ----------
-@app.route("/login", methods=["GET", "POST"])
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -2647,7 +2659,7 @@ def ban_user(user_id):
     c.execute("UPDATE users SET banned=1 WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
-    return redirect(url_for("admin_users"))
+    return redirect(url_for("user_management"))
 
 
 @app.post("/admin/users/<int:user_id>/unban")
@@ -2658,7 +2670,7 @@ def unban_user(user_id):
     c.execute("UPDATE users SET banned=0 WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
-    return redirect(url_for("admin_users"))
+    return redirect(url_for("user_management"))
 
 
 @app.post("/admin/users/approve/<int:req_id>")
@@ -2671,7 +2683,7 @@ def approve_publisher(req_id):
     row = c.fetchone()
     if not row:
         conn.close()
-        return redirect(url_for("admin_users"))
+        return redirect(url_for("user_management"))
 
     user_id = row[0]
     c.execute("UPDATE users SET role='publisher' WHERE id=?", (user_id,))
@@ -2679,7 +2691,7 @@ def approve_publisher(req_id):
 
     conn.commit()
     conn.close()
-    return redirect(url_for("admin_users"))
+    return redirect(url_for("user_management"))
 def team_admin():
     try:
         conn = get_conn()
@@ -2730,9 +2742,9 @@ def team_admin():
         flash(f"Error loading Team Admin: {str(e)}", "danger")
         return redirect(url_for('home'))
     return render_template("team_admin.html", members=members)
-@app.get("/admin/users")
+@app.get("/admin/users", endpoint="user_management")
 @admin_required
-def admin_users():
+def admin_users_page():
     conn = get_conn()
     c = conn.cursor()
     c.execute("""
@@ -2751,7 +2763,7 @@ def user_ban(user_id):
     # prevent self-ban
     if user_id == session.get("user_id"):
         flash("You cannot ban yourself.", "danger")
-        return redirect(url_for("admin_users"))
+        return redirect(url_for("user_management"))
 
     conn = get_conn()
     c = conn.cursor()
@@ -2762,17 +2774,17 @@ def user_ban(user_id):
     if not row:
         conn.close()
         flash("User not found.", "danger")
-        return redirect(url_for("admin_users"))
+        return redirect(url_for("user_management"))
     if row[0] == "admin":
         conn.close()
         flash("You cannot ban another admin.", "danger")
-        return redirect(url_for("admin_users"))
+        return redirect(url_for("user_management"))
 
     c.execute("UPDATE users SET status='banned', is_banned=1 WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
     flash("User banned.", "success")
-    return redirect(url_for("admin_users"))
+    return redirect(url_for("user_management"))
 
 
 @app.post("/admin/users/<int:user_id>/unban")
@@ -2784,7 +2796,7 @@ def user_unban(user_id):
     conn.commit()
     conn.close()
     flash("User unbanned.", "success")
-    return redirect(url_for("admin_users"))
+    return redirect(url_for("user_management"))
 
 
 @app.post("/admin/users/<int:user_id>/delete")
@@ -2792,7 +2804,7 @@ def user_unban(user_id):
 def user_delete(user_id):
     if user_id == session.get("user_id"):
         flash("You cannot delete yourself.", "danger")
-        return redirect(url_for("admin_users"))
+        return redirect(url_for("user_management"))
 
     conn = get_conn()
     c = conn.cursor()
@@ -2803,17 +2815,17 @@ def user_delete(user_id):
     if not row:
         conn.close()
         flash("User not found.", "danger")
-        return redirect(url_for("admin_users"))
+        return redirect(url_for("user_management"))
     if row[0] == "admin":
         conn.close()
         flash("You cannot delete an admin.", "danger")
-        return redirect(url_for("admin_users"))
+        return redirect(url_for("user_management"))
 
     c.execute("DELETE FROM users WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
     flash("User deleted.", "success")
-    return redirect(url_for("admin_users"))
+    return redirect(url_for("user_management"))
 
 # -------------------- FAQ ROUTE --------------------
 @app.route("/faq")
@@ -2826,7 +2838,9 @@ def faq():
 if __name__ == "__main__":
     init_db()
     # Bind to all interfaces and run without the reloader so external tests can connect reliably
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    debug_env = os.environ.get('FLASK_DEBUG', os.environ.get('FLASK_ENV', '0'))
+    debug_mode = str(debug_env).lower() in ('1', 'true', 'yes', 'debug')
+    app.run(host='0.0.0.0', port=5000, debug=debug_mode, use_reloader=False)
 
 # Ensure DB is initialized exactly once when the app receives requests
 _db_init_done = False
