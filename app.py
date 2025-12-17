@@ -59,19 +59,23 @@ def get_conn():
     return sqlite3.connect(DB_PATH)
 
 @app.before_request
+@app.before_request
 def check_banned():
     uid = session.get("user_id")
     if not uid:
         return
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT status FROM users WHERE id=?", (uid,))
+    c.execute("SELECT COALESCE(is_banned,0), COALESCE(status,'active') FROM users WHERE id=?", (uid,))
     row = c.fetchone()
     conn.close()
-    if row and row[0] == "banned":
-        session.clear()
-        flash("Your account has been banned.", "danger")
-        return redirect(url_for("login"))
+    if row:
+        is_banned, status = row
+        if int(is_banned) == 1 or status == "banned":
+            session.clear()
+            flash("Your account has been banned.", "danger")
+            return redirect(url_for("login"))
+
 
 
 def allowed(filename, allowed_set):
@@ -374,10 +378,26 @@ def login():
         conn = get_conn()
         c = conn.cursor()
         c.execute("""
-    SELECT id, username, password, role, COALESCE(is_banned,0)
+    SELECT id, username, password, role,
+           COALESCE(is_banned,0),
+           COALESCE(status,'active')
     FROM users
     WHERE username=? AND password=?
 """, (username, password))
+
+user = c.fetchone()
+conn.close()
+
+if not user:
+    return render_template("login.html", error="Invalid username or password.")
+
+# user[4] = is_banned (0/1), user[5] = status ('active'/'banned')
+if int(user[4]) == 1 or user[5] == "banned":
+    return render_template(
+        "login.html",
+        error="Your account has been banned. Please contact the administrator."
+    )
+
 
         user = c.fetchone()
         conn.close()
