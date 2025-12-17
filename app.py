@@ -2629,7 +2629,7 @@ def my_uploads():
 # ---------- Team Admin ----------
 # ---------- TEAM ADMIN ----------
 
-@app.route("/admin/team", methods=["GET", "POST"], endpoint="team_admin")
+@app.route("/admin/users", methods=["GET", "POST"], endpoint="user_management")
 @admin_required
 def admin_users():
     conn = get_conn()
@@ -2651,47 +2651,8 @@ def admin_users():
     return render_template("user_management.html", users=users, pending=pending)
 
 
-@app.post("/admin/users/<int:user_id>/ban")
+@app.route("/admin/team", methods=["GET", "POST"], endpoint="team_admin")
 @admin_required
-def ban_user(user_id):
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("UPDATE users SET banned=1 WHERE id=?", (user_id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for("user_management"))
-
-
-@app.post("/admin/users/<int:user_id>/unban")
-@admin_required
-def unban_user(user_id):
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("UPDATE users SET banned=0 WHERE id=?", (user_id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for("user_management"))
-
-
-@app.post("/admin/users/approve/<int:req_id>")
-@admin_required
-def approve_publisher(req_id):
-    conn = get_conn()
-    c = conn.cursor()
-
-    c.execute("SELECT user_id FROM role_requests WHERE id=? AND status='pending'", (req_id,))
-    row = c.fetchone()
-    if not row:
-        conn.close()
-        return redirect(url_for("user_management"))
-
-    user_id = row[0]
-    c.execute("UPDATE users SET role='publisher' WHERE id=?", (user_id,))
-    c.execute("UPDATE role_requests SET status='approved' WHERE id=?", (req_id,))
-
-    conn.commit()
-    conn.close()
-    return redirect(url_for("user_management"))
 def team_admin():
     try:
         conn = get_conn()
@@ -2742,21 +2703,6 @@ def team_admin():
         flash(f"Error loading Team Admin: {str(e)}", "danger")
         return redirect(url_for('home'))
     return render_template("team_admin.html", members=members)
-@app.get("/admin/users", endpoint="user_management")
-@admin_required
-def admin_users_page():
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("""
-        SELECT id, username, role, COALESCE(status,'active') AS status
-        FROM users
-        ORDER BY id DESC
-    """)
-    users = c.fetchall()
-    conn.close()
-    return render_template("admin_users.html", users=users)
-
-
 @app.post("/admin/users/<int:user_id>/ban")
 @admin_required
 def user_ban(user_id):

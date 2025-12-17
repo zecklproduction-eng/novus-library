@@ -114,7 +114,7 @@
         <div class="d-flex align-items-center">
           <div class="top-menu-links">
   {% if session.get('role') == 'admin' %}
-  <a href="{{ url_for('team_admin') }}" class="nav-link-item">Team Admin</a>
+  <a href="/admin/team" class="nav-link-item">Team Admin</a>
 <a href="{{ url_for('user_management') }}" class="nav-link-item">User Management</a>
 {% endif %}
 
