@@ -2619,6 +2619,67 @@ def my_uploads():
 
 @app.route("/admin/team", methods=["GET", "POST"])
 @admin_required
+def admin_users():
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute("SELECT id, username, role, banned FROM users ORDER BY username")
+    users = c.fetchall()
+
+    c.execute("""
+        SELECT rr.id, u.username, rr.requested_role, rr.created_at
+        FROM role_requests rr
+        JOIN users u ON rr.user_id = u.id
+        WHERE rr.status = 'pending'
+        ORDER BY rr.created_at ASC
+    """)
+    pending = c.fetchall()
+
+    conn.close()
+    return render_template("user_management.html", users=users, pending=pending)
+
+
+@app.post("/admin/users/<int:user_id>/ban")
+@admin_required
+def ban_user(user_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE users SET banned=1 WHERE id=?", (user_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("admin_users"))
+
+
+@app.post("/admin/users/<int:user_id>/unban")
+@admin_required
+def unban_user(user_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE users SET banned=0 WHERE id=?", (user_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("admin_users"))
+
+
+@app.post("/admin/users/approve/<int:req_id>")
+@admin_required
+def approve_publisher(req_id):
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute("SELECT user_id FROM role_requests WHERE id=? AND status='pending'", (req_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return redirect(url_for("admin_users"))
+
+    user_id = row[0]
+    c.execute("UPDATE users SET role='publisher' WHERE id=?", (user_id,))
+    c.execute("UPDATE role_requests SET status='approved' WHERE id=?", (req_id,))
+
+    conn.commit()
+    conn.close()
+    return redirect(url_for("admin_users"))
 def team_admin():
     try:
         conn = get_conn()
@@ -2753,139 +2814,6 @@ def user_delete(user_id):
     conn.close()
     flash("User deleted.", "success")
     return redirect(url_for("admin_users"))
-
-
-@app.route("/admin/users")
-@admin_required
-def admin_users():
-    conn = get_conn()
-    c = conn.cursor()
-    
-    # all users
-    c.execute("SELECT id, username, role FROM users ORDER BY id")
-    users = c.fetchall()
-
-    # pending publisher requests
-    c.execute("""
-        SELECT r.id, u.username, r.requested_role, r.created_at
-        FROM role_requests r
-        JOIN users u ON u.id = r.user_id
-        WHERE r.status = 'pending'
-        ORDER BY r.created_at ASC
-    """)
-    pending = c.fetchall()
-
-    conn.close()
-    return render_template("user_management.html", users=users, pending=pending)
-
-@app.route("/admin/users")
-@admin_required
-def user_management():
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("SELECT id, username, email, role, COALESCE(status,'active'), COALESCE(is_banned,0) FROM users ORDER BY id")
-    users = c.fetchall()
-
-    c.execute("""
-        SELECT rr.id, rr.user_id, u.username, rr.requested_role, rr.status, rr.created_at
-        FROM role_requests rr
-        JOIN users u ON u.id = rr.user_id
-        WHERE rr.status = 'pending'
-        ORDER BY rr.created_at ASC
-    """)
-    requests = c.fetchall()
-
-    conn.close()
-    return render_template("admin_users.html", users=users, requests=requests)
-
-@app.post("/admin/users/<int:user_id>/ban")
-@admin_required
-def admin_ban_user(user_id):
-    if user_id == session.get("user_id"):
-        flash("You cannot ban yourself.", "danger")
-        return redirect(url_for("user_management"))
-
-    conn = get_conn()
-    c = conn.cursor()
-    # don’t ban other admins
-    c.execute("SELECT role FROM users WHERE id=?", (user_id,))
-    row = c.fetchone()
-    if row and row[0] == "admin":
-        conn.close()
-        flash("You cannot ban another admin.", "danger")
-        return redirect(url_for("user_management"))
-
-    c.execute("UPDATE users SET status='banned', is_banned=1 WHERE id=?", (user_id,))
-    conn.commit()
-    conn.close()
-    flash("User banned.", "success")
-    return redirect(url_for("user_management"))
-
-
-@app.post("/admin/users/<int:user_id>/delete")
-@admin_required
-def user_delete(user_id):
-    # prevent deleting self or other admins for safety
-    current_id = session.get("user_id")
-    conn = get_conn()
-    c = conn.cursor()
-
-    c.execute("SELECT role FROM users WHERE id=?", (user_id,))
-    row = c.fetchone()
-    if not row:
-        conn.close()
-        flash("User not found.", "danger")
-        return redirect(url_for("admin_users"))
-
-    if row[0] == "admin" or user_id == current_id:
-        conn.close()
-        flash("You cannot delete this admin user.", "danger")
-        return redirect(url_for("admin_users"))
-
-    # optional: clean up their reviews, history, watchlist
-    c.execute("DELETE FROM reviews WHERE user_id=?", (user_id,))
-    c.execute("DELETE FROM history WHERE user_id=?", (user_id,))
-    c.execute("DELETE FROM watchlist WHERE user_id=?", (user_id,))
-    c.execute("DELETE FROM users WHERE id=?", (user_id,))
-    conn.commit()
-    conn.close()
-    flash("User deleted.", "success")
-    return redirect(url_for("admin_users"))
-
-
-@app.post("/admin/team/delete/<int:member_id>")
-@admin_required
-def team_delete(member_id):
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("DELETE FROM team WHERE id=?", (member_id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for("team_admin"))
-
-@app.route("/admin/users")
-@admin_required
-def user_management():
-    conn = get_conn()
-    c = conn.cursor()
-
-    # all users
-    c.execute("SELECT id, username, role FROM users ORDER BY id")
-    users = c.fetchall()
-
-    # pending publisher requests
-    c.execute("""
-        SELECT r.id, u.username, r.requested_role, r.created_at
-        FROM role_requests r
-        JOIN users u ON u.id = r.user_id
-        WHERE r.status = 'pending'
-        ORDER BY r.created_at ASC
-    """)
-    pending = c.fetchall()
-
-    conn.close()
-    return render_template("user_management.html", users=users, pending=pending)
-
 
 # -------------------- FAQ ROUTE --------------------
 @app.route("/faq")
