@@ -2629,7 +2629,7 @@ def my_uploads():
 # ---------- Team Admin ----------
 # ---------- TEAM ADMIN ----------
 
-@app.route("/admin/team", methods=["GET", "POST"])
+@app.route("/admin/team", methods=["GET", "POST"], endpoint="team_admin")
 @admin_required
 def admin_users():
     conn = get_conn()
