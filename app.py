@@ -2703,6 +2703,18 @@ def team_admin():
         flash(f"Error loading Team Admin: {str(e)}", "danger")
         return redirect(url_for('home'))
     return render_template("team_admin.html", members=members)
+
+@app.post("/admin/team/<int:member_id>/delete", endpoint="team_delete")
+@admin_required
+def team_delete(member_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("DELETE FROM team WHERE id=?", (member_id,))
+    conn.commit()
+    conn.close()
+    flash("Team member deleted.", "success")
+    return redirect(url_for("team_admin"))
+
 @app.post("/admin/users/<int:user_id>/ban")
 @admin_required
 def user_ban(user_id):
