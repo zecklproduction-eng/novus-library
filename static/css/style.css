@@ -3998,3 +3998,202 @@ MANGA WARP OVERLAY (VORTEX)
 .profile-dropdown-content a.danger:hover {
   background: rgba(255, 80, 80, 0.15);
 }
+.no-scroll { overflow: hidden; }
+
+.billing-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 5000;
+}
+
+.billing-modal.show { display: block; }
+
+.billing-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+}
+
+.billing-dialog {
+  position: relative;
+  width: min(980px, calc(100% - 40px));
+  margin: 60px auto;
+  padding: 28px 28px 20px;
+  border-radius: 18px;
+
+  background: rgba(25, 30, 34, 0.55);
+  backdrop-filter: blur(14px);
+  border: 2px solid rgba(0, 212, 255, 0.35);
+  box-shadow: 0 0 40px rgba(0, 212, 255, 0.08);
+}
+
+.billing-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.75);
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+}
+.billing-close:hover { color: #fff; }
+
+.billing-header h2 {
+  margin: 0;
+  color: #fff;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+.billing-header p {
+  margin: 6px 0 0;
+  opacity: 0.75;
+}
+
+.billing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.plan-card {
+  position: relative;
+  border-radius: 16px;
+  padding: 18px 18px 16px;
+  background: rgba(10, 10, 10, 0.35);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.plan-title {
+  font-weight: 800;
+  color: rgba(125, 220, 255, 0.95);
+  margin-bottom: 10px;
+}
+
+.plan-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 212, 255, 0.18);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  color: rgba(125, 220, 255, 0.95);
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 12px;
+  color: rgba(255,255,255,0.78);
+}
+.plan-features li { margin: 10px 0; }
+
+.plan-price {
+  margin-top: 8px;
+  font-weight: 900;
+  color: #fff;
+}
+.plan-price span { opacity: 0.75; font-weight: 700; }
+
+.plan-featured {
+  border: 2px solid rgba(0, 212, 255, 0.55);
+  box-shadow: 0 0 26px rgba(0, 212, 255, 0.10);
+  transform: translateY(-4px);
+}
+
+.plan-ribbon {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(0, 212, 255, 0.18);
+  border: 1px solid rgba(0, 212, 255, 0.55);
+  color: rgba(125, 220, 255, 0.98);
+  font-weight: 900;
+  font-size: 0.85rem;
+}
+
+.billing-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.billing-primary {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 212, 255, 0.55);
+  background: rgba(0, 212, 255, 0.25);
+  color: #dff8ff;
+  font-weight: 900;
+  cursor: pointer;
+}
+.billing-primary:hover { background: rgba(0, 212, 255, 0.35); }
+
+.billing-secondary {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+}
+.billing-secondary:hover { color: #fff; }
+
+@media (max-width: 900px) {
+  .billing-grid { grid-template-columns: 1fr; }
+  .plan-featured { transform: none; }
+}
+.sub-counter {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  opacity: 0.8;
+}
+
+.sub-forever {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,212,255,0.45);
+  background: rgba(0,212,255,0.10);
+  color: rgba(125,220,255,0.95);
+  font-weight: 800;
+}
+
+/* Plan current badge + neon highlight */
+.plan-current {
+  border: 2px solid rgba(0, 212, 255, 0.75);
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.18);
+}
+
+.plan-current-badge {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 0.85rem;
+  color: rgba(125, 220, 255, 0.98);
+  border: 1px solid rgba(0, 212, 255, 0.55);
+  background: rgba(0, 212, 255, 0.14);
+}
+
+.plan-current-badge i {
+  color: rgba(125, 220, 255, 0.98);
+}

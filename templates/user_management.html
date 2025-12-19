@@ -89,6 +89,16 @@
             {% if u[2] == 'admin' %}
               <span class="text-muted">Protected</span>
             {% else %}
+              <!-- Plan selector form -->
+              <form method="post" action="/admin/users/{{ u[0] }}/plan" style="display:inline-flex; gap:8px; align-items:center; margin-right:8px;">
+                <select name="plan" class="form-select form-select-sm" style="width:140px;">
+                  <option value="basic" {% if u[6] == 'basic' %}selected{% endif %}>Basic</option>
+                  <option value="pro" {% if u[6] == 'pro' %}selected{% endif %}>Pro</option>
+                  <option value="ultimate" {% if u[6] == 'ultimate' %}selected{% endif %}>Ultimate</option>
+                </select>
+                <button class="btn btn-sm btn-neon" type="submit">Set Plan</button>
+              </form>
+
               {% if u[3] == 1 %}
                 <form method="post" action="{{ url_for('user_unban', user_id=u[0]) }}" class="d-inline">
                   <button class="btn btn-sm btn-success">Unban</button>

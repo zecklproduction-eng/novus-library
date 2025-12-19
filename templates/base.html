@@ -167,6 +167,18 @@
       <div class="profile-dd-name">{{ session.get('username') }}</div>
       <div class="profile-dd-sub">{{ session.get('role','User')|capitalize }}</div>
     </div>
+    <div class="profile-dd-sub">
+  {{ session.get('role','User')|capitalize }} • Plan: {{ session.get('plan','basic')|capitalize }}
+</div>
+<div class="sub-counter">
+  Subscription: <strong>{{ session.get('plan','basic')|capitalize }}</strong>
+  {% if session.get('plan') == 'ultimate' %}
+    <span class="sub-forever">Forever</span>
+  {% elif session.get('plan_days_left') is not none %}
+    <span class="sub-days">{{ session.get('plan_days_left') }} days left</span>
+  {% endif %}
+</div>
+
   </div>
 
   <!-- PROFILE -->
@@ -188,7 +200,10 @@
   <!-- ACCOUNT -->
   <div class="dd-section-title">ACCOUNT</div>
   <a href="#"><i class="fas fa-bell"></i> Notifications</a>
-  <a href="#"><i class="fas fa-credit-card"></i> Billing & Subscription</a>
+  <a href="#" onclick="openBillingModal(); return false;">
+  <i class="fas fa-credit-card me-2"></i> Billing & Subscription
+</a>
+
   <a href="#"><i class="fas fa-chart-line"></i> Activity Log</a>
 
   {% if session.get('role') == 'admin' %}
@@ -296,6 +311,107 @@
   <!-- BIG TEXT IN THE CENTER -->
   <div class="warp-label">ENTERING MANGA UNIVERSE...</div>
 </div>
+<!-- Billing / Subscription Modal -->
+<div class="billing-modal" id="billingModal" aria-hidden="true">
+  <div class="billing-backdrop" onclick="closeBillingModal()"></div>
+
+  <div class="billing-dialog" role="dialog" aria-modal="true" aria-label="Billing and subscription">
+    <button class="billing-close" onclick="closeBillingModal()" aria-label="Close">
+      &times;
+    </button>
+
+    <div class="billing-header">
+      <h2>UNLOCK PREMIUM AI FEATURES</h2>
+      <p>Upgrade for an enhanced reading experience.</p>
+    </div>
+
+    <div class="billing-grid">
+      <!-- Basic -->
+      <div class="plan-card {% if session.get('plan') == 'basic' %}plan-current{% endif %}">
+        {% if session.get('plan') == 'basic' %}
+          <div class="plan-current-badge">
+            <i class="fas fa-check-circle"></i> Your Current Plan
+          </div>
+        {% endif %}
+        <div class="plan-title">Basic</div>
+        <div class="plan-badge">Free</div>
+
+        <ul class="plan-features">
+          <li>✓ Ad-Free Reading</li>
+          <li>✓ Basic AI Summary</li>
+          <li>✓ AI Character Lore</li>
+        </ul>
+
+        <div class="plan-price">Free</div>
+      </div>
+
+      <!-- Pro (Most Popular) -->
+      <div class="plan-card plan-featured {% if session.get('plan') == 'pro' %}plan-current{% endif %}">
+        {% if session.get('plan') == 'pro' %}
+          <div class="plan-current-badge">
+            <i class="fas fa-check-circle"></i> Your Current Plan
+          </div>
+        {% endif %}
+        <div class="plan-title">Pro</div>
+        <div class="plan-ribbon">Most Popular</div>
+
+        <ul class="plan-features">
+          <li>✓ Basic AI Summary</li>
+          <li>✓ Unlimited AI Chapter Analysis</li>
+          <li>✓ AI Character Lore</li>
+        </ul>
+
+        <div class="plan-price">$4.99<span>/month</span></div>
+      </div>
+
+      <!-- Ultimate -->
+      <div class="plan-card {% if session.get('plan') == 'ultimate' %}plan-current{% endif %}">
+        {% if session.get('plan') == 'ultimate' %}
+          <div class="plan-current-badge">
+            <i class="fas fa-check-circle"></i> Your Current Plan
+          </div>
+        {% endif %}
+        <div class="plan-title">Ultimate</div>
+
+        <ul class="plan-features">
+          <li>✓ Basic AI Summary</li>
+          <li>✓ Unlimited Chapter Analysis</li>
+          <li>✓ AI Character Lore</li>
+          <li>✓ Offline Access</li>
+        </ul>
+
+        <div class="plan-price">$9.99<span>/month</span></div>
+      </div>
+    </div>
+
+    <div class="billing-actions">
+      <button class="billing-primary" onclick="startUpgrade('pro')">
+        {% if session.get('plan') in ['pro','ultimate'] %}
+          Manage Plan
+        {% else %}
+          Upgrade Now
+        {% endif %}
+      </button>
+      <button class="billing-secondary" onclick="closeBillingModal()">Maybe Later</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openBillingModal() {
+    document.getElementById("billingModal").classList.add("show");
+    document.body.classList.add("no-scroll");
+  }
+  function closeBillingModal() {
+    document.getElementById("billingModal").classList.remove("show");
+    document.body.classList.remove("no-scroll");
+  }
+function startUpgrade(plan) {
+  window.location.href = "{{ url_for('billing_checkout') }}" + `?plan=${encodeURIComponent(plan)}`;
+}
+
+
+</script>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
@@ -368,20 +484,5 @@
         return confirm("Are you sure you want to permanently delete this book?");
       }
     </script>
-    script>
-      const avatarInput = document.getElementById("avatarInput");
-      const previewImg = document.getElementById("avatarPreviewImg");
-      if (avatarInput && previewImg) {
-        avatarInput.addEventListener("change", () => {
-          const file = avatarInput.files && avatarInput.files[0];
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              previewImg.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-          }
-        });
-      }
   </body>
 </html>

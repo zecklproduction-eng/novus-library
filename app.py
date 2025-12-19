@@ -60,6 +60,68 @@ ALLOWED_IMG   = {"jpg", "jpeg", "png"}
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "novus_secret_key")
 
+@app.get("/billing/checkout")
+def billing_checkout():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    # NOTE: This is a simplified demo flow (no Stripe). In production, replace
+    # with a proper payment provider checkout and webhooks to confirm payment.
+    plan = (request.args.get("plan", "pro") or "pro").strip().lower()
+    if plan not in {"basic", "pro", "ultimate"}:
+        flash("Invalid plan selected.", "danger")
+        return redirect(url_for("profile"))
+
+    uid = session.get("user_id")
+    if not uid:
+        return redirect(url_for("login"))
+
+    # For demo: apply the plan immediately. Pro = 30 days from now, Ultimate = forever (NULL)
+    expires_at = None
+    if plan == "pro":
+        expires_at = (datetime.utcnow() + timedelta(days=30)).isoformat()
+    elif plan == "basic":
+        expires_at = None
+    elif plan == "ultimate":
+        expires_at = None
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE users SET plan=?, plan_expires_at=? WHERE id=?", (plan, expires_at, uid))
+    conn.commit()
+    conn.close()
+
+    # Refresh session values immediately
+    session["plan"] = plan
+    session["plan_expires_at"] = expires_at
+    if session["plan"] == "ultimate":
+        session["plan_expires_at"] = None
+
+    flash(f"Plan updated to {plan}.", "success")
+    return redirect(url_for("profile"))
+
+@app.post("/admin/users/<int:user_id>/plan")
+@admin_required
+def admin_set_plan(user_id):
+    plan = request.form.get("plan", "basic").strip().lower()
+    if plan not in {"basic", "pro", "ultimate"}:
+        flash("Invalid plan.", "danger")
+        return redirect(url_for("user_management"))
+
+    # Ultimate forever => plan_expires_at NULL
+    expires_at = None
+    if plan in {"basic", "pro"}:
+        # you can set expiry later; keep NULL for now
+        expires_at = None
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE users SET plan=?, plan_expires_at=? WHERE id=?", (plan, expires_at, user_id))
+    conn.commit()
+    conn.close()
+
+    flash(f"Plan updated to {plan}.", "success")
+    return redirect(url_for("user_management"))
 
 # -------------------- HELPERS --------------------
 def get_conn():
@@ -198,6 +260,25 @@ def init_db():
         c.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT")
         conn.commit()
     except sqlite3.OperationalError:
+        pass
+    # Plan storage
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN plan TEXT")
+        conn.commit()
+    except Exception:
+      pass
+
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN plan_expires_at TEXT")
+        conn.commit()
+    except Exception:
+        pass
+
+    # Ensure existing users have a default plan
+    try:
+        c.execute("UPDATE users SET plan='basic' WHERE plan IS NULL")
+        conn.commit()
+    except Exception:
         pass
 
     # AI summaries cache table
@@ -422,14 +503,17 @@ def login():
         conn = get_conn()
         c = conn.cursor()
         c.execute("""
-            SELECT id, username, password, role,
-                   COALESCE(is_banned,0),
-                   COALESCE(status,'active'),
-                   COALESCE(avatar_url, NULL),
-                   COALESCE(email, NULL)
-            FROM users
-            WHERE username=? AND password=?
-        """, (username, password))
+    SELECT id, username, password, role,
+           COALESCE(is_banned,0),
+           COALESCE(status,'active'),
+           COALESCE(plan,'basic'),
+           plan_expires_at,
+           COALESCE(avatar_url, NULL) as avatar_url,
+           COALESCE(email, NULL) as email
+    FROM users
+    WHERE username=? AND password=?
+""", (username, password))
+
 
         user = c.fetchone()
         conn.close()
@@ -447,12 +531,48 @@ def login():
         session["user_id"] = user[0]
         session["username"] = user[1]
         session["role"] = user[3]
-        session["avatar_url"] = user[6]
-        session["email"] = user[7]
+        # Indices: 6=plan, 7=plan_expires_at, 8=avatar_url, 9=email
+        session["plan"] = user[6] or "basic"
+        session["plan_expires_at"] = user[7]
+        session["avatar_url"] = user[8]
+        session["email"] = user[9]
+        # Make ultimate permanent (no expiry)
+        if session["plan"] == "ultimate":
+            session["plan_expires_at"] = None
+
         return redirect(url_for("home"))
 
     return render_template("login.html")
 
+@app.before_request
+def refresh_plan():
+    uid = session.get("user_id")
+    if not uid:
+        return
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT COALESCE(plan,'basic'), plan_expires_at FROM users WHERE id=?", (uid,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        session["plan"] = row[0] or "basic"
+        session["plan_expires_at"] = row[1]
+        # compute days left if expiry exists and plan is not ultimate
+        session["plan_days_left"] = None
+        try:
+            if session.get("plan_expires_at") and session.get("plan") != "ultimate":
+                exp = session.get("plan_expires_at")
+                # parse ISO timestamps
+                try:
+                    exp_dt = datetime.fromisoformat(exp)
+                except Exception:
+                    # fallback if stored as plain date
+                    exp_dt = datetime.strptime(exp, "%Y-%m-%d")
+                delta = exp_dt - datetime.utcnow()
+                days_left = max(0, delta.days)
+                session["plan_days_left"] = days_left
+        except Exception:
+            session["plan_days_left"] = None
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -2726,7 +2846,7 @@ def admin_users():
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute("SELECT id, username, role, COALESCE(is_banned,0) as is_banned, COALESCE(status,'active') as status, COALESCE(avatar_url, NULL) as avatar_url FROM users ORDER BY username")
+    c.execute("SELECT id, username, role, COALESCE(is_banned,0) as is_banned, COALESCE(status,'active') as status, COALESCE(avatar_url, NULL) as avatar_url, COALESCE(plan,'basic') as plan FROM users ORDER BY username")
     users = c.fetchall()
 
     c.execute("""
