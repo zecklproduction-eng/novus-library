@@ -232,6 +232,81 @@ def role_required(*roles):
     return decorator
 
 
+# -------------------- NOTIFICATIONS HELPERS --------------------
+
+def create_notification(user_id, title, message=None, link=None):
+    """Insert a notification for a user."""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute(
+            """
+            INSERT INTO notifications (user_id, title, message, link, is_read)
+            VALUES (?, ?, ?, ?, 0)
+            """,
+            (user_id, title, message, link),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        # fail silently to avoid breaking user flows
+        pass
+
+
+def notify_users_about_new_chapter(manga_id, chapter_title):
+    """Notify users who have the manga in their watchlist about a new chapter."""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute(
+            "SELECT DISTINCT user_id FROM watchlist WHERE book_id = ?",
+            (manga_id,)
+        )
+        users = [r[0] for r in c.fetchall()]
+        for uid in users:
+            title = f"New Chapter: {chapter_title}"
+            msg = f"A new chapter '{chapter_title}' has been released for a manga on your reading list."
+            create_notification(uid, title, msg, link=f"/book/{manga_id}")
+        conn.close()
+    except Exception:
+        pass
+
+
+def suggest_books_by_genre(user_id, limit=3):
+    """Return a small list of suggested books based on user's top genre.
+    This can be used to generate notifications or suggestions UI.
+    """
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute(
+            """
+            SELECT b.category, COUNT(*) as cnt
+            FROM history h
+            JOIN books b ON h.book_id = b.id
+            WHERE h.user_id = ? AND b.category IS NOT NULL
+            GROUP BY b.category
+            ORDER BY cnt DESC
+            LIMIT 1
+            """,
+            (user_id,)
+        )
+        row = c.fetchone()
+        if not row:
+            conn.close()
+            return []
+        top_genre = row[0]
+        c.execute(
+            "SELECT id, title, author FROM books WHERE category = ? AND id NOT IN (SELECT book_id FROM history WHERE user_id=?) LIMIT ?",
+            (top_genre, user_id, limit)
+        )
+        recs = c.fetchall()
+        conn.close()
+        return recs
+    except Exception:
+        return []
+
+
 # -------------------- DB INIT --------------------
 def init_db():
     conn = get_conn()
@@ -414,6 +489,20 @@ def init_db():
             timestamp TEXT DEFAULT (DATETIME('now')),
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (book_id) REFERENCES books(id)
+        )
+    """)
+
+    # notifications (user-facing alerts)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT,
+            link TEXT,
+            is_read INTEGER DEFAULT 0,
+            timestamp TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
 
@@ -752,6 +841,17 @@ def view_book(id):
             (user_id, id, today),
         )
         conn.commit()
+
+    # Log activity - always log when user reads/views a book
+    try:
+        c.execute("""
+            INSERT INTO activity_log (user_id, book_id, activity_type)
+            VALUES (?, ?, ?)
+        """, (user_id, id, 'read'))
+        conn.commit()
+    except Exception:
+        # don't fail the page if logging fails
+        pass
 
     # watchlist entry for this user/book (if any)
     c.execute(
@@ -1688,6 +1788,82 @@ def log_activity():
         return jsonify({"error": str(e)}), 500
 
 
+# ---------- Notifications API ----------
+@app.route('/api/notifications')
+def get_notifications():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    user_id = session['user_id']
+    limit = request.args.get('limit', 10, type=int)
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        SELECT id, title, message, link, is_read, timestamp
+        FROM notifications
+        WHERE user_id = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """, (user_id, limit))
+
+    notifs = []
+    rows = c.fetchall()
+    from datetime import datetime
+    now = datetime.utcnow()
+    for r in rows:
+        nid, title, message, link, is_read, timestamp = r
+        try:
+            dt = datetime.fromisoformat(timestamp)
+            diff = now - dt
+            if diff.days > 0:
+                when = f"{diff.days} day{'s' if diff.days>1 else ''} ago"
+            elif diff.seconds > 3600:
+                when = f"{diff.seconds//3600} hour{'s' if diff.seconds//3600>1 else ''} ago"
+            elif diff.seconds > 60:
+                when = f"{diff.seconds//60} minute{'s' if diff.seconds//60>1 else ''} ago"
+            else:
+                when = 'Just now'
+        except Exception:
+            when = timestamp
+        notifs.append({
+            'id': nid,
+            'title': title,
+            'message': message,
+            'link': link,
+            'is_read': bool(is_read),
+            'when': when
+        })
+
+    # unread count
+    c.execute("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0", (user_id,))
+    unread = c.fetchone()[0]
+    conn.close()
+    return jsonify({'unread': unread, 'notifications': notifs})
+
+
+@app.route('/api/notifications/mark-read', methods=['POST'])
+def mark_notifications_read():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    data = request.get_json() or {}
+    ids = data.get('ids') or []
+    if not ids:
+        return jsonify({'success': True})
+    user_id = session['user_id']
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        placeholders = ','.join('?' for _ in ids)
+        params = ids + [user_id]
+        sql = f"UPDATE notifications SET is_read=1 WHERE id IN ({placeholders}) AND user_id=?"
+        c.execute(sql, params)
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 # ---------- Watchlist ----------
 @app.route("/watchlist")
 def watchlist():
@@ -1896,6 +2072,18 @@ def watchlist_book(book_id):
             "INSERT INTO watchlist (user_id, book_id, status, progress) VALUES (?, ?, ?, ?)",
             (user_id, book_id, status, 0),
         )
+        conn.commit()
+
+        # Log activity if marked as completed
+        if status.lower() == 'completed':
+            try:
+                c.execute("""
+                    INSERT INTO activity_log (user_id, book_id, activity_type)
+                    VALUES (?, ?, ?)
+                """, (user_id, book_id, 'completed'))
+                conn.commit()
+            except Exception:
+                pass
 
     conn.commit()
     conn.close()

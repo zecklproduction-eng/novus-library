@@ -131,6 +131,9 @@
               <div class="dropdown-content">
                 <a href="{{ url_for('faq') }}">FAQ & Guidelines</a>
                 <a href="{{ url_for('about') }}">About</a>
+                {% if session.get('user_id') %}
+                <a href="#" onclick="openNotifications(); return false;"><i class="fas fa-bell"></i> Notifications <span class="notif-badge-small" id="notifCountSmall">0</span></a>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -200,7 +203,7 @@
   <i class="fas fa-credit-card me-2"></i> Billing & Subscription
 </a>
 
-  <a href="#"><i class="fas fa-chart-line"></i> Activity Log</a>
+  <a href="#" onclick="openActivityLogModal(); return false;"><i class="fas fa-chart-line"></i> Activity Log</a>
 
   {% if session.get('role') == 'admin' %}
     <div class="dd-section-title">ADMIN</div>
@@ -306,6 +309,32 @@
 
   <!-- BIG TEXT IN THE CENTER -->
   <div class="warp-label">ENTERING MANGA UNIVERSE...</div>
+</div>
+
+<!-- Notifications Modal -->
+<div class="notifications-modal" id="notificationsModal" aria-hidden="true">
+  <div class="notifications-backdrop" onclick="closeNotifications()"></div>
+
+  <div class="notifications-dialog" role="dialog" aria-modal="true" aria-label="Notifications">
+    <button class="notifications-close" onclick="closeNotifications()" aria-label="Close">
+      &times;
+    </button>
+
+    <div class="notifications-header">
+      <h2>NOTIFICATIONS <span id="notifCountHeader" class="notif-header-count"></span></h2>
+    </div>
+
+    <div class="notifications-content" id="notificationsContent">
+      <div class="notif-loading">
+        <i class="fas fa-spinner fa-spin"></i> Loading notifications...
+      </div>
+    </div>
+
+    <div class="notifications-footer">
+      <button class="notifications-btn-secondary" onclick="closeNotifications()">Close</button>
+      <button class="notifications-btn-primary" onclick="markAllNotificationsRead()">MARK ALL READ</button>
+    </div>
+  </div>
 </div>
 
 <!-- Activity Log Modal -->
@@ -527,6 +556,96 @@ function startUpgrade(plan) {
       function confirmDelete() {
         return confirm("Are you sure you want to permanently delete this book?");
       }
+    </script>
+
+    <!-- Activity Log Modal Functions -->
+    <script>
+      function openActivityLogModal() {
+        const modal = document.getElementById("activityLogModal");
+        modal.classList.add("show");
+        document.body.classList.add("no-scroll");
+        loadActivityLog();
+      }
+
+      function closeActivityLogModal() {
+        const modal = document.getElementById("activityLogModal");
+        modal.classList.remove("show");
+        document.body.classList.remove("no-scroll");
+      }
+
+      function loadActivityLog() {
+        const contentDiv = document.getElementById("activityLogContent");
+        
+        fetch("{{ url_for('get_activity_log') }}?limit=5")
+          .then(response => response.json())
+          .then(activities => {
+            if (!activities || activities.length === 0) {
+              contentDiv.innerHTML = `
+                <div class="activity-empty">
+                  <i class="fas fa-inbox"></i>
+                  <p>No activities yet</p>
+                </div>
+              `;
+              return;
+            }
+
+            let html = '<div class="activity-list">';
+            
+            activities.forEach(activity => {
+              const badgeClass = activity.has_summary ? 'activity-badge-summarized' : '';
+              const badgeIcon = activity.has_summary ? '<span class="activity-badge">AI Summarized</span>' : '';
+              
+              html += `
+                <div class="activity-item">
+                  <div class="activity-icon">
+                    <i class="fas ${activity.icon}"></i>
+                  </div>
+                  <div class="activity-details">
+                    <div class="activity-text">
+                      ${activity.type.charAt(0).toUpperCase() + activity.type.slice(1)} 
+                      <strong>"${activity.title}"</strong>
+                      ${badgeIcon}
+                    </div>
+                    <div class="activity-time">${activity.when}</div>
+                  </div>
+                </div>
+              `;
+            });
+
+            html += '</div>';
+            
+            // Add reading level bar
+            html += `
+              <div class="activity-reading-level">
+                <div class="reading-level-text">Reading Level: 7 - Chronoscribe</div>
+                <div class="reading-level-bar">
+                  <div class="reading-level-fill" style="width: 73%"></div>
+                </div>
+                <div class="reading-level-percent">73%</div>
+              </div>
+            `;
+
+            contentDiv.innerHTML = html;
+          })
+          .catch(error => {
+            console.error("Error loading activity log:", error);
+            contentDiv.innerHTML = `
+              <div class="activity-empty">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Error loading activities</p>
+              </div>
+            `;
+          });
+      }
+
+      // Close modal when clicking outside
+      document.addEventListener("click", function(event) {
+        const modal = document.getElementById("activityLogModal");
+        const backdrop = document.querySelector(".activity-log-backdrop");
+        if (event.target === backdrop) {
+          closeActivityLogModal();
+        }
+      });
     </script>
   </body>
 </html>
