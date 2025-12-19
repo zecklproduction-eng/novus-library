@@ -1587,6 +1587,107 @@ def profile():
     )
 
 
+# ---------- Activity Log ----------
+@app.route("/api/activity-log")
+def get_activity_log():
+    """Get user's activity log for the modal"""
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    
+    user_id = session["user_id"]
+    limit = request.args.get("limit", 5, type=int)
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get activity log with book details
+    c.execute("""
+        SELECT 
+            al.id,
+            al.activity_type,
+            al.summary_generated,
+            b.title,
+            al.timestamp
+        FROM activity_log al
+        JOIN books b ON al.book_id = b.id
+        WHERE al.user_id = ?
+        ORDER BY al.timestamp DESC
+        LIMIT ?
+    """, (user_id, limit))
+    
+    activities = []
+    for row in c.fetchall():
+        activity_id, activity_type, summary_gen, title, timestamp = row
+        
+        # Format timestamp to relative time
+        from datetime import datetime
+        try:
+            dt = datetime.fromisoformat(timestamp)
+            now = datetime.utcnow()
+            diff = now - dt
+            
+            if diff.days > 365:
+                when = f"{diff.days // 365} year{'s' if diff.days // 365 > 1 else ''} ago"
+            elif diff.days > 30:
+                when = f"{diff.days // 30} month{'s' if diff.days // 30 > 1 else ''} ago"
+            elif diff.days > 0:
+                when = f"{diff.days} day{'s' if diff.days > 1 else ''} ago"
+            elif diff.seconds > 3600:
+                when = f"{diff.seconds // 3600} hour{'s' if diff.seconds // 3600 > 1 else ''} ago"
+            elif diff.seconds > 60:
+                when = f"{diff.seconds // 60} minute{'s' if diff.seconds // 60 > 1 else ''} ago"
+            else:
+                when = "Just now"
+        except:
+            when = timestamp
+        
+        activity_icon = {
+            'read': 'fa-book-open',
+            'started': 'fa-play-circle',
+            'completed': 'fa-check-circle',
+            'summarized': 'fa-sparkles'
+        }.get(activity_type, 'fa-circle')
+        
+        activities.append({
+            'type': activity_type,
+            'title': title,
+            'when': when,
+            'icon': activity_icon,
+            'has_summary': summary_gen == 1
+        })
+    
+    conn.close()
+    return jsonify(activities)
+
+
+@app.route("/api/log-activity", methods=["POST"])
+def log_activity():
+    """Log a user activity"""
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    
+    data = request.get_json()
+    user_id = session["user_id"]
+    book_id = data.get("book_id")
+    activity_type = data.get("type", "read")  # read, started, completed, summarized
+    summary_generated = 1 if data.get("has_summary") else 0
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        c.execute("""
+            INSERT INTO activity_log (user_id, book_id, activity_type, summary_generated)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, book_id, activity_type, summary_generated))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.close()
+        return jsonify({"error": str(e)}), 500
+
+
 # ---------- Watchlist ----------
 @app.route("/watchlist")
 def watchlist():
