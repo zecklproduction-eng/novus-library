@@ -307,7 +307,34 @@
   <!-- BIG TEXT IN THE CENTER -->
   <div class="warp-label">ENTERING MANGA UNIVERSE...</div>
 </div>
-<!-- Billing / Subscription Modal -->
+
+<!-- Activity Log Modal -->
+<div class="activity-log-modal" id="activityLogModal" aria-hidden="true">
+  <div class="activity-log-backdrop" onclick="closeActivityLogModal()"></div>
+
+  <div class="activity-log-dialog" role="dialog" aria-modal="true" aria-label="Activity log">
+    <button class="activity-log-close" onclick="closeActivityLogModal()" aria-label="Close">
+      &times;
+    </button>
+
+    <div class="activity-log-header">
+      <h2>ACTIVITY LOG</h2>
+    </div>
+
+    <div class="activity-log-content" id="activityLogContent">
+      <div class="activity-loading">
+        <i class="fas fa-spinner fa-spin"></i> Loading activities...
+      </div>
+    </div>
+
+    <div class="activity-log-footer">
+      <button class="activity-log-btn-secondary" onclick="closeActivityLogModal()">Close</button>
+      <a href="{{ url_for('profile') }}#activity" class="activity-log-btn-primary">VIEW FULL HISTORY</a>
+    </div>
+  </div>
+</div>
+
+    <!-- Billing / Subscription Modal -->
 <div class="billing-modal" id="billingModal" aria-hidden="true">
   <div class="billing-backdrop" onclick="closeBillingModal()"></div>
 
