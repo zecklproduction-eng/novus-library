@@ -60,6 +60,46 @@ ALLOWED_IMG   = {"jpg", "jpeg", "png"}
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "novus_secret_key")
 
+@app.get("/billing/esewa-success")
+def esewa_payment_success():
+    """Handle eSewa payment success callback"""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    # Get the pending plan from session
+    pending_plan = session.get("pending_plan")
+    uid = session.get("user_id")
+
+    if not pending_plan or pending_plan not in {"pro", "ultimate"}:
+        flash("Payment verification failed.", "danger")
+        return redirect(url_for("profile"))
+
+    # Apply the plan based on type
+    expires_at = None
+    if pending_plan == "pro":
+        expires_at = (datetime.utcnow() + timedelta(days=30)).isoformat()
+    elif pending_plan == "ultimate":
+        expires_at = None  # Forever
+
+    # Update user plan in database
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE users SET plan=?, plan_expires_at=? WHERE id=?", (pending_plan, expires_at, uid))
+    conn.commit()
+    conn.close()
+
+    # Update session
+    session["plan"] = pending_plan
+    session["plan_expires_at"] = expires_at
+    
+    # Clear pending plan data
+    session.pop("pending_plan", None)
+    session.pop("pending_plan_amount", None)
+    session.pop("pending_plan_user_id", None)
+
+    flash(f"Payment successful! Plan upgraded to {pending_plan}.", "success")
+    return redirect(url_for("profile"))
+
 @app.get("/billing/checkout")
 def billing_checkout():
     if "user_id" not in session:
@@ -91,38 +131,47 @@ def billing_checkout():
     conn.commit()
     conn.close()
 
-    # Refresh session values immediately
-    session["plan"] = plan
-    session["plan_expires_at"] = expires_at
-    if session["plan"] == "ultimate":
+    # For basic plan, apply immediately without payment
+    if plan == "basic":
+        session["plan"] = plan
         session["plan_expires_at"] = None
+        flash(f"Plan updated to {plan}.", "success")
+        return redirect(url_for("profile"))
 
-    flash(f"Plan updated to {plan}.", "success")
-    return redirect(url_for("profile"))
+    # For paid plans, redirect to eSewa payment gateway
+    plan_amounts = {"pro": 499, "ultimate": 999}
+    amount = plan_amounts.get(plan, 0)
+    
+    if not amount:
+        flash("Invalid plan amount.", "danger")
+        return redirect(url_for("profile"))
 
-@app.post("/admin/users/<int:user_id>/plan")
-@admin_required
-def admin_set_plan(user_id):
-    plan = request.form.get("plan", "basic").strip().lower()
-    if plan not in {"basic", "pro", "ultimate"}:
-        flash("Invalid plan.", "danger")
-        return redirect(url_for("user_management"))
+    # Store pending plan temporarily
+    session["pending_plan"] = plan
+    session["pending_plan_amount"] = amount
+    session["pending_plan_user_id"] = uid
 
-    # Ultimate forever => plan_expires_at NULL
-    expires_at = None
-    if plan in {"basic", "pro"}:
-        # you can set expiry later; keep NULL for now
-        expires_at = None
+    # Build eSewa payment URL
+    esewa_url = "https://uat.esewa.com.np/epay/main"
+    transaction_id = f"TXN{uid}{int(datetime.utcnow().timestamp())}"
+    success_url = url_for("esewa_payment_success", _external=True)
+    failure_url = url_for("profile", _external=True)
 
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("UPDATE users SET plan=?, plan_expires_at=? WHERE id=?", (plan, expires_at, user_id))
-    conn.commit()
-    conn.close()
-
-    flash(f"Plan updated to {plan}.", "success")
-    return redirect(url_for("user_management"))
-
+    params = {
+        "amt": amount,
+        "psc": 0,
+        "pdc": 0,
+        "txAmt": amount,
+        "total": amount,
+        "tAmt": amount,
+        "pid": transaction_id,
+        "scd": "EPAYTEST",
+        "su": success_url,
+        "fu": failure_url
+    }
+    
+    query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+    return redirect(f"{esewa_url}?{query_string}")
 # -------------------- HELPERS --------------------
 def get_conn():
     """Return a connection to the SQLite DB."""
@@ -349,6 +398,20 @@ def init_db():
             rating INTEGER,
             content TEXT,
             created_at TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (book_id) REFERENCES books(id)
+        )
+    """)
+
+    # activity log (track user reading activities)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS activity_log (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            book_id INTEGER NOT NULL,
+            activity_type TEXT NOT NULL,
+            summary_generated INTEGER DEFAULT 0,
+            timestamp TEXT DEFAULT (DATETIME('now')),
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (book_id) REFERENCES books(id)
         )
@@ -2860,6 +2923,30 @@ def admin_users():
 
     conn.close()
     return render_template("user_management.html", users=users, pending=pending)
+
+
+@app.post("/admin/users/<int:user_id>/plan")
+@admin_required
+def admin_set_plan(user_id):
+    plan = request.form.get("plan", "basic").strip().lower()
+    if plan not in {"basic", "pro", "ultimate"}:
+        flash("Invalid plan.", "danger")
+        return redirect(url_for("user_management"))
+
+    # Ultimate forever => plan_expires_at NULL
+    expires_at = None
+    if plan in {"basic", "pro"}:
+        # you can set expiry later; keep NULL for now
+        expires_at = None
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE users SET plan=?, plan_expires_at=? WHERE id=?", (plan, expires_at, user_id))
+    conn.commit()
+    conn.close()
+
+    flash(f"Plan updated to {plan}.", "success")
+    return redirect(url_for("user_management"))
 
 
 @app.route("/admin/team", methods=["GET", "POST"], endpoint="team_admin")

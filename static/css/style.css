@@ -3917,6 +3917,16 @@ MANGA WARP OVERLAY (VORTEX)
 
 .profile-dropdown-content {
   min-width: 220px; /* slightly wider than Help & Info */
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.profile-dropdown-content::-webkit-scrollbar {
+  display: none;
 }
 
 .profile-dropdown-content .dropdown-divider {
@@ -3952,21 +3962,24 @@ MANGA WARP OVERLAY (VORTEX)
 
 .profile-dd-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 12px;
   border-bottom: 1px solid #333;
 }
 
 .profile-dd-avatar {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
   border-radius: 999px;
   overflow: hidden;
   background: #222;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 2px solid var(--neon-blue);
+  transition: all 0.3s ease;
 }
 
 .profile-dd-avatar img {
@@ -3976,7 +3989,63 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 .profile-dd-avatar i {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
+  color: var(--neon-blue);
+}
+
+/* Ultimate avatar rainbow glow effect */
+@keyframes rainbow-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+  }
+  25% {
+    box-shadow: 0 0 20px 8px rgba(255, 127, 0, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 30px 12px rgba(0, 255, 0, 0.5);
+  }
+  75% {
+    box-shadow: 0 0 20px 8px rgba(0, 127, 255, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 127, 0.7);
+  }
+}
+
+.avatar-ultimate {
+  border: 2px solid #FFD700;
+}
+
+.avatar-ultimate:hover {
+  animation: rainbow-glow 2s ease-in-out infinite;
+  box-shadow: 0 0 30px 12px rgba(0, 212, 255, 0.4);
+}
+
+.profile-dd-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-dd-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 2px;
+}
+
+.profile-dd-role {
+  font-size: 0.80rem;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.profile-dd-plan {
+  font-size: 0.80rem;
+  color: #bbb;
+  word-break: break-word;
+}
+
+.profile-dd-plan strong {
   color: var(--neon-blue);
 }
 
@@ -4069,12 +4138,37 @@ MANGA WARP OVERLAY (VORTEX)
   padding: 18px 18px 16px;
   background: rgba(10, 10, 10, 0.35);
   border: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.plan-badge-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
 }
 
 .plan-title {
   font-weight: 800;
   color: rgba(125, 220, 255, 0.95);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+  padding-top: 4px;
+}
+
+.plan-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .plan-badge {
@@ -4085,24 +4179,54 @@ MANGA WARP OVERLAY (VORTEX)
   border: 1px solid rgba(0, 212, 255, 0.35);
   color: rgba(125, 220, 255, 0.95);
   font-weight: 700;
-  font-size: 0.9rem;
-  margin-bottom: 10px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+  width: fit-content;
 }
 
 .plan-features {
   list-style: none;
   padding: 0;
-  margin: 10px 0 12px;
+  margin: 0 0 12px 0;
   color: rgba(255,255,255,0.78);
+  flex: 1;
 }
-.plan-features li { margin: 10px 0; }
+
+.plan-features li {
+  margin: 8px 0;
+  font-size: 0.95rem;
+}
 
 .plan-price {
-  margin-top: 8px;
+  margin-top: auto;
   font-weight: 900;
   color: #fff;
+  font-size: 1.1rem;
 }
-.plan-price span { opacity: 0.75; font-weight: 700; }
+
+.plan-price span {
+  opacity: 0.75;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* Rainbow text effect for Ultimate tier */
+@keyframes rainbow-text {
+  0% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+  100% { background-position: 0% center; }
+}
+
+.plan-ultimate .plan-title {
+  background: linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: rainbow-text 3s linear infinite;
+  font-weight: 900;
+  font-size: 1.1rem;
+}
 
 .plan-featured {
   border: 2px solid rgba(0, 212, 255, 0.55);
@@ -4111,10 +4235,7 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 .plan-ribbon {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: static;
   padding: 6px 14px;
   border-radius: 999px;
   background: rgba(0, 212, 255, 0.18);
@@ -4122,13 +4243,36 @@ MANGA WARP OVERLAY (VORTEX)
   color: rgba(125, 220, 255, 0.98);
   font-weight: 900;
   font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .billing-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 14px;
-  margin-top: 18px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.ultimate-countdown {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 212, 255, 0.15));
+  border: 2px solid rgba(0, 212, 255, 0.55);
+  color: rgba(125, 220, 255, 0.98);
+  font-weight: 900;
+  font-size: 1rem;
+  min-width: 200px;
+}
+
+.ultimate-countdown i {
+  font-size: 1.3rem;
+  color: rgba(255, 215, 0, 0.95);
 }
 
 .billing-primary {
@@ -4140,7 +4284,10 @@ MANGA WARP OVERLAY (VORTEX)
   font-weight: 900;
   cursor: pointer;
 }
-.billing-primary:hover { background: rgba(0, 212, 255, 0.35); }
+
+.billing-primary:hover {
+  background: rgba(0, 212, 255, 0.35);
+}
 
 .billing-secondary {
   padding: 10px 14px;
@@ -4150,50 +4297,105 @@ MANGA WARP OVERLAY (VORTEX)
   color: rgba(255,255,255,0.7);
   cursor: pointer;
 }
-.billing-secondary:hover { color: #fff; }
+
+.billing-secondary:hover {
+  color: #fff;
+}
 
 @media (max-width: 900px) {
   .billing-grid { grid-template-columns: 1fr; }
   .plan-featured { transform: none; }
 }
 .sub-counter {
-  margin-top: 4px;
+  margin-top: 6px;
+  margin-bottom: 4px;
   font-size: 0.82rem;
-  opacity: 0.8;
+  opacity: 0.85;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .sub-forever {
-  margin-left: 8px;
-  padding: 2px 8px;
+  display: inline-block;
+  margin-left: 6px;
+  margin-top: 2px;
+  padding: 3px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(0,212,255,0.45);
-  background: rgba(0,212,255,0.10);
-  color: rgba(125,220,255,0.95);
+  border: 1px solid rgba(0,212,255,0.55);
+  background: rgba(0,212,255,0.12);
+  color: rgba(125,220,255,0.98);
   font-weight: 800;
+  font-size: 0.75rem;
+  vertical-align: middle;
+}
+
+.sub-days {
+  display: inline-block;
+  margin-left: 6px;
+  margin-top: 2px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,165,0,0.55);
+  background: rgba(255,165,0,0.12);
+  color: rgba(255,200,124,0.98);
+  font-weight: 700;
+  font-size: 0.75rem;
+  vertical-align: middle;
 }
 
 /* Plan current badge + neon highlight */
+.plan-card {
+  position: relative;
+  padding-top: 8px;
+}
+
+/* Plan card glow animation */
+@keyframes plan-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px 2px rgba(0, 212, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px 6px rgba(0, 212, 255, 0.6);
+  }
+}
+
 .plan-current {
-  border: 2px solid rgba(0, 212, 255, 0.75);
-  box-shadow: 0 0 30px rgba(0, 212, 255, 0.18);
+  border: 2px solid rgba(0, 212, 255, 0.75) !important;
+  animation: plan-glow 2s ease-in-out infinite;
+}
+
+/* Ultimate tier always highlighted for admins */
+.plan-card.plan-ultimate {
+  border: 2px solid rgba(255, 165, 0, 0.65);
+  box-shadow: 0 0 25px rgba(255, 165, 0, 0.12);
 }
 
 .plan-current-badge {
-  position: absolute;
-  top: 12px;
-  left: 14px;
+  position: static;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 999px;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
   font-weight: 900;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: rgba(125, 220, 255, 0.98);
   border: 1px solid rgba(0, 212, 255, 0.55);
-  background: rgba(0, 212, 255, 0.14);
+  background: rgba(0, 212, 255, 0.15);
+  white-space: nowrap;
 }
 
 .plan-current-badge i {
   color: rgba(125, 220, 255, 0.98);
+  font-size: 0.70rem;
+}
+
+.plan-current-badge.plan-admin-badge {
+  color: rgba(255, 200, 124, 0.98);
+  border-color: rgba(255, 165, 0, 0.55);
+  background: rgba(255, 165, 0, 0.15);
+}
+
+.plan-current-badge.plan-admin-badge i {
+  color: rgba(255, 200, 124, 0.98);
 }

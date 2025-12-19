@@ -154,31 +154,27 @@
 
     <div class="dropdown-content profile-dropdown-content">
 
-  <!-- Header -->
+  <!-- Header - Clean avatar only -->
   <div class="profile-dd-header">
-    <div class="profile-dd-avatar">
+    <div class="profile-dd-avatar {% if session.get('plan') == 'ultimate' %}avatar-ultimate{% endif %}">
       {% if session.get('avatar_url') %}
         <img src="{{ session.get('avatar_url') }}" />
       {% else %}
         <i class="fas fa-user-circle"></i>
       {% endif %}
     </div>
-    <div>
+    <div class="profile-dd-info">
       <div class="profile-dd-name">{{ session.get('username') }}</div>
-      <div class="profile-dd-sub">{{ session.get('role','User')|capitalize }}</div>
+      <div class="profile-dd-role">{{ session.get('role','User')|capitalize }}</div>
+      <div class="profile-dd-plan">
+        Plan: <strong>{{ session.get('plan','basic')|capitalize }}</strong>
+        {% if session.get('plan') == 'ultimate' %}
+          <span class="sub-forever">Forever</span>
+        {% elif session.get('plan_days_left') is not none %}
+          <span class="sub-days">{{ session.get('plan_days_left') }}d left</span>
+        {% endif %}
+      </div>
     </div>
-    <div class="profile-dd-sub">
-  {{ session.get('role','User')|capitalize }} • Plan: {{ session.get('plan','basic')|capitalize }}
-</div>
-<div class="sub-counter">
-  Subscription: <strong>{{ session.get('plan','basic')|capitalize }}</strong>
-  {% if session.get('plan') == 'ultimate' %}
-    <span class="sub-forever">Forever</span>
-  {% elif session.get('plan_days_left') is not none %}
-    <span class="sub-days">{{ session.get('plan_days_left') }} days left</span>
-  {% endif %}
-</div>
-
   </div>
 
   <!-- PROFILE -->
@@ -328,71 +324,92 @@
     <div class="billing-grid">
       <!-- Basic -->
       <div class="plan-card {% if session.get('plan') == 'basic' %}plan-current{% endif %}">
-        {% if session.get('plan') == 'basic' %}
-          <div class="plan-current-badge">
-            <i class="fas fa-check-circle"></i> Your Current Plan
-          </div>
-        {% endif %}
-        <div class="plan-title">Basic</div>
-        <div class="plan-badge">Free</div>
-
-        <ul class="plan-features">
-          <li>✓ Ad-Free Reading</li>
-          <li>✓ Basic AI Summary</li>
-          <li>✓ AI Character Lore</li>
-        </ul>
-
-        <div class="plan-price">Free</div>
+        <div class="plan-card-header">
+          <div class="plan-title">Basic</div>
+          {% if session.get('plan') == 'basic' %}
+            <div class="plan-current-badge">
+              <i class="fas fa-check-circle"></i> Your Plan
+            </div>
+          {% endif %}
+        </div>
+        <div class="plan-details">
+          <div class="plan-badge">Free</div>
+          <ul class="plan-features">
+            <li>✓ Ad-Free Reading</li>
+            <li>✓ Basic AI Summary</li>
+            <li>✓ AI Character Lore</li>
+          </ul>
+          <div class="plan-price">Free</div>
+        </div>
       </div>
 
       <!-- Pro (Most Popular) -->
       <div class="plan-card plan-featured {% if session.get('plan') == 'pro' %}plan-current{% endif %}">
-        {% if session.get('plan') == 'pro' %}
-          <div class="plan-current-badge">
-            <i class="fas fa-check-circle"></i> Your Current Plan
+        <div class="plan-card-header">
+          <div class="plan-title">Pro</div>
+          <div class="plan-badge-right">
+            <div class="plan-ribbon">Most Popular</div>
+            {% if session.get('plan') == 'pro' %}
+              <div class="plan-current-badge">
+                <i class="fas fa-check-circle"></i> Your Plan
+              </div>
+            {% endif %}
           </div>
-        {% endif %}
-        <div class="plan-title">Pro</div>
-        <div class="plan-ribbon">Most Popular</div>
-
-        <ul class="plan-features">
-          <li>✓ Basic AI Summary</li>
-          <li>✓ Unlimited AI Chapter Analysis</li>
-          <li>✓ AI Character Lore</li>
-        </ul>
-
-        <div class="plan-price">$4.99<span>/month</span></div>
+        </div>
+        <div class="plan-details">
+          <ul class="plan-features">
+            <li>✓ Basic AI Summary</li>
+            <li>✓ Unlimited AI Chapter Analysis</li>
+            <li>✓ AI Character Lore</li>
+          </ul>
+          <div class="plan-price">$4.99<span>/month</span></div>
+        </div>
       </div>
 
       <!-- Ultimate -->
-      <div class="plan-card {% if session.get('plan') == 'ultimate' %}plan-current{% endif %}">
-        {% if session.get('plan') == 'ultimate' %}
-          <div class="plan-current-badge">
-            <i class="fas fa-check-circle"></i> Your Current Plan
+      <div class="plan-card plan-ultimate {% if session.get('plan') == 'ultimate' %}plan-current{% endif %}">
+        <div class="plan-card-header">
+          <div class="plan-title">Ultimate</div>
+          <div class="plan-badge-right">
+            {% if session.get('plan') == 'ultimate' %}
+              <div class="plan-current-badge">
+                <i class="fas fa-check-circle"></i> Your Plan
+              </div>
+            {% elif session.get('role') == 'admin' %}
+              <div class="plan-current-badge plan-admin-badge">
+                <i class="fas fa-crown"></i> Admin Access
+              </div>
+            {% endif %}
           </div>
-        {% endif %}
-        <div class="plan-title">Ultimate</div>
-
-        <ul class="plan-features">
-          <li>✓ Basic AI Summary</li>
-          <li>✓ Unlimited Chapter Analysis</li>
-          <li>✓ AI Character Lore</li>
-          <li>✓ Offline Access</li>
-        </ul>
-
-        <div class="plan-price">$9.99<span>/month</span></div>
+        </div>
+        <div class="plan-details">
+          <ul class="plan-features">
+            <li>✓ Basic AI Summary</li>
+            <li>✓ Unlimited Chapter Analysis</li>
+            <li>✓ AI Character Lore</li>
+            <li>✓ Offline Access</li>
+          </ul>
+          <div class="plan-price">$9.99<span>/month</span></div>
+        </div>
       </div>
     </div>
 
     <div class="billing-actions">
-      <button class="billing-primary" onclick="startUpgrade('pro')">
-        {% if session.get('plan') in ['pro','ultimate'] %}
-          Manage Plan
-        {% else %}
+      {% if session.get('plan') == 'ultimate' %}
+        <div class="ultimate-countdown">
+          <i class="fas fa-crown"></i>
+          <span>Ultimate Subscription Active</span>
+        </div>
+      {% elif session.get('plan') == 'pro' %}
+        <button class="billing-primary" onclick="startUpgrade('ultimate')">
+          Upgrade to Ultimate
+        </button>
+      {% else %}
+        <button class="billing-primary" onclick="startUpgrade('pro')">
           Upgrade Now
-        {% endif %}
-      </button>
-      <button class="billing-secondary" onclick="closeBillingModal()">Maybe Later</button>
+        </button>
+      {% endif %}
+      <button class="billing-secondary" onclick="closeBillingModal()">Close</button>
     </div>
   </div>
 </div>
