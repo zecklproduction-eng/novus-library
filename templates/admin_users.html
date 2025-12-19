@@ -16,6 +16,7 @@
             <th>ID</th>
             <th>Username</th>
             <th>Role</th>
+             <th>Avatar</th>
             <th>Status</th>
             <th style="width: 260px;">Actions</th>
           </tr>
@@ -28,6 +29,13 @@
             <td>
               <span class="badge bg-secondary text-uppercase">{{ u[2] }}</span>
             </td>
+             <td>
+               {% if u[5] %}
+                 <img src="{{ u[5] }}" alt="{{ u[1] }}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+               {% else %}
+                 <span class="text-muted">—</span>
+               {% endif %}
+             </td>
             <td>
               {% if u[3] == 'banned' %}
               <span class="badge bg-danger">Banned</span>

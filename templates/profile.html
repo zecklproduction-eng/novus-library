@@ -1,23 +1,30 @@
-{% extends "base.html" %}
-{% block title %}Profile | NOVUS{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Profile | NOVUS{% endblock %} {%
+block content %}
 <div class="container py-3 profile-page">
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div class="d-flex align-items-center gap-3">
-      <div class="avatar-badge">
-        <i class="fas fa-user"></i>
-      </div>
+        <div class="avatar-badge" style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; flex-shrink: 0;">
+          {% if avatar_url %}
+            <img src="{{ avatar_url }}" alt="{{ username }}" style="width: 100%; height: 100%; object-fit: cover;">
+          {% else %}
+            <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Default Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+          {% endif %}
+        </div>
       <div>
         <h2 class="mb-0">{{ username or 'ReaderOne' }}</h2>
         <p class="text-muted mb-0">Welcome back 👋</p>
       </div>
     </div>
 
-    <a href="#" class="btn btn-neon d-flex align-items-center">
+    <button
+      type="button"
+      class="btn btn-neon d-flex align-items-center"
+      data-bs-toggle="modal"
+      data-bs-target="#editProfileModal"
+    >
       <i class="fas fa-pen-to-square me-2"></i> Edit Profile
-    </a>
+    </button>
   </div>
 
   <div class="row g-4">
@@ -52,20 +59,45 @@
         <div class="watchlist-cards-row">
           {% for b in currently_reading %}
           <div class="watchlist-card">
-            <div class="watchlist-card-cover" style="position:relative;">
+            <div class="watchlist-card-cover" style="position: relative">
               {% if b.cover %}
-                <img src="{{ url_for('static', filename=b.cover) }}" alt="{{ b.title }}" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
+              <img
+                src="{{ url_for('static', filename=b.cover) }}"
+                alt="{{ b.title }}"
+                style="
+                  width: 100%;
+                  height: 100%;
+                  object-fit: cover;
+                  border-radius: 6px;
+                "
+              />
               {% else %}
-                <div style="background: linear-gradient(135deg,#6a82fb,#fc5c7d); width:100%; height:100%; border-radius:6px;"></div>
+              <div
+                style="
+                  background: linear-gradient(135deg, #6a82fb, #fc5c7d);
+                  width: 100%;
+                  height: 100%;
+                  border-radius: 6px;
+                "
+              ></div>
               {% endif %}
-              <div class="watchlist-card-cover-text" style="position:absolute; left:10px; bottom:10px;">
-                <span class="watchlist-card-author">{{ b.author or 'Unknown' }}</span>
+              <div
+                class="watchlist-card-cover-text"
+                style="position: absolute; left: 10px; bottom: 10px"
+              >
+                <span class="watchlist-card-author"
+                  >{{ b.author or 'Unknown' }}</span
+                >
                 <span class="watchlist-card-title">{{ b.title }}</span>
               </div>
             </div>
             <div class="watchlist-card-footer">
-              <div class="watchlist-progress-circle"><span>{{ b.progress }}%</span></div>
-              <div class="watchlist-card-status text-muted">{{ b.progress }}% read</div>
+              <div class="watchlist-progress-circle">
+                <span>{{ b.progress }}%</span>
+              </div>
+              <div class="watchlist-card-status text-muted">
+                {{ b.progress }}% read
+              </div>
             </div>
           </div>
           {% else %}
@@ -81,11 +113,22 @@
           {% for b in recent_finished %}
           <div class="cover-thumb">
             {% if b.cover %}
-              <img src="{{ url_for('static', filename=b.cover) }}" alt="{{ b.title }}" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
+            <img
+              src="{{ url_for('static', filename=b.cover) }}"
+              alt="{{ b.title }}"
+              style="
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 6px;
+              "
+            />
             {% else %}
-              <div class="cover-thumb-img">{{ b.title[0] }}</div>
+            <div class="cover-thumb-img">{{ b.title[0] }}</div>
             {% endif %}
-            <div class="cover-thumb-title text-truncate" title="{{ b.title }}">{{ b.title }}</div>
+            <div class="cover-thumb-title text-truncate" title="{{ b.title }}">
+              {{ b.title }}
+            </div>
           </div>
           {% else %}
           <p class="text-muted mb-0">Finish a book to see it here.</p>
@@ -99,7 +142,8 @@
       <div class="section-container mb-4">
         <div class="section-title">About</div>
         <p class="text-muted small mb-0">
-          You can drop a short bio here. This block matches the look in your screenshot.
+          You can drop a short bio here. This block matches the look in your
+          screenshot.
         </p>
       </div>
 
@@ -122,4 +166,94 @@
     </div>
   </div>
 </div>
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background:#1f1f1f; border:1px solid #333; border-radius:16px;">
+      <div class="modal-header" style="border-bottom:1px solid #333;">
+        <h5 class="modal-title" style="color:#fff; font-weight:800; letter-spacing:.5px;">
+          Account Settings
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <form method="post" action="{{ url_for('profile') }}" enctype="multipart/form-data">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <div class="section-container" style="margin-bottom:0;">
+  <div class="section-title">Personal Information</div>
+
+  <!-- Avatar -->
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <div class="avatar-preview">
+      <img
+        src="{{ avatar_url or url_for('static', filename='img/default-avatar.png') }}"
+        alt="Profile photo"
+        id="avatarPreviewImg"
+      />
+    </div>
+
+    <div>
+      <label class="form-label mb-1">Profile Image</label>
+      <input type="file" id="avatarInput" name="avatar" accept="image/*">
+      <small style="opacity:.7;">PNG/JPG recommended. Square image looks best.</small>
+    </div>
+  </div>
+
+  <label class="form-label">Username</label>
+  <input class="form-control" name="username" value="{{ username }}" />
+
+  <div class="mt-3">
+    <label class="form-label">Email</label>
+    <input class="form-control" name="email" value="{{ email or '' }}" />
+  </div>
+
+  <button class="btn btn-neon mt-3 w-100" type="submit">
+    Save Changes
+  </button>
+</div>
+
+            </div>
+
+            <div class="col-lg-6">
+              <div class="section-container" style="margin-bottom:0;">
+                <div class="section-title">Password &amp; Security</div>
+
+                <label class="form-label">Current Password</label>
+                <input class="form-control" name="current_password" type="password" />
+
+                <div class="mt-3">
+                  <label class="form-label">New Password</label>
+                  <input class="form-control" name="new_password" type="password" />
+                </div>
+
+                <div class="mt-3">
+                  <label class="form-label">Confirm New Password</label>
+                  <input class="form-control" name="confirm_password" type="password" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="border-top:1px solid #333;">
+          <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Close</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+   const avatarInput = document.getElementById("avatarInput");
+  const previewImg = document.getElementById("avatarPreviewImg");
+  if (avatarInput && previewImg) {
+    avatarInput.addEventListener("change", () => {
+      const file = avatarInput.files && avatarInput.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+    });
+  }
+</script>
 {% endblock %}

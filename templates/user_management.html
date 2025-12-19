@@ -59,6 +59,7 @@
         <tr>
           <th>Username</th>
           <th>Role</th>
+           <th>Avatar</th>
           <th>Status</th>
           <th style="width: 220px;">Action</th>
         </tr>
@@ -70,6 +71,13 @@
           <td>
             <span class="badge bg-secondary">{{ u[2] }}</span>
           </td>
+           <td>
+             {% if u[5] %}
+               <img src="{{ u[5] }}" alt="{{ u[1] }}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+             {% else %}
+               <span class="text-muted">—</span>
+             {% endif %}
+           </td>
           <td>
             {% if u[3] == 1 %}
               <span class="badge bg-danger">Banned</span>
@@ -82,11 +90,11 @@
               <span class="text-muted">Protected</span>
             {% else %}
               {% if u[3] == 1 %}
-                <form method="post" action="{{ url_for('unban_user', user_id=u[0]) }}" class="d-inline">
+                <form method="post" action="{{ url_for('user_unban', user_id=u[0]) }}" class="d-inline">
                   <button class="btn btn-sm btn-success">Unban</button>
                 </form>
               {% else %}
-                <form method="post" action="{{ url_for('ban_user', user_id=u[0]) }}" class="d-inline">
+                <form method="post" action="{{ url_for('user_ban', user_id=u[0]) }}" class="d-inline">
                   <button class="btn btn-sm btn-danger">Ban</button>
                 </form>
               {% endif %}

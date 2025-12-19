@@ -7,6 +7,14 @@ from datetime import datetime
 from datetime import timedelta
 from collections import Counter
 import os
+from werkzeug.utils import secure_filename
+UPLOAD_FOLDER = os.path.join("static", "uploads", "avatars")
+ALLOWED_EXTS = {"png", "jpg", "jpeg", "webp"}
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTS
+
 
 # Load environment variables from .env file
 try:
@@ -75,6 +83,14 @@ def check_banned():
             flash("Your account has been banned.", "danger")
             return redirect(url_for("login"))
 
+
+# Context processor to make user avatar available globally
+@app.context_processor
+def inject_user_avatar():
+    return {
+        'user_avatar': session.get('avatar_url'),
+        'user_id': session.get('user_id')
+    }
 
 
 def allowed(filename, allowed_set):
@@ -151,6 +167,7 @@ def init_db():
     try:
         c.execute("ALTER TABLE users ADD COLUMN status TEXT")
         conn.commit()
+    
     except sqlite3.OperationalError:
         pass
 
@@ -165,6 +182,20 @@ def init_db():
     # Add description column if it doesn't exist (migration for existing DBs)
     try:
         c.execute("ALTER TABLE books ADD COLUMN description TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    # Add email column if it doesn't exist
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN email TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    # Add avatar_url column if it doesn't exist
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT")
         conn.commit()
     except sqlite3.OperationalError:
         pass
@@ -393,7 +424,9 @@ def login():
         c.execute("""
             SELECT id, username, password, role,
                    COALESCE(is_banned,0),
-                   COALESCE(status,'active')
+                   COALESCE(status,'active'),
+                   COALESCE(avatar_url, NULL),
+                   COALESCE(email, NULL)
             FROM users
             WHERE username=? AND password=?
         """, (username, password))
@@ -414,6 +447,8 @@ def login():
         session["user_id"] = user[0]
         session["username"] = user[1]
         session["role"] = user[3]
+        session["avatar_url"] = user[6]
+        session["email"] = user[7]
         return redirect(url_for("home"))
 
     return render_template("login.html")
@@ -1256,12 +1291,65 @@ def delete_book(id):
 
 
 # ---------- Profile ----------
-@app.route("/profile")
+@app.route("/profile", methods=["GET", "POST"])
 def profile():
     if "user_id" not in session:
         return redirect(url_for("login"))
-
+    
     user_id = session["user_id"]
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip()
+
+        # --- avatar upload (optional) ---
+        avatar = request.files.get("avatar")
+        avatar_url = None
+
+        if avatar and avatar.filename:
+            from werkzeug.utils import secure_filename
+            import os
+
+            UPLOAD_FOLDER = os.path.join("static", "uploads", "avatars")
+            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+            ext = avatar.filename.rsplit(".", 1)[-1].lower()
+            if ext not in {"png", "jpg", "jpeg", "webp"}:
+                flash("Invalid image type. Use PNG/JPG/JPEG/WEBP.", "danger")
+                return redirect(url_for("profile"))
+
+            stored_name = f"user_{user_id}.{ext}"
+            save_path = os.path.join(UPLOAD_FOLDER, secure_filename(stored_name))
+            avatar.save(save_path)
+            avatar_url = f"/static/uploads/avatars/{stored_name}"
+
+        conn = get_conn()
+        c = conn.cursor()
+
+        # update username/email if provided
+        if username:
+            c.execute("UPDATE users SET username=? WHERE id=?", (username, user_id))
+            session["username"] = username
+
+        if email:
+            # only if your users table has email column
+            try:
+                c.execute("UPDATE users SET email=? WHERE id=?", (email, user_id))
+            except Exception:
+                pass
+
+        # update avatar_url if uploaded (only if column exists)
+        if avatar_url:
+            try:
+                c.execute("UPDATE users SET avatar_url=? WHERE id=?", (avatar_url, user_id))
+                session["avatar_url"] = avatar_url
+            except Exception:
+                pass
+
+        conn.commit()
+        conn.close()
+
+        flash("Profile updated.", "success")
+        return redirect(url_for("profile"))
     conn = get_conn()
     c = conn.cursor()
     c.execute("""
@@ -1299,10 +1387,13 @@ def profile():
         {"icon": "fa-check-circle", "text": f"Finished reading <strong>{t}</strong>", "when": d or ""}
         for t, _, d, _, _ in hist[:7]
     ]
+    
 
     return render_template(
         "profile.html",
         username=session.get("username"),
+        avatar_url=session.get("avatar_url"),
+        email=session.get("email"),
         count=total_read,
         fav=fav_genre,
         pages_read=None,
@@ -2635,7 +2726,7 @@ def admin_users():
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute("SELECT id, username, role, banned FROM users ORDER BY username")
+    c.execute("SELECT id, username, role, COALESCE(is_banned,0) as is_banned, COALESCE(status,'active') as status, COALESCE(avatar_url, NULL) as avatar_url FROM users ORDER BY username")
     users = c.fetchall()
 
     c.execute("""
