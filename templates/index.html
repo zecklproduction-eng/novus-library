@@ -54,6 +54,12 @@
   {% if books %}
   {% for b in books %}
   <div class="product-card">
+    {% if b[7] %}  <!-- b[7] is the is_favorited boolean -->
+    <div class="favorite-heart-top-right">
+      <i class="fas fa-heart text-danger"></i>
+    </div>
+    {% endif %}
+    
     <div class="product-thumb">
       {% if b[6] %}
         <img

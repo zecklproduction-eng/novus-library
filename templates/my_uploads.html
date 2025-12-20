@@ -26,6 +26,12 @@
     <div class="product-grid">
       {% for b in books %}
       <div class="product-card">
+        {% if b[9] %}  <!-- b[9] is the is_favorited boolean -->
+        <div class="favorite-heart-top-right">
+          <i class="fas fa-heart text-danger"></i>
+        </div>
+        {% endif %}
+        
         <div class="product-thumb">
           {% if b[6] %}
             <img src="{{ url_for('static', filename=b[6]) }}" alt="{{ b[1] }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">

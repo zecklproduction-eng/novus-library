@@ -42,15 +42,17 @@
       <button class="watchlist-filter-btn active" onclick="filterByStatus('planned')">Planned to Read</button>
       <button class="watchlist-filter-btn" onclick="filterByStatus('reading')">Reading</button>
       <button class="watchlist-filter-btn" onclick="filterByStatus('on_hold')">On Hold</button>
+      <button class="watchlist-filter-btn" onclick="filterByStatus('completed')">Completed</button>
       <button class="watchlist-filter-btn" onclick="filterByStatus('dropped')">Dropped</button>
     </div>
 
-    <!-- FEATURED CARDS (like the covers row in the screenshot) -->
-    <div class="watchlist-section mb-4">
-      <h5 class="watchlist-section-title">Planned to Read</h5>
+    <!-- FEATURED CARDS (dynamic based on current filter) -->
+    {% for status, books in featured_books.items() %}
+    <div class="watchlist-section mb-4 featured-section" id="featured-{{ status }}" {% if status != 'planned' %}style="display: none;"{% endif %}>
+      <h5 class="watchlist-section-title">{{ status|replace('_', ' ')|title }}</h5>
 
       <div class="watchlist-cards-row">
-        {% for book in featured_books %}
+        {% for book in books %}
         <div class="watchlist-card">
           <div class="watchlist-card-cover" style="position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
             {% if book.cover %}
@@ -77,14 +79,20 @@
             </div>
           </div>
         </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+          <i class="fas fa-book" style="font-size: 40px; margin-bottom: 15px; opacity: 0.5;"></i>
+          <p>No books in this category yet.</p>
+        </div>
         {% endfor %}
       </div>
     </div>
+    {% endfor %}
 
   <!-- TABLE SECTION (like the list at the bottom of the screenshot) -->
   <div class="watchlist-section">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h5 class="watchlist-section-title mb-0">Planned to Read</h5>
+      <h5 class="watchlist-section-title mb-0" id="table-section-title">Planned to Read</h5>
       <span class="watchlist-section-tag text-muted">Started today!</span>
     </div>
 
@@ -219,6 +227,28 @@
     const buttons = document.querySelectorAll('.watchlist-filter-btn');
     buttons.forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
+
+    // Switch featured section
+    const featuredSections = document.querySelectorAll('.featured-section');
+    featuredSections.forEach(section => section.style.display = 'none');
+    const activeSection = document.getElementById('featured-' + status);
+    if (activeSection) {
+      activeSection.style.display = 'block';
+    }
+
+    // Update table section title
+    const titleElement = document.getElementById('table-section-title');
+    const statusTitles = {
+      'planned': 'Planned to Read',
+      'reading': 'Currently Reading',
+      'on_hold': 'On Hold',
+      'completed': 'Completed',
+      'dropped': 'Dropped'
+    };
+    if (titleElement && statusTitles[status]) {
+      titleElement.textContent = statusTitles[status];
+    }
+
     applyFilters();
   }
 

@@ -553,7 +553,19 @@ def home():
     base_sql += " ORDER BY datetime(created_at) DESC"
 
     c.execute(base_sql, params)
-    books = c.fetchall()
+    books_raw = c.fetchall()
+    
+    # Get user's favorite book IDs for showing heart icons
+    user_favorites = set()
+    if "user_id" in session:
+        c.execute("SELECT book_id FROM favorites WHERE user_id = ?", (session["user_id"],))
+        user_favorites = {row[0] for row in c.fetchall()}
+    
+    # Add favorite status to each book (as a boolean flag)
+    books = []
+    for book in books_raw:
+        is_favorited = book[0] in user_favorites
+        books.append(list(book) + [is_favorited])
 
     conn.close()
 
@@ -1508,7 +1520,7 @@ def delete_book(id):
 def profile():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    
+
     user_id = session["user_id"]
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -1565,6 +1577,8 @@ def profile():
         return redirect(url_for("profile"))
     conn = get_conn()
     c = conn.cursor()
+
+    # Get reading history
     c.execute("""
         SELECT books.title, books.category, history.date_read, books.author, books.cover_path
         FROM history
@@ -1574,6 +1588,36 @@ def profile():
         LIMIT 50
     """, (user_id,))
     hist = c.fetchall()
+
+    # Get currently reading from watchlist
+    c.execute("""
+        SELECT b.title, b.author, b.cover_path, w.progress
+        FROM watchlist w
+        JOIN books b ON w.book_id = b.id
+        WHERE w.user_id = ? AND w.status = 'reading'
+        ORDER BY w.created_at DESC
+        LIMIT 3
+    """, (user_id,))
+    currently_reading_raw = c.fetchall()
+
+    # Get recent activity from activity log
+    c.execute("""
+        SELECT al.activity_type, b.title, al.timestamp
+        FROM activity_log al
+        JOIN books b ON al.book_id = b.id
+        WHERE al.user_id = ?
+        ORDER BY al.timestamp DESC
+        LIMIT 7
+    """, (user_id,))
+    activity_raw = c.fetchall()
+
+    # Calculate average rating given by user
+    c.execute("""
+        SELECT AVG(rating) FROM reviews WHERE user_id = ?
+    """, (user_id,))
+    avg_rating_row = c.fetchone()
+    avg_rating = round(avg_rating_row[0], 1) if avg_rating_row[0] else None
+
     conn.close()
 
     total_read = len(hist)
@@ -1582,25 +1626,63 @@ def profile():
         cats = [row[1] for row in hist if row[1]]
         fav_genre = Counter(cats).most_common(1)[0][0] if cats else "None yet"
 
-    seen = set()
-    currently_reading = []
-    for title, cat, dt, author, cover in hist:
-        if title not in seen:
-            currently_reading.append({"title": title, "author": author, "progress": 25, "cover": cover})
-            seen.add(title)
-        if len(currently_reading) >= 3:
-            break
-
-    recent_finished = []
-    for r in hist[:6]:
-        # r = (title, category, date_read, author, cover_path)
-        recent_finished.append({"title": r[0], "author": r[3], "cover": r[4]})
-
-    recent_activity = [
-        {"icon": "fa-check-circle", "text": f"Finished reading <strong>{t}</strong>", "when": d or ""}
-        for t, _, d, _, _ in hist[:7]
+    # Format currently reading
+    currently_reading = [
+        {"title": r[0], "author": r[1], "progress": r[3] or 0, "cover": r[2]}
+        for r in currently_reading_raw
     ]
-    
+
+    # Format recent finished (first 6 from history)
+    recent_finished = [
+        {"title": r[0], "author": r[3], "cover": r[4]}
+        for r in hist[:6]
+    ]
+
+    # Format recent activity
+    activity_icons = {
+        'read': 'fa-book-open',
+        'started': 'fa-play-circle',
+        'completed': 'fa-check-circle',
+        'favorited': 'fa-heart',
+        'summarized': 'fa-sparkles'
+    }
+
+    recent_activity = []
+    for activity_type, title, timestamp in activity_raw:
+        try:
+            dt = datetime.fromisoformat(timestamp)
+            now = datetime.utcnow()
+            diff = now - dt
+
+            if diff.days > 365:
+                when = f"{diff.days // 365}y ago"
+            elif diff.days > 30:
+                when = f"{diff.days // 30}mo ago"
+            elif diff.days > 0:
+                when = f"{diff.days}d ago"
+            elif diff.seconds > 3600:
+                when = f"{diff.seconds // 3600}h ago"
+            elif diff.seconds > 60:
+                when = f"{diff.seconds // 60}m ago"
+            else:
+                when = "Just now"
+        except:
+            when = timestamp
+
+        activity_text = {
+            'read': f"Read <strong>{title}</strong>",
+            'started': f"Started reading <strong>{title}</strong>",
+            'completed': f"Finished reading <strong>{title}</strong>",
+            'favorited': f"Added <strong>{title}</strong> to favorites",
+            'summarized': f"Generated summary for <strong>{title}</strong>"
+        }.get(activity_type, f"Interacted with <strong>{title}</strong>")
+
+        recent_activity.append({
+            "icon": activity_icons.get(activity_type, 'fa-circle'),
+            "text": activity_text,
+            "when": when
+        })
+
 
     return render_template(
         "profile.html",
@@ -1609,12 +1691,106 @@ def profile():
         email=session.get("email"),
         count=total_read,
         fav=fav_genre,
-        pages_read=None,
-        avg_rating=None,
+        pages_read=None,  # Could be calculated from progress, but leaving as None for now
+        avg_rating=avg_rating,
         currently_reading=currently_reading,
         recent_finished=recent_finished,
         recent_activity=recent_activity
     )
+
+
+# ---------- Settings ----------
+@app.route("/settings", methods=["GET", "POST"])
+def settings():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+        action = request.form.get("action")
+
+        if action == "change_password":
+            current_password = request.form.get("current_password", "").strip()
+            new_password = request.form.get("new_password", "").strip()
+            confirm_password = request.form.get("confirm_password", "").strip()
+
+            if not current_password or not new_password or not confirm_password:
+                flash("All password fields are required.", "danger")
+                return redirect(url_for("settings"))
+
+            if new_password != confirm_password:
+                flash("New passwords do not match.", "danger")
+                return redirect(url_for("settings"))
+
+            if len(new_password) < 3:
+                flash("Password must be at least 3 characters.", "danger")
+                return redirect(url_for("settings"))
+
+            # Verify current password
+            conn = get_conn()
+            c = conn.cursor()
+            c.execute("SELECT password FROM users WHERE id=?", (user_id,))
+            row = c.fetchone()
+            conn.close()
+
+            if not row or row[0] != current_password:
+                flash("Current password is incorrect.", "danger")
+                return redirect(url_for("settings"))
+
+            # Update password
+            conn = get_conn()
+            c = conn.cursor()
+            c.execute("UPDATE users SET password=? WHERE id=?", (new_password, user_id))
+            conn.commit()
+            conn.close()
+
+            flash("Password changed successfully.", "success")
+            return redirect(url_for("settings"))
+
+        elif action == "update_account":
+            username = request.form.get("username", "").strip()
+            email = request.form.get("email", "").strip()
+
+            if not username:
+                flash("Username is required.", "danger")
+                return redirect(url_for("settings"))
+
+            conn = get_conn()
+            c = conn.cursor()
+
+            # Check if username is taken by another user
+            c.execute("SELECT id FROM users WHERE username=? AND id != ?", (username, user_id))
+            if c.fetchone():
+                conn.close()
+                flash("Username is already taken.", "danger")
+                return redirect(url_for("settings"))
+
+            # Update username and email
+            c.execute("UPDATE users SET username=? WHERE id=?", (username, user_id))
+            session["username"] = username
+
+            if email:
+                try:
+                    c.execute("UPDATE users SET email=? WHERE id=?", (email, user_id))
+                    session["email"] = email
+                except Exception:
+                    pass
+
+            conn.commit()
+            conn.close()
+
+            flash("Account settings updated.", "success")
+            return redirect(url_for("settings"))
+
+    # GET request - show settings page
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT username, email FROM users WHERE id=?", (user_id,))
+    user_data = c.fetchone()
+    conn.close()
+
+    return render_template("settings.html", user=user_data)
 
 
 # ---------- Activity Log ----------
@@ -1755,10 +1931,14 @@ def watchlist():
     
     conn.close()
 
-    featured_books = [
-        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "progress": r[8] or 0, "cover": r[6], "status": r[7]}
-        for r in rows[:3]
-    ]
+    # Group featured books by status
+    featured_books = {}
+    for status in ['planned', 'reading', 'on_hold', 'completed', 'dropped']:
+        featured_books[status] = [
+            {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "progress": r[8] or 0, "cover": r[6], "status": r[7]}
+            for r in rows if r[7] == status
+        ][:3]  # First 3 for each status
+
     table_books = [
         {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "year": "", "rating": 4, "cover": r[6], "status": r[7], "progress": r[8]}
         for r in rows
@@ -1792,18 +1972,19 @@ def watchlist_add():
     if not c.fetchone():
         conn.close()
         return redirect(url_for("home"))
-    try:
-        c.execute(
-    "UPDATE watchlist SET status=?, progress=? WHERE user_id=? AND book_id=?",
-    (status, progress, session["user_id"], book_id)
-)
 
-    except sqlite3.IntegrityError:
-        # Fallback: attempt same update if integrity error (keep behavior)
-        c.execute(
-    "UPDATE watchlist SET status=?, progress=? WHERE user_id=? AND book_id=?",
-    (status, progress, session["user_id"], book_id)
-)
+    # Check if already in watchlist
+    c.execute("SELECT id FROM watchlist WHERE user_id=? AND book_id=?", (session["user_id"], book_id))
+    existing = c.fetchone()
+
+    if existing:
+        # Update existing
+        c.execute("UPDATE watchlist SET status=?, progress=? WHERE user_id=? AND book_id=?",
+                  (status, progress, session["user_id"], book_id))
+    else:
+        # Insert new
+        c.execute("INSERT INTO watchlist (user_id, book_id, status, progress) VALUES (?, ?, ?, ?)",
+                  (session["user_id"], book_id, status, progress))
 
     conn.commit()
     conn.close()
@@ -3211,7 +3392,19 @@ def my_uploads():
             WHERE uploader_id = ?
             ORDER BY datetime(created_at) DESC
         """, (user_id,))
-    books = c.fetchall()
+    books_raw = c.fetchall()
+
+    # Get user's favorite book IDs for showing heart icons
+    user_favorites = set()
+    if "user_id" in session:
+        c.execute("SELECT book_id FROM favorites WHERE user_id = ?", (session["user_id"],))
+        user_favorites = {row[0] for row in c.fetchall()}
+    
+    # Add favorite status to each book (as a boolean flag)
+    books = []
+    for book in books_raw:
+        is_favorited = book[0] in user_favorites
+        books.append(list(book) + [is_favorited])
 
     # Fetch chapter counts for manga
     manga_chapters = {}
