@@ -131,9 +131,6 @@
               <div class="dropdown-content">
                 <a href="{{ url_for('faq') }}">FAQ & Guidelines</a>
                 <a href="{{ url_for('about') }}">About</a>
-                {% if session.get('user_id') %}
-                <a href="#" onclick="openNotifications(); return false;"><i class="fas fa-bell"></i> Notifications <span class="notif-badge-small" id="notifCountSmall">0</span></a>
-                {% endif %}
               </div>
             </div>
           </div>
@@ -309,32 +306,6 @@
 
   <!-- BIG TEXT IN THE CENTER -->
   <div class="warp-label">ENTERING MANGA UNIVERSE...</div>
-</div>
-
-<!-- Notifications Modal -->
-<div class="notifications-modal" id="notificationsModal" aria-hidden="true">
-  <div class="notifications-backdrop" onclick="closeNotifications()"></div>
-
-  <div class="notifications-dialog" role="dialog" aria-modal="true" aria-label="Notifications">
-    <button class="notifications-close" onclick="closeNotifications()" aria-label="Close">
-      &times;
-    </button>
-
-    <div class="notifications-header">
-      <h2>NOTIFICATIONS <span id="notifCountHeader" class="notif-header-count"></span></h2>
-    </div>
-
-    <div class="notifications-content" id="notificationsContent">
-      <div class="notif-loading">
-        <i class="fas fa-spinner fa-spin"></i> Loading notifications...
-      </div>
-    </div>
-
-    <div class="notifications-footer">
-      <button class="notifications-btn-secondary" onclick="closeNotifications()">Close</button>
-      <button class="notifications-btn-primary" onclick="markAllNotificationsRead()">MARK ALL READ</button>
-    </div>
-  </div>
 </div>
 
 <!-- Activity Log Modal -->
