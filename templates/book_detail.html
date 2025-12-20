@@ -57,8 +57,8 @@
 
 
           
-<!-- Watchlist dropdown lives here -->
-<div class="mt-3 d-flex align-items-center gap-2">
+<!-- Watchlist and Favorites actions -->
+<div class="mt-3 d-flex align-items-center gap-2 flex-wrap">
   <span class="text-muted me-2">My List:</span>
   <form method="post" action="{{ url_for('watchlist_book', book_id=book[0]) }}">
     <div class="dropdown">
@@ -106,6 +106,14 @@
         {% endif %}
       </ul>
     </div>
+  </form>
+
+  <!-- Favorite button -->
+  <form method="post" action="{{ url_for('favorites_book', book_id=book[0]) }}">
+    <button type="submit" class="btn btn-sm {% if is_favorited %}btn-danger{% else %}btn-outline-danger{% endif %}">
+      <i class="fas fa-heart {% if not is_favorited %}fa-regular{% else %}fa-solid{% endif %} me-1"></i>
+      {% if is_favorited %}Favorited{% else %}Add to Favorites{% endif %}
+    </button>
   </form>
 </div><br>
 

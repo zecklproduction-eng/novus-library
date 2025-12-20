@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block title %}Favorites | NOVUS{% endblock %}
+
+{% block content %}
+<div class="favorites-page">
+  <!-- Top heading + tabs -->
+  <div class="d-flex justify-content-between align-items-center mb-4" style="flex-wrap: wrap; gap: 15px;">
+    <div class="d-flex align-items-center gap-3">
+      <div class="favorites-icon">
+        <i class="fas fa-heart"></i>
+      </div>
+      <div>
+        <h2 class="favorites-title">Favorites</h2>
+        <p class="favorites-subtitle text-muted mb-0">
+          Your favorite books that you love and want to keep track of.
+        </p>
+      </div>
+    </div>
+
+    <!-- Tab navigation -->
+    <div style="display: flex; gap: 10px; border-bottom: 2px solid rgba(102, 126, 234, 0.2);">
+      <button class="favorites-main-tab active" onclick="switchTab('favorites')" style="background: none; border: none; color: #999; padding: 10px 15px; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.3s;">
+        <i class="fas fa-heart me-2"></i>My Favorites
+      </button>
+      <button class="favorites-main-tab" onclick="switchTab('recently-read')" style="background: none; border: none; color: #999; padding: 10px 15px; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.3s;">
+        <i class="fas fa-clock me-2"></i>Recently Read
+      </button>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="favorites-search" style="margin-bottom: 20px;">
+    <i class="fas fa-search"></i>
+    <input type="text" id="favorites-search" placeholder="Search in favorites..." onkeyup="searchFavorites()" />
+  </div>
+
+  <!-- FAVORITES TAB -->
+  <div id="favorites-tab" class="favorites-content-tab">
+    {% if favorite_books %}
+    <!-- FEATURED CARDS -->
+    <div class="favorites-section mb-4">
+      <h5 class="favorites-section-title">Your Favorite Books</h5>
+
+      <div class="favorites-cards-row">
+        {% for book in favorite_books %}
+        <div class="favorites-card" data-title="{{ book.title.lower() }}" data-author="{{ book.author.lower() }}" data-category="{{ book.category }}">
+          <div class="favorites-card-cover" style="position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
+            {% if book.cover %}
+              <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px; position: absolute; top: 0; left: 0;">
+              <div class="favorites-card-cover-text" style="position:relative; left:10px; bottom:10px; z-index:2; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:4px; color: white;">
+                <span class="favorites-card-author" style="display:block; font-size:12px; margin-bottom:4px;">{{ book.author }}</span>
+                <span class="favorites-card-title" style="display:block; font-weight:bold; font-size:14px;">{{ book.title }}</span>
+              </div>
+            {% else %}
+              <div style="width:100%; height:100%; background: linear-gradient(135deg,#667eea,#764ba2); border-radius:6px;"></div>
+              <div class="favorites-card-cover-text" style="position:relative; left:10px; bottom:10px; z-index:2; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:4px; color: white;">
+                <span class="favorites-card-author" style="display:block; font-size:12px; margin-bottom:4px;">{{ book.author }}</span>
+                <span class="favorites-card-title" style="display:block; font-weight:bold; font-size:14px;">{{ book.title }}</span>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="favorites-card-footer">
+            <div class="favorites-heart-icon">
+              <i class="fas fa-heart"></i>
+            </div>
+            <div class="favorites-card-status text-muted">
+              <small>Added {{ book.date_added[:10] if book.date_added else 'recently' }}</small>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- TABLE SECTION -->
+    <div class="favorites-section">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="favorites-section-title mb-0">All Favorites</h5>
+        <span class="favorites-section-tag text-muted">{{ favorite_books|length }} book{{ '' if favorite_books|length == 1 else 's' }}</span>
+      </div>
+
+      <div class="favorites-tags-row mb-3">
+        <span class="favorites-tag active" onclick="filterByCategory('all')">All</span>
+        {% for cat in categories %}
+        <span class="favorites-tag" onclick="filterByCategory('{{ cat }}')">{{ cat }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="favorites-table-wrapper">
+        <table class="favorites-table">
+          <tbody>
+            {% for book in favorite_books %}
+            <tr class="favorites-row" data-title="{{ book.title.lower() }}" data-author="{{ book.author.lower() }}" data-category="{{ book.category }}">
+              <td class="favorites-table-cover">
+                <div class="favorites-table-cover-thumb">
+                  {% if book.cover %}
+                    <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }}" style="width:48px; height:64px; object-fit:cover; border-radius:4px;">
+                  {% else %}
+                    <span>{{ book.title[0] }}</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="favorites-table-title">
+                {{ book.title }}
+              </td>
+              <td class="favorites-table-author text-muted">
+                {{ book.author }}
+              </td>
+              <td class="favorites-table-category text-muted">
+                {{ book.category }}
+              </td>
+              <td class="favorites-table-date text-muted">
+                {{ book.date_added[:10] if book.date_added else 'N/A' }}
+              </td>
+              <td class="favorites-table-actions">
+                <a href="{{ url_for('view_book', id=book.id) }}" class="btn btn-ghost btn-sm">View</a>
+
+                <form method="post" action="{{ url_for('favorites_remove') }}" style="display:inline-block; margin-left:8px;" onsubmit="return confirm('Remove this from your favorites?');">
+                  <input type="hidden" name="book_id" value="{{ book.id }}">
+                  <button type="submit" class="btn btn-sm btn-danger">
+                    <i class="fas fa-heart-broken"></i> Remove
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <!-- Empty state -->
+    <div class="favorites-empty" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+      <div class="favorites-empty-icon" style="font-size: 80px; margin-bottom: 20px; opacity: 0.3;">
+        <i class="fas fa-heart"></i>
+      </div>
+      <h3 style="margin-bottom: 15px; color: var(--text-color);">No favorites yet</h3>
+      <p style="margin-bottom: 25px; font-size: 16px;">Start adding books to your favorites by clicking the heart icon on any book!</p>
+      <a href="{{ url_for('home') }}" class="btn btn-primary">
+        <i class="fas fa-book me-2"></i>Browse Books
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- RECENTLY READ TAB -->
+  <div id="recently-read-tab" class="favorites-content-tab" style="display: none;">
+    <div class="favorites-section">
+      <h5 class="favorites-section-title">Books You've Read</h5>
+      {% if recently_read_books %}
+      <div class="favorites-cards-row">
+        {% for book in recently_read_books %}
+        <div class="favorites-card">
+          <div class="favorites-card-cover" style="position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
+            {% if book.cover %}
+              <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px; position: absolute; top: 0; left: 0;">
+            {% else %}
+              <div style="width:100%; height:100%; background: linear-gradient(135deg,#667eea,#764ba2); border-radius:6px;"></div>
+            {% endif %}
+            <div class="favorites-card-cover-text" style="position:relative; left:10px; bottom:10px; z-index:2; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:4px; color: white;">
+              <span class="favorites-card-author" style="display:block; font-size:12px; margin-bottom:4px;">{{ book.author }}</span>
+              <span class="favorites-card-title" style="display:block; font-weight:bold; font-size:14px;">{{ book.title }}</span>
+            </div>
+          </div>
+
+          <div class="favorites-card-footer">
+            <div class="favorites-read-icon">
+              <i class="fas fa-book-open"></i>
+            </div>
+            <div class="favorites-card-status text-muted">
+              <small>{{ book.date_read or 'Recently' }}</small>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+        <i class="fas fa-book-open" style="font-size: 40px; margin-bottom: 15px; opacity: 0.5;"></i>
+        <p>No books read yet. Start reading to see them here!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentCategory = 'all';
+
+  function switchTab(tabName) {
+    // Hide all tabs
+    document.getElementById('favorites-tab').style.display = 'none';
+    document.getElementById('recently-read-tab').style.display = 'none';
+    
+    // Remove active class from all buttons
+    document.querySelectorAll('.favorites-main-tab').forEach(btn => btn.classList.remove('active'));
+    
+    // Show selected tab
+    if (tabName === 'favorites') {
+      document.getElementById('favorites-tab').style.display = 'block';
+      event.target.classList.add('active');
+    } else if (tabName === 'recently-read') {
+      document.getElementById('recently-read-tab').style.display = 'block';
+      event.target.classList.add('active');
+    }
+  }
+
+  function filterByCategory(category) {
+    currentCategory = category;
+    const tags = document.querySelectorAll('.favorites-tag');
+    tags.forEach(tag => tag.classList.remove('active'));
+    event.target.classList.add('active');
+    applyFilters();
+  }
+
+  function searchFavorites() {
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const searchTerm = document.getElementById('favorites-search').value.toLowerCase();
+    const rows = document.querySelectorAll('.favorites-row');
+    
+    rows.forEach(row => {
+      const title = row.getAttribute('data-title');
+      const author = row.getAttribute('data-author');
+      const category = row.getAttribute('data-category');
+      
+      const searchMatch = title.includes(searchTerm) || author.includes(searchTerm);
+      const categoryMatch = currentCategory === 'all' || category === currentCategory;
+      
+      row.style.display = (searchMatch && categoryMatch) ? '' : 'none';
+    });
+  }
+
+  // Initialize filters on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    applyFilters();
+  });
+</script>
+
+<style>
+/* Favorites page specific styles */
+.favorites-page {
+  padding: 20px;
+}
+
+.favorites-icon i {
+  font-size: 24px;
+  color: #e74c3c;
+}
+
+.favorites-title {
+  color: var(--text-color);
+  margin-bottom: 5px;
+}
+
+.favorites-subtitle {
+  font-size: 14px;
+}
+
+.favorites-main-tab.active {
+  color: var(--primary-color) !important;
+  border-bottom-color: var(--primary-color) !important;
+}
+
+.favorites-search {
+  position: relative;
+  max-width: 400px;
+}
+
+.favorites-search i {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.favorites-search input {
+  width: 100%;
+  padding: 12px 15px 12px 45px;
+  border: 2px solid var(--border-color);
+  border-radius: 25px;
+  background: var(--card-bg);
+  color: var(--text-color);
+  transition: border-color 0.3s;
+}
+
+.favorites-search input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.favorites-section-title {
+  color: var(--text-color);
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.favorites-section-tag {
+  font-size: 14px;
+  background: var(--accent-bg);
+  padding: 4px 12px;
+  border-radius: 15px;
+}
+
+.favorites-tags-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.favorites-tag {
+  padding: 8px 16px;
+  background: var(--accent-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.favorites-tag:hover,
+.favorites-tag.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.favorites-cards-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.favorites-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.favorites-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.favorites-card-cover {
+  height: 280px;
+  border-radius: 6px;
+}
+
+.favorites-card-footer {
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card-bg);
+}
+
+.favorites-heart-icon i {
+  color: #e74c3c;
+  font-size: 18px;
+}
+
+.favorites-read-icon i {
+  color: var(--primary-color);
+  font-size: 18px;
+}
+
+.favorites-card-status {
+  font-size: 12px;
+}
+
+.favorites-table-wrapper {
+  background: var(--card-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.favorites-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.favorites-table th,
+.favorites-table td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.favorites-table th {
+  background: var(--accent-bg);
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.favorites-table tr:hover {
+  background: var(--accent-bg);
+}
+
+.favorites-table-cover-thumb {
+  width: 48px;
+  height: 64px;
+  background: var(--accent-bg);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: var(--text-muted);
+}
+
+.favorites-table-title {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.favorites-empty-icon {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.3; }
+}
+
+@media (max-width: 768px) {
+  .favorites-cards-row {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+  }
+  
+  .favorites-table-wrapper {
+    overflow-x: auto;
+  }
+  
+  .favorites-table {
+    min-width: 600px;
+  }
+}
+</style>
+
+{% endblock %}

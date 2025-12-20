@@ -141,7 +141,7 @@
           </a>
 
           <!-- Top-right CTA: Login / Logout -->
-<!-- Top-right: Profile icon dropdown (or Login button if logged out) -->
+  <!-- Top-right: Profile icon dropdown (or Login button if logged out) -->
 {% if session.get('user_id') %}
   <div class="dropdown-nav ms-3 profile-dropdown">
     <button class="profile-menu-btn" type="button" onclick="toggleDropdown(this)" aria-label="Open profile menu">
@@ -191,11 +191,15 @@
   <a href="{{ url_for('my_uploads') }}"><i class="fas fa-book"></i> My Library</a>
   <a href="{{ url_for('add_book') }}"><i class="fas fa-upload"></i> Upload Book</a>
   <a href="#"><i class="fas fa-clock-rotate-left"></i> Reading History</a>
-  <a href="#"><i class="fas fa-heart"></i> Favorites</a>
+  <a href="{{ url_for('favorites') }}"><i class="fas fa-heart"></i> Favorites</a>
 
   <!-- ACCOUNT -->
   <div class="dd-section-title">ACCOUNT</div>
-  <a href="#"><i class="fas fa-bell"></i> Notifications</a>
+  <a href="#" onclick="toggleNotificationDropdown(this); return false;" class="notification-link">
+    <i class="fas fa-bell"></i>
+    <span>Notifications</span>
+    <span class="notification-badge-small" id="notificationBadge">0</span>
+  </a>
   <a href="#" onclick="openBillingModal(); return false;">
   <i class="fas fa-credit-card me-2"></i> Billing & Subscription
 </a>
@@ -216,6 +220,24 @@
     <i class="fas fa-right-from-bracket"></i> Log Out
   </a>
 </div>
+
+    <!-- Notification Dropdown (positioned relative to profile dropdown) -->
+    <div class="notification-dropdown-content profile-notification-dropdown">
+      <div class="notification-dropdown-header">
+        <span>Notifications</span>
+        <button class="mark-all-read-btn" onclick="markAllNotificationsRead()">Mark all as read</button>
+      </div>
+      <div class="notification-list" id="notificationList">
+        <div class="notification-loading">
+          <i class="fas fa-spinner fa-spin"></i> Loading...
+        </div>
+      </div>
+      <div class="notification-dropdown-footer">
+        <a href="#" onclick="openActivityLogModal(); return false;" class="view-all-notifications">
+          <i class="fas fa-list"></i> View All Activity
+        </a>
+      </div>
+    </div>
   </div>
 {% else %}
   <a href="{{ url_for('login') }}" class="cta-button ms-3">
@@ -616,6 +638,159 @@ function startUpgrade(plan) {
         if (event.target === backdrop) {
           closeActivityLogModal();
         }
+      });
+    </script>
+
+    <!-- Notification System Functions -->
+    <script>
+      // Notification dropdown toggle
+      function toggleNotificationDropdown(button) {
+        const profileDropdown = button.closest(".profile-dropdown");
+        const notificationDropdown = profileDropdown.querySelector(".profile-notification-dropdown");
+        const isOpen = notificationDropdown.classList.contains("show");
+        
+        // Close all notification dropdowns
+        document.querySelectorAll(".notification-dropdown-content").forEach(el => {
+          el.classList.remove("show");
+        });
+        
+        // Close profile dropdown
+        document.querySelectorAll(".profile-dropdown-content").forEach(el => {
+          el.style.display = "none";
+        });
+        document.querySelectorAll(".nav-logo-arrow").forEach(el => {
+          el.style.transform = "translateY(2px) rotate(180deg)";
+        });
+        
+        // Open this notification dropdown if it was closed
+        if (!isOpen) {
+          notificationDropdown.classList.add("show");
+          loadNotifications();
+        }
+      }
+
+      // Load notifications
+      function loadNotifications() {
+        const notificationList = document.getElementById("notificationList");
+        
+        fetch("{{ url_for('get_activity_log') }}?limit=3")
+          .then(response => response.json())
+          .then(activities => {
+            if (!activities || activities.length === 0) {
+              notificationList.innerHTML = `
+                <div class="notification-empty">
+                  <i class="fas fa-inbox"></i>
+                  <p>No notifications yet</p>
+                </div>
+              `;
+              updateNotificationBadge(0);
+              return;
+            }
+
+            let html = '';
+            let unreadCount = 0;
+            
+            activities.forEach((activity, index) => {
+              const isUnread = index < 2; // Mark first 2 as unread for demo
+              if (isUnread) unreadCount++;
+              
+              const badgeClass = activity.has_summary ? 'activity-badge-summarized' : '';
+              const badgeIcon = activity.has_summary ? '<span class="activity-badge" style="font-size: 10px; padding: 2px 6px; margin-left: 8px;">AI</span>' : '';
+              
+              html += `
+                <div class="notification-item ${isUnread ? 'unread' : ''}" onclick="markNotificationRead(${activity.id || index})">
+                  <div class="notification-icon-small">
+                    <i class="fas ${activity.icon}"></i>
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-text">
+                      ${activity.type.charAt(0).toUpperCase() + activity.type.slice(1)} 
+                      <strong>"${activity.title}"</strong>
+                      ${badgeIcon}
+                    </div>
+                    <div class="notification-time">${activity.when}</div>
+                  </div>
+                </div>
+              `;
+            });
+
+            notificationList.innerHTML = html;
+            updateNotificationBadge(unreadCount);
+          })
+          .catch(error => {
+            console.error("Error loading notifications:", error);
+            notificationList.innerHTML = `
+              <div class="notification-empty">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Error loading notifications</p>
+              </div>
+            `;
+            updateNotificationBadge(0);
+          });
+      }
+
+      // Update notification badge
+      function updateNotificationBadge(count) {
+        const badge = document.getElementById("notificationBadge");
+        if (badge) {
+          if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.add("has-notifications");
+          } else {
+            badge.textContent = '0';
+            badge.classList.remove("has-notifications");
+          }
+        }
+      }
+
+      // Mark notification as read
+      function markNotificationRead(notificationId) {
+        // For demo purposes, just update the UI
+        const notificationItems = document.querySelectorAll('.notification-item.unread');
+        if (notificationItems.length > 0) {
+          notificationItems[0].classList.remove('unread');
+          updateNotificationBadge(notificationItems.length - 1);
+        }
+      }
+
+      // Mark all notifications as read
+      function markAllNotificationsRead() {
+        const notificationItems = document.querySelectorAll('.notification-item.unread');
+        notificationItems.forEach(item => {
+          item.classList.remove('unread');
+        });
+        updateNotificationBadge(0);
+        
+        // Show feedback
+        const markBtn = document.querySelector('.mark-all-read-btn');
+        const originalText = markBtn.textContent;
+        markBtn.textContent = 'Marked as read';
+        markBtn.style.color = '#4CAF50';
+        
+        setTimeout(() => {
+          markBtn.textContent = originalText;
+          markBtn.style.color = 'var(--neon-blue)';
+        }, 2000);
+      }
+
+      // Close notification dropdown when clicking outside
+      document.addEventListener("click", function(event) {
+        const notificationContainer = event.target.closest(".notification-container");
+        const profileContainer = event.target.closest(".profile-dropdown");
+        
+        if (!notificationContainer && !profileContainer) {
+          document.querySelectorAll(".notification-dropdown-content").forEach(el => {
+            el.classList.remove("show");
+          });
+        }
+      });
+
+      // Load notifications on page load
+      document.addEventListener("DOMContentLoaded", function() {
+        // Load notifications after a short delay
+        setTimeout(() => {
+          loadNotifications();
+        }, 1000);
       });
     </script>
   </body>

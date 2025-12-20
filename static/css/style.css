@@ -4067,6 +4067,74 @@ MANGA WARP OVERLAY (VORTEX)
 .profile-dropdown-content a.danger:hover {
   background: rgba(255, 80, 80, 0.15);
 }
+
+/* Notification link in profile dropdown */
+.notification-link {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  padding-right: 40px !important;
+}
+
+.notification-link i {
+  width: 18px;
+  text-align: center;
+}
+
+.notification-link span {
+  flex: 1;
+}
+
+.notification-badge-small {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #ff4757;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  opacity: 0;
+  transform: translateY(-50%) scale(0);
+  transition: all 0.3s ease;
+}
+
+.notification-badge-small.has-notifications {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+/* Notification dropdown positioning for profile dropdown */
+.profile-notification-dropdown {
+  position: absolute;
+  top: 0;
+  right: 100%;
+  margin-right: 8px;
+  width: 320px;
+  z-index: 1001;
+}
+
+/* Adjust for mobile */
+@media (max-width: 768px) {
+  .profile-notification-dropdown {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
+    margin-right: 0;
+    width: calc(100% - 40px);
+    max-width: 320px;
+  }
+}
 .no-scroll { overflow: hidden; }
 
 .billing-modal {
@@ -4399,6 +4467,243 @@ MANGA WARP OVERLAY (VORTEX)
 .plan-current-badge.plan-admin-badge i {
   color: rgba(255, 200, 124, 0.98);
 }
+/* ========== NOTIFICATION SYSTEM ========== */
+.notification-container {
+  position: relative;
+  margin-right: 15px;
+}
+
+.notification-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 16px;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.notification-btn:hover {
+  color: var(--neon-blue);
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.notification-icon {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #ff4757;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.3s ease;
+}
+
+.notification-badge.has-notifications {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.notification-dropdown-content {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 320px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: none;
+  max-height: 400px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.notification-dropdown-content.show {
+  display: block;
+}
+
+.notification-dropdown-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #222;
+  border-radius: 12px 12px 0 0;
+}
+
+.notification-dropdown-header span {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.mark-all-read-btn {
+  background: transparent;
+  border: none;
+  color: var(--neon-blue);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.mark-all-read-btn:hover {
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.notification-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.notification-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.4);
+  border-radius: 3px;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.6);
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 20px;
+  border-bottom: 1px solid #2a2a2a;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.notification-item:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item.unread {
+  background: rgba(0, 212, 255, 0.05);
+  border-left: 3px solid var(--neon-blue);
+}
+
+.notification-item.unread .notification-text {
+  font-weight: 500;
+}
+
+.notification-icon-small {
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 212, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.notification-icon-small i {
+  color: var(--neon-blue);
+  font-size: 14px;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.notification-text strong {
+  color: rgba(125, 220, 255, 0.95);
+}
+
+.notification-time {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+}
+
+.notification-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.notification-empty i {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
+.notification-loading {
+  padding: 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.notification-loading i {
+  margin-right: 8px;
+}
+
+.notification-dropdown-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #333;
+  background: #222;
+  border-radius: 0 0 12px 12px;
+}
+
+.view-all-notifications {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neon-blue);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.view-all-notifications:hover {
+  color: rgba(125, 220, 255, 0.8);
+  text-decoration: none;
+}
+
+.view-all-notifications i {
+  margin-right: 6px;
+}
+
 /* ========== ACTIVITY LOG MODAL ========== */
 .activity-log-modal {
   position: fixed;
@@ -4667,3 +4972,4 @@ MANGA WARP OVERLAY (VORTEX)
   color: rgba(255, 255, 255, 0.95);
   border-color: rgba(255, 255, 255, 0.35);
 }
+

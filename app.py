@@ -378,6 +378,17 @@ def init_db():
         )
     """)
 
+    # favorites
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS favorites (
+            id         INTEGER PRIMARY KEY,
+            user_id    INTEGER NOT NULL,
+            book_id    INTEGER NOT NULL,
+            created_at TEXT DEFAULT (DATETIME('now')),
+            UNIQUE(user_id, book_id)
+        )
+    """)
+
     # reports (user reports on manga/books)
     c.execute("""
         CREATE TABLE IF NOT EXISTS reports (
@@ -772,6 +783,13 @@ def view_book(id):
     watchlist_row = c.fetchone()
     current_status = watchlist_row[0] if watchlist_row else None
 
+    # Check if book is in favorites
+    c.execute(
+        "SELECT 1 FROM favorites WHERE user_id=? AND book_id=?",
+        (user_id, id),
+    )
+    is_favorited = c.fetchone() is not None
+
     # --- recommendations (other books) ---
     try:
         c.execute("""
@@ -841,7 +859,8 @@ def view_book(id):
     book=book,
     reviews=reviews,
     recommendations=recommendations,
-    top_wishlisted=top_wishlisted
+    top_wishlisted=top_wishlisted,
+    is_favorited=is_favorited
 )
 
 
@@ -1922,6 +1941,191 @@ def watchlist_book(book_id):
 
     conn.commit()
     conn.close()
+    return redirect(url_for("view_book", id=book_id))
+
+
+# ---------- Favorites ----------
+@app.route("/favorites")
+def favorites():
+    """Display user's favorite books"""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get favorite books with details
+    favorite_books = c.execute("""
+        SELECT b.id, b.title, b.author, COALESCE(b.category, 'General') AS category,
+               b.pdf_filename, b.audio_filename, b.cover_path,
+               f.created_at
+        FROM favorites f
+        JOIN books b ON b.id = f.book_id
+        WHERE f.user_id = ?
+        ORDER BY datetime(f.created_at) DESC
+    """, (session["user_id"],)).fetchall()
+    
+    # Get unique categories from favorites
+    categories = sorted(set([row[3] for row in favorite_books]))
+    
+    # Get recently read books from history
+    recently_read = c.execute("""
+        SELECT b.id, b.title, b.author, COALESCE(b.category, 'General'),
+               b.pdf_filename, b.audio_filename, b.cover_path,
+               h.date_read
+        FROM history h
+        JOIN books b ON b.id = h.book_id
+        WHERE h.user_id = ?
+        ORDER BY h.date_read DESC
+        LIMIT 20
+    """, (session["user_id"],)).fetchall()
+    
+    conn.close()
+
+    # Format data for template
+    favorite_books_formatted = [
+        {
+            "id": r[0], 
+            "title": r[1], 
+            "author": r[2], 
+            "category": r[3], 
+            "cover": r[6],
+            "date_added": r[7]
+        }
+        for r in favorite_books
+    ]
+    
+    recently_read_books = [
+        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "cover": r[6], "date_read": r[7]}
+        for r in recently_read
+    ]
+    
+    return render_template("favorites.html", 
+                         favorite_books=favorite_books_formatted, 
+                         categories=categories,
+                         recently_read_books=recently_read_books)
+
+
+@app.post("/favorites/add")
+def favorites_add():
+    """Add a book to favorites"""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    book_id = request.form.get("book_id", "").strip()
+    if not book_id.isdigit():
+        flash("Invalid book ID.", "danger")
+        return redirect(url_for("home"))
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Verify book exists
+    c.execute("SELECT 1 FROM books WHERE id=?", (book_id,))
+    if not c.fetchone():
+        conn.close()
+        flash("Book not found.", "danger")
+        return redirect(url_for("home"))
+    
+    # Check if already in favorites
+    c.execute("SELECT 1 FROM favorites WHERE user_id=? AND book_id=?", (session["user_id"], book_id))
+    if c.fetchone():
+        conn.close()
+        flash("Book is already in your favorites.", "info")
+        return redirect(request.referrer or url_for("home"))
+    
+    # Add to favorites
+    try:
+        c.execute("INSERT INTO favorites (user_id, book_id) VALUES (?, ?)", (session["user_id"], book_id))
+        conn.commit()
+        
+        # Log activity
+        try:
+            c.execute("""
+                INSERT INTO activity_log (user_id, book_id, activity_type)
+                VALUES (?, ?, ?)
+            """, (session["user_id"], book_id, 'favorited'))
+            conn.commit()
+        except Exception:
+            pass
+            
+        conn.close()
+        flash("Book added to favorites!", "success")
+    except Exception as e:
+        conn.close()
+        flash("Error adding to favorites.", "danger")
+    
+    return redirect(request.referrer or url_for("home"))
+
+
+@app.post("/favorites/remove")
+def favorites_remove():
+    """Remove a book from favorites"""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    book_id = request.form.get("book_id", "").strip()
+    if not book_id.isdigit():
+        flash("Invalid book ID.", "danger")
+        return redirect(url_for("favorites"))
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Remove from favorites
+    c.execute("DELETE FROM favorites WHERE user_id=? AND book_id=?", (session["user_id"], book_id))
+    
+    conn.commit()
+    conn.close()
+    
+    flash("Book removed from favorites.", "success")
+    return redirect(url_for("favorites"))
+
+
+@app.post("/favorites/book/<int:book_id>")
+def favorites_book(book_id):
+    """Toggle favorite status for a book from the book detail page"""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    # make sure the book exists
+    c.execute("SELECT 1 FROM books WHERE id=?", (book_id,))
+    if not c.fetchone():
+        conn.close()
+        flash("Book not found.", "danger")
+        return redirect(url_for("home"))
+
+    user_id = session["user_id"]
+
+    # Check if already in favorites
+    c.execute("SELECT 1 FROM favorites WHERE user_id=? AND book_id=?", (user_id, book_id))
+    if c.fetchone():
+        # Remove from favorites
+        c.execute("DELETE FROM favorites WHERE user_id=? AND book_id=?", (user_id, book_id))
+        conn.commit()
+        conn.close()
+        flash("Removed from favorites.", "info")
+    else:
+        # Add to favorites
+        c.execute("INSERT INTO favorites (user_id, book_id) VALUES (?, ?)", (user_id, book_id))
+        conn.commit()
+        
+        # Log activity
+        try:
+            c.execute("""
+                INSERT INTO activity_log (user_id, book_id, activity_type)
+                VALUES (?, ?, ?)
+            """, (user_id, book_id, 'favorited'))
+            conn.commit()
+        except Exception:
+            pass
+        
+        conn.close()
+        flash("Added to favorites!", "success")
+
     return redirect(url_for("view_book", id=book_id))
 
 @app.route("/manga")
