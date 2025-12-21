@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>System Logs | NOVUS Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.png') }}">
+    <style>
+        body {
+            background-color: #000000;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .navbar {
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #333;
+        }
+        .card {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            color: white;
+        }
+        .table {
+            color: white;
+        }
+        .table thead th {
+            background-color: #2b2b2b;
+            border-color: #444;
+            color: #00d4ff;
+        }
+        .table tbody td {
+            border-color: #444;
+        }
+        .badge-info { background-color: #00d4ff; color: black; }
+        .badge-warning { background-color: #ffc107; color: black; }
+        .badge-danger { background-color: #dc3545; }
+        .badge-success { background-color: #28a745; }
+        .badge-secondary { background-color: #6c757d; }
+        .btn-neon {
+            background: #00d4ff;
+            border: none;
+            color: black;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+        .btn-neon:hover {
+            background: white;
+            box-shadow: 0 0 10px #00d4ff;
+        }
+        .log-message {
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .log-details {
+            cursor: pointer;
+        }
+        .log-details:hover {
+            color: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/admin/users">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" width="30" height="30" class="me-2">
+                NOVUS Admin - System Logs
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/admin/users">User Management</a>
+                <a class="nav-link" href="/admin/ai_summaries">AI Summaries</a>
+                <a class="nav-link active" href="/admin/system_logs">System Logs</a>
+                <a class="nav-link" href="/">Back to Site</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">System Logs</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Filters -->
+                        <form method="GET" class="row g-3 mb-4">
+                            <div class="col-md-3">
+                                <label for="level" class="form-label">Log Level</label>
+                                <select name="level" id="level" class="form-select" style="background-color: #2b2b2b; color: white; border: 1px solid #444;">
+                                    <option value="">All Levels</option>
+                                    {% for level in levels %}
+                                    <option value="{{ level }}" {% if level == current_level %}selected{% endif %}>{{ level }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="category" class="form-label">Category</label>
+                                <select name="category" id="category" class="form-select" style="background-color: #2b2b2b; color: white; border: 1px solid #444;">
+                                    <option value="">All Categories</option>
+                                    {% for cat in categories %}
+                                    <option value="{{ cat }}" {% if cat == current_category %}selected{% endif %}>{{ cat }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="limit" class="form-label">Limit</label>
+                                <select name="limit" id="limit" class="form-select" style="background-color: #2b2b2b; color: white; border: 1px solid #444;">
+                                    <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+                                    <option value="100" {% if limit == 100 %}selected{% endif %}>100</option>
+                                    <option value="250" {% if limit == 250 %}selected{% endif %}>250</option>
+                                    <option value="500" {% if limit == 500 %}selected{% endif %}>500</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-neon me-2">Filter</button>
+                                <a href="/admin/system_logs" class="btn btn-secondary">Clear</a>
+                            </div>
+                        </form>
+
+                        <!-- Logs Table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Level</th>
+                                        <th>Category</th>
+                                        <th>User</th>
+                                        <th>Message</th>
+                                        <th>IP</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in logs %}
+                                    <tr>
+                                        <td>{{ log[7] }}</td>
+                                        <td>
+                                            {% if log[1] == 'INFO' %}
+                                                <span class="badge badge-info">{{ log[1] }}</span>
+                                            {% elif log[1] == 'WARNING' %}
+                                                <span class="badge badge-warning">{{ log[1] }}</span>
+                                            {% elif log[1] == 'ERROR' %}
+                                                <span class="badge badge-danger">{{ log[1] }}</span>
+                                            {% elif log[1] == 'CRITICAL' %}
+                                                <span class="badge bg-danger">{{ log[1] }}</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">{{ log[1] }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ log[2] }}</td>
+                                        <td>
+                                            {% if log[5] %}
+                                                {{ log[5] }} (ID: {{ log[4] }})
+                                            {% else %}
+                                                System
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="log-message" title="{{ log[3] }}">{{ log[3] }}</span>
+                                        </td>
+                                        <td>{{ log[6] or 'N/A' }}</td>
+                                        <td>
+                                            {% if log[8] %}
+                                                <span class="log-details" onclick="showDetails('{{ log[8] }}')">View</span>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {% if not logs %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">No system logs found matching the current filters.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background-color: #1e1e1e; color: white;">
+                <div class="modal-header">
+                    <h5 class="modal-title">Log Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="detailsContent" style="background-color: #2b2b2b; padding: 15px; border-radius: 5px; white-space: pre-wrap;"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showDetails(details) {
+            document.getElementById('detailsContent').textContent = JSON.stringify(JSON.parse(details), null, 2);
+            new bootstrap.Modal(document.getElementById('detailsModal')).show();
+        }
+    </script>
+</body>
+</html>

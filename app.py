@@ -1,12 +1,14 @@
 from flask import (
     Flask, render_template, request, redirect,
-    session, url_for, flash, jsonify
+    session, url_for, flash, jsonify, make_response
 )
 import sqlite3
 from datetime import datetime
 from datetime import timedelta
 from collections import Counter
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 from werkzeug.utils import secure_filename
 UPLOAD_FOLDER = os.path.join("static", "uploads", "avatars")
 ALLOWED_EXTS = {"png", "jpg", "jpeg", "webp"}
@@ -62,6 +64,38 @@ ALLOWED_IMG   = {"jpg", "jpeg", "png"}
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "novus_secret_key")
+
+# -------------------- LOGGING CONFIGURATION --------------------
+# Create logs directory if it doesn't exist
+logs_dir = os.path.join(APP_ROOT, "logs")
+os.makedirs(logs_dir, exist_ok=True)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('novus')
+
+# File handler for all logs
+file_handler = RotatingFileHandler(
+    os.path.join(logs_dir, 'novus.log'),
+    maxBytes=10*1024*1024,  # 10MB
+    backupCount=5
+)
+file_handler.setLevel(logging.INFO)
+file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(file_formatter)
+
+# Console handler for development
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.WARNING)
+console_formatter = logging.Formatter('%(levelname)s - %(message)s')
+console_handler.setFormatter(console_formatter)
+
+# Add handlers to logger
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+# Create system logger instance
+system_logger = logging.getLogger('novus.system')
 
 @app.get("/billing/esewa-success")
 def esewa_payment_success():
@@ -233,6 +267,56 @@ def role_required(*roles):
             return f(*args, **kwargs)
         return wrapper
     return decorator
+
+
+def log_system_event(level, category, message, user_id=None, details=None):
+    """Log a system event to database and file"""
+    try:
+        # Log to file
+        log_message = f"[{category.upper()}] {message}"
+        if user_id:
+            log_message += f" (User: {user_id})"
+
+        if level.upper() == 'INFO':
+            system_logger.info(log_message)
+        elif level.upper() == 'WARNING':
+            system_logger.warning(log_message)
+        elif level.upper() == 'ERROR':
+            system_logger.error(log_message)
+        elif level.upper() == 'CRITICAL':
+            system_logger.critical(log_message)
+
+        # Log to database
+        conn = get_conn()
+        c = conn.cursor()
+
+        # Get request info if available
+        ip_address = None
+        user_agent = None
+        try:
+            ip_address = request.remote_addr
+            user_agent = request.headers.get('User-Agent', '')[:255]  # Truncate if too long
+        except RuntimeError:
+            # Outside request context
+            pass
+
+        details_json = None
+        if details:
+            import json
+            details_json = json.dumps(details)[:1000]  # Limit size
+
+        c.execute("""
+            INSERT INTO system_logs (level, category, message, user_id, ip_address, user_agent, details)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (level.upper(), category, message, user_id, ip_address, user_agent, details_json))
+
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        # Don't let logging errors break the app
+        print(f"Logging error: {e}")
+        pass
 
 
 # -------------------- DB INIT --------------------
@@ -443,6 +527,22 @@ def init_db():
         )
     """)
 
+    # system logs (track system events, admin actions, errors)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS system_logs (
+            id INTEGER PRIMARY KEY,
+            level TEXT NOT NULL,  -- INFO, WARNING, ERROR, CRITICAL
+            category TEXT NOT NULL,  -- auth, admin, upload, error, system
+            message TEXT NOT NULL,
+            user_id INTEGER,  -- NULL for system events
+            ip_address TEXT,
+            user_agent TEXT,
+            details TEXT,  -- JSON string for additional data
+            timestamp TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    """)
+
     # team
     c.execute("""
         CREATE TABLE IF NOT EXISTS team (
@@ -597,6 +697,10 @@ def home():
 # ---------- Auth ----------
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    # Prevent browser back button from showing login page after logout
+    if request.method == "GET" and "user_id" in session:
+        return redirect(url_for("home"))
+
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
@@ -620,10 +724,14 @@ def login():
         conn.close()
 
         if not user:
+            # Log failed login attempt
+            log_system_event('WARNING', 'auth', f'Failed login attempt for username: {username}')
             return render_template("login.html", error="Invalid username or password.")
 
         # user[4] = is_banned (0/1), user[5] = status ('active'/'banned')
         if int(user[4]) == 1 or user[5] == "banned":
+            # Log banned user login attempt
+            log_system_event('WARNING', 'auth', f'Banned user {user[1]} attempted to login', user[0])
             return render_template(
                 "login.html",
                 error="Your account has been banned. Please contact the administrator."
@@ -641,9 +749,16 @@ def login():
         if session["plan"] == "ultimate":
             session["plan_expires_at"] = None
 
+        # Log successful login
+        log_system_event('INFO', 'auth', f'User {user[1]} logged in successfully', user[0])
+
         return redirect(url_for("home"))
 
-    return render_template("login.html")
+    response = make_response(render_template("login.html"))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.before_request
 def refresh_plan():
@@ -755,6 +870,10 @@ def register():
 
 @app.route("/logout")
 def logout():
+    user_id = session.get("user_id")
+    username = session.get("username")
+    if user_id:
+        log_system_event('INFO', 'auth', f'User {username} logged out', user_id)
     session.clear()
     return redirect(url_for("login"))
 
@@ -1067,6 +1186,62 @@ def admin_ai_summaries():
     return render_template('admin_ai_summaries.html', rows=rows, ttl_days=ttl_days)
 
 
+@app.route('/admin/system_logs')
+@admin_required
+def admin_system_logs():
+    # Get filter parameters
+    level_filter = request.args.get('level', '').strip()
+    category_filter = request.args.get('category', '').strip()
+    limit = int(request.args.get('limit', 100))
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    # Build query with filters
+    query = """
+        SELECT sl.id, sl.level, sl.category, sl.message, sl.user_id, u.username,
+               sl.ip_address, sl.timestamp, sl.details
+        FROM system_logs sl
+        LEFT JOIN users u ON sl.user_id = u.id
+    """
+    params = []
+    conditions = []
+
+    if level_filter:
+        conditions.append("sl.level = ?")
+        params.append(level_filter.upper())
+
+    if category_filter:
+        conditions.append("sl.category = ?")
+        params.append(category_filter)
+
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    query += " ORDER BY sl.timestamp DESC LIMIT ?"
+    params.append(limit)
+
+    c.execute(query, params)
+    logs = c.fetchall()
+
+    # Get unique levels and categories for filter dropdowns
+    c.execute("SELECT DISTINCT level FROM system_logs ORDER BY level")
+    levels = [row[0] for row in c.fetchall()]
+
+    c.execute("SELECT DISTINCT category FROM system_logs ORDER BY category")
+    categories = [row[0] for row in c.fetchall()]
+
+    conn.close()
+
+    return render_template('admin_system_logs.html',
+                         logs=logs,
+                         levels=levels,
+                         categories=categories,
+                         current_level=level_filter,
+                         current_category=category_filter,
+                         limit=limit)
+
+
 @app.route('/admin/fix_uploaders', methods=['GET', 'POST'])
 @admin_required
 def admin_fix_uploaders():
@@ -1286,6 +1461,10 @@ def add_book():
         conn.commit()
         conn.close()
 
+        # Log book upload
+        uploader_id = session.get("user_id")
+        log_system_event('INFO', 'upload', f'User uploaded book: {title}', uploader_id, {'book_id': c.lastrowid, 'book_type': 'book'})
+
         flash("Book published successfully.", "success")
         return redirect(url_for("home"))
 
@@ -1365,6 +1544,10 @@ def add_book():
             conn.commit()
 
         conn.close()
+
+        # Log manga upload
+        uploader_id = session.get("user_id")
+        log_system_event('INFO', 'upload', f'User uploaded manga: {title} with {page_count} pages in Chapter 1', uploader_id, {'manga_id': manga_id, 'book_type': 'manga', 'chapters': 1, 'pages': page_count})
 
         flash(f"Manga series created successfully with {page_count} pages in Chapter 1. You can add more chapters anytime.", "success")
         return redirect(url_for("manga"))
@@ -1991,7 +2174,12 @@ def watchlist_add():
         return redirect(url_for("login"))
     book_id = request.form.get("book_id", "").strip()
     if not book_id.isdigit():
-        return redirect(url_for("home"))
+        # Prevent browser back button from showing login page after successful login
+        response = redirect(url_for("home"))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     status = (request.form.get("status") or "planned").strip()
     try:
         progress = int(request.form.get("progress") or 0)
@@ -3593,6 +3781,11 @@ def user_ban(user_id):
     c.execute("UPDATE users SET status='banned', is_banned=1 WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
+
+    # Log admin action
+    admin_id = session.get("user_id")
+    log_system_event('WARNING', 'admin', f'Admin banned user ID {user_id}', admin_id, {'action': 'ban_user', 'target_user_id': user_id})
+
     flash("User banned.", "success")
     return redirect(url_for("user_management"))
 
@@ -3605,6 +3798,11 @@ def user_unban(user_id):
     c.execute("UPDATE users SET status='active', is_banned=0 WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
+
+    # Log admin action
+    admin_id = session.get("user_id")
+    log_system_event('INFO', 'admin', f'Admin unbanned user ID {user_id}', admin_id, {'action': 'unban_user', 'target_user_id': user_id})
+
     flash("User unbanned.", "success")
     return redirect(url_for("user_management"))
 
@@ -3634,6 +3832,11 @@ def user_delete(user_id):
     c.execute("DELETE FROM users WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
+
+    # Log admin action
+    admin_id = session.get("user_id")
+    log_system_event('CRITICAL', 'admin', f'Admin deleted user ID {user_id}', admin_id, {'action': 'delete_user', 'target_user_id': user_id})
+
     flash("User deleted.", "success")
     return redirect(url_for("user_management"))
 

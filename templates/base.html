@@ -31,9 +31,148 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}"
     />
+
+    <style>
+      /* Pulsing Loading Bar with Glow */
+      .top-loading-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #00d4ff, #0090ff, #00d4ff);
+        background-size: 200% 100%;
+        z-index: 10000;
+        transform: translateX(-100%) scaleY(1);
+        transition: transform 0.3s ease;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+      }
+
+      .top-loading-bar.show {
+        transform: translateX(0) scaleY(1);
+        animation: loadingPulse 1.5s ease-in-out infinite;
+      }
+
+      .top-loading-bar.page-load {
+        transform: translateX(0) scaleY(1);
+        animation: pageLoadProgress 3s ease-out forwards;
+      }
+
+      @keyframes loadingPulse {
+        0% {
+          transform: translateX(0) scaleY(1);
+          box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+          height: 4px;
+        }
+        50% {
+          transform: translateX(0) scaleY(1.5);
+          box-shadow: 0 0 40px rgba(0, 212, 255, 1);
+          height: 6px;
+        }
+        100% {
+          transform: translateX(0) scaleY(1);
+          box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+          height: 4px;
+        }
+      }
+
+      @keyframes pageLoadProgress {
+        0% {
+          transform: translateX(-100%) scaleY(1);
+          box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+          height: 4px;
+        }
+        50% {
+          transform: translateX(-20%) scaleY(1.3);
+          box-shadow: 0 0 35px rgba(0, 212, 255, 1);
+          height: 5px;
+        }
+        80% {
+          transform: translateX(-5%) scaleY(1.5);
+          box-shadow: 0 0 40px rgba(0, 212, 255, 1.2);
+          height: 6px;
+        }
+        100% {
+          transform: translateX(0) scaleY(1);
+          box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+          height: 4px;
+        }
+      }
+
+      /* Logout Animation Styles */
+      .logout-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(220, 53, 69, 0.9) 0%, rgba(0, 0, 0, 0.95) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.5s ease;
+      }
+
+      .logout-overlay.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .logout-animation {
+        text-align: center;
+        color: white;
+      }
+
+      .logout-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        animation: logoutPulse 1s ease-in-out infinite;
+      }
+
+      .logout-text {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        animation: logoutFadeIn 0.5s ease;
+      }
+
+      .logout-subtext {
+        font-size: 1rem;
+        opacity: 0.8;
+        animation: logoutFadeIn 0.8s ease;
+      }
+
+      @keyframes logoutPulse {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 0.8;
+        }
+      }
+
+      @keyframes logoutFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
   </head>
 
   <body class="{{ body_class|default('') }}">
+
+    <!-- Pulsing Loading Bar with Glow -->
+    <div id="topLoadingBar" class="top-loading-bar page-load"></div>
 
     <!-- SIDEBAR -->
     <div class="sidebar">
@@ -92,7 +231,7 @@
 
   <!-- Logout -->
   {% if session.get('user_id') %}
-  <a href="{{ url_for('logout') }}" class="nav-item nav-item-logout">
+  <a href="#" onclick="handleLogout(event)" class="nav-item nav-item-logout">
     <i class="fas fa-sign-out-alt"></i>
     <span class="tooltip-text">Logout</span>
   </a>
@@ -210,13 +349,13 @@
     <div class="dd-section-title">ADMIN</div>
     <a href="{{ url_for('user_management') }}"><i class="fas fa-users-gear"></i> User Management</a>
     <a href="/admin/team"><i class="fas fa-people-group"></i> Team Admin</a>
-    <a href="#"><i class="fas fa-terminal"></i> System Logs</a>
+    <a href="{{ url_for('admin_system_logs') }}"><i class="fas fa-terminal"></i> System Logs</a>
   {% endif %}
 
   <div class="dropdown-divider"></div>
 
   <!-- LOGOUT -->
-  <a href="{{ url_for('logout') }}" class="danger">
+  <a href="#" onclick="handleLogout(event)" class="danger">
     <i class="fas fa-right-from-bracket"></i> Log Out
   </a>
 </div>
@@ -282,6 +421,17 @@
       </div>
 
       <div class="warp-label">ENTERING MANGA UNIVERSE…</div>
+    </div>
+
+    <!-- LOGOUT ANIMATION OVERLAY -->
+    <div id="logoutOverlay" class="logout-overlay">
+      <div class="logout-animation">
+        <div class="logout-icon">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <div class="logout-text">Logging Out...</div>
+        <div class="logout-subtext">See you next time!</div>
+      </div>
     </div>
 
     <!-- Manga warp trigger -->
@@ -1024,6 +1174,42 @@
         setTimeout(() => {
           loadNotifications();
         }, 1000);
+      });
+
+      // Logout animation function
+      function handleLogout(event) {
+        event.preventDefault();
+
+        const overlay = document.getElementById('logoutOverlay');
+        const topLoadingBar = document.getElementById('topLoadingBar');
+
+        // Show top loading bar
+        if (topLoadingBar) {
+          topLoadingBar.classList.add('show');
+          topLoadingBar.classList.remove('page-load');
+        }
+
+        overlay.classList.add('show');
+
+        // Redirect to logout after animation
+        setTimeout(() => {
+          window.location.href = '{{ url_for("logout") }}';
+        }, 2000); // 2 second delay for animation
+      }
+
+      // Page load completion handler
+      window.addEventListener('load', function() {
+        const topLoadingBar = document.getElementById('topLoadingBar');
+
+        // Hide page load loading bar after animation completes
+        setTimeout(() => {
+          if (topLoadingBar && topLoadingBar.classList.contains('page-load')) {
+            topLoadingBar.style.transform = 'translateX(100%) scaleY(0)';
+            setTimeout(() => {
+              topLoadingBar.style.display = 'none';
+            }, 300);
+          }
+        }, 3000); // Wait for 3 seconds (animation duration)
       });
     </script>
   </body>

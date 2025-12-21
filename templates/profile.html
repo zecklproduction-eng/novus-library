@@ -1,5 +1,52 @@
-{% extends "base.html" %} {% block title %}Profile | NOVUS{% endblock %} {%
-block content %}
+{% extends "base.html" %}
+{% block title %}Profile | NOVUS{% endblock %}
+{% block content %}
+<style>
+.active-log-content {
+  padding: 15px 0;
+}
+
+.online-time-display {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #00d4ff;
+  margin-bottom: 10px;
+}
+
+.online-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-label {
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.stat-value {
+  color: #fff;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.online-time-text {
+  font-family: 'Courier New', monospace;
+  font-size: 1.2rem;
+}
+</style>
 <div class="container py-3 profile-page">
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
@@ -140,11 +187,27 @@ block content %}
     <!-- RIGHT: Bio + Recent Activity -->
     <div class="col-lg-4">
       <div class="section-container mb-4">
-        <div class="section-title">About</div>
-        <p class="text-muted small mb-0">
-          You can drop a short bio here. This block matches the look in your
-          screenshot.
-        </p>
+        <div class="section-title">Active Log</div>
+        <div class="active-log-content">
+          <div class="online-time-display">
+            <i class="fas fa-clock text-success me-2"></i>
+            <span class="online-time-text">Calculating...</span>
+          </div>
+          <div class="online-stats mt-3">
+            <div class="stat-item">
+              <span class="stat-label">Session Time:</span>
+              <span class="stat-value" id="sessionTime">00:00:00</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Pages Visited:</span>
+              <span class="stat-value" id="pagesVisited">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Last Active:</span>
+              <span class="stat-value" id="lastActive">Just now</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="section-container">
@@ -239,4 +302,117 @@ block content %}
   </div>
 </div>
 <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+<script>
+// Active Log functionality
+class ActiveLogTracker {
+  constructor() {
+    this.sessionStart = new Date();
+    this.pageVisits = this.getPageVisits();
+    this.lastActive = new Date();
+    this.interval = null;
+    this.init();
+  }
+
+  init() {
+    this.updateDisplay();
+    this.startTracking();
+    this.trackPageVisit();
+
+    // Update last active on user interaction
+    ['mousedown', 'keydown', 'scroll', 'click'].forEach(event => {
+      document.addEventListener(event, () => {
+        this.lastActive = new Date();
+        this.updateLastActive();
+      }, { passive: true });
+    });
+
+    // Track page visibility
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        this.lastActive = new Date();
+        this.updateLastActive();
+      }
+    });
+  }
+
+  startTracking() {
+    this.interval = setInterval(() => {
+      this.updateDisplay();
+    }, 1000);
+  }
+
+  updateDisplay() {
+    const now = new Date();
+    const sessionDuration = now - this.sessionStart;
+
+    // Format session time
+    const sessionTime = this.formatDuration(sessionDuration);
+    document.getElementById('sessionTime').textContent = sessionTime;
+
+    // Update online time text
+    const onlineTimeText = document.querySelector('.online-time-text');
+    if (onlineTimeText) {
+      onlineTimeText.textContent = `Online for ${sessionTime}`;
+    }
+
+    // Update pages visited
+    document.getElementById('pagesVisited').textContent = this.pageVisits;
+  }
+
+  updateLastActive() {
+    const now = new Date();
+    const timeDiff = now - this.lastActive;
+
+    let lastActiveText = 'Just now';
+
+    if (timeDiff < 60000) { // Less than 1 minute
+      lastActiveText = 'Just now';
+    } else if (timeDiff < 3600000) { // Less than 1 hour
+      const minutes = Math.floor(timeDiff / 60000);
+      lastActiveText = `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    } else if (timeDiff < 86400000) { // Less than 1 day
+      const hours = Math.floor(timeDiff / 3600000);
+      lastActiveText = `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+      const days = Math.floor(timeDiff / 86400000);
+      lastActiveText = `${days} day${days > 1 ? 's' : ''} ago`;
+    }
+
+    document.getElementById('lastActive').textContent = lastActiveText;
+  }
+
+  formatDuration(milliseconds) {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  getPageVisits() {
+    // Get or initialize page visit count from sessionStorage
+    let visits = parseInt(sessionStorage.getItem('pageVisits') || '0');
+    visits++;
+    sessionStorage.setItem('pageVisits', visits.toString());
+    return visits;
+  }
+
+  trackPageVisit() {
+    // Track current page visit
+    const currentPage = window.location.pathname;
+    const visitedPages = JSON.parse(sessionStorage.getItem('visitedPages') || '[]');
+
+    if (!visitedPages.includes(currentPage)) {
+      visitedPages.push(currentPage);
+      sessionStorage.setItem('visitedPages', JSON.stringify(visitedPages));
+    }
+  }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  new ActiveLogTracker();
+});
+</script>
 {% endblock %}

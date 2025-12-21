@@ -3,6 +3,23 @@
 
 {% block content %}
 <div class="container mt-4">
+  <!-- Admin Navigation -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <nav class="nav nav-pills">
+        <a class="nav-link active" href="/admin/users">
+          <i class="fas fa-users me-1"></i> User Management
+        </a>
+        <a class="nav-link" href="/admin/ai_summaries">
+          <i class="fas fa-brain me-1"></i> AI Summaries
+        </a>
+        <a class="nav-link" href="/admin/system_logs">
+          <i class="fas fa-list-alt me-1"></i> System Logs
+        </a>
+      </nav>
+    </div>
+  </div>
+
   <h2 class="mb-4" style="color: var(--text-primary)">
     <i class="fas fa-users-cog me-2" style="color: var(--neon-blue)"></i>
     User Management
