@@ -1173,4 +1173,180 @@
     loadChapter(chapterToLoad);
   }
 </script>
+
+<!-- Enhanced Reader Controls: keyboard, zoom, fit, fullscreen, swipe, progress -->
+<script>
+  (function(){
+    const pagesEl = document.getElementById('mangaPages');
+    let zoom = 1;
+    let fitMode = localStorage.getItem('readerFitMode') || 'width'; // 'width' | 'height' | 'original' | 'manual'
+
+    function applyFitMode() {
+      const img = pagesEl.querySelector('img.manga-page');
+      if (!img) return;
+      img.style.transform = '';
+      img.style.maxWidth = '';
+      img.style.maxHeight = '';
+      zoom = 1;
+      switch (fitMode) {
+        case 'width':
+          img.classList.add('manga-page-single');
+          img.style.maxWidth = '95%';
+          img.style.maxHeight = '';
+          break;
+        case 'height':
+          img.classList.remove('manga-page-single');
+          img.style.maxWidth = '';
+          img.style.maxHeight = '86vh';
+          break;
+        case 'original':
+          img.classList.remove('manga-page-single');
+          img.style.maxWidth = 'none';
+          img.style.maxHeight = 'none';
+          break;
+        case 'manual':
+          // manual zoom takes over
+          break;
+      }
+    }
+
+    function setFitMode(mode) {
+      fitMode = mode;
+      localStorage.setItem('readerFitMode', fitMode);
+      applyFitMode();
+    }
+
+    function setZoom(newZoom) {
+      const img = pagesEl.querySelector('img.manga-page');
+      if (!img) return;
+      zoom = Math.max(0.5, Math.min(newZoom, 4));
+      fitMode = 'manual';
+      localStorage.setItem('readerFitMode', fitMode);
+      img.style.transformOrigin = 'center center';
+      img.style.transform = `scale(${zoom})`;
+    }
+
+    function zoomIn() { setZoom(zoom + 0.2); }
+    function zoomOut() { setZoom(zoom - 0.2); }
+    function resetZoom() { zoom = 1; setFitMode('width'); }
+
+    function toggleFullscreen() {
+      const el = document.documentElement;
+      if (!document.fullscreenElement) {
+        el.requestFullscreen?.();
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+
+    // Keyboard controls
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+      switch (e.key) {
+        case 'ArrowLeft': e.shiftKey ? previousChapter() : previousPage(); e.preventDefault(); break;
+        case 'ArrowRight': e.shiftKey ? nextChapter() : nextPage(); e.preventDefault(); break;
+        case ' ': case 'Enter': nextPage(); e.preventDefault(); break;
+        case 'Home': currentPageIndex = 0; displayPage(); updatePageCounter(); e.preventDefault(); break;
+        case 'End': currentPageIndex = Math.max(totalPages-1,0); displayPage(); updatePageCounter(); e.preventDefault(); break;
+        case '+': case '=': zoomIn(); break;
+        case '-': zoomOut(); break;
+        case '0': resetZoom(); break;
+        case 'f': case 'F': toggleFullscreen(); break;
+        case '1': setFitMode('width'); break;
+        case '2': setFitMode('height'); break;
+        case '3': setFitMode('original'); break;
+      }
+    });
+
+    // Mouse wheel zoom with Ctrl/Cmd
+    pagesEl.addEventListener('wheel', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) zoomIn(); else zoomOut();
+      }
+    }, { passive: false });
+
+    // Double-click to toggle zoom 1↔2
+    pagesEl.addEventListener('dblclick', () => {
+      const img = pagesEl.querySelector('img.manga-page');
+      if (!img) return;
+      if (fitMode !== 'manual' || zoom === 1) setZoom(2); else resetZoom();
+    });
+
+    // Swipe navigation for touch
+    let touchStartX = 0, touchStartY = 0;
+    pagesEl.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      touchStartX = t.clientX; touchStartY = t.clientY;
+    }, { passive: true });
+    pagesEl.addEventListener('touchend', (e) => {
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touchStartX; const dy = t.clientY - touchStartY;
+      if (Math.abs(dx) > 40 && Math.abs(dy) < 60) {
+        if (dx < 0) nextPage(); else previousPage();
+      }
+    });
+
+    // Preload adjacent pages for smoother nav
+    function preloadAround(index) {
+      const files = allPageFiles || [];
+      const pathFor = (i) => `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${files[i]}`;
+      [index+1, index+2, index-1].forEach(i => {
+        if (i >=0 && i < files.length && files[i] && !files[i].toLowerCase().endsWith('.pdf')) {
+          const img = new Image(); img.src = pathFor(i);
+        }
+      });
+    }
+    // Hook into existing displayPage
+    const origDisplayPage = displayPage;
+    displayPage = function(){
+      origDisplayPage();
+      applyFitMode();
+      preloadAround(currentPageIndex);
+      saveProgressDebounced();
+    }
+
+    // Reading progress persistence
+    let saveTimer = null;
+    function saveProgressDebounced(){
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveProgress, 400);
+    }
+    async function saveProgress(){
+      try {
+        await fetch('/api/manga/progress', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ manga_id: mangaId, chapter_id: currentChapterId, page_index: currentPageIndex })
+        });
+      } catch(_) {}
+    }
+    async function loadProgress(){
+      try {
+        const r = await fetch(`/api/manga/progress?manga_id=${mangaId}`);
+        if (!r.ok) return;
+        const data = await r.json();
+        if (data && data.chapter_id) {
+          const found = chapters.find(ch => ch[0] === data.chapter_id);
+          if (found) {
+            loadChapter(data.chapter_id);
+            currentPageIndex = Math.min(Math.max(0, data.page_index||0), Math.max(totalPages-1,0));
+            displayPage();
+            updatePageCounter();
+          }
+        }
+      } catch(_) {}
+    }
+    window.addEventListener('beforeunload', saveProgress);
+
+    // Initial fit apply after first render
+    const mo = new MutationObserver(() => { applyFitMode(); });
+    mo.observe(pagesEl, { childList: true });
+
+    // Expose simple toolbar API if you add buttons later
+    window.ReaderControls = { setFitMode, zoomIn, zoomOut, resetZoom, toggleFullscreen };
+
+    // Try load progress on start (non-blocking)
+    loadProgress();
+  })();
+</script>
 {% endblock %}

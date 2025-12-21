@@ -53,8 +53,22 @@
               <p id="bookAiText" style="margin:6px 0"></p>
             </div>
             <div id="bookAiSpinner" style="display:none; margin-top:8px;"><small>Generating summary…</small></div>
+          
+            <div class="mt-2" style="display:flex; gap:8px; align-items:center;">
+          
+              <button id="coverAiBtn" class="btn btn-outline-light btn-sm"><i class="fas fa-image me-2"></i>AI Analyze Cover</button>
+          
+            </div>
+          
+            <div id="coverAiResult" class="mt-3" style="display:none; background: rgba(255,255,255,0.03); padding:12px; border-radius:8px;">
+          
+              <strong>Cover Analysis</strong>
+          
+              <p id="coverAiText" style="margin:6px 0"></p>
+          
+            </div>
+          
           </div>
-
 
           
 <!-- Watchlist and Favorites actions -->
@@ -368,6 +382,26 @@ document.getElementById('bookAiCopy')?.addEventListener('click', function() {
   navigator.clipboard?.writeText(txt).then(()=>{
     this.textContent = 'Copied'; setTimeout(()=> this.style.display='none', 1200);
   });
+});
+
+document.getElementById('coverAiBtn')?.addEventListener('click', async function() {
+  const btn = this;
+  try {
+    btn.disabled = true; btn.textContent = 'Analyzing...';
+    const resp = await fetch('/api/book/{{ book[0] }}/cover/analyze', { method: 'POST' });
+    const data = await resp.json();
+    if (data.success) {
+      document.getElementById('coverAiText').textContent = data.analysis;
+      document.getElementById('coverAiResult').style.display = 'block';
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Error analyzing cover');
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-image me-2"></i>AI Analyze Cover';
+  }
 });
 </script>
 

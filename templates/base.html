@@ -469,6 +469,51 @@
   </div>
 </div>
 
+<!-- Payment Method Modal (new) -->
+<style>
+.payment-method-modal{position:fixed;inset:0;display:none;z-index:6000}
+.payment-method-modal.show{display:flex}
+.payment-method-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.payment-method-dialog{position:relative;margin:auto;background:#0b1219;color:#e6f7ff;border:1px solid #1e374a;border-radius:16px;width:min(92vw,720px);max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.6);padding:20px}
+.payment-method-title{margin:0 0 10px 0;text-align:center;font-weight:800;letter-spacing:.06em}
+.payment-method-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:6px 0}
+.payment-option{display:grid;place-items:center;gap:8px;border-radius:14px;border:1px solid #1e374a;background:#0f1720;padding:16px;cursor:pointer;transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease}
+.payment-option .payment-logo{width:72px;height:72px;object-fit:contain}
+.payment-option span{font-weight:800;color:#e6f7ff;letter-spacing:.03em}
+.payment-option:hover{transform:translateY(-1px);border-color:#00d4ff;box-shadow:0 0 0 2px rgba(0,212,255,.08)}
+.payment-option.selected{border-color:#00d4ff;box-shadow:0 0 0 2px rgba(0,212,255,.18)}
+.payment-method-actions{display:flex;gap:10px;justify-content:center;margin-top:16px}
+.payment-method-primary{background:#00d4ff;color:#001018;border:none;border-radius:10px;padding:10px 18px;font-weight:800;cursor:pointer}
+.payment-method-secondary{background:#15202b;color:#e6f7ff;border:1px solid #1e374a;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer}
+.payment-method-close{position:absolute;top:10px;right:12px;background:transparent;border:none;color:#e6f7ff;font-size:24px;cursor:pointer}
+@media(max-width:520px){.payment-option .payment-logo{width:64px;height:64px}}
+</style>
+<div id="paymentMethodModal" class="payment-method-modal" aria-hidden="true">
+  <div class="payment-method-backdrop" onclick="closePaymentMethodModal()"></div>
+  <div class="payment-method-dialog" role="dialog" aria-modal="true" aria-label="Select payment method">
+    <button class="payment-method-close" onclick="closePaymentMethodModal()" aria-label="Close">&times;</button>
+    <h3 class="payment-method-title">Select Payment Method</h3>
+    <div class="payment-method-grid" style="grid-template-columns:repeat(3,1fr)">
+      <button class="payment-option" id="pm-esewa" onclick="selectPaymentMethod('esewa')">
+        <img src="{{ url_for('static', filename='img/esewa_logo.png') }}" alt="eSewa" class="payment-logo" />
+        <span>eSewa</span>
+      </button>
+      <button class="payment-option" id="pm-khalti" onclick="selectPaymentMethod('khalti')">
+        <img src="{{ url_for('static', filename='img/khalti.png') }}" alt="Khalti" class="payment-logo" />
+        <span>Khalti</span>
+      </button>
+      <button class="payment-option" id="pm-card" onclick="selectPaymentMethod('card')">
+        <i class="fas fa-credit-card payment-logo" aria-hidden="true"></i>
+        <span>Credit / Debit Card</span>
+      </button>
+    </div>
+    <div class="payment-method-actions">
+      <button class="payment-method-primary" onclick="confirmPayment()">Confirm</button>
+      <button class="payment-method-secondary" onclick="closePaymentMethodModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Appearance Modal -->
 <div class="appearance-modal" id="appearanceModal" aria-hidden="true">
   <div class="appearance-backdrop" onclick="closeAppearanceModal()"></div>
@@ -619,11 +664,52 @@
     document.getElementById("billingModal").classList.remove("show");
     document.body.classList.remove("no-scroll");
   }
-function startUpgrade(plan) {
-  window.location.href = "{{ url_for('billing_checkout') }}" + `?plan=${encodeURIComponent(plan)}`;
-}
-
-
+  function openPaymentMethodModal() {
+    document.getElementById("paymentMethodModal").classList.add("show");
+    document.body.classList.add("no-scroll");
+  }
+  function closePaymentMethodModal() {
+    document.getElementById("paymentMethodModal").classList.remove("show");
+    document.body.classList.remove("no-scroll");
+  }
+  function startUpgrade(plan) {
+    window._selectedPlan = plan;
+    // reset selection state
+    window._selectedMethod = null;
+    var es = document.getElementById('pm-esewa');
+    var kh = document.getElementById('pm-khalti');
+    if (es) es.classList.remove('selected');
+    if (kh) kh.classList.remove('selected');
+    openPaymentMethodModal();
+  }
+  function selectPaymentMethod(method) {
+    window._selectedMethod = method;
+    var es = document.getElementById('pm-esewa');
+    var kh = document.getElementById('pm-khalti');
+    var cc = document.getElementById('pm-card');
+    if (es) es.classList.toggle('selected', method === 'esewa');
+    if (kh) kh.classList.toggle('selected', method === 'khalti');
+    if (cc) cc.classList.toggle('selected', method === 'card');
+  }
+  function confirmPayment() {
+    var plan = window._selectedPlan || 'pro';
+    var method = window._selectedMethod;
+    if (!method) {
+      // nudge: default highlight eSewa if nothing chosen
+      var es = document.getElementById('pm-esewa');
+      if (es) es.classList.add('selected');
+      return;
+    }
+    closePaymentMethodModal();
+    if (method === 'esewa') {
+      window.location.href = `/pay/esewa/initiate?plan=${encodeURIComponent(plan)}`;
+    } else if (method === 'khalti') {
+      window.location.href = `/pay/khalti/initiate?plan=${encodeURIComponent(plan)}`;
+    } else if (method === 'card') {
+      // placeholder route; implement server route if needed
+      window.location.href = `/pay/card/initiate?plan=${encodeURIComponent(plan)}`;
+    }
+  }
 </script>
 
 <script>

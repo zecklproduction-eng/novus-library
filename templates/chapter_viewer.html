@@ -184,7 +184,17 @@
           <strong>AI Summary</strong>
           <p id="chapterAiText" style="margin:6px 0"></p>
         </div>
-
+        
+        <div style="margin-top:12px">
+          <button id="pageAiSummarizeBtn" class="btn btn-outline-light btn-sm" style="display:none"><i class="fas fa-robot me-2"></i>AI Summarize Page</button>
+          <button id="pageAiExtractBtn" class="btn btn-outline-light btn-sm" style="display:none"><i class="fas fa-font me-2"></i>Extract Text</button>
+        </div>
+        
+        <div id="pageAiResult" style="display:none; margin-top:12px; background: rgba(255,255,255,0.03); padding:10px; border-radius:8px;">
+          <strong id="pageAiTitle">Page AI</strong>
+          <p id="pageAiText" style="margin:6px 0"></p>
+        </div>
+        
         <!-- Hidden source for summary -->
         <div id="chapterSummarySource" style="display:none">{{ manga[1] }}. Chapter {{ chapter[1] }} - {{ chapter[2] or '' }}. {% if chapter[3] %}This chapter contains images: {{ chapter[3].split(',')[:6] | join(', ') }}{% endif %}</div>
       </div>
@@ -282,6 +292,8 @@
 async function renderPDF(url, containerId) {
   if (!window.pdfjsLib) { console.error('pdfjs not loaded'); return; }
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+  document.getElementById('pageAiSummarizeBtn').style.display = 'none';
+  document.getElementById('pageAiExtractBtn').style.display = 'none';
   try {
     console.log('Starting PDF load:', url);
     const loadingTask = pdfjsLib.getDocument(url);
@@ -1014,6 +1026,11 @@ let totalPages = 1;
 const readerSettings = {
   readingMode: localStorage.getItem('readingMode') || 'Single Page',
   backgroundColor: localStorage.getItem('backgroundColor') || 'Light',
+  fitMode: localStorage.getItem('fitMode') || 'width',
+  direction: localStorage.getItem('direction') || 'ltr',
+  autoScrollSpeed: parseInt(localStorage.getItem('autoScrollSpeed')) || 5,
+  rotation: parseInt(localStorage.getItem('rotation')) || 0,
+  headerSticky: localStorage.getItem('headerSticky') === 'true',
   rememberProgress: localStorage.getItem('rememberProgress') === 'true'
 };
 
@@ -1397,6 +1414,30 @@ document.addEventListener('DOMContentLoaded', function() {
       btn.classList.add('active');
     }
   });
+  
+  // Set initial active for fit mode
+  if (readerSettings.fitMode === 'width') chapterFitWidth?.classList.add('active');
+  else if (readerSettings.fitMode === 'height') chapterFitHeight?.classList.add('active');
+  else chapterActualSize?.classList.add('active');
+  
+  // Set initial active for direction
+  if (readerSettings.direction === 'ltr') chapterDirLTR?.classList.add('active');
+  else chapterDirRTL?.classList.add('active');
+  
+  // Set initial for header sticky
+  if (headerStickyChk) {
+    headerStickyChk.checked = readerSettings.headerSticky;
+  }
+  
+  // Set initial for auto scroll speed
+  if (autoSpeed) {
+    autoSpeed.value = readerSettings.autoScrollSpeed;
+    if (autoLabel) autoLabel.textContent = readerSettings.autoScrollSpeed;
+  }
+  
+  // Set initial rotation
+  rotationDeg = readerSettings.rotation;
+  applyRotation();
 
   // Reading mode button handlers
   readingModeButtons.forEach((btn, index) => {
@@ -1449,19 +1490,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Apply saved settings
   applyBackgroundColor(readerSettings.backgroundColor);
+  applyChapterFit(readerSettings.fitMode);
+  applyChapterDirection(readerSettings.direction);
+  applyRotation(readerSettings.rotation);
   // Chapter viewer: fit mode handlers
   const chapterFitWidth = document.getElementById('chapterFitWidth');
   const chapterFitHeight = document.getElementById('chapterFitHeight');
   const chapterActualSize = document.getElementById('chapterActualSize');
-  chapterFitWidth?.addEventListener('click', () => { chapterFitWidth.classList.add('active'); chapterFitHeight?.classList.remove('active'); chapterActualSize?.classList.remove('active'); applyChapterFit('width'); });
-  chapterFitHeight?.addEventListener('click', () => { chapterFitHeight.classList.add('active'); chapterFitWidth?.classList.remove('active'); chapterActualSize?.classList.remove('active'); applyChapterFit('height'); });
-  chapterActualSize?.addEventListener('click', () => { chapterActualSize.classList.add('active'); chapterFitWidth?.classList.remove('active'); chapterFitHeight?.classList.remove('active'); applyChapterFit('actual'); });
+  chapterFitWidth?.addEventListener('click', () => { chapterFitWidth.classList.add('active'); chapterFitHeight?.classList.remove('active'); chapterActualSize?.classList.remove('active'); applyChapterFit('width'); localStorage.setItem('fitMode', 'width'); });
+  chapterFitHeight?.addEventListener('click', () => { chapterFitHeight.classList.add('active'); chapterFitWidth?.classList.remove('active'); chapterActualSize?.classList.remove('active'); applyChapterFit('height'); localStorage.setItem('fitMode', 'height'); });
+  chapterActualSize?.addEventListener('click', () => { chapterActualSize.classList.add('active'); chapterFitWidth?.classList.remove('active'); chapterFitHeight?.classList.remove('active'); applyChapterFit('actual'); localStorage.setItem('fitMode', 'actual'); });
 
   // Chapter direction handlers
   const chapterDirLTR = document.getElementById('chapterDirLTR');
   const chapterDirRTL = document.getElementById('chapterDirRTL');
-  chapterDirLTR?.addEventListener('click', () => { chapterDirLTR.classList.add('active'); chapterDirRTL?.classList.remove('active'); applyChapterDirection('ltr'); });
-  chapterDirRTL?.addEventListener('click', () => { chapterDirRTL.classList.add('active'); chapterDirLTR?.classList.remove('active'); applyChapterDirection('rtl'); });
+  chapterDirLTR?.addEventListener('click', () => { chapterDirLTR.classList.add('active'); chapterDirRTL?.classList.remove('active'); applyChapterDirection('ltr'); localStorage.setItem('direction', 'ltr'); });
+  chapterDirRTL?.addEventListener('click', () => { chapterDirRTL.classList.add('active'); chapterDirLTR?.classList.remove('active'); applyChapterDirection('rtl'); localStorage.setItem('direction', 'rtl'); });
 
   // Auto-scroll and rotation
   let autoScrollTimer = null;
@@ -1482,9 +1526,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const rotLeft = document.getElementById('rotateLeft');
   const rotRight = document.getElementById('rotateRight');
   const rotReset = document.getElementById('rotateReset');
-  rotLeft?.addEventListener('click', () => { rotationDeg -= 90; applyRotation(); });
-  rotRight?.addEventListener('click', () => { rotationDeg += 90; applyRotation(); });
-  rotReset?.addEventListener('click', () => { rotationDeg = 0; applyRotation(); });
+  rotLeft?.addEventListener('click', () => { rotationDeg -= 90; applyRotation(); localStorage.setItem('rotation', rotationDeg); });
+  rotRight?.addEventListener('click', () => { rotationDeg += 90; applyRotation(); localStorage.setItem('rotation', rotationDeg); });
+  rotReset?.addEventListener('click', () => { rotationDeg = 0; applyRotation(); localStorage.setItem('rotation', rotationDeg); });
 
   // Zoom, fullscreen, and pointer handlers - NOW INSIDE DOMContentLoaded
   document.getElementById('btnZoomIn')?.addEventListener('click', zoomIn);
@@ -1595,6 +1639,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (next) { const pre = new Image(); pre.src = `/static/manga/${chapterBase}/${next}`; }
         if (prev) { const pre = new Image(); pre.src = `/static/manga/${chapterBase}/${prev}`; }
       });
+
+      if (pages.length > 0) {
+        document.getElementById('pageAiSummarizeBtn').style.display = 'inline-block';
+        document.getElementById('pageAiExtractBtn').style.display = 'inline-block';
+      }
 
       // Set totalPages UI and variable
       if (totalPagesEl) {
@@ -1737,6 +1786,50 @@ document.addEventListener('DOMContentLoaded', function() {
     navigator.clipboard?.writeText(txt).then(()=>{
       this.textContent = 'Copied'; setTimeout(()=> this.style.display='none', 1200);
     });
+  });
+  
+  document.getElementById('pageAiSummarizeBtn')?.addEventListener('click', async function() {
+    const currentPage = parseInt(document.getElementById('currentPage')?.textContent || '1');
+    const chapterId = {{ chapter[0] }};
+    try {
+      this.disabled = true; this.textContent = 'Generating...';
+      const resp = await fetch(`/api/manga/page/${chapterId}/${currentPage}/summarize`, { method: 'POST' });
+      const data = await resp.json();
+      if (data.success) {
+        document.getElementById('pageAiTitle').textContent = `Page ${currentPage} AI Summary`;
+        document.getElementById('pageAiText').textContent = data.summary;
+        document.getElementById('pageAiResult').style.display = 'block';
+      } else {
+        alert('Error: ' + data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error generating summary');
+    } finally {
+      this.disabled = false; this.innerHTML = '<i class="fas fa-robot me-2"></i>AI Summarize Page';
+    }
+  });
+  
+  document.getElementById('pageAiExtractBtn')?.addEventListener('click', async function() {
+    const currentPage = parseInt(document.getElementById('currentPage')?.textContent || '1');
+    const chapterId = {{ chapter[0] }};
+    try {
+      this.disabled = true; this.textContent = 'Extracting...';
+      const resp = await fetch(`/api/manga/page/${chapterId}/${currentPage}/extract-text`, { method: 'POST' });
+      const data = await resp.json();
+      if (data.success) {
+        document.getElementById('pageAiTitle').textContent = `Page ${currentPage} Extracted Text`;
+        document.getElementById('pageAiText').textContent = data.extracted_text;
+        document.getElementById('pageAiResult').style.display = 'block';
+      } else {
+        alert('Error: ' + data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error extracting text');
+    } finally {
+      this.disabled = false; this.innerHTML = '<i class="fas fa-font me-2"></i>Extract Text';
+    }
   });
 });
 

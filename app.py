@@ -342,6 +342,18 @@ def init_db():
             UNIQUE(item_type, item_id)
         )
     """)
+    
+    # image summaries cache table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS image_summaries (
+            id INTEGER PRIMARY KEY,
+            chapter_id INTEGER,
+            page_num INTEGER,
+            summary TEXT,
+            created_at TEXT DEFAULT (DATETIME('now')),
+            UNIQUE(chapter_id, page_num)
+        )
+    """)
 
     # created_at trigger
     c.execute("""
@@ -3683,8 +3695,8 @@ def summarize_manga_page(chapter_id, page_num):
         
         # Get chapter and verify access
         c.execute("""
-            SELECT ch.id, ch.manga_id, b.id 
-            FROM manga_chapters ch
+            SELECT ch.id, ch.manga_id, b.id
+            FROM chapters ch
             JOIN books b ON ch.manga_id = b.id
             WHERE ch.id = ?
         """, (chapter_id,))
@@ -3729,8 +3741,75 @@ def summarize_manga_page(chapter_id, page_num):
     
     except Exception as e:
         return jsonify({'error': f'Summarization failed: {str(e)}'}), 500
-
-
+    
+    
+    @app.route('/api/manga/page/<int:chapter_id>/<int:page_num>/extract-text', methods=['POST'])
+    def extract_manga_page_text(chapter_id, page_num):
+        """Extract text from a manga page image"""
+        if 'user_id' not in session:
+            return jsonify({'error': 'login required'}), 401
+        
+        if not IMAGE_AI_AVAILABLE:
+            return jsonify({'error': 'Text extraction not available'}), 503
+        
+        try:
+            conn = get_conn()
+            c = conn.cursor()
+            
+            # Get chapter info
+            c.execute("""
+                SELECT manga_id, chapter_num, pdf_filename
+                FROM chapters
+                WHERE id = ?
+            """, (chapter_id,))
+            chapter_info = c.fetchone()
+            
+            if not chapter_info:
+                conn.close()
+                return jsonify({'error': 'chapter not found'}), 404
+            
+            manga_id, chapter_num, pdf_filename = chapter_info
+            
+            # Get page files
+            if pdf_filename and ',' in pdf_filename:
+                page_files = pdf_filename.split(',')
+            else:
+                page_files = [pdf_filename] if pdf_filename else []
+            
+            if page_num < 1 or page_num > len(page_files):
+                conn.close()
+                return jsonify({'error': 'invalid page number'}), 400
+            
+            page_filename = page_files[page_num - 1]
+            
+            # Construct image path
+            image_path = os.path.join(
+                UPLOAD_FOLDER_MANGA,
+                f"manga_{manga_id}_ch{chapter_num}",
+                page_filename
+            )
+            
+            # Check if image exists
+            if not os.path.exists(image_path):
+                conn.close()
+                return jsonify({'error': 'page image not found'}), 404
+            
+            # Extract text
+            ai = ImageSummaryAI()
+            text = ai.extract_text_from_image(image_path)
+            
+            conn.close()
+            
+            return jsonify({
+                'success': True,
+                'page_num': page_num,
+                'extracted_text': text
+            })
+        
+        except Exception as e:
+            return jsonify({'error': f'Text extraction failed: {str(e)}'}), 500
+    
+    
 @app.route('/api/book/<int:book_id>/cover/analyze', methods=['POST'])
 def analyze_book_cover(book_id):
     """Analyze book/manga cover image using AI"""

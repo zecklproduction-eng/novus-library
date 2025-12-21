@@ -5456,3 +5456,9 @@ MANGA WARP OVERLAY (VORTEX)
   }
 }
 
+/* ===== RESTORE BILLING MODAL VISIBILITY (safe override) ===== */
+.billing-modal{position:fixed;inset:0;display:none;z-index:5000}
+.billing-modal.show{display:flex}
+.billing-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.billing-dialog{position:relative;margin:auto;background:#0b1219;color:#e6f7ff;border:1px solid #1e374a;border-radius:16px;width:min(92vw,920px);max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.6);padding:20px}
+/* ===== END RESTORE ===== */
