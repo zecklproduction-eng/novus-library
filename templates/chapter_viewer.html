@@ -6,7 +6,7 @@
   <!-- TOP BAR -->
   <div class="reader-top-bar">
     <div class="reader-bar-left">
-      <button class="reader-btn-icon" onclick="window.history.back()">
+      <button class="reader-btn-icon" data-action="goBack">
         <i class="fas fa-arrow-left"></i>
       </button>
       <div class="reader-title-group">
@@ -16,7 +16,7 @@
     </div>
 
     <div class="reader-bar-right">
-      <button class="reader-btn" onclick="toggleSettings()">
+      <button class="reader-btn" data-action="toggleSettings">
         <i class="fas fa-cog"></i>
         <span>Settings</span>
       </button>
@@ -42,7 +42,7 @@
         <h3 class="series-title">{{ manga[1] }}</h3>
         <p class="series-category"><span class="badge">{{ manga[3] }}</span></p>
         
-        <button class="btn btn-primary w-100 mb-2" onclick="toggleChapters()">
+        <button class="btn btn-primary w-100 mb-2" data-action="toggleChapters">
           <i class="fas fa-list"></i> Chapters
         </button>
       </div>
@@ -67,15 +67,15 @@
       <!-- READER HEADER -->
       <div class="reader-header">
         <div class="chapter-selector">
-          <button class="chapter-btn" onclick="previousChapter()">
+          <button class="chapter-btn" data-action="previousChapter">
             <i class="fas fa-chevron-left"></i>
           </button>
-          <select class="chapter-dropdown" id="chapterSelect" onchange="changeChapter()">
+          <select class="chapter-dropdown" id="chapterSelect" data-action="changeChapter">
             {% for ch in chapters %}
               <option value="{{ ch[0] }}" {% if ch[0] == chapter[0] %}selected{% endif %}>Chapter {{ ch[1] }}: {{ ch[2] or 'Untitled' }}</option>
             {% endfor %}
           </select>
-          <button class="chapter-btn" onclick="nextChapter()">
+          <button class="chapter-btn" data-action="nextChapter">
             <i class="fas fa-chevron-right"></i>
           </button>
         </div>
@@ -140,7 +140,7 @@
 
       <!-- NAVIGATION BAR -->
       <div class="reader-footer">
-        <button class="nav-btn" onclick="previousPage()" title="Previous Page">
+        <button class="nav-btn" data-action="previousPage" title="Previous Page">
           <i class="fas fa-chevron-left"></i>
         </button>
 
@@ -153,7 +153,7 @@
               min="0" 
               max="100" 
               value="0"
-              oninput="updatePage(this.value)"
+              data-action="updatePage"
             >
           </div>
           <span class="page-indicator" id="pageIndicator">
@@ -161,7 +161,7 @@
           </span>
         </div>
 
-        <button class="nav-btn" onclick="nextPage()" title="Next Page">
+        <button class="nav-btn" data-action="nextPage" title="Next Page">
           <i class="fas fa-chevron-right"></i>
         </button>
       </div>
@@ -206,7 +206,7 @@
     <div class="settings-content">
       <div class="settings-header">
         <h3>Reader Settings</h3>
-        <button class="close-btn" onclick="toggleSettings()">
+        <button class="close-btn" data-action="toggleSettings">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -215,52 +215,52 @@
         <div class="setting-group">
           <label>Reading Mode</label>
           <div class="setting-options">
-            <button type="button" class="setting-option active">Single Page</button>
-            <button type="button" class="setting-option">Double Page</button>
-            <button type="button" class="setting-option">Continuous</button>
-            <button type="button" class="setting-option">Vertical Scroll</button>
-            <button type="button" class="setting-option">Horizontal Scroll</button>
-            <button type="button" class="setting-option">Webtoon</button>
+            <button type="button" class="setting-option active" data-reading-mode="Single Page">Single Page</button>
+            <button type="button" class="setting-option" data-reading-mode="Double Page">Double Page</button>
+            <button type="button" class="setting-option" data-reading-mode="Continuous">Continuous</button>
+            <button type="button" class="setting-option" data-reading-mode="Vertical Scroll">Vertical Scroll</button>
+            <button type="button" class="setting-option" data-reading-mode="Horizontal Scroll">Horizontal Scroll</button>
+            <button type="button" class="setting-option" data-reading-mode="Webtoon">Webtoon</button>
           </div>
         </div>
 
         <div class="setting-group">
           <label>Background Color</label>
           <div class="setting-options">
-            <button type="button" class="setting-option active" style="background: #fff; border: 2px solid #667eea; color: #000;">Light</button>
-            <button type="button" class="setting-option" style="background: #1a1a1a; border: 2px solid #333; color: #fff;">Dark</button>
-            <button type="button" class="setting-option" style="background: #f5f0e8; border: 2px solid #d4c5b9; color: #3e3e38;">Sepia</button>
+            <button type="button" class="setting-option active" data-bg-color="Light" style="background: #fff; border: 2px solid #667eea; color: #000;">Light</button>
+            <button type="button" class="setting-option" data-bg-color="Dark" style="background: #1a1a1a; border: 2px solid #333; color: #fff;">Dark</button>
+            <button type="button" class="setting-option" data-bg-color="Sepia" style="background: #f5f0e8; border: 2px solid #d4c5b9; color: #3e3e38;">Sepia</button>
           </div>
         </div>
         <div class="setting-group">
           <label>Fit Mode</label>
           <div class="setting-options">
-            <button type="button" class="setting-option active" id="chapterFitWidth">Fit Width</button>
-            <button type="button" class="setting-option" id="chapterFitHeight">Fit Height</button>
-            <button type="button" class="setting-option" id="chapterActualSize">Actual Size</button>
+            <button type="button" class="setting-option active" data-fit-mode="width" id="chapterFitWidth">Fit Width</button>
+            <button type="button" class="setting-option" data-fit-mode="height" id="chapterFitHeight">Fit Height</button>
+            <button type="button" class="setting-option" data-fit-mode="actual" id="chapterActualSize">Actual Size</button>
           </div>
         </div>
         <div class="setting-group">
           <label>Direction</label>
           <div class="setting-options">
-            <button type="button" class="setting-option active" id="chapterDirLTR">Left to Right</button>
-            <button type="button" class="setting-option" id="chapterDirRTL">Right to Left</button>
+            <button type="button" class="setting-option active" data-direction="ltr" id="chapterDirLTR">Left to Right</button>
+            <button type="button" class="setting-option" data-direction="rtl" id="chapterDirRTL">Right to Left</button>
           </div>
         </div>
         <div class="setting-group">
           <label>Auto-Scroll</label>
           <div style="display:flex; gap:8px; align-items:center;">
-            <button type="button" class="btn btn-sm" id="autoScrollToggle">Start</button>
-            <input type="range" id="autoScrollSpeed" min="1" max="10" value="5">
-            <span id="autoScrollSpeedLabel">5</span>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="autoScrollToggle">Start</button>
+            <input type="range" id="autoScrollSpeed" min="1" max="10" value="5" style="flex:1;">
+            <span id="autoScrollSpeedLabel" style="min-width:20px; text-align:center; color:#667eea; font-weight:bold;">5</span>
           </div>
         </div>
         <div class="setting-group">
           <label>Rotation</label>
           <div class="setting-options">
-            <button type="button" class="setting-option" id="rotateLeft">⟲</button>
-            <button type="button" class="setting-option" id="rotateRight">⟳</button>
-            <button type="button" class="setting-option" id="rotateReset">Reset</button>
+            <button type="button" class="setting-option" data-rotation="-90" id="rotateLeft">⟲</button>
+            <button type="button" class="setting-option" data-rotation="90" id="rotateRight">⟳</button>
+            <button type="button" class="setting-option" data-rotation="0" id="rotateReset">Reset</button>
           </div>
         </div>
         <div class="setting-group">
@@ -271,7 +271,7 @@
 
         <div class="setting-group">
           <label>
-            <input type="checkbox" checked> Remember progress
+            <input type="checkbox" id="rememberProgressChapter" checked> Remember progress
           </label>
         </div>
       </div>
@@ -1022,6 +1022,55 @@ const mangaId = pathParts[2];
 const chapterId = pathParts[4];
 let totalPages = 1;
 
+// Centralized event handler for data-action attributes
+document.addEventListener('click', function(e) {
+  const element = e.target.closest('[data-action]');
+  if (!element) return;
+  
+  const action = element.dataset.action;
+  
+  switch (action) {
+    case 'goBack':
+      window.history.back();
+      break;
+    case 'toggleSettings':
+      toggleSettings();
+      break;
+    case 'toggleChapters':
+      toggleChapters();
+      break;
+    case 'previousChapter':
+      previousChapter();
+      break;
+    case 'changeChapter':
+      changeChapter();
+      break;
+    case 'nextChapter':
+      nextChapter();
+      break;
+    case 'previousPage':
+      previousPage();
+      break;
+    case 'nextPage':
+      nextPage();
+      break;
+  }
+});
+
+// Handle input events for data-action attributes
+document.addEventListener('input', function(e) {
+  const element = e.target;
+  if (!element.dataset.action) return;
+  
+  const action = element.dataset.action;
+  
+  switch (action) {
+    case 'updatePage':
+      updatePage(element.value);
+      break;
+  }
+});
+
 // Reader settings storage
 const readerSettings = {
   readingMode: localStorage.getItem('readingMode') || 'Single Page',
@@ -1325,24 +1374,72 @@ function applyReadingMode(mode) {
   }
 }
 
-// Helper functions for fit, direction, rotation (defined outside DOMContentLoaded so they can be called from callbacks)
+// Global variables for settings
+let autoSpeed = 5;
+let autoLabel = null;
+let rotationDeg = 0;
+
+// Helper functions for fit, direction, rotation
 function applyChapterFit(mode) {
-  document.querySelectorAll('.chapter-page img').forEach(img => {
-    if (mode === 'width') { img.style.width = '100%'; img.style.height = 'auto'; }
-    else if (mode === 'height') { img.style.height = '100%'; img.style.width = 'auto'; }
-    else { img.style.width = ''; img.style.height = ''; }
+  document.querySelectorAll('.chapter-page img, canvas').forEach(img => {
+    if (mode === 'width') { 
+      img.style.width = '100%'; 
+      img.style.height = 'auto'; 
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = 'none';
+    }
+    else if (mode === 'height') { 
+      img.style.height = '100%'; 
+      img.style.width = 'auto';
+      img.style.maxWidth = 'none';
+      img.style.maxHeight = '100%';
+    }
+    else { 
+      img.style.width = ''; 
+      img.style.height = ''; 
+      img.style.maxWidth = 'none';
+      img.style.maxHeight = 'none';
+    }
   });
+  
+  // Also apply to PDF viewer
+  const pdfViewer = document.getElementById('pdfViewer');
+  if (pdfViewer) {
+    if (mode === 'width') {
+      pdfViewer.style.width = '100%';
+      pdfViewer.style.height = 'auto';
+    } else if (mode === 'height') {
+      pdfViewer.style.width = 'auto';
+      pdfViewer.style.height = '100vh';
+    } else {
+      pdfViewer.style.width = '100%';
+      pdfViewer.style.height = '100%';
+    }
+  }
 }
 
 function applyChapterDirection(dir) {
-  const pc = document.querySelector('.images-viewer-wrapper');
-  if (!pc) return;
-  pc.style.direction = (dir === 'rtl') ? 'rtl' : 'ltr';
+  const viewer = document.getElementById('mangaViewer');
+  if (!viewer) return;
+  
+  // Apply to page container
+  const pc = document.querySelector('.images-viewer-wrapper') || document.querySelector('.page-container');
+  if (pc) pc.style.direction = (dir === 'rtl') ? 'rtl' : 'ltr';
+  
+  // Apply to entire viewer for consistency
+  viewer.style.direction = (dir === 'rtl') ? 'rtl' : 'ltr';
 }
 
-let rotationDeg = 0;
 function applyRotation() { 
-  document.querySelectorAll('.chapter-page img').forEach(img => img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom}) rotate(${rotationDeg}deg)`); 
+  // Apply to images
+  document.querySelectorAll('.chapter-page img').forEach(img => {
+    img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom}) rotate(${rotationDeg}deg)`;
+  });
+  
+  // Apply to PDF canvases
+  document.querySelectorAll('canvas').forEach(canvas => {
+    canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom}) rotate(${rotationDeg}deg)`;
+  });
 }
 
 // Attach UI handlers after DOM loads
@@ -1372,99 +1469,84 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (e) { console.error(e); alert('Unable to share'); }
   });
 
-  // Get all setting groups
-  const settingGroups = document.querySelectorAll('.setting-group');
-  console.log('Setting groups found:', settingGroups.length);
-  
-  const readingModeGroup = settingGroups[0];
-  const bgColorGroup = settingGroups[1];
-  const rememberGroup = settingGroups[2];
+  // Initialize global variables
+  autoSpeed = document.getElementById('autoScrollSpeed');
+  autoLabel = document.getElementById('autoScrollSpeedLabel');
 
-  // Get all buttons
-  const readingModeButtons = readingModeGroup ? readingModeGroup.querySelectorAll('.setting-option') : [];
-  const bgColorButtons = bgColorGroup ? bgColorGroup.querySelectorAll('.setting-option') : [];
-  const rememberCheckbox = rememberGroup ? rememberGroup.querySelector('input[type="checkbox"]') : null;
-
-  console.log('Reading mode buttons:', readingModeButtons.length);
-  console.log('BG color buttons:', bgColorButtons.length);
-  console.log('Remember checkbox:', rememberCheckbox);
-
-  // Set initial active states for reading mode
-  readingModeButtons.forEach(btn => {
+  // Set initial active states for all settings using data attributes
+  document.querySelectorAll('[data-reading-mode]').forEach(btn => {
     btn.classList.remove('active');
-    if (btn.textContent.trim() === readerSettings.readingMode) {
+    if (btn.dataset.readingMode === readerSettings.readingMode) {
       btn.classList.add('active');
     }
   });
 
-  // Add header sticky toggle support in chapter viewer settings if present
-  const headerStickyChk = document.getElementById('headerStickyChapter');
-  if (headerStickyChk) {
-    headerStickyChk.checked = true;
-    headerStickyChk.addEventListener('change', function() {
-      const topBar = document.querySelector('.reader-top-bar');
-      if (topBar) topBar.style.position = this.checked ? 'sticky' : 'static';
-    });
-  }
-
-  // Set initial active states for background color
-  bgColorButtons.forEach(btn => {
+  document.querySelectorAll('[data-bg-color]').forEach(btn => {
     btn.classList.remove('active');
-    if (btn.textContent.trim() === readerSettings.backgroundColor) {
+    if (btn.dataset.bgColor === readerSettings.backgroundColor) {
       btn.classList.add('active');
     }
   });
-  
-  // Set initial active for fit mode
-  if (readerSettings.fitMode === 'width') chapterFitWidth?.classList.add('active');
-  else if (readerSettings.fitMode === 'height') chapterFitHeight?.classList.add('active');
-  else chapterActualSize?.classList.add('active');
-  
-  // Set initial active for direction
-  if (readerSettings.direction === 'ltr') chapterDirLTR?.classList.add('active');
-  else chapterDirRTL?.classList.add('active');
-  
-  // Set initial for header sticky
-  if (headerStickyChk) {
-    headerStickyChk.checked = readerSettings.headerSticky;
-  }
-  
-  // Set initial for auto scroll speed
-  if (autoSpeed) {
+
+  document.querySelectorAll('[data-fit-mode]').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.fitMode === readerSettings.fitMode) {
+      btn.classList.add('active');
+    }
+  });
+
+  document.querySelectorAll('[data-direction]').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.direction === readerSettings.direction) {
+      btn.classList.add('active');
+    }
+  });
+
+  // Set initial values from saved settings
+  if (autoSpeed && autoLabel) {
     autoSpeed.value = readerSettings.autoScrollSpeed;
-    if (autoLabel) autoLabel.textContent = readerSettings.autoScrollSpeed;
+    autoLabel.textContent = readerSettings.autoScrollSpeed;
   }
   
-  // Set initial rotation
-  rotationDeg = readerSettings.rotation;
-  applyRotation();
+  rotationDeg = readerSettings.rotation || 0;
 
-  // Reading mode button handlers
-  readingModeButtons.forEach((btn, index) => {
+  // Reading Mode handlers
+  document.querySelectorAll('[data-reading-mode]').forEach(btn => {
     btn.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      readingModeButtons.forEach(b => b.classList.remove('active'));
+      
+      // Remove active from all reading mode buttons
+      document.querySelectorAll('[data-reading-mode]').forEach(b => b.classList.remove('active'));
+      
+      // Add active to clicked button
       this.classList.add('active');
-      const mode = this.textContent.trim();
+      
+      const mode = this.dataset.readingMode;
       readerSettings.readingMode = mode;
       localStorage.setItem('readingMode', mode);
       applyReadingMode(mode);
       console.log('Reading mode changed to:', mode);
+      
       // Re-render pages according to the new mode
       const cur = parseInt(document.getElementById('currentPage')?.textContent || '1');
       displayPage(cur);
     });
   });
 
-  // Background color button handlers
-  bgColorButtons.forEach((btn, index) => {
+  // Background Color handlers
+  document.querySelectorAll('[data-bg-color]').forEach(btn => {
     btn.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      bgColorButtons.forEach(b => b.classList.remove('active'));
+      
+      // Remove active from all bg color buttons
+      document.querySelectorAll('[data-bg-color]').forEach(b => b.classList.remove('active'));
+      
+      // Add active to clicked button
       this.classList.add('active');
-      const color = this.textContent.trim();
+      
+      const color = this.dataset.bgColor;
       readerSettings.backgroundColor = color;
       localStorage.setItem('backgroundColor', color);
       applyBackgroundColor(color);
@@ -1472,10 +1554,120 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Remember progress checkbox handler
-  if (rememberCheckbox) {
-    rememberCheckbox.checked = readerSettings.rememberProgress;
-    rememberCheckbox.addEventListener('change', function() {
+  // Fit Mode handlers
+  document.querySelectorAll('[data-fit-mode]').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Remove active from all fit mode buttons
+      document.querySelectorAll('[data-fit-mode]').forEach(b => b.classList.remove('active'));
+      
+      // Add active to clicked button
+      this.classList.add('active');
+      
+      const mode = this.dataset.fitMode;
+      readerSettings.fitMode = mode;
+      localStorage.setItem('fitMode', mode);
+      applyChapterFit(mode);
+      console.log('Fit mode changed to:', mode);
+    });
+  });
+
+  // Direction handlers
+  document.querySelectorAll('[data-direction]').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Remove active from all direction buttons
+      document.querySelectorAll('[data-direction]').forEach(b => b.classList.remove('active'));
+      
+      // Add active to clicked button
+      this.classList.add('active');
+      
+      const dir = this.dataset.direction;
+      readerSettings.direction = dir;
+      localStorage.setItem('direction', dir);
+      applyChapterDirection(dir);
+      console.log('Direction changed to:', dir);
+    });
+  });
+
+  // Rotation handlers
+  document.querySelectorAll('[data-rotation]').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const delta = parseInt(this.dataset.rotation);
+      if (delta === 0) {
+        rotationDeg = 0;
+      } else {
+        rotationDeg += delta;
+      }
+      
+      localStorage.setItem('rotation', rotationDeg);
+      applyRotation();
+      console.log('Rotation changed to:', rotationDeg);
+    });
+  });
+
+  // Auto-scroll functionality
+  let autoScrollTimer = null;
+  const autoToggle = document.getElementById('autoScrollToggle');
+  
+  if (autoSpeed && autoLabel) {
+    autoSpeed.addEventListener('input', () => {
+      autoLabel.textContent = autoSpeed.value;
+      readerSettings.autoScrollSpeed = parseInt(autoSpeed.value);
+      localStorage.setItem('autoScrollSpeed', autoSpeed.value);
+      
+      // Update interval if auto-scroll is active
+      if (autoScrollTimer) {
+        clearInterval(autoScrollTimer);
+        const interval = Math.max(100, 1101 - (parseInt(autoSpeed.value || '5') * 100));
+        autoScrollTimer = setInterval(() => { nextPage(); }, interval);
+      }
+    });
+  }
+
+  if (autoToggle) {
+    autoToggle.addEventListener('click', () => {
+      if (autoScrollTimer) {
+        clearInterval(autoScrollTimer);
+        autoScrollTimer = null;
+        autoToggle.textContent = 'Start';
+        autoToggle.classList.remove('btn-danger');
+        autoToggle.classList.add('btn-outline-primary');
+      } else {
+        const interval = Math.max(100, 1101 - (parseInt(autoSpeed?.value || '5') * 100));
+        autoScrollTimer = setInterval(() => { nextPage(); }, interval);
+        autoToggle.textContent = 'Stop';
+        autoToggle.classList.remove('btn-outline-primary');
+        autoToggle.classList.add('btn-danger');
+      }
+    });
+  }
+
+  // Header sticky checkbox
+  const headerStickyChk = document.getElementById('headerStickyChapter');
+  if (headerStickyChk) {
+    headerStickyChk.checked = readerSettings.headerSticky;
+    headerStickyChk.addEventListener('change', function() {
+      readerSettings.headerSticky = this.checked;
+      localStorage.setItem('headerSticky', this.checked);
+      const topBar = document.querySelector('.reader-top-bar');
+      if (topBar) topBar.style.position = this.checked ? 'sticky' : 'static';
+      console.log('Header sticky:', this.checked);
+    });
+  }
+
+  // Remember progress checkbox
+  const rememberProgressChk = document.getElementById('rememberProgressChapter');
+  if (rememberProgressChk) {
+    rememberProgressChk.checked = readerSettings.rememberProgress;
+    rememberProgressChk.addEventListener('change', function() {
       readerSettings.rememberProgress = this.checked;
       localStorage.setItem('rememberProgress', this.checked);
       console.log('Remember progress:', this.checked);
@@ -1493,48 +1685,6 @@ document.addEventListener('DOMContentLoaded', function() {
   applyChapterFit(readerSettings.fitMode);
   applyChapterDirection(readerSettings.direction);
   applyRotation(readerSettings.rotation);
-  // Chapter viewer: fit mode handlers
-  const chapterFitWidth = document.getElementById('chapterFitWidth');
-  const chapterFitHeight = document.getElementById('chapterFitHeight');
-  const chapterActualSize = document.getElementById('chapterActualSize');
-  chapterFitWidth?.addEventListener('click', () => { chapterFitWidth.classList.add('active'); chapterFitHeight?.classList.remove('active'); chapterActualSize?.classList.remove('active'); applyChapterFit('width'); localStorage.setItem('fitMode', 'width'); });
-  chapterFitHeight?.addEventListener('click', () => { chapterFitHeight.classList.add('active'); chapterFitWidth?.classList.remove('active'); chapterActualSize?.classList.remove('active'); applyChapterFit('height'); localStorage.setItem('fitMode', 'height'); });
-  chapterActualSize?.addEventListener('click', () => { chapterActualSize.classList.add('active'); chapterFitWidth?.classList.remove('active'); chapterFitHeight?.classList.remove('active'); applyChapterFit('actual'); localStorage.setItem('fitMode', 'actual'); });
-
-  // Chapter direction handlers
-  const chapterDirLTR = document.getElementById('chapterDirLTR');
-  const chapterDirRTL = document.getElementById('chapterDirRTL');
-  chapterDirLTR?.addEventListener('click', () => { chapterDirLTR.classList.add('active'); chapterDirRTL?.classList.remove('active'); applyChapterDirection('ltr'); localStorage.setItem('direction', 'ltr'); });
-  chapterDirRTL?.addEventListener('click', () => { chapterDirRTL.classList.add('active'); chapterDirLTR?.classList.remove('active'); applyChapterDirection('rtl'); localStorage.setItem('direction', 'rtl'); });
-
-  // Auto-scroll and rotation
-  let autoScrollTimer = null;
-  const autoToggle = document.getElementById('autoScrollToggle');
-  const autoSpeed = document.getElementById('autoScrollSpeed');
-  const autoLabel = document.getElementById('autoScrollSpeedLabel');
-  autoSpeed?.addEventListener('input', () => { if (autoLabel) autoLabel.textContent = autoSpeed.value; });
-  autoToggle?.addEventListener('click', () => {
-    if (autoScrollTimer) {
-      clearInterval(autoScrollTimer); autoScrollTimer = null; autoToggle.textContent = 'Start';
-    } else {
-      const interval = Math.max(100, 1100 - (parseInt(autoSpeed.value || '5') * 100));
-      autoScrollTimer = setInterval(() => { nextPage(); }, interval);
-      autoToggle.textContent = 'Stop';
-    }
-  });
-
-  const rotLeft = document.getElementById('rotateLeft');
-  const rotRight = document.getElementById('rotateRight');
-  const rotReset = document.getElementById('rotateReset');
-  rotLeft?.addEventListener('click', () => { rotationDeg -= 90; applyRotation(); localStorage.setItem('rotation', rotationDeg); });
-  rotRight?.addEventListener('click', () => { rotationDeg += 90; applyRotation(); localStorage.setItem('rotation', rotationDeg); });
-  rotReset?.addEventListener('click', () => { rotationDeg = 0; applyRotation(); localStorage.setItem('rotation', rotationDeg); });
-
-  // Zoom, fullscreen, and pointer handlers - NOW INSIDE DOMContentLoaded
-  document.getElementById('btnZoomIn')?.addEventListener('click', zoomIn);
-  document.getElementById('btnZoomOut')?.addEventListener('click', zoomOut);
-  document.getElementById('btnResetZoom')?.addEventListener('click', resetZoom);
-  document.getElementById('btnFullscreen')?.addEventListener('click', toggleFullscreen);
 
   // Wheel to zoom when ctrlKey pressed
   document.getElementById('mangaViewer')?.addEventListener('wheel', function(e) {

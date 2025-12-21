@@ -28,31 +28,55 @@ class AppearanceSettings {
     window.openAppearanceModal = () => this.openModal();
     window.closeAppearanceModal = () => this.closeModal();
     
-    // Theme controls
-    window.selectTheme = (theme) => this.selectTheme(theme);
+    // Use event delegation for data-attribute-based handlers
+    document.addEventListener('click', (e) => {
+      const element = e.target.closest('[data-action]');
+      if (!element) return;
+      
+      const action = element.dataset.action;
+      const value = element.dataset.theme || element.dataset.size || element.dataset.density || element.dataset.color;
+      
+      switch (action) {
+        case 'selectTheme':
+          this.selectTheme(value);
+          break;
+        case 'selectFontSize':
+          this.selectFontSize(value);
+          break;
+        case 'selectDensity':
+          this.selectDensity(value);
+          break;
+        case 'selectAccentColor':
+          this.selectAccentColor(value);
+          break;
+        case 'resetToDefaults':
+          this.resetToDefaults();
+          break;
+        case 'closeAppearanceModal':
+          this.closeModal();
+          break;
+        case 'saveAppearanceSettings':
+          this.saveSettings();
+          break;
+      }
+    });
     
-    // Font size controls
-    window.selectFontSize = (size) => this.selectFontSize(size);
-    
-    // Density controls
-    window.selectDensity = (density) => this.selectDensity(density);
-    
-    // Accent color controls
-    window.selectAccentColor = (color) => this.selectAccentColor(color);
-    
-    // Preference toggles
-    window.toggleSmoothScroll = (checkbox) => this.togglePreference('smoothScroll', checkbox);
-    window.togglePageTransitions = (checkbox) => this.togglePreference('pageTransitions', checkbox);
-    window.toggleAnimations = (checkbox) => this.togglePreference('animations', checkbox);
-    
-    // Action buttons
-    window.resetToDefaults = () => this.resetToDefaults();
-    window.saveAppearanceSettings = () => this.saveSettings();
+    // Handle checkbox changes for preferences
+    document.addEventListener('change', (e) => {
+      const element = e.target;
+      if (!element.dataset.action) return;
+      
+      const action = element.dataset.action;
+      if (action.startsWith('toggle')) {
+        const preference = action.replace('toggle', '').replace(/^./, str => str.toLowerCase());
+        this.togglePreference(preference, element);
+      }
+    });
     
     // Close modal when clicking outside
     document.addEventListener('click', (e) => {
       const modal = document.getElementById('appearanceModal');
-      if (e.target === modal.querySelector('.appearance-backdrop')) {
+      if (e.target === modal?.querySelector('.appearance-backdrop')) {
         this.closeModal();
       }
     });

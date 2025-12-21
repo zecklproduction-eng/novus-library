@@ -20,10 +20,10 @@
 
     <!-- Tab navigation -->
     <div style="display: flex; gap: 10px; border-bottom: 2px solid rgba(102, 126, 234, 0.2);">
-      <button class="watchlist-main-tab active" onclick="switchTab('watchlist')" style="background: none; border: none; color: #999; padding: 10px 15px; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.3s;">
+      <button class="watchlist-main-tab active" data-action="switchTab" data-tab="watchlist" style="background: none; border: none; color: #999; padding: 10px 15px; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.3s;">
         <i class="fas fa-list me-2"></i>My Watchlist
       </button>
-      <button class="watchlist-main-tab" onclick="switchTab('recently-read')" style="background: none; border: none; color: #999; padding: 10px 15px; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.3s;">
+      <button class="watchlist-main-tab" data-action="switchTab" data-tab="recently-read" style="background: none; border: none; color: #999; padding: 10px 15px; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.3s;">
         <i class="fas fa-clock me-2"></i>Recently Read
       </button>
     </div>
@@ -32,18 +32,18 @@
   <!-- Search -->
   <div class="watchlist-search" style="margin-bottom: 20px;">
     <i class="fas fa-search"></i>
-    <input type="text" id="watchlist-search" placeholder="Search in watchlist..." onkeyup="searchWatchlist()" />
+    <input type="text" id="watchlist-search" placeholder="Search in watchlist..." data-action="searchWatchlist" />
   </div>
 
   <!-- WATCHLIST TAB -->
   <div id="watchlist-tab" class="watchlist-content-tab">
     <!-- Status filter buttons (top colored row) -->
     <div class="watchlist-filter-bar mb-4">
-      <button class="watchlist-filter-btn active" onclick="filterByStatus('planned')">Planned to Read</button>
-      <button class="watchlist-filter-btn" onclick="filterByStatus('reading')">Reading</button>
-      <button class="watchlist-filter-btn" onclick="filterByStatus('on_hold')">On Hold</button>
-      <button class="watchlist-filter-btn" onclick="filterByStatus('completed')">Completed</button>
-      <button class="watchlist-filter-btn" onclick="filterByStatus('dropped')">Dropped</button>
+      <button class="watchlist-filter-btn active" data-action="filterByStatus" data-status="planned">Planned to Read</button>
+      <button class="watchlist-filter-btn" data-action="filterByStatus" data-status="reading">Reading</button>
+      <button class="watchlist-filter-btn" data-action="filterByStatus" data-status="on_hold">On Hold</button>
+      <button class="watchlist-filter-btn" data-action="filterByStatus" data-status="completed">Completed</button>
+      <button class="watchlist-filter-btn" data-action="filterByStatus" data-status="dropped">Dropped</button>
     </div>
 
     <!-- FEATURED CARDS (dynamic based on current filter) -->
@@ -97,9 +97,9 @@
     </div>
 
     <div class="watchlist-tags-row mb-3">
-      <span class="watchlist-tag active" onclick="filterByCategory('all')">All</span>
+      <span class="watchlist-tag active" data-action="filterByCategory" data-category="all">All</span>
       {% for cat in categories %}
-      <span class="watchlist-tag" onclick="filterByCategory('{{ cat }}')">{{ cat }}</span>
+      <span class="watchlist-tag" data-action="filterByCategory" data-category="{{ cat }}">{{ cat }}</span>
       {% endfor %}
     </div>
 
@@ -204,6 +204,40 @@
   let currentFilter = 'planned';
   let currentCategory = 'all';
 
+  // Centralized event handler for data-action attributes
+  document.addEventListener('click', function(e) {
+    const element = e.target.closest('[data-action]');
+    if (!element) return;
+    
+    const action = element.dataset.action;
+    
+    switch (action) {
+      case 'switchTab':
+        switchTab(element.dataset.tab);
+        break;
+      case 'filterByStatus':
+        filterByStatus(element.dataset.status);
+        break;
+      case 'filterByCategory':
+        filterByCategory(element.dataset.category);
+        break;
+    }
+  });
+
+  // Handle input events for data-action attributes
+  document.addEventListener('input', function(e) {
+    const element = e.target;
+    if (!element.dataset.action) return;
+    
+    const action = element.dataset.action;
+    
+    switch (action) {
+      case 'searchWatchlist':
+        searchWatchlist();
+        break;
+    }
+  });
+
   function switchTab(tabName) {
     // Hide all tabs
     document.getElementById('watchlist-tab').style.display = 'none';
@@ -215,10 +249,10 @@
     // Show selected tab
     if (tabName === 'watchlist') {
       document.getElementById('watchlist-tab').style.display = 'block';
-      event.target.classList.add('active');
+      document.querySelector('[data-tab="watchlist"]').classList.add('active');
     } else if (tabName === 'recently-read') {
       document.getElementById('recently-read-tab').style.display = 'block';
-      event.target.classList.add('active');
+      document.querySelector('[data-tab="recently-read"]').classList.add('active');
     }
   }
 
@@ -226,7 +260,7 @@
     currentFilter = status;
     const buttons = document.querySelectorAll('.watchlist-filter-btn');
     buttons.forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    document.querySelector(`[data-action="filterByStatus"][data-status="${status}"]`).classList.add('active');
 
     // Switch featured section
     const featuredSections = document.querySelectorAll('.featured-section');
@@ -256,7 +290,7 @@
     currentCategory = category;
     const tags = document.querySelectorAll('.watchlist-tag');
     tags.forEach(tag => tag.classList.remove('active'));
-    event.target.classList.add('active');
+    document.querySelector(`[data-action="filterByCategory"][data-category="${category}"]`).classList.add('active');
     applyFilters();
   }
 

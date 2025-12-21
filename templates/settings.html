@@ -69,7 +69,7 @@
           <i class="fas fa-palette me-2"></i>Appearance
         </div>
         <p class="text-muted mb-3">Customize your reading experience and interface preferences.</p>
-        <button type="button" class="btn btn-outline-light" onclick="openAppearanceModal(); return false;">
+        <button type="button" class="btn btn-outline-light" data-action="openAppearanceModal">
           <i class="fas fa-cog me-2"></i>Open Appearance Settings
         </button>
       </div>
@@ -78,12 +78,20 @@
 </div>
 
 <script>
-function openAppearanceModal() {
-  const modal = document.getElementById('appearanceModal');
-  if (modal) {
-    modal.classList.add('show');
-    document.body.classList.add('no-scroll');
+// Global centralized event handler for settings page
+document.addEventListener('click', function(e) {
+  const element = e.target.closest('[data-action]');
+  if (!element) return;
+  
+  const action = element.dataset.action;
+  
+  switch (action) {
+    case 'openAppearanceModal':
+      if (window.openAppearanceModal) {
+        window.openAppearanceModal();
+      }
+      break;
   }
-}
+});
 </script>
 {% endblock %}

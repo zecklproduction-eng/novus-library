@@ -12,6 +12,9 @@ UPLOAD_FOLDER = os.path.join("static", "uploads", "avatars")
 ALLOWED_EXTS = {"png", "jpg", "jpeg", "webp"}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Import AI error handling
+import ai_error_fixes
+
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTS
 
@@ -894,49 +897,65 @@ def ai_summary():
     """Return a short AI-style summary for provided text.
     POST JSON: { text: string, max_sentences: int (optional) }
     """
-    data = request.get_json() or {}
-    text = (data.get('text') or '').strip()
     try:
-        max_sents = int(data.get('max_sentences', 3))
-    except Exception:
-        max_sents = 3
+        data = request.get_json() or {}
+        
+        # Validate request with AI error handling
+        is_valid, error_msg = ai_error_fixes.validate_ai_request(data, ['text'])
+        if not is_valid:
+            return jsonify({'error': error_msg}), 400
+        
+        text = (data.get('text') or '').strip()
+        try:
+            max_sents = int(data.get('max_sentences', 3))
+        except Exception:
+            max_sents = 3
 
-    if not text:
-        return jsonify({'error': 'No text provided.'}), 400
+        if not text:
+            return jsonify({'error': 'No text provided.'}), 400
 
-    # Optional caching parameters
-    item_type = (data.get('item_type') or '').strip() or None
-    try:
-        item_id = int(data.get('item_id')) if data.get('item_id') is not None else None
-    except Exception:
-        item_id = None
-    force = bool(data.get('force'))
+        # Optional caching parameters
+        item_type = (data.get('item_type') or '').strip() or None
+        try:
+            item_id = int(data.get('item_id')) if data.get('item_id') is not None else None
+        except Exception:
+            item_id = None
+        force = bool(data.get('force'))
 
-    # Check cache with optional TTL
-    if item_type and item_id and not force:
-        conn = get_conn()
-        c = conn.cursor()
-        c.execute("SELECT id, summary, model, created_at FROM ai_summaries WHERE item_type=? AND item_id=?", (item_type, item_id))
-        row = c.fetchone()
-        if row:
-            rid, summary_text, model_name, created_at = row
-            ttl_days = int(os.environ.get('AI_SUMMARY_TTL_DAYS', '0') or '0')
-            if ttl_days > 0:
-                try:
-                    created_dt = datetime.fromisoformat(created_at)
-                    age = datetime.utcnow() - created_dt
-                    if age.days >= ttl_days:
-                        # expired, remove
-                        c.execute("DELETE FROM ai_summaries WHERE id=?", (rid,))
-                        conn.commit()
-                        row = None
-                except Exception:
-                    # if parsing fails, proceed to use cached value
-                    pass
-        conn.close()
-        if row:
-            # return cached
-            return jsonify({'summary': summary_text, 'cached': True, 'model': model_name, 'cached_at': created_at})
+        # Check cache with optional TTL
+        if item_type and item_id and not force:
+            conn = get_conn()
+            c = conn.cursor()
+            c.execute("SELECT id, summary, model, created_at FROM ai_summaries WHERE item_type=? AND item_id=?", (item_type, item_id))
+            row = c.fetchone()
+            if row:
+                rid, summary_text, model_name, created_at = row
+                ttl_days = int(os.environ.get('AI_SUMMARY_TTL_DAYS', '0') or '0')
+                if ttl_days > 0:
+                    try:
+                        created_dt = datetime.fromisoformat(created_at)
+                        age = datetime.utcnow() - created_dt
+                        if age.days >= ttl_days:
+                            # expired, remove
+                            c.execute("DELETE FROM ai_summaries WHERE id=?", (rid,))
+                            conn.commit()
+                            row = None
+                    except Exception:
+                        # if parsing fails, proceed to use cached value
+                        pass
+            conn.close()
+            if row:
+                # return cached
+                return jsonify({'summary': summary_text, 'cached': True, 'model': model_name, 'cached_at': created_at})
+
+    except Exception as e:
+        # Handle any unexpected errors with AI error handling
+        error_details = ai_error_fixes.handle_ai_service_error(e, 'AI Summary Service')
+        return jsonify({
+            'error': error_details['error'],
+            'message': error_details.get('retry_after', 'Please try again later'),
+            'summary': ai_error_fixes.get_ai_fallback_message()
+        }), 500
 
     def simple_summarize(src, max_sentences=3):
         import re
@@ -1001,8 +1020,10 @@ def ai_summary():
                 j = resp.json()
                 txt = j['choices'][0]['message']['content'].strip()
                 return txt, model
-        except Exception:
-            pass
+        except Exception as e:
+            # Use AI error handling for OpenAI API errors
+            error_details = ai_error_fixes.handle_ai_service_error(e, 'OpenAI')
+            print(f"OpenAI API Error: {error_details['error']}")
         return None, None
 
     if OPENAI_KEY and USE_OPENAI:

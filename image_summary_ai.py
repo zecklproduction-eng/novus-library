@@ -7,7 +7,12 @@ import os
 import base64
 import requests
 import json
+import logging
 from pathlib import Path
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 OPENAI_KEY = os.environ.get('OPENAI_API_KEY')
 OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4-turbo')
@@ -18,10 +23,17 @@ class ImageSummaryAI:
     def __init__(self, api_key=None):
         self.api_key = api_key or OPENAI_KEY
         self.model = OPENAI_MODEL
-        self.headers = {
-            'Authorization': f'Bearer {self.api_key}',
-            'Content-Type': 'application/json'
-        }
+        self.error_count = 0
+        self.last_error = None
+        
+        if self.api_key:
+            self.headers = {
+                'Authorization': f'Bearer {self.api_key}',
+                'Content-Type': 'application/json'
+            }
+        else:
+            self.headers = None
+            logger.warning("No OpenAI API key found")
     
     def encode_image_to_base64(self, image_path):
         """Convert image file to base64"""
@@ -95,10 +107,14 @@ class ImageSummaryAI:
             
             result = response.json()
             if 'choices' in result and result['choices']:
+                self.error_count = 0  # Reset error count on success
                 return result['choices'][0]['message']['content'].strip()
             return None
             
         except Exception as e:
+            self.error_count += 1
+            self.last_error = str(e)
+            logger.error(f"Failed to summarize manga page: {e}")
             raise Exception(f"Failed to summarize manga page: {e}")
     
     def summarize_book_cover(self, image_path):
@@ -153,10 +169,14 @@ class ImageSummaryAI:
             
             result = response.json()
             if 'choices' in result and result['choices']:
+                self.error_count = 0  # Reset error count on success
                 return result['choices'][0]['message']['content'].strip()
             return None
             
         except Exception as e:
+            self.error_count += 1
+            self.last_error = str(e)
+            logger.error(f"Failed to summarize book cover: {e}")
             raise Exception(f"Failed to summarize book cover: {e}")
     
     def extract_text_from_image(self, image_path):

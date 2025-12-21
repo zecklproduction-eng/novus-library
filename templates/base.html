@@ -533,19 +533,19 @@
       <div class="appearance-section">
         <h3><i class="fas fa-paint-brush"></i> Theme</h3>
         <div class="theme-options">
-          <div class="theme-option active" data-theme="dark" onclick="selectTheme('dark')">
+          <div class="theme-option active" data-theme="dark" data-action="selectTheme">
             <div class="theme-preview dark-theme-preview"></div>
             <span>Dark</span>
           </div>
-          <div class="theme-option" data-theme="light" onclick="selectTheme('light')">
+          <div class="theme-option" data-theme="light" data-action="selectTheme">
             <div class="theme-preview light-theme-preview"></div>
             <span>Light</span>
           </div>
-          <div class="theme-option" data-theme="blue" onclick="selectTheme('blue')">
+          <div class="theme-option" data-theme="blue" data-action="selectTheme">
             <div class="theme-preview blue-theme-preview"></div>
             <span>Ocean Blue</span>
           </div>
-          <div class="theme-option" data-theme="purple" onclick="selectTheme('purple')">
+          <div class="theme-option" data-theme="purple" data-action="selectTheme">
             <div class="theme-preview purple-theme-preview"></div>
             <span>Royal Purple</span>
           </div>
@@ -556,19 +556,19 @@
       <div class="appearance-section">
         <h3><i class="fas fa-text-height"></i> Font Size</h3>
         <div class="font-size-options">
-          <button class="font-size-btn" data-size="small" onclick="selectFontSize('small')">
+          <button class="font-size-btn" data-size="small" data-action="selectFontSize">
             <span class="font-size-sample small">Aa</span>
             <small>Small</small>
           </button>
-          <button class="font-size-btn active" data-size="medium" onclick="selectFontSize('medium')">
+          <button class="font-size-btn active" data-size="medium" data-action="selectFontSize">
             <span class="font-size-sample medium">Aa</span>
             <small>Medium</small>
           </button>
-          <button class="font-size-btn" data-size="large" onclick="selectFontSize('large')">
+          <button class="font-size-btn" data-size="large" data-action="selectFontSize">
             <span class="font-size-sample large">Aa</span>
             <small>Large</small>
           </button>
-          <button class="font-size-btn" data-size="xlarge" onclick="selectFontSize('xlarge')">
+          <button class="font-size-btn" data-size="xlarge" data-action="selectFontSize">
             <span class="font-size-sample xlarge">Aa</span>
             <small>Extra Large</small>
           </button>
@@ -579,15 +579,15 @@
       <div class="appearance-section">
         <h3><i class="fas fa-th"></i> Layout Density</h3>
         <div class="density-options">
-          <button class="density-btn" data-density="compact" onclick="selectDensity('compact')">
+          <button class="density-btn" data-density="compact" data-action="selectDensity">
             <div class="density-preview compact"></div>
             <small>Compact</small>
           </button>
-          <button class="density-btn active" data-density="comfortable" onclick="selectDensity('comfortable')">
+          <button class="density-btn active" data-density="comfortable" data-action="selectDensity">
             <div class="density-preview comfortable"></div>
             <small>Comfortable</small>
           </button>
-          <button class="density-btn" data-density="spacious" onclick="selectDensity('spacious')">
+          <button class="density-btn" data-density="spacious" data-action="selectDensity">
             <div class="density-preview spacious"></div>
             <small>Spacious</small>
           </button>
@@ -598,19 +598,19 @@
       <div class="appearance-section">
         <h3><i class="fas fa-palette"></i> Accent Color</h3>
         <div class="accent-options">
-          <button class="accent-option active" data-color="cyan" onclick="selectAccentColor('cyan')" style="background: linear-gradient(135deg, #00d4ff, #0090ff)">
+          <button class="accent-option active" data-color="cyan" data-action="selectAccentColor" style="background: linear-gradient(135deg, #00d4ff, #0090ff)">
             <span class="accent-check">✓</span>
           </button>
-          <button class="accent-option" data-color="purple" onclick="selectAccentColor('purple')" style="background: linear-gradient(135deg, #667eea, #764ba2)">
+          <button class="accent-option" data-color="purple" data-action="selectAccentColor" style="background: linear-gradient(135deg, #667eea, #764ba2)">
             <span class="accent-check">✓</span>
           </button>
-          <button class="accent-option" data-color="pink" onclick="selectAccentColor('pink')" style="background: linear-gradient(135deg, #ff9a9e, #fecfef)">
+          <button class="accent-option" data-color="pink" data-action="selectAccentColor" style="background: linear-gradient(135deg, #ff9a9e, #fecfef)">
             <span class="accent-check">✓</span>
           </button>
-          <button class="accent-option" data-color="green" onclick="selectAccentColor('green')" style="background: linear-gradient(135deg, #56ab2f, #a8e6cf)">
+          <button class="accent-option" data-color="green" data-action="selectAccentColor" style="background: linear-gradient(135deg, #56ab2f, #a8e6cf)">
             <span class="accent-check">✓</span>
           </button>
-          <button class="accent-option" data-color="orange" onclick="selectAccentColor('orange')" style="background: linear-gradient(135deg, #ff6b35, #f7931e)">
+          <button class="accent-option" data-color="orange" data-action="selectAccentColor" style="background: linear-gradient(135deg, #ff6b35, #f7931e)">
             <span class="accent-check">✓</span>
           </button>
         </div>
@@ -621,17 +621,17 @@
         <h3><i class="fas fa-book-open"></i> Reading Preferences</h3>
         <div class="reading-preferences">
           <label class="preference-toggle">
-            <input type="checkbox" id="toggleSmoothScroll" onchange="toggleSmoothScroll(this)">
+            <input type="checkbox" id="toggleSmoothScroll" data-action="toggleSmoothScroll">
             <span class="toggle-slider"></span>
             <span class="toggle-label">Smooth scrolling</span>
           </label>
           <label class="preference-toggle">
-            <input type="checkbox" id="togglePageTransitions" onchange="togglePageTransitions(this)" checked>
+            <input type="checkbox" id="togglePageTransitions" data-action="togglePageTransitions" checked>
             <span class="toggle-slider"></span>
             <span class="toggle-label">Page transitions</span>
           </label>
           <label class="preference-toggle">
-            <input type="checkbox" id="toggleAnimations" onchange="toggleAnimations(this)" checked>
+            <input type="checkbox" id="toggleAnimations" data-action="toggleAnimations" checked>
             <span class="toggle-slider"></span>
             <span class="toggle-label">Animations</span>
           </label>
@@ -641,12 +641,12 @@
 
     <div class="appearance-footer">
       <div class="appearance-actions">
-        <button class="appearance-btn secondary" onclick="resetToDefaults()">
+        <button class="appearance-btn secondary" data-action="resetToDefaults">
           <i class="fas fa-undo"></i> Reset to Defaults
         </button>
         <div class="appearance-main-actions">
-          <button class="appearance-btn secondary" onclick="closeAppearanceModal()">Cancel</button>
-          <button class="appearance-btn primary" onclick="saveAppearanceSettings()">
+          <button class="appearance-btn secondary" data-action="closeAppearanceModal">Cancel</button>
+          <button class="appearance-btn primary" data-action="saveAppearanceSettings">
             <i class="fas fa-save"></i> Save Changes
           </button>
         </div>
