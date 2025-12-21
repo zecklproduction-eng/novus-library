@@ -1298,30 +1298,55 @@ function displayPage(pageNum) {
 }
 
 function applyBackgroundColor(color) {
-  const viewer = document.getElementById('mangaViewer');
-  if (!viewer) return;
-  
-  let bgColor = '#fff';
-  let textColor = '#000';
-  
-  switch(color.toLowerCase()) {
-    case 'light':
-      bgColor = '#fff';
-      textColor = '#000';
-      break;
-    case 'dark':
-      bgColor = '#1a1a1a';
-      textColor = '#fff';
-      break;
-    case 'sepia':
-      bgColor = '#f5f0e8';
-      textColor = '#3e3e38';
-      break;
-  }
-  
-  viewer.style.backgroundColor = bgColor;
-  viewer.style.color = textColor;
-}
+   const viewer = document.getElementById('mangaViewer');
+   if (!viewer) return;
+
+   let bgColor = '#fff';
+   let textColor = '#000';
+
+   // First check global appearance settings
+   const globalSettings = localStorage.getItem('novus-appearance-settings');
+   if (globalSettings) {
+     try {
+       const settings = JSON.parse(globalSettings);
+       const globalTheme = settings.theme;
+
+       // Map global theme to chapter background
+       switch(globalTheme) {
+         case 'dark':
+           color = 'dark';
+           break;
+         case 'light':
+           color = 'light';
+           break;
+         case 'blue':
+         case 'purple':
+           color = 'sepia'; // Use sepia for blue/purple themes
+           break;
+       }
+     } catch (e) {
+       console.warn('Failed to parse global appearance settings:', e);
+     }
+   }
+
+   switch(color.toLowerCase()) {
+     case 'light':
+       bgColor = '#fff';
+       textColor = '#000';
+       break;
+     case 'dark':
+       bgColor = '#1a1a1a';
+       textColor = '#fff';
+       break;
+     case 'sepia':
+       bgColor = '#f5f0e8';
+       textColor = '#3e3e38';
+       break;
+   }
+
+   viewer.style.backgroundColor = bgColor;
+   viewer.style.color = textColor;
+ }
 
 function applyReadingMode(mode) {
   const viewer = document.getElementById('mangaViewer');
