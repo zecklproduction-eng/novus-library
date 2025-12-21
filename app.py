@@ -3328,6 +3328,84 @@ def report_manga():
     return jsonify({'success': True})
 
 
+@app.route('/report_user', methods=['POST'])
+def report_user():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'login required'}), 401
+
+    data = request.get_json(silent=True) or request.form or {}
+    try:
+        reported_user_id = int(data.get('reported_user_id'))
+    except Exception:
+        return jsonify({'success': False, 'error': 'invalid user id'}), 400
+
+    reason = (data.get('reason') or 'Inappropriate behavior').strip()[:1000]
+
+    # Log the user report
+    log_system_event('WARNING', 'user_report', f'User {session.get("username")} reported user ID {reported_user_id}', session.get('user_id'), {'reported_user_id': reported_user_id, 'reason': reason})
+
+    return jsonify({'success': True})
+
+
+@app.route('/user/<int:user_id>')
+def user_profile(user_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    # Don't allow users to view their own profile through this route
+    if user_id == session.get('user_id'):
+        return redirect(url_for('profile'))
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    # Get user info
+    c.execute("""
+        SELECT id, username, email, role, avatar_url, plan
+        FROM users
+        WHERE id = ?
+    """, (user_id,))
+
+    user = c.fetchone()
+    if not user:
+        conn.close()
+        flash('User not found.', 'danger')
+        return redirect(url_for('home'))
+
+    # Get user's uploaded books
+    c.execute("""
+        SELECT id, title, author, category, cover_path, created_at
+        FROM books
+        WHERE uploader_id = ? AND book_type != 'manga'
+        ORDER BY created_at DESC
+        LIMIT 10
+    """, (user_id,))
+
+    books = c.fetchall()
+
+    # Get user's reading activity
+    c.execute("""
+        SELECT COUNT(*) FROM activity_log WHERE user_id = ?
+    """, (user_id,))
+
+    activity_count = c.fetchone()[0]
+
+    # Get user's review count
+    c.execute("""
+        SELECT COUNT(*) FROM reviews WHERE user_id = ?
+    """, (user_id,))
+
+    review_count = c.fetchone()[0]
+
+    conn.close()
+
+    return render_template('user_profile.html',
+                         user=user,
+                         books=books,
+                         activity_count=activity_count,
+                         review_count=review_count)
+
+
 # ---------- Manga Character Management ----------
 @app.route('/api/manga/<int:manga_id>/characters', methods=['GET'])
 def get_manga_characters(manga_id):

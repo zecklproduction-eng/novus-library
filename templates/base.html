@@ -166,6 +166,129 @@
           transform: translateY(0);
         }
       }
+
+      /* User Interaction Modal */
+      .user-interaction-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .user-interaction-modal.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .user-interaction-dialog {
+        background: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 12px;
+        width: 320px;
+        max-width: 90vw;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        transform: scale(0.9) translateY(20px);
+        transition: all 0.3s ease;
+      }
+
+      .user-interaction-modal.show .user-interaction-dialog {
+        transform: scale(1) translateY(0);
+      }
+
+      .user-interaction-header {
+        padding: 20px;
+        border-bottom: 1px solid #333;
+        text-align: center;
+      }
+
+      .user-interaction-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        margin: 0 auto 10px;
+        border: 3px solid #00d4ff;
+        object-fit: cover;
+      }
+
+      .user-interaction-name {
+        color: #fff;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .user-interaction-role {
+        color: #ccc;
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .user-interaction-body {
+        padding: 0;
+      }
+
+      .user-interaction-option {
+        display: block;
+        width: 100%;
+        padding: 15px 20px;
+        background: none;
+        border: none;
+        color: #fff;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #333;
+      }
+
+      .user-interaction-option:last-child {
+        border-bottom: none;
+      }
+
+      .user-interaction-option:hover {
+        background: rgba(0, 212, 255, 0.1);
+        color: #00d4ff;
+      }
+
+      .user-interaction-option.danger:hover {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+      }
+
+      .user-interaction-icon {
+        margin-right: 12px;
+        width: 18px;
+        text-align: center;
+      }
+
+      .user-interaction-footer {
+        padding: 15px 20px;
+        border-top: 1px solid #333;
+        text-align: center;
+      }
+
+      .user-interaction-close {
+        background: #333;
+        color: #fff;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .user-interaction-close:hover {
+        background: #555;
+      }
     </style>
   </head>
 
@@ -431,6 +554,38 @@
         </div>
         <div class="logout-text">Logging Out...</div>
         <div class="logout-subtext">See you next time!</div>
+      </div>
+    </div>
+
+    <!-- USER INTERACTION MODAL -->
+    <div id="userInteractionModal" class="user-interaction-modal">
+      <div class="user-interaction-dialog">
+        <div class="user-interaction-header">
+          <img id="userAvatar" src="" alt="User Avatar" class="user-interaction-avatar">
+          <div class="user-interaction-name" id="userName">User Name</div>
+          <div class="user-interaction-role" id="userRole">Role</div>
+        </div>
+        <div class="user-interaction-body">
+          <button class="user-interaction-option" onclick="visitUserProfile()">
+            <i class="fas fa-user user-interaction-icon"></i>
+            Visit Profile
+          </button>
+          <button class="user-interaction-option" onclick="sendMessage()">
+            <i class="fas fa-envelope user-interaction-icon"></i>
+            Send Message
+          </button>
+          <button class="user-interaction-option" onclick="reportUser()">
+            <i class="fas fa-flag user-interaction-icon"></i>
+            Report User
+          </button>
+          <button class="user-interaction-option danger" onclick="blockUser()">
+            <i class="fas fa-ban user-interaction-icon"></i>
+            Block User
+          </button>
+        </div>
+        <div class="user-interaction-footer">
+          <button class="user-interaction-close" onclick="closeUserInteractionModal()">Close</button>
+        </div>
       </div>
     </div>
 
@@ -1210,6 +1365,101 @@
             }, 300);
           }
         }, 3000); // Wait for 3 seconds (animation duration)
+      });
+
+      // User Interaction Modal Functions
+      let currentUserId = null;
+
+      function openUserInteractionModal(userId, userName, userRole, avatarUrl, event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Don't show modal for current user
+        const currentUserId = {{ session.get('user_id') or 'null' }};
+        if (userId == currentUserId) {
+          return;
+        }
+
+        currentUserId = userId;
+
+        // Update modal content
+        document.getElementById('userName').textContent = userName;
+        document.getElementById('userRole').textContent = userRole || 'Reader';
+
+        const avatarImg = document.getElementById('userAvatar');
+        if (avatarUrl) {
+          avatarImg.src = avatarUrl;
+        } else {
+          avatarImg.src = '{{ url_for("static", filename="img/person.png") }}';
+        }
+
+        // Show modal
+        document.getElementById('userInteractionModal').classList.add('show');
+        document.body.classList.add('no-scroll');
+      }
+
+      function closeUserInteractionModal() {
+        document.getElementById('userInteractionModal').classList.remove('show');
+        document.body.classList.remove('no-scroll');
+        currentUserId = null;
+      }
+
+      function visitUserProfile() {
+        if (currentUserId) {
+          window.location.href = `/user/${currentUserId}`;
+        }
+        closeUserInteractionModal();
+      }
+
+      function sendMessage() {
+        // Placeholder for messaging functionality
+        alert('Messaging feature coming soon!');
+        closeUserInteractionModal();
+      }
+
+      function reportUser() {
+        if (confirm('Are you sure you want to report this user?')) {
+          // Log the report
+          fetch('/report_user', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              reported_user_id: currentUserId,
+              reason: 'Inappropriate behavior'
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert('User reported successfully. Thank you for your feedback.');
+            } else {
+              alert('Failed to report user. Please try again.');
+            }
+          })
+          .catch(error => {
+            console.error('Error reporting user:', error);
+            alert('Failed to report user. Please try again.');
+          });
+        }
+        closeUserInteractionModal();
+      }
+
+      function blockUser() {
+        if (confirm('Are you sure you want to block this user? You will no longer see their content.')) {
+          // Placeholder for blocking functionality
+          alert('User blocking feature coming soon!');
+        }
+        closeUserInteractionModal();
+      }
+
+      // Close modal when clicking outside
+      document.addEventListener('click', function(event) {
+        const modal = document.getElementById('userInteractionModal');
+        if (event.target === modal) {
+          closeUserInteractionModal();
+        }
       });
     </script>
   </body>
