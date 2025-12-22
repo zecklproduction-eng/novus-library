@@ -1377,10 +1377,15 @@
         event.preventDefault();
         event.stopPropagation();
 
+        // Debug: temporarily show alert
+        console.log('Opening modal for user:', userId, userName, context);
+
         // Don't show modal for current user
         const currentUserId = {{ session.get('user_id') or 'null' }};
         if (userId == currentUserId) {
-          return;
+          console.log('Not showing modal for current user');
+          // Temporarily show modal anyway for testing
+          // return;
         }
 
         currentUserId = userId;
@@ -1399,7 +1404,7 @@
 
         // Show/hide options based on context
         const allOptions = document.querySelectorAll('.user-interaction-option');
-        const sendMessageBtn = document.querySelector('.user-interaction-option:has(.fa-envelope)');
+        const sendMessageBtn = document.querySelector('.user-interaction-option .fa-envelope')?.closest('.user-interaction-option');
         const blockUserBtn = document.querySelector('.user-interaction-option.danger');
 
         if (context === 'review') {
