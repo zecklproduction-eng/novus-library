@@ -534,6 +534,21 @@ def init_db():
         )
     """)
 
+    # chapter_reviews (chapter reviews)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_reviews (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            chapter_id INTEGER NOT NULL,
+            rating INTEGER,
+            content TEXT,
+            created_at TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (chapter_id) REFERENCES chapters(id),
+            UNIQUE(user_id, chapter_id)
+        )
+    """)
+
     # activity log (track user reading activities)
     c.execute("""
         CREATE TABLE IF NOT EXISTS activity_log (
@@ -1451,6 +1466,95 @@ def delete_review(review_id):
     conn.close()
     flash("Review deleted.", "success")
     return redirect(url_for("view_book", id=book_id))
+
+
+@app.post("/chapter/<int:chapter_id>/review")
+def add_chapter_review(chapter_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+    content = (request.form.get("content") or "").strip()
+    rating_raw = request.form.get("rating")
+
+    try:
+        rating = int(rating_raw) if rating_raw else None
+    except ValueError:
+        rating = None
+
+    if not content and rating is None:
+        flash("Please write a comment or give a rating.", "warning")
+        # Get manga_id
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT manga_id FROM chapters WHERE id=?", (chapter_id,))
+        row = c.fetchone()
+        conn.close()
+        if row:
+            return redirect(url_for("view_chapter", manga_id=row[0], chapter_id=chapter_id))
+        else:
+            return redirect(url_for("manga"))
+
+    conn = get_conn()
+    c = conn.cursor()
+    # Get manga_id
+    c.execute("SELECT manga_id FROM chapters WHERE id=?", (chapter_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        flash("Chapter not found.", "danger")
+        return redirect(url_for("manga"))
+    manga_id = row[0]
+
+    # Check if user already reviewed this chapter
+    c.execute("SELECT id FROM chapter_reviews WHERE user_id=? AND chapter_id=?", (user_id, chapter_id))
+    existing = c.fetchone()
+    if existing:
+        # Update existing
+        c.execute("UPDATE chapter_reviews SET rating=?, content=? WHERE id=?", (rating, content, existing[0]))
+    else:
+        # Insert new
+        c.execute("INSERT INTO chapter_reviews (user_id, chapter_id, rating, content) VALUES (?, ?, ?, ?)", (user_id, chapter_id, rating, content))
+    conn.commit()
+    conn.close()
+    flash("Review added.", "success")
+    return redirect(url_for("view_chapter", manga_id=manga_id, chapter_id=chapter_id))
+
+
+@app.post("/chapter_review/<int:review_id>/delete")
+def delete_chapter_review(review_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+    role = session.get("role")
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT user_id, chapter_id FROM chapter_reviews WHERE id=?", (review_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        flash("Review not found.", "danger")
+        return redirect(url_for("manga"))
+
+    owner_id, chapter_id = row
+    # Get manga_id
+    c.execute("SELECT manga_id FROM chapters WHERE id=?", (chapter_id,))
+    manga_row = c.fetchone()
+    manga_id = manga_row[0] if manga_row else None
+
+    # owner or admin can delete
+    if owner_id != user_id and role != "admin":
+        conn.close()
+        flash("You cannot delete this review.", "danger")
+        return redirect(url_for("view_chapter", manga_id=manga_id, chapter_id=chapter_id) if manga_id else url_for("manga"))
+
+    c.execute("DELETE FROM chapter_reviews WHERE id=?", (review_id,))
+    conn.commit()
+    conn.close()
+    flash("Review deleted.", "success")
+    return redirect(url_for("view_chapter", manga_id=manga_id, chapter_id=chapter_id) if manga_id else url_for("manga"))
 
 
 # ---------- Add Book (Admin + Publisher) ----------
