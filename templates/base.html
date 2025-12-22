@@ -378,6 +378,7 @@
   {% if session.get('role') == 'admin' %}
   <a href="/admin/team" class="nav-link-item">Team Admin</a>
 <a href="{{ url_for('user_management') }}" class="nav-link-item">User Management</a>
+<a href="{{ url_for('admin_reports') }}" class="nav-link-item">Reports</a>
 {% endif %}
 
 
@@ -473,6 +474,7 @@
     <a href="{{ url_for('user_management') }}"><i class="fas fa-users-gear"></i> User Management</a>
     <a href="/admin/team"><i class="fas fa-people-group"></i> Team Admin</a>
     <a href="{{ url_for('admin_system_logs') }}"><i class="fas fa-terminal"></i> System Logs</a>
+    <a href="{{ url_for('admin_reports') }}"><i class="fas fa-flag"></i> User Reports</a>
   {% endif %}
 
   <div class="dropdown-divider"></div>
@@ -1369,8 +1371,9 @@
 
       // User Interaction Modal Functions
       let currentUserId = null;
+      let currentContext = null;
 
-      function openUserInteractionModal(userId, userName, userRole, avatarUrl, event) {
+      function openUserInteractionModal(userId, userName, userRole, avatarUrl, event, context = null) {
         event.preventDefault();
         event.stopPropagation();
 
@@ -1381,6 +1384,7 @@
         }
 
         currentUserId = userId;
+        currentContext = context;
 
         // Update modal content
         document.getElementById('userName').textContent = userName;
@@ -1393,6 +1397,20 @@
           avatarImg.src = '{{ url_for("static", filename="img/person.png") }}';
         }
 
+        // Show/hide options based on context
+        const allOptions = document.querySelectorAll('.user-interaction-option');
+        const sendMessageBtn = document.querySelector('.user-interaction-option:has(.fa-envelope)');
+        const blockUserBtn = document.querySelector('.user-interaction-option.danger');
+
+        if (context === 'review') {
+          // Hide send message and block user options for reviews
+          if (sendMessageBtn) sendMessageBtn.style.display = 'none';
+          if (blockUserBtn) blockUserBtn.style.display = 'none';
+        } else {
+          // Show all options for other contexts
+          allOptions.forEach(option => option.style.display = 'block');
+        }
+
         // Show modal
         document.getElementById('userInteractionModal').classList.add('show');
         document.body.classList.add('no-scroll');
@@ -1402,6 +1420,11 @@
         document.getElementById('userInteractionModal').classList.remove('show');
         document.body.classList.remove('no-scroll');
         currentUserId = null;
+        currentContext = null;
+
+        // Reset option visibility
+        const allOptions = document.querySelectorAll('.user-interaction-option');
+        allOptions.forEach(option => option.style.display = 'block');
       }
 
       function visitUserProfile() {

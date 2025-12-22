@@ -65,6 +65,14 @@ ALLOWED_IMG   = {"jpg", "jpeg", "png"}
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "novus_secret_key")
 
+# Configure file upload limits
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB limit
+
+# File size limits (in bytes)
+MAX_PDF_SIZE = 50 * 1024 * 1024    # 50MB for PDFs
+MAX_AUDIO_SIZE = 100 * 1024 * 1024 # 100MB for audio files
+MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB for images
+
 # -------------------- LOGGING CONFIGURATION --------------------
 # Create logs directory if it doesn't exist
 logs_dir = os.path.join(APP_ROOT, "logs")
@@ -496,6 +504,19 @@ def init_db():
             manga_id INTEGER,
             reason TEXT,
             created_at TEXT DEFAULT (DATETIME('now'))
+        )
+    """)
+
+    # user_reports (user reports on other users)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS user_reports (
+            id INTEGER PRIMARY KEY,
+            reporter_id INTEGER NOT NULL,
+            reported_user_id INTEGER NOT NULL,
+            reason TEXT,
+            created_at TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (reporter_id) REFERENCES users(id),
+            FOREIGN KEY (reported_user_id) REFERENCES users(id)
         )
     """)
 
@@ -1186,6 +1207,43 @@ def admin_ai_summaries():
     return render_template('admin_ai_summaries.html', rows=rows, ttl_days=ttl_days)
 
 
+@app.route('/admin/reports')
+@admin_required
+def admin_reports():
+    conn = get_conn()
+    c = conn.cursor()
+
+    # Get users with 2 or more reports
+    c.execute("""
+        SELECT u.id, u.username, u.email, u.role, COUNT(ur.id) as report_count,
+               GROUP_CONCAT(ur.reason, '; ') as reasons,
+               MAX(ur.created_at) as latest_report
+        FROM users u
+        JOIN user_reports ur ON u.id = ur.reported_user_id
+        GROUP BY u.id, u.username, u.email, u.role
+        HAVING COUNT(ur.id) >= 2
+        ORDER BY report_count DESC, latest_report DESC
+    """)
+    reported_users = c.fetchall()
+
+    # Get all reports for details
+    c.execute("""
+        SELECT ur.id, ur.reporter_id, ru.username as reporter_name,
+               ur.reported_user_id, u.username as reported_name,
+               ur.reason, ur.created_at
+        FROM user_reports ur
+        JOIN users ru ON ur.reporter_id = ru.id
+        JOIN users u ON ur.reported_user_id = u.id
+        ORDER BY ur.created_at DESC
+        LIMIT 100
+    """)
+    all_reports = c.fetchall()
+
+    conn.close()
+
+    return render_template('admin_reports.html', reported_users=reported_users, all_reports=all_reports)
+
+
 @app.route('/admin/system_logs')
 @admin_required
 def admin_system_logs():
@@ -1426,6 +1484,11 @@ def add_book():
         # PDF: support pdf_file or book_file
         pdf_file = request.files.get("pdf_file") or request.files.get("book_file")
         if pdf_file and pdf_file.filename:
+            # Check file size
+            if pdf_file.content_length > MAX_PDF_SIZE:
+                flash(f"PDF file is too large. Maximum size is {MAX_PDF_SIZE // (1024*1024)}MB.", "danger")
+                return redirect(url_for("add_book"))
+
             ext = pdf_file.filename.rsplit(".", 1)[-1].lower()
             if ext in ALLOWED_PDF:
                 pdf_filename = secure_filename(pdf_file.filename)
@@ -1436,6 +1499,11 @@ def add_book():
         # Audio
         audio_file = request.files.get("audio_file")
         if audio_file and audio_file.filename:
+            # Check file size
+            if audio_file.content_length > MAX_AUDIO_SIZE:
+                flash(f"Audio file is too large. Maximum size is {MAX_AUDIO_SIZE // (1024*1024)}MB.", "danger")
+                return redirect(url_for("add_book"))
+
             ext = audio_file.filename.rsplit(".", 1)[-1].lower()
             if ext in ALLOWED_AUDIO:
                 audio_filename = secure_filename(audio_file.filename)
@@ -1446,6 +1514,11 @@ def add_book():
         # Cover
         cover_file = request.files.get("cover_image")
         if cover_file and cover_file.filename:
+            # Check file size
+            if cover_file.content_length > MAX_IMAGE_SIZE:
+                flash(f"Cover image is too large. Maximum size is {MAX_IMAGE_SIZE // (1024*1024)}MB.", "danger")
+                return redirect(url_for("add_book"))
+
             fname = secure_filename(cover_file.filename)
             cover_file.save(os.path.join(UPLOAD_FOLDER_COVERS, fname))
             cover_path = f"covers/{fname}"
@@ -1479,6 +1552,11 @@ def add_book():
         # Cover image (required for manga)
         cover_file = request.files.get("cover_image")
         if cover_file and cover_file.filename:
+            # Check file size
+            if cover_file.content_length > MAX_IMAGE_SIZE:
+                flash(f"Cover image is too large. Maximum size is {MAX_IMAGE_SIZE // (1024*1024)}MB.", "danger")
+                return redirect(url_for("add_book"))
+
             fname = secure_filename(cover_file.filename)
             cover_file.save(os.path.join(UPLOAD_FOLDER_COVERS, fname))
             cover_path = f"covers/{fname}"
@@ -1504,6 +1582,11 @@ def add_book():
             # Handle PDF upload
             chapter_pdf = request.files.get("chapter_pdf")
             if chapter_pdf and chapter_pdf.filename:
+                # Check file size
+                if chapter_pdf.content_length > MAX_PDF_SIZE:
+                    flash(f"Chapter PDF is too large. Maximum size is {MAX_PDF_SIZE // (1024*1024)}MB.", "danger")
+                    return redirect(url_for("add_book"))
+
                 ext = chapter_pdf.filename.rsplit(".", 1)[-1].lower()
                 if ext in ALLOWED_PDF:
                     pdf_filename = secure_filename(chapter_pdf.filename)
@@ -1513,16 +1596,21 @@ def add_book():
         else:
             # Handle image uploads (multiple pages)
             chapter_pages = request.files.getlist("chapter_pages")
-            
+
             if chapter_pages and len(chapter_pages) > 0:
                 # Create manga chapter directory
                 chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch1")
                 os.makedirs(chapter_dir, exist_ok=True)
-                
+
                 page_files = []
-                
+
                 for idx, page_file in enumerate(chapter_pages, 1):
                     if page_file and page_file.filename:
+                        # Check file size for each image
+                        if page_file.content_length > MAX_IMAGE_SIZE:
+                            flash(f"Chapter image '{page_file.filename}' is too large. Maximum size is {MAX_IMAGE_SIZE // (1024*1024)}MB.", "danger")
+                            return redirect(url_for("add_book"))
+
                         ext = page_file.filename.rsplit(".", 1)[-1].lower()
                         if ext in ALLOWED_IMG:
                             # Save with page number for ordering
@@ -3341,6 +3429,16 @@ def report_user():
 
     reason = (data.get('reason') or 'Inappropriate behavior').strip()[:1000]
 
+    # Store the report in database
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO user_reports (reporter_id, reported_user_id, reason)
+        VALUES (?, ?, ?)
+    """, (session.get('user_id'), reported_user_id, reason))
+    conn.commit()
+    conn.close()
+
     # Log the user report
     log_system_event('WARNING', 'user_report', f'User {session.get("username")} reported user ID {reported_user_id}', session.get('user_id'), {'reported_user_id': reported_user_id, 'reason': reason})
 
@@ -3924,6 +4022,13 @@ def faq():
     """Display FAQ & Guidelines page"""
     return render_template("faq.html")
 
+
+# -------------------- ERROR HANDLERS --------------------
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    """Handle file upload size limit exceeded"""
+    flash("File upload failed: The uploaded file is too large. Please check file size limits.", "danger")
+    return redirect(request.url)
 
 # -------------------- MAIN --------------------
 if __name__ == "__main__":

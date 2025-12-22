@@ -207,7 +207,7 @@
       <div class="bc-reviews-list">
         {% if reviews %}
           {% for r in reviews %}
-          <article class="bc-review-item" onclick="openUserInteractionModal({{ r[5] }}, '{{ r[4] }}', 'Reader', null, event)" style="cursor: pointer;">
+          <article class="bc-review-item" onclick="openUserInteractionModal({{ r[5] }}, '{{ r[4] }}', 'Reader', null, event, 'review')" style="cursor: pointer;">
             <div class="bc-review-avatar">
               {{ r[4][0]|upper }}
             </div>
