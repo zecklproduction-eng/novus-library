@@ -44,6 +44,14 @@ except ImportError:
     PDF_EXTRACTION_AVAILABLE = False
     print('Warning: pdf2image not available. PDF to image conversion will be disabled. Install with: pip install pdf2image')
 
+try:
+    from authlib.integrations.flask_client import OAuth
+    AUTHLIB_AVAILABLE = True
+except ImportError:
+    OAuth = None
+    AUTHLIB_AVAILABLE = False
+    print("Warning: Authlib not found. OAuth features disabled.")
+
 # -------------------- PATHS / CONFIG --------------------
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(APP_ROOT, "library.db")
@@ -64,6 +72,34 @@ ALLOWED_IMG   = {"jpg", "jpeg", "png"}
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "novus_secret_key")
+
+# OAuth Configuration
+if AUTHLIB_AVAILABLE:
+    oauth = OAuth(app)
+    # Google
+    oauth.register(
+        name='google',
+        client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+        client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+        access_token_url='https://accounts.google.com/o/oauth2/token',
+        access_token_params=None,
+        authorize_url='https://accounts.google.com/o/oauth2/auth',
+        authorize_params=None,
+        api_base_url='https://www.googleapis.com/oauth2/v1/',
+        client_kwargs={'scope': 'openid email profile'},
+    )
+    # Facebook
+    oauth.register(
+        name='facebook',
+        client_id=os.environ.get('FACEBOOK_CLIENT_ID'),
+        client_secret=os.environ.get('FACEBOOK_CLIENT_SECRET'),
+        access_token_url='https://graph.facebook.com/oauth/access_token',
+        access_token_params=None,
+        authorize_url='https://www.facebook.com/dialog/oauth',
+        authorize_params=None,
+        api_base_url='https://graph.facebook.com/',
+        client_kwargs={'scope': 'email'},
+    )
 
 # Configure file upload limits
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB limit
@@ -398,6 +434,27 @@ def init_db():
         conn.commit()
     except sqlite3.OperationalError:
         pass
+
+    # Add google_id and facebook_id columns
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN google_id TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN facebook_id TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    # Attempt to create Unique Index on email
+    try:
+        c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+        conn.commit()
+    except sqlite3.IntegrityError:
+        print("Warning: Could not create unique index on email due to existing duplicates via init_db.")
+    except Exception as e:
+        print(f"Warning: Issue creating index on email: {e}")
 
     # Add avatar_url column if it doesn't exist
     try:
@@ -796,6 +853,136 @@ def login():
     response.headers['Expires'] = '0'
     return response
 
+# ---------- OAuth Routes ----------
+@app.route('/login/<provider>')
+def oauth_login(provider):
+    if not AUTHLIB_AVAILABLE:
+        flash("Social login is currently disabled.", "warning")
+        return redirect(url_for('login'))
+    
+    # Create valid callback URL
+    redirect_uri = url_for('oauth_callback', provider=provider, _external=True)
+    return oauth.create_client(provider).authorize_redirect(redirect_uri)
+
+@app.route('/auth/callback/<provider>')
+def oauth_callback(provider):
+    if not AUTHLIB_AVAILABLE:
+        flash("Social login is currently disabled.", "warning")
+        return redirect(url_for('login'))
+
+    client = oauth.create_client(provider)
+    try:
+        token = client.authorize_access_token()
+    except Exception as e:
+        log_system_event('ERROR', 'auth', f'OAuth Error: {str(e)}')
+        flash("Authentication failed. Please try again.", "danger")
+        return redirect(url_for('login'))
+
+    user_info = None
+    if provider == 'google':
+        user_info = client.get('https://www.googleapis.com/oauth2/v1/userinfo').json()
+        email = user_info.get('email')
+        provider_user_id = user_info.get('id')
+        name = user_info.get('name') or email.split('@')[0]
+        avatar_url = user_info.get('picture')
+    elif provider == 'facebook':
+        user_info = client.get('me?fields=id,name,email,picture').json()
+        email = user_info.get('email')
+        provider_user_id = user_info.get('id')
+        name = user_info.get('name') or email.split('@')[0] if email else 'User'
+        # Facebook Logic for Picture
+        try:
+             avatar_url = user_info['picture']['data']['url']
+        except:
+             avatar_url = None
+
+    if not email:
+        flash("Could not retrieve email from provider. Please register manually.", "danger")
+        return redirect(url_for('register'))
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    # 1. Try to find by provider ID
+    c.execute(f"SELECT id, username, role, plan, plan_expires_at, avatar_url, email FROM users WHERE {provider}_id=?", (provider_user_id,))
+    user = c.fetchone()
+
+    if user:
+        # User exists via provider ID
+        user_id = user[0]
+        username = user[1]
+        role = user[2]
+        plan = user[3]
+        plan_exp = user[4]
+        db_avatar = user[5]
+        
+    else:
+        # 2. Try to find by Email
+        c.execute("SELECT id, username, role, plan, plan_expires_at, avatar_url FROM users WHERE email=?", (email,))
+        user_by_email = c.fetchone()
+        
+        if user_by_email:
+            # Link existing account
+            user_id = user_by_email[0]
+            username = user_by_email[1]
+            role = user_by_email[2]
+            plan = user_by_email[3]
+            plan_exp = user_by_email[4]
+            db_avatar = user_by_email[5]
+            
+            c.execute(f"UPDATE users SET {provider}_id=? WHERE id=?", (provider_user_id, user_id))
+            conn.commit()
+            log_system_event('INFO', 'auth', f'Linked {provider} account for user {username}')
+        else:
+            # 3. Create new user
+            import secrets
+            import string
+            
+            # Generate unique username
+            base_username = name.replace(' ', '').lower()
+            username = base_username
+            attempt = 1
+            while True:
+                c.execute("SELECT 1 FROM users WHERE username=?", (username,))
+                if not c.fetchone():
+                    break
+                username = f"{base_username}{attempt}"
+                attempt += 1
+
+            # Random secure password
+            alphabet = string.ascii_letters + string.digits
+            password = ''.join(secrets.choice(alphabet) for i in range(16))
+            
+            # Role defaults to reader
+            role = 'reader'
+
+            c.execute(f"INSERT INTO users (username, email, password, role, {provider}_id, avatar_url) VALUES (?, ?, ?, ?, ?, ?)",
+                      (username, email, password, role, provider_user_id, avatar_url))
+            conn.commit()
+            
+            user_id = c.lastrowid
+            plan = 'basic'
+            plan_exp = None
+            db_avatar = avatar_url
+            log_system_event('INFO', 'auth', f'Created new user {username} via {provider}')
+
+    conn.close()
+
+    # Log user in
+    session["user_id"] = user_id
+    session["username"] = username
+    session["role"] = role
+    session["plan"] = plan or "basic"
+    session["plan_expires_at"] = plan_exp
+    session["avatar_url"] = db_avatar
+    session["email"] = email
+    
+    if session["plan"] == "ultimate":
+        session["plan_expires_at"] = None
+
+    log_system_event('INFO', 'auth', f'User {username} logged in via {provider}', user_id)
+    return redirect(url_for("home"))
+
 @app.before_request
 def refresh_plan():
     uid = session.get("user_id")
@@ -843,6 +1030,16 @@ def register():
         if not username or not email or not password:
             flash("Username, email, and password are required.", "danger")
             return redirect(url_for("register"))
+        
+        # Unique email check
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT 1 FROM users WHERE email=?", (email,))
+        if c.fetchone():
+            conn.close()
+            flash("That email is already registered. Please login instead.", "danger")
+            return redirect(url_for("register"))
+        conn.close()
 
         if "@" not in email or "." not in email:
             flash("Please enter a valid email address.", "danger")
@@ -1017,7 +1214,7 @@ def view_book(id):
     # fetch reviews
     c.execute("""
         SELECT r.id, r.content, r.rating, r.created_at,
-               u.username, u.id
+               u.username, u.id, u.avatar_url
         FROM reviews r
         JOIN users u ON u.id = r.user_id
         WHERE r.book_id=?
@@ -2103,6 +2300,92 @@ def profile():
         avg_rating=avg_rating,
         currently_reading=currently_reading,
         recent_finished=recent_finished,
+        recent_activity=recent_activity
+    )
+
+# ---------- Public Profile ----------
+@app.route("/u/<username>")
+def public_profile(username):
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute("SELECT id, username, role, avatar_url, plan FROM users WHERE username=?", (username,))
+    user = c.fetchone()
+
+    if not user:
+        conn.close()
+        flash("User not found.", "error")
+        return redirect(url_for("home"))
+    
+    user_id = user[0]
+    
+    # Get stats
+    c.execute("SELECT COUNT(*) FROM history WHERE user_id=?", (user_id,))
+    read_count = c.fetchone()[0]
+
+    c.execute("SELECT status, COUNT(*) FROM watchlist WHERE user_id=? GROUP BY status", (user_id,))
+    watchlist_stats = dict(c.fetchall())
+
+    c.execute("SELECT COUNT(*) FROM favorites WHERE user_id=?", (user_id,))
+    fav_count = c.fetchone()[0]
+
+    # Recent activity
+    c.execute("""
+        SELECT al.activity_type, b.title, al.timestamp
+        FROM activity_log al
+        JOIN books b ON al.book_id = b.id
+        WHERE al.user_id = ?
+        ORDER BY al.timestamp DESC
+        LIMIT 10
+    """, (user_id,))
+    activity_raw = c.fetchall()
+    
+    conn.close()
+
+    # Format activity
+    activity_icons = {
+        'read': 'fa-book-open',
+        'started': 'fa-play-circle',
+        'completed': 'fa-check-circle',
+        'favorited': 'fa-heart',
+        'summarized': 'fa-sparkles'
+    }
+
+    recent_activity = []
+    for activity_type, title, timestamp in activity_raw:
+        try:
+            dt = datetime.fromisoformat(timestamp)
+            now = datetime.utcnow()
+            diff = now - dt
+
+            if diff.days > 365:
+                when = f"{diff.days // 365}y ago"
+            elif diff.days > 30:
+                when = f"{diff.days // 30}mo ago"
+            elif diff.days > 0:
+                when = f"{diff.days}d ago"
+            elif diff.seconds > 3600:
+                when = f"{diff.seconds // 3600}h ago"
+            elif diff.seconds > 60:
+                when = f"{diff.seconds // 60}m ago"
+            else:
+                when = "Just now"
+        except:
+            when = timestamp
+        
+        recent_activity.append({
+            'type': activity_type.replace('_', ' ').title(),
+            'title': title,
+            'when': when,
+            'icon': activity_icons.get(activity_type, 'fa-circle')
+        })
+
+    return render_template(
+        "user_profile.html",
+        user=user,
+        read_count=read_count,
+        watchlist_stats=watchlist_stats,
+        fav_count=fav_count,
         recent_activity=recent_activity
     )
 

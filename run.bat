@@ -15,7 +15,7 @@ if exist .venv (
     echo Creating new one...
     python -m venv .venv
     call .venv\Scripts\activate
-    pip install flask
+    pip install -r requirements.txt
 )
 
 echo Running Flask app...

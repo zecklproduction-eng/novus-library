@@ -1,223 +1,175 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>{{ user[1] }} | NOVUS</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.png') }}">
-    <style>
-        body {
-            background-color: #000000;
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
-        }
-        .navbar {
-            background-color: #1a1a1a;
-            border-bottom: 1px solid #333;
-        }
-        .profile-header {
-            background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
-            padding: 40px 0;
-            margin-bottom: 30px;
-        }
-        .profile-avatar {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: 4px solid #00d4ff;
-            object-fit: cover;
-            margin: 0 auto 20px;
-        }
-        .profile-name {
-            font-size: 2rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        .profile-role {
-            color: #00d4ff;
-            font-size: 1.1rem;
-            margin-bottom: 20px;
-        }
-        .stats-card {
-            background: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .stats-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #00d4ff;
-        }
-        .stats-label {
-            color: #ccc;
-            font-size: 0.9rem;
-        }
-        .book-card {
-            background: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 12px;
-            overflow: hidden;
-            transition: transform 0.2s ease;
-        }
-        .book-card:hover {
-            transform: translateY(-5px);
-            border-color: #00d4ff;
-        }
-        .book-cover {
-            height: 200px;
-            background: #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-        }
-        .book-info {
-            padding: 15px;
-        }
-        .book-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        .book-author {
-            color: #ccc;
-            font-size: 0.9rem;
-            margin-bottom: 8px;
-        }
-        .book-category {
-            background: #00d4ff;
-            color: black;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            display: inline-block;
-        }
-        .btn-neon {
-            background: #00d4ff;
-            border: none;
-            color: black;
-            font-weight: bold;
-            padding: 10px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s ease;
-        }
-        .btn-neon:hover {
-            background: white;
-            box-shadow: 0 0 15px #00d4ff;
-            color: black;
-            text-decoration: none;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" width="30" height="30" class="me-2">
-                NOVUS
-            </a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="/">Home</a>
-                <a class="nav-link" href="/profile">My Profile</a>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
+{% block title %}{{ user[1] }}'s Profile | NOVUS{% endblock %}
 
-    <!-- Profile Header -->
-    <section class="profile-header">
-        <div class="container">
-            <div class="row">
-                <div class="col-12 text-center">
-                    {% if user[4] %}
-                        <img src="{{ user[4] }}" alt="{{ user[1] }}" class="profile-avatar" onclick="openUserInteractionModal({{ user[0] }}, '{{ user[1] }}', '{{ user[3]|capitalize }}', '{{ user[4] }}', event, null)" style="cursor: pointer;">
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row">
+        <!-- Sidebar / User Info -->
+        <div class="col-md-4 mb-4">
+            <div class="card bg-dark text-white border-secondary p-4 text-center h-100">
+                <div class="mb-3 position-relative d-inline-block">
+                    {% if user[3] %}
+                        <img src="{{ user[3] }}" class="rounded-circle border border-info p-1" style="width: 120px; height: 120px; object-fit: cover;">
                     {% else %}
-                        <div class="profile-avatar" style="background: #333; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #00d4ff; cursor: pointer;" onclick="openUserInteractionModal({{ user[0] }}, '{{ user[1] }}', '{{ user[3]|capitalize }}', null, event, null)">
+                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto border border-info p-1" style="width: 120px; height: 120px; font-size: 40px;">
                             {{ user[1][0]|upper }}
                         </div>
                     {% endif %}
-                    <h1 class="profile-name">{{ user[1] }}</h1>
-                    <p class="profile-role">{{ user[3]|capitalize }}</p>
+                    
+                    {% if user[2] == 'admin' %}
+                    <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-danger border border-dark">
+                        ADMIN
+                    </span>
+                    {% elif user[2] == 'publisher' %}
+                    <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-warning text-dark border border-dark">
+                        PUB
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h3 class="mb-1">{{ user[1] }}</h3>
+                <p class="text-muted mb-3">{{ user[2]|title }}</p>
+
+                {% if user[4] == 'ultimate' %}
+                <div class="badge bg-warning text-dark mb-4 px-3 py-2">
+                    <i class="fas fa-crown me-1"></i> Ultimate Member
+                </div>
+                {% endif %}
+
+                <div class="d-grid gap-2">
+                    {% if session.get('user_id') != user[0] %}
+                        <button class="btn btn-outline-danger btn-sm" onclick="reportUser({{ user[0] }}, '{{ user[1] }}')">
+                            <i class="fas fa-flag me-2"></i>Report User
+                        </button>
+                    {% else %}
+                        <a href="{{ url_for('profile') }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-edit me-2"></i>Edit Profile
+                        </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
-    </section>
 
-    <!-- Stats -->
-    <div class="container">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="stats-card">
-                    <div class="stats-number">{{ activity_count }}</div>
-                    <div class="stats-label">Reading Activities</div>
+        <!-- Main Content / Stats -->
+        <div class="col-md-8">
+            <!-- Stats Row -->
+            <div class="row g-3 mb-4">
+                <div class="col-sm-4">
+                    <div class="card bg-dark border-secondary p-3 text-center">
+                        <h2 class="text-info mb-0">{{ read_count }}</h2>
+                        <small class="text-muted">Books Read</small>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stats-card">
-                    <div class="stats-number">{{ review_count }}</div>
-                    <div class="stats-label">Reviews Written</div>
+                <div class="col-sm-4">
+                    <div class="card bg-dark border-secondary p-3 text-center">
+                        <h2 class="text-danger mb-0">{{ fav_count }}</h2>
+                        <small class="text-muted">Favorites</small>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stats-card">
-                    <div class="stats-number">{{ books|length }}</div>
-                    <div class="stats-label">Books Uploaded</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Books Section -->
-    <div class="container">
-        <div class="row">
-            <div class="col-12">
-                <h2 class="mb-4">Books by {{ user[1] }}</h2>
-
-                {% if books %}
-                <div class="row">
-                    {% for book in books %}
-                    <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="book-card">
-                            <div class="book-cover">
-                                {% if book[4] %}
-                                    <img src="{{ url_for('static', filename=book[4]) }}" alt="{{ book[1] }}" style="width: 100%; height: 100%; object-fit: cover;">
-                                {% else %}
-                                    📖
-                                {% endif %}
+                <div class="col-sm-4">
+                    <div class="card bg-dark border-secondary p-3 text-center">
+                        <div class="d-flex justify-content-around text-start small">
+                            <div>
+                                <div class="text-warning">{{ watchlist_stats.get('planned', 0) }}</div> <span class="text-muted">Planned</span>
                             </div>
-                            <div class="book-info">
-                                <div class="book-title">{{ book[1] }}</div>
-                                <div class="book-author">by {{ book[2] or 'Unknown' }}</div>
-                                <div class="book-category">{{ book[3] or 'General' }}</div>
-                                <a href="{{ url_for('view_book', id=book[0]) }}" class="btn-neon btn-sm mt-2">Read Book</a>
+                            <div>
+                                <div class="text-success">{{ watchlist_stats.get('completed', 0) }}</div> <span class="text-muted">Done</span>
+                            </div>
+                            <div>
+                                <div class="text-info">{{ watchlist_stats.get('reading', 0) }}</div> <span class="text-muted">Reading</span>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <h4 class="mb-3 border-bottom border-secondary pb-2">Recent Activity</h4>
+            <div class="activity-timeline">
+                {% if recent_activity %}
+                    {% for act in recent_activity %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3 text-center" style="width: 40px;">
+                            <i class="fas {{ act.icon }} fa-lg text-secondary"></i>
+                        </div>
+                        <div>
+                            <div>
+                                <span class="fw-bold">{{ user[1] }}</span>
+                                <span class="text-muted small">{{ act.type|lower }}</span>
+                                <span class="text-info fw-bold">{{ act.title }}</span>
+                            </div>
+                            <small class="text-muted">{{ act.when }}</small>
+                        </div>
+                    </div>
                     {% endfor %}
-                </div>
                 {% else %}
-                <div class="empty-state">
-                    <h3>No books uploaded yet</h3>
-                    <p>{{ user[1] }} hasn't uploaded any books yet.</p>
-                </div>
+                    <p class="text-muted text-center py-4">No recent activity to show.</p>
                 {% endif %}
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html></content>
-</xai:function_call">The file templates/user_profile.html has been created successfully.
+<!-- Report Modal (Reused) -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title text-white">Report User</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small">Help us keep the community safe. Why are you reporting <strong id="reportUserName" class="text-white"></strong>?</p>
+        <form id="reportForm">
+            <input type="hidden" id="reportUserId">
+            <div class="mb-3">
+                <textarea class="form-control bg-black text-white border-secondary" id="reportReason" rows="4" placeholder="Describe the issue..." required></textarea>
+            </div>
+            <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger">Submit Report</button>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let reportModal;
+document.addEventListener('DOMContentLoaded', function() {
+    reportModal = new bootstrap.Modal(document.getElementById('reportModal'));
+});
+
+function reportUser(userId, username) {
+    document.getElementById('reportUserId').value = userId;
+    document.getElementById('reportUserName').textContent = username;
+    document.getElementById('reportReason').value = '';
+    reportModal.show();
+}
+
+document.getElementById('reportForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const userId = document.getElementById('reportUserId').value;
+    const reason = document.getElementById('reportReason').value;
+    
+    try {
+        const resp = await fetch('/report_user', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ reported_user_id: userId, reason: reason })
+        });
+        const data = await resp.json();
+        
+        if (data.success) {
+            alert('Report submitted. Thank you.');
+            reportModal.hide();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch(e) {
+        alert('Network error. Please try again.');
+    }
+});
+</script>
+{% endblock %}
