@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <title>Login | NOVUS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -10,282 +11,919 @@
       rel="shortcut icon"
       href="{{ url_for('static', filename='img/logo.png') }}"
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-      /* GLOBAL DARK THEME */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
       body {
-        background-color: #000000;
-        color: white;
-        height: 100vh;
+        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-family: "Segoe UI", sans-serif;
-        margin: 0;
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+        overflow: hidden;
+        position: relative;
       }
 
-      /* Gmail-style Loading Bar */
-      .top-loading-bar {
+      /* Animated Background Gradient */
+      .bg-gradient {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 3px;
-        background: #00d4ff;
-        z-index: 10000;
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
+        height: 100%;
+        background: linear-gradient(
+          45deg,
+          #0f0c29,
+          #302b63,
+          #24243e,
+          #1a1a2e,
+          #16213e,
+          #0f3460
+        );
+        background-size: 400% 400%;
+        animation: gradientShift 15s ease infinite;
+        z-index: -2;
       }
 
-      .top-loading-bar.show {
-        transform: translateX(0);
-        animation: gmailLoading 2s ease-in-out;
+      @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
       }
 
-      @keyframes gmailLoading {
-        0% {
-          transform: translateX(-100%);
-          width: 100%;
+      /* Floating Particles */
+      .particles {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        overflow: hidden;
+      }
+
+      .particle {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background: rgba(138, 43, 226, 0.6);
+        border-radius: 50%;
+        animation: float 20s infinite;
+        box-shadow: 0 0 10px rgba(138, 43, 226, 0.8);
+      }
+
+      .particle:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 18s; }
+      .particle:nth-child(2) { left: 20%; animation-delay: 2s; animation-duration: 22s; background: rgba(0, 212, 255, 0.6); box-shadow: 0 0 10px rgba(0, 212, 255, 0.8); }
+      .particle:nth-child(3) { left: 30%; animation-delay: 4s; animation-duration: 16s; }
+      .particle:nth-child(4) { left: 40%; animation-delay: 1s; animation-duration: 20s; background: rgba(236, 72, 153, 0.6); box-shadow: 0 0 10px rgba(236, 72, 153, 0.8); }
+      .particle:nth-child(5) { left: 50%; animation-delay: 3s; animation-duration: 24s; }
+      .particle:nth-child(6) { left: 60%; animation-delay: 5s; animation-duration: 19s; background: rgba(0, 212, 255, 0.6); box-shadow: 0 0 10px rgba(0, 212, 255, 0.8); }
+      .particle:nth-child(7) { left: 70%; animation-delay: 2.5s; animation-duration: 21s; }
+      .particle:nth-child(8) { left: 80%; animation-delay: 1.5s; animation-duration: 17s; background: rgba(236, 72, 153, 0.6); box-shadow: 0 0 10px rgba(236, 72, 153, 0.8); }
+      .particle:nth-child(9) { left: 90%; animation-delay: 4.5s; animation-duration: 23s; }
+      .particle:nth-child(10) { left: 5%; animation-delay: 0.5s; animation-duration: 25s; background: rgba(0, 212, 255, 0.6); box-shadow: 0 0 10px rgba(0, 212, 255, 0.8); }
+
+      @keyframes float {
+        0%, 100% {
+          transform: translateY(100vh) scale(0);
+          opacity: 0;
         }
-        50% {
-          transform: translateX(0%);
-          width: 100%;
+        10% {
+          opacity: 1;
+          transform: translateY(90vh) scale(1);
+        }
+        90% {
+          opacity: 1;
+          transform: translateY(-10vh) scale(1);
         }
         100% {
-          transform: translateX(0%);
-          width: 100%;
+          transform: translateY(-20vh) scale(0);
+          opacity: 0;
         }
       }
 
-      /* LOADER STYLES (Keep these same as before) */
+      /* Glowing Orbs Background */
+      .orb {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(80px);
+        z-index: -1;
+        animation: orbFloat 8s ease-in-out infinite;
+      }
+
+      .orb-1 {
+        width: 400px;
+        height: 400px;
+        background: rgba(138, 43, 226, 0.3);
+        top: -100px;
+        left: -100px;
+        animation-delay: 0s;
+      }
+
+      .orb-2 {
+        width: 300px;
+        height: 300px;
+        background: rgba(0, 212, 255, 0.25);
+        bottom: -50px;
+        right: -50px;
+        animation-delay: 2s;
+      }
+
+      .orb-3 {
+        width: 250px;
+        height: 250px;
+        background: rgba(236, 72, 153, 0.2);
+        top: 50%;
+        right: 10%;
+        animation-delay: 4s;
+      }
+
+      @keyframes orbFloat {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(30px, -30px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+      }
+
+      /* Page Load Animation */
       #loader-wrapper {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: #000000;
+        background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
         z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      #loader-wrapper.fade-out {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .loading-logo {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        background: linear-gradient(#fff, #fff) padding-box,
+                    linear-gradient(135deg, #8a2be2, #00d4ff, #ec4899) border-box;
+        padding: 8px;
+        animation: logoFloat 2s ease-in-out infinite, logoPulse 2s ease-in-out infinite;
+        box-shadow: 0 0 40px rgba(138, 43, 226, 0.5);
+      }
+
+      @keyframes logoFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+
+      @keyframes logoPulse {
+        0%, 100% { box-shadow: 0 0 40px rgba(138, 43, 226, 0.5); }
+        50% { box-shadow: 0 0 60px rgba(0, 212, 255, 0.8), 0 0 80px rgba(138, 43, 226, 0.6); }
+      }
+
+      .loading-text {
+        color: white;
+        margin-top: 25px;
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: 8px;
+        background: linear-gradient(135deg, #fff, #00d4ff, #8a2be2);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: textShimmer 3s linear infinite;
+      }
+
+      @keyframes textShimmer {
+        0% { background-position: 0% center; }
+        100% { background-position: 200% center; }
+      }
+
+      /* Login Card - Glassmorphism */
+      .login-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 50px 40px;
+        width: 100%;
+        max-width: 420px;
+        text-align: center;
+        box-shadow: 
+          0 25px 50px rgba(0, 0, 0, 0.3),
+          inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        animation: cardAppear 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        opacity: 0;
+        transform: translateY(30px);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .login-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.05),
+          transparent
+        );
+        animation: shimmer 3s infinite;
+      }
+
+      @keyframes shimmer {
+        0% { left: -100%; }
+        100% { left: 100%; }
+      }
+
+      @keyframes cardAppear {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .logo-circle {
+        width: 85px;
+        height: 85px;
+        border-radius: 50%;
+        padding: 6px;
+        background: linear-gradient(135deg, #8a2be2, #00d4ff, #ec4899);
+        margin-bottom: 25px;
+        animation: logoRotate 6s linear infinite;
+        position: relative;
+        display: inline-block;
+      }
+
+      .logo-circle img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #1a1a2e;
+      }
+
+      @keyframes logoRotate {
+        0% { filter: hue-rotate(0deg); }
+        100% { filter: hue-rotate(360deg); }
+      }
+
+      .brand-title {
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: 6px;
+        margin-bottom: 8px;
+        background: linear-gradient(135deg, #fff 0%, #00d4ff 50%, #8a2be2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .brand-subtitle {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+        letter-spacing: 3px;
+        margin-bottom: 35px;
+        font-weight: 300;
+      }
+
+      /* Form Styles */
+      .form-group {
+        position: relative;
+        margin-bottom: 20px;
+      }
+
+      .form-control {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: white;
+        padding: 16px 20px 16px 50px;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        width: 100%;
+      }
+
+      .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: 300;
+      }
+
+      .form-control:focus {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(0, 212, 255, 0.5);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        outline: none;
+      }
+
+      .form-icon {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus + .form-icon,
+      .form-control:not(:placeholder-shown) + .form-icon {
+        color: #00d4ff;
+      }
+
+      /* Login Button */
+      .btn-login {
+        background: linear-gradient(135deg, #8a2be2 0%, #00d4ff 100%);
+        border: none;
+        width: 100%;
+        padding: 16px;
+        font-weight: 600;
+        font-size: 1rem;
+        color: white;
+        border-radius: 12px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        margin-top: 10px;
+        letter-spacing: 1px;
+      }
+
+      .btn-login::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        transition: 0.5s;
+      }
+
+      .btn-login:hover::before {
+        left: 100%;
+      }
+
+      .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(138, 43, 226, 0.4);
+      }
+
+      .btn-login:active {
+        transform: translateY(0);
+      }
+
+      .btn-login:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      /* Spinner Animation */
+      .spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 10px;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* Divider */
+      .divider {
+        display: flex;
+        align-items: center;
+        margin: 30px 0;
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 0.85rem;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      }
+
+      .divider span {
+        padding: 0 15px;
+        font-weight: 300;
+      }
+
+      /* Social Buttons */
+      .social-buttons {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 25px;
+      }
+
+      .btn-social {
+        flex: 1;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-decoration: none;
+      }
+
+      .btn-social:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+        color: white;
+      }
+
+      .btn-google:hover {
+        border-color: rgba(234, 67, 53, 0.5);
+        box-shadow: 0 5px 20px rgba(234, 67, 53, 0.2);
+      }
+
+      .btn-facebook:hover {
+        border-color: rgba(66, 103, 178, 0.5);
+        box-shadow: 0 5px 20px rgba(66, 103, 178, 0.2);
+      }
+
+      /* Register Link */
+      .register-link {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
+      }
+
+      .register-link a {
+        color: #00d4ff;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .register-link a:hover {
+        color: #8a2be2;
+        text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+      }
+
+      /* Error Alert */
+      .alert-error {
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 12px;
+        padding: 12px 16px;
+        color: #fca5a5;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+        animation: shake 0.5s ease-in-out;
+      }
+
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+      }
+
+      /* Success Animation Overlay */
+      .success-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 10000;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+
+      .success-overlay.show {
+        display: flex;
+        animation: fadeIn 0.3s ease;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      .checkmark-circle {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
         display: flex;
         justify-content: center;
         align-items: center;
-        transition: opacity 0.5s ease-out;
+        background: linear-gradient(135deg, #8a2be2, #00d4ff);
+        animation: scaleIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 0 60px rgba(0, 212, 255, 0.5);
       }
-      .loading-logo {
-        width: 120px;
-        height: 120px;
-        object-fit: cover;
-        border-radius: 50%;
-        border: 3px solid #00d4ff;
-        padding: 5px;
-        background: white;
-        animation: pulse 2s infinite ease-in-out;
-      }
-      .loading-text {
-        color: white;
-        margin-top: 20px;
-        letter-spacing: 4px;
-        font-weight: bold;
-        animation: textFade 2s infinite;
-      }
-      @keyframes pulse {
-        0% {
+
+      @keyframes scaleIn {
+        from {
+          transform: scale(0);
+          opacity: 0;
+        }
+        to {
           transform: scale(1);
-          box-shadow: 0 0 0 rgba(0, 212, 255, 0.4);
-        }
-        50% {
-          transform: scale(1.15);
-          box-shadow: 0 0 40px #00d4ff;
-        }
-        100% {
-          transform: scale(1);
-          box-shadow: 0 0 0 rgba(0, 212, 255, 0.4);
-        }
-      }
-      @keyframes textFade {
-        0%,
-        100% {
-          opacity: 0.5;
-        }
-        50% {
           opacity: 1;
         }
       }
 
-      /* LOGIN CARD STYLES */
-      .login-card {
-        background: #1e1e1e;
-        padding: 40px;
-        border-radius: 15px;
-        width: 400px;
-        border: 1px solid #333;
-        text-align: center;
-        box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-        z-index: 1;
-      }
-      .form-control {
-        background: #2b2b2b;
-        border: 1px solid #444;
-        color: white;
-        margin-bottom: 15px;
-        padding: 12px;
-      }
-      .form-control::placeholder {
-        color: #888;
-      } /* FIXED: Lighter placeholder color */
-      .form-control:focus {
-        background: #333;
-        color: white;
-        border-color: #00d4ff;
-        box-shadow: 0 0 5px #00d4ff;
-      }
-      .btn-neon {
-        background: #00d4ff;
-        border: none;
-        width: 100%;
-        padding: 12px;
-        font-weight: bold;
-        color: black;
-        border-radius: 8px;
-        transition: 0.3s;
-      }
-      .btn-neon:hover {
-        background: white;
-        box-shadow: 0 0 15px #00d4ff;
-      }
-      .logo-circle {
-        width: 90px;
-        height: 90px;
-        border-radius: 50%;
-        background: white;
-        padding: 5px;
-        border: 3px solid #00d4ff;
-        object-fit: cover;
-        margin-bottom: 20px;
+      .checkmark {
+        width: 50px;
+        height: 50px;
+        stroke: white;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
       }
 
-      /* Link Styles */
-      a {
-        color: #00d4ff;
-        text-decoration: none;
-        font-weight: bold;
+      .checkmark-path {
+        stroke-dasharray: 60;
+        stroke-dashoffset: 60;
+        animation: drawCheck 0.6s 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
       }
-      a:hover {
-        text-decoration: underline;
+
+      @keyframes drawCheck {
+        to { stroke-dashoffset: 0; }
+      }
+
+      .success-text {
         color: white;
+        margin-top: 25px;
+        font-size: 1.3rem;
+        font-weight: 500;
+        letter-spacing: 2px;
+        animation: fadeInUp 0.5s 0.5s ease forwards;
+        opacity: 0;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .success-redirect {
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 10px;
+        font-size: 0.85rem;
+        animation: fadeInUp 0.5s 0.7s ease forwards;
+        opacity: 0;
+      }
+
+      /* Progress Bar */
+      .progress-bar-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        z-index: 10001;
+      }
+
+      .progress-bar {
+        height: 100%;
+        width: 0;
+        background: linear-gradient(90deg, #8a2be2, #00d4ff, #ec4899);
+        box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        transition: width 0.3s ease;
+      }
+
+      .progress-bar.loading {
+        animation: progressLoad 2s ease forwards;
+      }
+
+      @keyframes progressLoad {
+        0% { width: 0; }
+        20% { width: 30%; }
+        50% { width: 60%; }
+        80% { width: 90%; }
+        100% { width: 100%; }
+      }
+
+      /* Responsive */
+      @media (max-width: 480px) {
+        .login-card {
+          margin: 20px;
+          padding: 40px 25px;
+        }
+
+        .brand-title {
+          font-size: 1.5rem;
+          letter-spacing: 4px;
+        }
+
+        .social-buttons {
+          flex-direction: column;
+        }
+      }
+
+      /* Input Label Animation */
+      .form-group label {
+        position: absolute;
+        left: 50px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.95rem;
+        pointer-events: none;
+        transition: all 0.3s ease;
+        font-weight: 300;
+      }
+
+      .form-control:focus ~ label,
+      .form-control:not(:placeholder-shown) ~ label {
+        top: -10px;
+        left: 20px;
+        font-size: 0.75rem;
+        color: #00d4ff;
+        background: linear-gradient(135deg, #1a1a2e, #302b63);
+        padding: 0 8px;
+        border-radius: 4px;
+      }
+
+      /* Password Toggle */
+      .password-toggle {
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(255, 255, 255, 0.4);
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .password-toggle:hover {
+        color: #00d4ff;
       }
     </style>
   </head>
   <body>
-    <!-- Pulsing Loading Bar with Glow -->
-    <div id="topLoadingBar" class="top-loading-bar"></div>
-
-    <div id="loader-wrapper">
-      <div class="text-center">
-        <img
-          src="{{ url_for('static', filename='img/logo.png') }}"
-          class="loading-logo"
-        />
-        <br />
-        <h4 class="loading-text">NOVUS</h4>
-      </div>
+    <div class="bg-gradient"></div>
+    
+    <!-- Floating Particles -->
+    <div class="particles">
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
     </div>
 
-    <div class="login-card">
+    <!-- Glowing Orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- Page Loader -->
+    <div id="loader-wrapper">
       <img
         src="{{ url_for('static', filename='img/logo.png') }}"
-        class="logo-circle"
+        class="loading-logo"
+        alt="NOVUS Logo"
       />
-      <h2 class="mb-4" style="letter-spacing: 3px; font-weight: 600">NOVUS</h2>
+      <h4 class="loading-text">NOVUS</h4>
+    </div>
+
+    <!-- Success Animation Overlay -->
+    <div class="success-overlay" id="successOverlay">
+      <div class="checkmark-circle">
+        <svg class="checkmark" viewBox="0 0 50 50">
+          <path class="checkmark-path" d="M14 27 L22 35 L38 16" />
+        </svg>
+      </div>
+      <p class="success-text">Welcome Back!</p>
+      <p class="success-redirect">Redirecting to dashboard...</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-card">
+      <div class="logo-circle">
+        <img
+          src="{{ url_for('static', filename='img/logo.png') }}"
+          alt="NOVUS Logo"
+        />
+      </div>
+      
+      <h1 class="brand-title">NOVUS</h1>
+      <p class="brand-subtitle">DIGITAL LIBRARY</p>
 
       {% if error %}
-      <div class="alert alert-danger p-2" style="font-size: 14px">
-        {{ error }}
+      <div class="alert-error">
+        <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
       </div>
       {% endif %}
 
-      <form method="POST" onsubmit="showLoginLoading()">
-        <input
-          type="text"
-          name="username"
-          class="form-control"
-          placeholder="Username"
-          required
-        />
-        <input
-          type="password"
-          name="password"
-          class="form-control"
-          placeholder="Password"
-          required
-        />
-        <button type="submit" id="loginBtn" class="btn btn-neon">
-          <span id="loginText">LOGIN</span>
-          <span id="loginSpinner" style="display: none">
-            <i class="fas fa-spinner fa-spin me-2"></i>Logging in...
-          </span>
+      <form method="POST" id="loginForm">
+        <div class="form-group">
+          <input
+            type="text"
+            name="username"
+            id="username"
+            class="form-control"
+            placeholder="Username"
+            required
+            autocomplete="username"
+          />
+          <i class="fas fa-user form-icon"></i>
+        </div>
+        
+        <div class="form-group">
+          <input
+            type="password"
+            name="password"
+            id="password"
+            class="form-control"
+            placeholder="Password"
+            required
+            autocomplete="current-password"
+          />
+          <i class="fas fa-lock form-icon"></i>
+          <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+        </div>
+
+        <button type="submit" class="btn-login" id="loginBtn">
+          <span class="spinner" id="spinner"></span>
+          <span id="btnText">Sign In</span>
         </button>
       </form>
 
-      <div class="mt-4 text-start" style="color: #ccc">
-        <hr style="border-color: #555" />
-
-        <p class="mb-1 small">Don't have an account?</p>
-        <a href="/register" class="btn btn-outline-light w-100 btn-sm"
-          >✨ Create New Account</a
-        >
-
-        <div class="mt-3">
-          <p class="small text-muted mb-2">Or continue with</p>
-          <div class="d-flex gap-2">
-            <a
-              href="{{ url_for('oauth_login', provider='google') }}"
-              class="btn btn-sm btn-outline-danger w-50"
-            >
-              <i class="fab fa-google me-1"></i> Google
-            </a>
-            <a
-              href="{{ url_for('oauth_login', provider='facebook') }}"
-              class="btn btn-sm btn-outline-primary w-50"
-            >
-              <i class="fab fa-facebook-f me-1"></i> Facebook
-            </a>
-          </div>
-        </div>
+      <div class="divider">
+        <span>or continue with</span>
       </div>
+
+      <div class="social-buttons">
+        <a href="{{ url_for('oauth_login', provider='google') }}" class="btn-social btn-google">
+          <i class="fab fa-google"></i>
+          <span>Google</span>
+        </a>
+        <a href="{{ url_for('oauth_login', provider='facebook') }}" class="btn-social btn-facebook">
+          <i class="fab fa-facebook-f"></i>
+          <span>Facebook</span>
+        </a>
+      </div>
+
+      <p class="register-link">
+        Don't have an account? <a href="/register">Create one</a>
+      </p>
     </div>
 
     <script>
-      window.addEventListener("load", function () {
-        setTimeout(function () {
-          var loader = document.getElementById("loader-wrapper");
-          loader.style.opacity = "0";
-          setTimeout(function () {
-            loader.style.display = "none";
-          }, 500);
-        }, 2500);
+      // Page Load Animation
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          document.getElementById('loader-wrapper').classList.add('fade-out');
+        }, 1500);
       });
 
-      function showLoginLoading() {
-        const loginText = document.getElementById("loginText");
-        const loginSpinner = document.getElementById("loginSpinner");
-        const loginBtn = document.getElementById("loginBtn");
-        const topLoadingBar = document.getElementById("topLoadingBar");
+      // Password Toggle
+      const togglePassword = document.getElementById('togglePassword');
+      const password = document.getElementById('password');
+      
+      togglePassword.addEventListener('click', function() {
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+      });
 
-        // Hide login text and show spinner
-        loginText.style.display = "none";
-        loginSpinner.style.display = "inline";
+      // Form Submit with Animation
+      const loginForm = document.getElementById('loginForm');
+      const loginBtn = document.getElementById('loginBtn');
+      const spinner = document.getElementById('spinner');
+      const btnText = document.getElementById('btnText');
+      const progressBar = document.getElementById('progressBar');
+      const successOverlay = document.getElementById('successOverlay');
 
-        // Disable the button to prevent multiple submissions
+      loginForm.addEventListener('submit', function(e) {
+        // Show loading state
+        spinner.style.display = 'inline-block';
+        btnText.textContent = 'Signing in...';
         loginBtn.disabled = true;
-        loginBtn.style.opacity = "0.7";
+        progressBar.classList.add('loading');
 
-        // Show top loading bar with pulsing animation
-        if (topLoadingBar) {
-          topLoadingBar.classList.add("show");
-          topLoadingBar.classList.remove("page-load");
+        // For demo: Show success animation (remove this in production)
+        // The form will submit normally, but we add visual feedback
+        
+        // If you want to show success animation, uncomment below and handle via AJAX instead
+        /*
+        e.preventDefault();
+        
+        setTimeout(function() {
+          successOverlay.classList.add('show');
+          
+          setTimeout(function() {
+            window.location.href = '/home';
+          }, 2000);
+        }, 1500);
+        */
+      });
+
+      // Add input focus effects
+      const inputs = document.querySelectorAll('.form-control');
+      inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+          this.parentElement.style.transform = 'scale(1.02)';
+          this.parentElement.style.transition = 'transform 0.3s ease';
+        });
+        
+        input.addEventListener('blur', function() {
+          this.parentElement.style.transform = 'scale(1)';
+        });
+      });
+
+      // Add ripple effect to button
+      loginBtn.addEventListener('click', function(e) {
+        const rect = this.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const ripple = document.createElement('span');
+        ripple.style.cssText = `
+          position: absolute;
+          background: rgba(255, 255, 255, 0.3);
+          width: 100px;
+          height: 100px;
+          border-radius: 50%;
+          transform: translate(-50%, -50%) scale(0);
+          animation: ripple 0.6s linear;
+          left: ${x}px;
+          top: ${y}px;
+          pointer-events: none;
+        `;
+        
+        this.appendChild(ripple);
+        
+        setTimeout(() => ripple.remove(), 600);
+      });
+
+      // Add CSS for ripple animation
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes ripple {
+          to {
+            transform: translate(-50%, -50%) scale(4);
+            opacity: 0;
+          }
         }
-      }
+      `;
+      document.head.appendChild(style);
     </script>
   </body>
 </html>
