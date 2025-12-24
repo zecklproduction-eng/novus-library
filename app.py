@@ -853,6 +853,35 @@ def login():
     response.headers['Expires'] = '0'
     return response
 
+# ---------- Forgot Password ----------
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip()
+        
+        if not email or "@" not in email:
+            return render_template("forgot_password.html", error="Please enter a valid email address.")
+        
+        # Check if email exists in database
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT id, username FROM users WHERE email=?", (email,))
+        user = c.fetchone()
+        conn.close()
+        
+        if user:
+            # Log the password reset request
+            log_system_event('INFO', 'auth', f'Password reset requested for email: {email}', user[0])
+            # In production, you would send an email with a reset link here
+            return render_template("forgot_password.html", 
+                success="If an account exists with this email, you will receive a password reset link shortly.")
+        else:
+            # Don't reveal if email exists or not for security
+            return render_template("forgot_password.html", 
+                success="If an account exists with this email, you will receive a password reset link shortly.")
+    
+    return render_template("forgot_password.html")
+
 # ---------- OAuth Routes ----------
 @app.route('/login/<provider>')
 def oauth_login(provider):

@@ -1,117 +1,963 @@
-{% extends "base.html" %}
-{% block title %}Register | NOVUS{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register | NOVUS</title>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-{% block content %}
-<div class="auth-page">
-  <div class="auth-center-wrapper">
-  <div class="auth-card register-card">
-    <h1 class="auth-title">Create your NOVUS account</h1>
-    <p class="auth-subtitle">
-      Choose how you want to use the library.
-    </p>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Rajdhani', sans-serif;
+      background: #000;
+      overflow-x: hidden;
+      position: relative;
+      padding: 20px;
+    }
 
-    <form method="POST" action="{{ url_for('register') }}">
-      <div class="mb-3">
-        <label class="form-label">Username</label>
-        <input
-          type="text"
-          name="username"
-          class="form-control"
-          placeholder="Pick a unique username"
-          required
-        />
-      </div>
+    /* Full-screen Anime Background */
+    .anime-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
 
-      <div class="mb-3">
-        <label class="form-label">Email Address</label>
-        <input
-          type="email"
-          name="email"
-          class="form-control"
-          placeholder="Enter your email"
-          required
-        />
-      </div>
+    .anime-bg img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.4) saturate(1.3);
+    }
 
-      <div class="mb-3">
-        <label class="form-label">Password</label>
-        <input
-          type="password"
-          name="password"
-          class="form-control"
-          placeholder="Choose a password"
-          required
-        />
-      </div>
+    .anime-bg::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        135deg,
+        rgba(0, 0, 0, 0.7) 0%,
+        rgba(0, 20, 40, 0.5) 50%,
+        rgba(0, 0, 0, 0.8) 100%
+      );
+    }
 
-      <div class="mb-3">
-        <label class="form-label">Confirm Password</label>
-        <input
-          type="password"
-          name="confirm_password"
-          class="form-control"
-          placeholder="Confirm your password"
-          required
-        />
-      </div>
+    /* Animated Circuit Overlay */
+    .circuit-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.3;
+    }
 
-      <div class="mb-3">
-        <label class="form-label">Account type</label>
+    .circuit-overlay svg {
+      width: 100%;
+      height: 100%;
+    }
 
-        <div class="form-check">
-          <input
-            class="form-check-input"
-            type="radio"
-            name="account_type"
-            id="reader"
-            value="reader"
-            checked
-          />
-          <label class="form-check-label" for="reader">
-            <strong>Reader</strong><br />
-            <span class="text-muted">
-              Normal student account. Browse and read books.
-            </span>
-          </label>
-        </div>
+    .circuit-path {
+      stroke: #00d4ff;
+      stroke-width: 1;
+      fill: none;
+      filter: drop-shadow(0 0 3px #00d4ff);
+    }
 
-        <div class="form-check mt-2">
-          <input
-            class="form-check-input"
-            type="radio"
-            name="account_type"
-            id="publisher"
-            value="publisher"
-          />
-          <label class="form-check-label" for="publisher">
-            <strong>Publisher</strong><br />
-            <span class="text-muted">
-              I want to upload and manage books. (Admin approval required)
-            </span>
-          </label>
-        </div>
-      </div>
+    .circuit-dot {
+      fill: #00d4ff;
+      filter: drop-shadow(0 0 5px #00d4ff);
+    }
 
-      <button type="submit" class="btn btn-neon w-100">
-        Create Account
-      </button>
+    /* Brand Logo */
+    .brand-logo {
+      position: fixed;
+      top: 30px;
+      left: 40px;
+      z-index: 100;
+    }
 
-      <div class="mt-4 text-center">
-        <p class="small text-muted mb-2">Or sign up with</p>
-        <div class="d-flex gap-2 justify-content-center">
-            <a href="{{ url_for('oauth_login', provider='google') }}" class="btn btn-sm btn-outline-danger w-50">
-                <i class="fab fa-google me-1"></i> Google
-            </a>
-            <a href="{{ url_for('oauth_login', provider='facebook') }}" class="btn btn-sm btn-outline-primary w-50">
-                <i class="fab fa-facebook-f me-1"></i> Facebook
-            </a>
-        </div>
-        <div class="mt-3">
-            <a href="/login" class="text-muted small text-decoration-none">Already have an account? Login</a>
-        </div>
-      </div>
-    </form>
+    .brand-logo h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      color: #00d4ff;
+      letter-spacing: 5px;
+      text-shadow: 0 0 30px rgba(0, 212, 255, 0.8);
+    }
+
+    /* Registration Card */
+    .register-container {
+      position: relative;
+      z-index: 10;
+      background: rgba(10, 15, 25, 0.9);
+      border: 2px solid rgba(0, 212, 255, 0.5);
+      border-radius: 20px;
+      box-shadow: 
+        0 0 40px rgba(0, 212, 255, 0.2),
+        inset 0 0 60px rgba(0, 212, 255, 0.03);
+      padding: 40px;
+      max-width: 450px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: 5%;
+      animation: containerAppear 0.6s ease forwards, containerGlow 3s 0.6s infinite ease-in-out;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    @keyframes containerAppear {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes containerGlow {
+      0%, 100% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.2), inset 0 0 60px rgba(0, 212, 255, 0.03); }
+      50% { box-shadow: 0 0 60px rgba(0, 212, 255, 0.4), inset 0 0 80px rgba(0, 212, 255, 0.05); }
+    }
+
+    .card-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 30px;
+      letter-spacing: 3px;
+    }
+
+    /* Input Groups */
+    .input-group {
+      position: relative;
+      margin-bottom: 18px;
+    }
+
+    .input-group i.input-icon {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(0, 212, 255, 0.6);
+      font-size: 0.9rem;
+      z-index: 2;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 14px 15px 14px 45px;
+      background: rgba(0, 20, 40, 0.6);
+      border: 1px solid rgba(0, 212, 255, 0.25);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-family: 'Rajdhani', sans-serif;
+      transition: all 0.3s ease;
+    }
+
+    .form-input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.9rem;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.3), inset 0 0 15px rgba(0, 212, 255, 0.1);
+      background: rgba(0, 30, 60, 0.8);
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+      transition: color 0.3s ease;
+      z-index: 2;
+    }
+
+    .password-toggle:hover {
+      color: #00d4ff;
+    }
+
+    /* Social Login Buttons */
+    .social-login {
+      margin: 20px 0;
+    }
+
+    .btn-social {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(0, 20, 40, 0.5);
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      text-decoration: none;
+      margin-bottom: 10px;
+    }
+
+    .btn-social:hover {
+      border-color: rgba(0, 212, 255, 0.5);
+      background: rgba(0, 30, 60, 0.6);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0, 212, 255, 0.2);
+      color: #fff;
+    }
+
+    .btn-social i {
+      font-size: 1.1rem;
+    }
+
+    .btn-google i { color: #ea4335; }
+    .btn-facebook i { color: #4267B2; }
+
+    /* Account Type Selection */
+    .account-type-section {
+      margin: 25px 0;
+    }
+
+    .account-type-label {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .account-types {
+      display: flex;
+      gap: 12px;
+    }
+
+    .type-option {
+      flex: 1;
+      position: relative;
+    }
+
+    .type-option input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .type-card {
+      padding: 15px;
+      border: 2px solid rgba(0, 212, 255, 0.3);
+      border-radius: 12px;
+      background: rgba(0, 20, 40, 0.4);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .type-option input:checked + .type-card {
+      border-color: #00d4ff;
+      background: rgba(0, 212, 255, 0.15);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+
+    .type-card:hover {
+      border-color: rgba(0, 212, 255, 0.6);
+      background: rgba(0, 30, 60, 0.5);
+    }
+
+    .type-card i {
+      font-size: 1.8rem;
+      color: #00d4ff;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .type-card span {
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: 1px;
+    }
+
+    /* Register Button */
+    .btn-register {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #00d4ff 0%, #00a8cc 100%);
+      border: none;
+      border-radius: 10px;
+      color: #000;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-register::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: 0.5s;
+    }
+
+    .btn-register:hover::before {
+      left: 100%;
+    }
+
+    .btn-register:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 212, 255, 0.5);
+    }
+
+    /* Login Link */
+    .login-section {
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(0, 212, 255, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .btn-login-link {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      border: 2px solid rgba(0, 212, 255, 0.5);
+      border-radius: 10px;
+      color: #00d4ff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-decoration: none;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .btn-login-link:hover {
+      background: rgba(0, 212, 255, 0.1);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+      color: #fff;
+    }
+
+    /* Error Alert */
+    .alert-error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      border-radius: 10px;
+      padding: 12px 15px;
+      color: #fca5a5;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Loading Spinner */
+    .btn-spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(0, 0, 0, 0.3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Decorative Stars */
+    .star {
+      position: fixed;
+      z-index: 2;
+    }
+
+    .star-1 {
+      bottom: 30px;
+      right: 40px;
+      width: 30px;
+      height: 30px;
+      animation: starTwinkle 2s infinite ease-in-out;
+    }
+
+    .star svg {
+      fill: rgba(255, 255, 255, 0.6);
+      filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+    }
+
+    @keyframes starTwinkle {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.2); opacity: 1; }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .register-container {
+        margin: 80px auto 20px;
+        padding: 30px 25px;
+      }
+
+      .brand-logo {
+        left: 20px;
+        top: 20px;
+      }
+
+      .brand-logo h1 {
+        font-size: 1.5rem;
+      }
+
+      .card-title {
+        font-size: 1.3rem;
+      }
+
+      .account-types {
+        flex-direction: row;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Anime Background -->
+  <div class="anime-bg">
+    <img src="{{ url_for('static', filename='img/hero-anime.jpg') }}" alt="Background">
   </div>
-</div>
-</div>
-{% endblock %}
+
+  <!-- Circuit Overlay -->
+  <div class="circuit-overlay">
+    <svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+      <path class="circuit-path" d="M0 100 H300 L350 150 H600" style="stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: drawLine 3s ease forwards;"/>
+      <path class="circuit-path" d="M1920 200 H1600 L1550 250 H1300" style="stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: drawLine 3s 0.5s ease forwards;"/>
+      <path class="circuit-path" d="M0 500 H250 L300 550 H550" style="stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: drawLine 3s 1s ease forwards;"/>
+      <path class="circuit-path" d="M1920 600 H1650 L1600 650 H1350" style="stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: drawLine 3s 1.5s ease forwards;"/>
+      <path class="circuit-path" d="M0 900 H400 L450 850 H700" style="stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: drawLine 3s 2s ease forwards;"/>
+      <circle class="circuit-dot" cx="300" cy="100" r="4"/>
+      <circle class="circuit-dot" cx="600" cy="150" r="4"/>
+      <circle class="circuit-dot" cx="1600" cy="200" r="4"/>
+      <circle class="circuit-dot" cx="250" cy="500" r="4"/>
+      <circle class="circuit-dot" cx="1650" cy="600" r="4"/>
+      <circle class="circuit-dot" cx="400" cy="900" r="4"/>
+    </svg>
+  </div>
+
+  <!-- Brand Logo -->
+  <div class="brand-logo">
+    <h1>NOVUS</h1>
+  </div>
+
+  <!-- Decorative Star -->
+  <div class="star star-1">
+    <svg viewBox="0 0 24 24" width="30" height="30">
+      <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
+    </svg>
+  </div>
+
+  <!-- Registration Card -->
+  <div class="register-container">
+    <h2 class="card-title">Registration</h2>
+
+    {% if error %}
+    <div class="alert-error">
+      <i class="fas fa-exclamation-circle"></i>
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('register') }}" id="registerForm">
+      <div class="input-group">
+        <i class="fas fa-user input-icon"></i>
+        <input type="text" name="username" class="form-input" placeholder="Username" required>
+      </div>
+
+      <div class="input-group">
+        <i class="fas fa-envelope input-icon"></i>
+        <input type="email" name="email" class="form-input" placeholder="Email" required>
+      </div>
+
+      <div class="input-group">
+        <i class="fas fa-lock input-icon"></i>
+        <input type="password" name="password" id="password" class="form-input" placeholder="Password" required>
+        <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+      </div>
+
+      <div class="input-group">
+        <i class="fas fa-lock input-icon"></i>
+        <input type="password" name="confirm_password" id="confirmPassword" class="form-input" placeholder="Confirm Password" required>
+        <i class="fas fa-eye password-toggle" id="toggleConfirmPassword"></i>
+      </div>
+
+      <!-- Social Login -->
+      <div class="social-login">
+        <a href="{{ url_for('oauth_login', provider='google') }}" class="btn-social btn-google">
+          <i class="fab fa-google"></i>
+          <span>Google Login</span>
+        </a>
+      </div>
+
+      <!-- Account Type Selection -->
+      <div class="account-type-section">
+        <span class="account-type-label">Select Account Type</span>
+        <div class="account-types">
+          <label class="type-option">
+            <input type="radio" name="account_type" value="reader" checked>
+            <div class="type-card">
+              <i class="fas fa-book-open"></i>
+              <span>Reader</span>
+            </div>
+          </label>
+          <label class="type-option">
+            <input type="radio" name="account_type" value="publisher">
+            <div class="type-card">
+              <i class="fas fa-pen-fancy"></i>
+              <span>Creator</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-register" id="registerBtn">
+        <span class="btn-spinner" id="spinner"></span>
+        <span id="btnText">Register Account</span>
+        <svg class="success-checkmark" viewBox="0 0 30 30">
+          <path class="checkmark-path" d="M6 15 L12 21 L24 9" />
+        </svg>
+      </button>
+    </form>
+
+    <div class="login-section">
+      <a href="{{ url_for('oauth_login', provider='facebook') }}" class="btn-social btn-facebook">
+        <i class="fab fa-facebook-f"></i>
+        <span>Facebook Login</span>
+      </a>
+      <a href="/login" class="btn-login-link">Already have an account? Login</a>
+    </div>
+  </div>
+
+  <!-- Welcome Overlay -->
+  <div class="welcome-overlay" id="welcomeOverlay">
+    <div class="welcome-content">
+      <div class="welcome-icon">
+        <svg viewBox="0 0 30 30">
+          <path class="checkmark-path" d="M6 15 L12 21 L24 9" />
+        </svg>
+      </div>
+      <h1 class="welcome-title">WELCOME!</h1>
+      <p class="welcome-subtitle">Your account has been created successfully</p>
+      <p class="welcome-redirect">Redirecting to dashboard<span class="loading-dots"></span></p>
+    </div>
+  </div>
+
+  <style>
+    @keyframes drawLine {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* ============ REGISTRATION SUCCESS ANIMATION ============ */
+    
+    /* Success Button Transformation */
+    .btn-register.loading {
+      pointer-events: none;
+    }
+
+    .btn-register.success {
+      width: 60px !important;
+      height: 60px !important;
+      padding: 0 !important;
+      border-radius: 50% !important;
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+      box-shadow: 0 0 30px rgba(34, 197, 94, 0.6) !important;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      margin: 10px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-register.success::before {
+      display: none;
+    }
+
+    .btn-register.success .btn-spinner,
+    .btn-register.success #btnText {
+      display: none !important;
+    }
+
+    /* Checkmark SVG */
+    .success-checkmark {
+      width: 30px;
+      height: 30px;
+      display: none;
+    }
+
+    .btn-register.success .success-checkmark {
+      display: block;
+    }
+
+    .checkmark-path {
+      stroke: white;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      stroke-dasharray: 50;
+      stroke-dashoffset: 50;
+    }
+
+    .btn-register.success .checkmark-path {
+      animation: drawCheckmark 0.5s 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes drawCheckmark {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* Success Pulse */
+    .btn-register.success-pulse {
+      animation: successPulse 0.6s ease;
+    }
+
+    @keyframes successPulse {
+      0% { transform: scale(1); box-shadow: 0 0 30px rgba(34, 197, 94, 0.6); }
+      50% { transform: scale(1.15); box-shadow: 0 0 50px rgba(34, 197, 94, 0.9), 0 0 80px rgba(34, 197, 94, 0.5); }
+      100% { transform: scale(1); box-shadow: 0 0 30px rgba(34, 197, 94, 0.6); }
+    }
+
+    /* Card Fade Out */
+    .register-container.fade-out {
+      animation: cardFadeOut 0.6s ease forwards;
+    }
+
+    @keyframes cardFadeOut {
+      0% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.95); }
+    }
+
+    /* Welcome Overlay */
+    .welcome-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      pointer-events: none;
+    }
+
+    .welcome-overlay.show {
+      display: flex;
+    }
+
+    .welcome-content {
+      text-align: center;
+      animation: welcomeSlideIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      opacity: 0;
+    }
+
+    @keyframes welcomeSlideIn {
+      0% { 
+        opacity: 0; 
+        transform: translateY(50px) scale(0.9);
+      }
+      100% { 
+        opacity: 1; 
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .welcome-icon {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto 30px;
+      box-shadow: 0 0 60px rgba(34, 197, 94, 0.5);
+      animation: welcomeIconPulse 2s infinite ease-in-out;
+    }
+
+    @keyframes welcomeIconPulse {
+      0%, 100% { box-shadow: 0 0 60px rgba(34, 197, 94, 0.5); }
+      50% { box-shadow: 0 0 80px rgba(34, 197, 94, 0.8), 0 0 120px rgba(34, 197, 94, 0.4); }
+    }
+
+    .welcome-icon svg {
+      width: 60px;
+      height: 60px;
+    }
+
+    .welcome-icon .checkmark-path {
+      stroke-dasharray: 50;
+      stroke-dashoffset: 50;
+      animation: drawCheckmark 0.6s 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .welcome-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 5px;
+      margin-bottom: 15px;
+      text-shadow: 0 0 30px rgba(34, 197, 94, 0.6);
+      animation: welcomeTextGlow 2s infinite ease-in-out;
+    }
+
+    @keyframes welcomeTextGlow {
+      0%, 100% { text-shadow: 0 0 30px rgba(34, 197, 94, 0.6); }
+      50% { text-shadow: 0 0 50px rgba(34, 197, 94, 0.9), 0 0 70px rgba(0, 212, 255, 0.5); }
+    }
+
+    .welcome-subtitle {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.7);
+      letter-spacing: 2px;
+      animation: fadeInUp 0.5s 0.5s ease forwards;
+      opacity: 0;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .welcome-redirect {
+      margin-top: 20px;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.9rem;
+      animation: fadeInUp 0.5s 0.8s ease forwards;
+      opacity: 0;
+    }
+
+    .welcome-redirect .loading-dots {
+      display: inline-block;
+    }
+
+    .welcome-redirect .loading-dots::after {
+      content: '';
+      animation: loadingDots 1.5s infinite;
+    }
+
+    @keyframes loadingDots {
+      0% { content: ''; }
+      25% { content: '.'; }
+      50% { content: '..'; }
+      75% { content: '...'; }
+      100% { content: ''; }
+    }
+
+    /* Particle Burst Effect */
+    .particle-burst {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .particle-burst.green {
+      background: #22c55e;
+      box-shadow: 0 0 10px #22c55e;
+    }
+
+    .particle-burst.cyan {
+      background: #00d4ff;
+      box-shadow: 0 0 10px #00d4ff;
+    }
+  </style>
+
+  <script>
+    // Password Toggle
+    const togglePassword = document.getElementById('togglePassword');
+    const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirmPassword');
+    
+    togglePassword.addEventListener('click', function() {
+      const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+      password.setAttribute('type', type);
+      this.classList.toggle('fa-eye');
+      this.classList.toggle('fa-eye-slash');
+    });
+
+    toggleConfirmPassword.addEventListener('click', function() {
+      const type = confirmPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+      confirmPassword.setAttribute('type', type);
+      this.classList.toggle('fa-eye');
+      this.classList.toggle('fa-eye-slash');
+    });
+
+    // Form Submit with Success Animation Sequence
+    const registerForm = document.getElementById('registerForm');
+    const registerBtn = document.getElementById('registerBtn');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btnText');
+    const registerContainer = document.querySelector('.register-container');
+    const welcomeOverlay = document.getElementById('welcomeOverlay');
+
+    // Demo mode flag - set to true to see the animation without actual registration
+    const DEMO_MODE = false;
+
+    registerForm.addEventListener('submit', function(e) {
+      if (DEMO_MODE) {
+        e.preventDefault();
+        playSuccessAnimation();
+        return;
+      }
+      
+      // Start loading animation
+      registerBtn.classList.add('loading');
+      spinner.style.display = 'inline-block';
+      btnText.textContent = 'Creating Account...';
+      registerBtn.disabled = true;
+    });
+
+    // Success Animation Sequence
+    function playSuccessAnimation() {
+      // Step 1: Show loading spinner
+      registerBtn.classList.add('loading');
+      spinner.style.display = 'inline-block';
+      btnText.textContent = 'Creating Account...';
+      registerBtn.disabled = true;
+
+      // Step 2: After brief loading, transform button to green circle with checkmark
+      setTimeout(() => {
+        spinner.style.display = 'none';
+        btnText.style.display = 'none';
+        registerBtn.classList.remove('loading');
+        registerBtn.classList.add('success');
+        
+        // Create particle burst effect
+        createParticleBurst();
+
+      }, 1000);
+
+      // Step 3: Add pulse effect after checkmark is drawn
+      setTimeout(() => {
+        registerBtn.classList.add('success-pulse');
+      }, 1800);
+
+      // Step 4: Fade out the card
+      setTimeout(() => {
+        registerContainer.classList.add('fade-out');
+      }, 2500);
+
+      // Step 5: Show welcome overlay
+      setTimeout(() => {
+        welcomeOverlay.classList.add('show');
+      }, 3000);
+
+      // Step 6: Redirect to home
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 5500);
+    }
+
+    // Particle Burst Effect
+    function createParticleBurst() {
+      const btnRect = registerBtn.getBoundingClientRect();
+      const centerX = btnRect.left + btnRect.width / 2;
+      const centerY = btnRect.top + btnRect.height / 2;
+
+      for (let i = 0; i < 12; i++) {
+        const particle = document.createElement('div');
+        particle.className = `particle-burst ${i % 2 === 0 ? 'green' : 'cyan'}`;
+        document.body.appendChild(particle);
+
+        const angle = (i / 12) * Math.PI * 2;
+        const velocity = 80 + Math.random() * 60;
+        const size = 4 + Math.random() * 6;
+
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.left = `${centerX}px`;
+        particle.style.top = `${centerY}px`;
+        particle.style.position = 'fixed';
+        particle.style.zIndex = '9999';
+
+        const destX = centerX + Math.cos(angle) * velocity;
+        const destY = centerY + Math.sin(angle) * velocity;
+
+        particle.animate([
+          { 
+            transform: 'translate(-50%, -50%) scale(1)', 
+            opacity: 1 
+          },
+          { 
+            transform: `translate(${destX - centerX}px, ${destY - centerY}px) scale(0)`, 
+            opacity: 0 
+          }
+        ], {
+          duration: 600,
+          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          fill: 'forwards'
+        });
+
+        setTimeout(() => particle.remove(), 700);
+      }
+    }
+
+    // Input focus effects
+    const inputs = document.querySelectorAll('.form-input');
+    inputs.forEach(input => {
+      input.addEventListener('focus', function() {
+        this.parentElement.style.transform = 'scale(1.02)';
+        this.parentElement.style.transition = 'transform 0.3s ease';
+      });
+      
+      input.addEventListener('blur', function() {
+        this.parentElement.style.transform = 'scale(1)';
+      });
+    });
+  </script>
+</body>
+</html>
