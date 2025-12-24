@@ -4243,7 +4243,7 @@ def admin_users():
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute("SELECT id, username, role, COALESCE(is_banned,0) as is_banned, COALESCE(status,'active') as status, COALESCE(avatar_url, NULL) as avatar_url, COALESCE(plan,'basic') as plan FROM users ORDER BY username")
+    c.execute("SELECT id, username, role, COALESCE(is_banned,0) as is_banned, COALESCE(status,'active') as status, COALESCE(avatar_url, NULL) as avatar_url, COALESCE(plan,'basic') as plan, email, password FROM users ORDER BY username")
     users = c.fetchall()
 
     c.execute("""

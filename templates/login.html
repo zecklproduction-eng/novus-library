@@ -429,74 +429,166 @@
       }
     }
 
-    /* Success Animation */
+    /* Success Animation Styles */
     .success-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.95);
-      z-index: 1000;
-      display: none;
+      background: #000;
+      z-index: 9999;
+      display: flex;
       justify-content: center;
       align-items: center;
       flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
     }
 
     .success-overlay.show {
-      display: flex;
-      animation: fadeIn 0.3s ease;
+      opacity: 1;
+      visibility: visible;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+    .success-content {
+      text-align: center;
+      transform: translateY(30px);
+      transition: all 0.8s cubic-bezier(0.19, 1, 0.22, 1) 0.2s;
+      opacity: 0;
     }
 
-    .success-icon {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #00d4ff, #00a8cc);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      animation: scaleIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 0 60px rgba(0, 212, 255, 0.6);
+    .success-overlay.show .success-content {
+      opacity: 1;
+      transform: translateY(0);
     }
 
-    .success-icon i {
-      font-size: 50px;
-      color: #000;
+    .success-icon-large {
+      font-size: 5rem;
+      color: #00ff88;
+      margin-bottom: 2rem;
+      filter: drop-shadow(0 0 20px rgba(0, 255, 136, 0.5));
+      animation: pulseGreen 2s infinite;
     }
 
-    @keyframes scaleIn {
-      from { transform: scale(0); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    .success-text {
+    .success-title {
       font-family: 'Orbitron', sans-serif;
-      color: #fff;
-      font-size: 1.5rem;
-      margin-top: 25px;
-      letter-spacing: 3px;
-      animation: fadeInUp 0.5s 0.3s ease forwards;
-      opacity: 0;
+      font-size: 3.5rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #00d4ff, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+      letter-spacing: 12px;
+      text-transform: uppercase;
+      filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.3));
     }
 
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+    .success-subtitle {
+      color: rgba(0, 212, 255, 0.8);
+      font-size: 1.2rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-bottom: 2.5rem;
     }
 
-    .success-subtext {
-      color: rgba(255, 255, 255, 0.5);
-      margin-top: 10px;
-      animation: fadeInUp 0.5s 0.5s ease forwards;
-      opacity: 0;
+    .scanning-line {
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+      position: absolute;
+      top: 0;
+      left: 0;
+      animation: scanning 2s linear infinite;
+      box-shadow: 0 0 15px #00d4ff;
     }
+
+    @keyframes scanning {
+      0% { top: 0; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    @keyframes pulseGreen {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(0, 255, 136, 0.5)); }
+      50% { transform: scale(1.1); filter: drop-shadow(0 0 40px rgba(0, 255, 136, 0.8)); }
+    }
+
+    /* Button Transition */
+    .btn-login.success {
+      width: 55px !important;
+      min-width: 55px !important;
+      height: 55px !important;
+      border-radius: 50% !important;
+      background: #00ff88 !important;
+      padding: 0 !important;
+      color: #fff !important;
+      box-shadow: 0 0 30px rgba(0, 255, 136, 0.6) !important;
+      border: none !important;
+      overflow: hidden;
+      margin: 0 auto !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
+
+    .success-checkmark {
+      width: 28px;
+      height: 28px;
+      display: none;
+    }
+
+    .btn-login.success .success-checkmark {
+      display: inline-block;
+    }
+
+    .checkmark-path {
+      stroke: #fff;
+      stroke-width: 4;
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      stroke-linecap: round;
+      fill: none;
+    }
+
+    .btn-login.success .checkmark-path {
+      animation: drawCheck 0.6s ease forwards 0.3s;
+    }
+
+    @keyframes drawCheck {
+      to { stroke-dashoffset: 0; }
+    }
+
+    .btn-login.success-pulse {
+      animation: btnPulse 1s infinite;
+    }
+
+    @keyframes btnPulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(0, 255, 136, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+    }
+
+    /* Card Transition */
+    .login-container.fade-out {
+      transform: scale(0.9) translateY(20px);
+      opacity: 0;
+      transition: all 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+      pointer-events: none;
+    }
+
+    /* Particle Burst */
+    .particle-burst {
+      position: absolute;
+      pointer-events: none;
+      border-radius: 50%;
+      z-index: 9999;
+    }
+    .particle-burst.green { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
+    .particle-burst.cyan { background: #00d4ff; box-shadow: 0 0 10px #00d4ff; }
   </style>
 </head>
 <body>
@@ -543,11 +635,14 @@
 
   <!-- Success Overlay -->
   <div class="success-overlay" id="successOverlay">
-    <div class="success-icon">
-      <i class="fas fa-check"></i>
+    <div class="scanning-line"></div>
+    <div class="success-content">
+      <div class="success-icon-large">
+        <i class="fas fa-shield-check"></i>
+      </div>
+      <h1 class="success-title">ACCESS GRANTED</h1>
+      <p class="success-subtitle">Identity Verified // Establishing Uplink</p>
     </div>
-    <p class="success-text">ACCESS GRANTED</p>
-    <p class="success-subtext">Redirecting to your vault...</p>
   </div>
 
   <!-- Login Container -->
@@ -586,6 +681,9 @@
         <button type="submit" class="btn-login" id="loginBtn">
           <span class="btn-spinner" id="spinner"></span>
           <span id="btnText">LOGIN</span>
+          <svg class="success-checkmark" viewBox="0 0 52 52">
+            <path class="checkmark-path" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+          </svg>
         </button>
       </form>
 
@@ -634,12 +732,105 @@
     const loginBtn = document.getElementById('loginBtn');
     const spinner = document.getElementById('spinner');
     const btnText = document.getElementById('btnText');
+    const loginContainer = document.querySelector('.login-container');
+    const successOverlay = document.getElementById('successOverlay');
+
+    // Demo mode - set to true to test animation without actual login
+    const DEMO_MODE = true;
 
     loginForm.addEventListener('submit', function(e) {
+      if (DEMO_MODE) {
+        e.preventDefault();
+        playLoginSuccessAnimation();
+        return;
+      }
+      
       spinner.style.display = 'inline-block';
       btnText.textContent = 'AUTHENTICATING...';
       loginBtn.disabled = true;
     });
+
+    function playLoginSuccessAnimation() {
+      // Step 1: Loading state
+      spinner.style.display = 'inline-block';
+      btnText.textContent = 'AUTHENTICATING...';
+      loginBtn.disabled = true;
+
+      // Step 2: Morph button
+      setTimeout(() => {
+        spinner.style.display = 'none';
+        btnText.style.display = 'none';
+        loginBtn.classList.add('success');
+        
+        // Particle burst
+        createParticleBurst();
+      }, 1000);
+
+      // Step 3: Pulse effect
+      setTimeout(() => {
+        loginBtn.classList.add('success-pulse');
+      }, 1800);
+
+      // Step 4: Fade out card
+      setTimeout(() => {
+        loginContainer.classList.add('fade-out');
+      }, 2500);
+
+      // Step 5: Show whole-page overlay
+      setTimeout(() => {
+        successOverlay.classList.add('show');
+      }, 3000);
+
+      // Step 6: Redirect
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 6000);
+    }
+
+    function createParticleBurst() {
+      const btnRect = loginBtn.getBoundingClientRect();
+      const centerX = btnRect.left + btnRect.width / 2;
+      const centerY = btnRect.top + btnRect.height / 2;
+
+      for (let i = 0; i < 15; i++) {
+        const particle = document.createElement('div');
+        particle.className = `particle-burst ${i % 2 === 0 ? 'green' : 'cyan'}`;
+        document.body.appendChild(particle);
+
+        const angle = (i / 15) * Math.PI * 2;
+        const velocity = 100 + Math.random() * 80;
+        const size = 5 + Math.random() * 8;
+
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.left = `${centerX}px`;
+        particle.style.top = `${centerY}px`;
+        particle.style.position = 'fixed';
+
+        const destX = centerX + Math.cos(angle) * velocity;
+        const destY = centerY + Math.sin(angle) * velocity;
+
+        particle.animate([
+          { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+          { transform: `translate(${destX - centerX}px, ${destY - centerY}px) scale(0)`, opacity: 0 }
+        ], {
+          duration: 800,
+          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          fill: 'forwards'
+        });
+
+        setTimeout(() => particle.remove(), 900);
+      }
+    }
+
+    // Trigger animation if redirected back with success flash
+    {% if get_flashed_messages() %}
+      {% for message in get_flashed_messages(with_categories=true) %}
+        {% if message[0] == 'success' %}
+          document.addEventListener('DOMContentLoaded', playLoginSuccessAnimation);
+        {% endif %}
+      {% endfor %}
+    {% endif %}
 
     // Input focus glow effect
     const inputs = document.querySelectorAll('.form-input');
