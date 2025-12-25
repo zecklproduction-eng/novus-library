@@ -261,6 +261,47 @@ class AppearanceSettings {
       toggleSpecialEffects.checked = this.settings.preferences.specialEffects;
   }
 
+  updateTheme() {
+    // Remove existing theme classes
+    document.body.classList.remove('theme-dark', 'theme-light', 'theme-blue', 'theme-purple');
+    // Add new theme class
+    document.body.classList.add(`theme-${this.settings.theme}`);
+    // Set data attribute
+    document.body.dataset.theme = this.settings.theme;
+  }
+
+  updateFontSize() {
+    // Remove existing font classes
+    document.body.classList.remove('font-small', 'font-medium', 'font-large', 'font-xlarge');
+    // Add new font class
+    document.body.classList.add(`font-${this.settings.fontSize}`);
+  }
+
+  updateDensity() {
+    // Remove existing density classes
+    document.body.classList.remove('density-compact', 'density-comfortable', 'density-spacious');
+    // Add new density class
+    document.body.classList.add(`density-${this.settings.density}`);
+  }
+
+  updateAccentColor() {
+    document.body.dataset.accentColor = this.settings.accentColor;
+    
+    // Update CSS variable for neon blue based on selection
+    let colorValue = '#00d4ff'; // Default cyan
+    
+    switch(this.settings.accentColor) {
+      case 'purple': colorValue = '#9d4edd'; break;
+      case 'pink': colorValue = '#ff6baff'; break; // Fixed hex
+      case 'green': colorValue = '#2ecc71'; break;
+      case 'orange': colorValue = '#e67e22'; break;
+      case 'cyan': 
+      default: colorValue = '#00d4ff'; break;
+    }
+    
+    document.documentElement.style.setProperty('--neon-blue', colorValue);
+  }
+
   updatePreferences() {
     const body = document.body;
 
