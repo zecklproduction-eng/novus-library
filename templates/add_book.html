@@ -48,55 +48,12 @@
                 <i class="fas fa-bookmark" style="color: var(--neon-blue);"></i>
                 Categories
               </label>
-              <div id="bookCategoriesContainer" class="categories-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">
+              <div id="bookCategoriesContainer" class="categories-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
+                {% for cat in ["Action", "Adventure", "Biography", "Business", "Children", "Comedy", "Cooking", "Crime", "Cyberpunk", "Documentary", "Drama", "Dystopian", "Fantasy", "General", "Graphic Novel", "Health", "Historical", "Horror", "Isekai", "Josei", "Lifestyle", "Magic", "Martial Arts", "Mecha", "Memoir", "Mystery", "Philosophy", "Poetry", "Politics", "Psychological", "Religion", "Romance", "School Life", "Science", "Science Fiction", "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports", "Supernatural", "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western", "Young Adult"] %}
                 <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Action" onchange="updateBookCategoryCount()"> Action
+                  <input type="checkbox" name="categories" value="{{ cat }}" onchange="updateBookCategoryCount()"> {{ cat }}
                 </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Adventure" onchange="updateBookCategoryCount()"> Adventure
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Children" onchange="updateBookCategoryCount()"> Children
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Comedy" onchange="updateBookCategoryCount()"> Comedy
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Drama" onchange="updateBookCategoryCount()"> Drama
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Fantasy" onchange="updateBookCategoryCount()"> Fantasy
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="General" onchange="updateBookCategoryCount()"> General
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Historical" onchange="updateBookCategoryCount()"> Historical
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Horror" onchange="updateBookCategoryCount()"> Horror
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Mystery" onchange="updateBookCategoryCount()"> Mystery
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Poetry" onchange="updateBookCategoryCount()"> Poetry
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Romance" onchange="updateBookCategoryCount()"> Romance
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Science Fiction" onchange="updateBookCategoryCount()"> Sci-Fi
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Supernatural" onchange="updateBookCategoryCount()"> Supernatural
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Thriller" onchange="updateBookCategoryCount()"> Thriller
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Young Adult" onchange="updateBookCategoryCount()"> YA
-                </label>
+                {% endfor %}
               </div>
               <div id="bookCategoryCount" style="color: var(--neon-blue); font-size: 12px; margin-top: 10px; font-weight: 500; display: flex; align-items: center; gap: 6px;"><i class="fas fa-check-circle"></i><span>Select at least one category</span></div>
             </div>
@@ -247,37 +204,12 @@
                 <i class="fas fa-bookmark" style="color: var(--neon-blue);"></i>
                 Categories
               </label>
-              <div id="mangaCategoriesContainer" class="categories-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">
+              <div id="mangaCategoriesContainer" class="categories-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
+                {% for cat in ["Action", "Adventure", "Biography", "Business", "Children", "Comedy", "Cooking", "Crime", "Cyberpunk", "Documentary", "Drama", "Dystopian", "Fantasy", "General", "Graphic Novel", "Health", "Historical", "Horror", "Isekai", "Josei", "Lifestyle", "Magic", "Martial Arts", "Mecha", "Memoir", "Mystery", "Philosophy", "Poetry", "Politics", "Psychological", "Religion", "Romance", "School Life", "Science", "Science Fiction", "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports", "Supernatural", "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western", "Young Adult"] %}
                 <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Action" onchange="updateMangaCategoryCount()"> Action
+                  <input type="checkbox" name="categories" value="{{ cat }}" onchange="updateMangaCategoryCount()"> {{ cat }}
                 </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Adventure" onchange="updateMangaCategoryCount()"> Adventure
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Comedy" onchange="updateMangaCategoryCount()"> Comedy
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Drama" onchange="updateMangaCategoryCount()"> Drama
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Fantasy" onchange="updateMangaCategoryCount()"> Fantasy
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Historical" onchange="updateMangaCategoryCount()"> Historical
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Horror" onchange="updateMangaCategoryCount()"> Horror
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Romance" onchange="updateMangaCategoryCount()"> Romance
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Sci-Fi" onchange="updateMangaCategoryCount()"> Sci-Fi
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Supernatural" onchange="updateMangaCategoryCount()"> Supernatural
-                </label>
+                {% endfor %}
               </div>
               <div id="mangaCategoryCount" style="color: var(--neon-blue); font-size: 12px; margin-top: 10px; font-weight: 500; display: flex; align-items: center; gap: 6px;"><i class="fas fa-check-circle"></i><span>Select at least one category</span></div>
             </div>

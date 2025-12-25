@@ -38,10 +38,10 @@
 
           <div class="mb-3">
             <label class="form-label">Category</label>
-            <div id="bookCategoriesContainer" class="categories-checkbox-grid">
+            <div id="bookCategoriesContainer" class="categories-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
               {% set selected = selected_categories or [] %}
-              {% for cat in ['Action','Adventure','Children','Comedy','Drama','Fantasy','General','Historical','Horror','Mystery','Poetry','Romance','Science Fiction','Supernatural','Thriller','Young Adult'] %}
-                <label class="category-checkbox" style="display:inline-block; margin-right:8px;">
+              {% for cat in ["Action", "Adventure", "Biography", "Business", "Children", "Comedy", "Cooking", "Crime", "Cyberpunk", "Documentary", "Drama", "Dystopian", "Fantasy", "General", "Graphic Novel", "Health", "Historical", "Horror", "Isekai", "Josei", "Lifestyle", "Magic", "Martial Arts", "Mecha", "Memoir", "Mystery", "Philosophy", "Poetry", "Politics", "Psychological", "Religion", "Romance", "School Life", "Science", "Science Fiction", "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports", "Supernatural", "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western", "Young Adult"] %}
+                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease; margin-right: 0;">
                   <input type="checkbox" name="categories" value="{{ cat }}" {% if cat in selected %}checked{% endif %}> {{ cat }}
                 </label>
               {% endfor %}

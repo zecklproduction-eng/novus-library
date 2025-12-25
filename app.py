@@ -728,9 +728,15 @@ def home():
     db_categories = [row[0] for row in c.fetchall()]
 
     extra_categories = [
-        "Action", "Adventure", "Children", "Comedy", "Drama", "Fantasy",
-        "General", "Historical", "Horror", "Mystery", "Poetry",
-        "Romance", "Science Fiction", "Supernatural", "Thriller", "Young Adult",
+        "Action", "Adventure", "Biography", "Business", "Children", "Comedy", 
+        "Cooking", "Crime", "Cyberpunk", "Documentary", "Drama", "Dystopian", 
+        "Fantasy", "General", "Graphic Novel", "Health", "Historical", "Horror", 
+        "Isekai", "Josei", "Lifestyle", "Magic", "Martial Arts", "Mecha", 
+        "Memoir", "Mystery", "Philosophy", "Poetry", "Politics", "Psychological", 
+        "Religion", "Romance", "School Life", "Science", "Science Fiction", 
+        "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports", "Supernatural", 
+        "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western", 
+        "Young Adult"
     ]
     categories = sorted(set(db_categories + extra_categories + ["General"]))
 
@@ -749,8 +755,12 @@ def home():
     params = []
 
     if selected:
-        base_sql += " AND COALESCE(category,'General') = ?"
-        params.append(selected)
+        # Improved search for multi-category support
+        # We wrap both the column and the search term in commas to ensure exact word matching
+        # e.g. "Action, Adventure" -> ",Action,Adventure," LIKE "%,Adventure,%"
+        # We perform replace to handle any potential spaces in legacy data
+        base_sql += " AND ',' || REPLACE(COALESCE(category,'General'), ' ', '') || ',' LIKE ?"
+        params.append(f"%,{selected.replace(' ', '')},%")
 
     if query:
         # simple search across title and author
