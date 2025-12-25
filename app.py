@@ -4471,9 +4471,8 @@ def user_delete(user_id):
 
 # -------------------- CUSTOMIZATION / ANIMATIONS --------------------
 @app.route("/customization")
-@admin_required
 def customization():
-    """Admin-only customization page for managing animations"""
+    """Customization page for managing animations - all users can view, only admin can upload"""
     if "user_id" not in session:
         return redirect(url_for("login"))
     

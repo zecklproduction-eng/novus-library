@@ -1,1 +1,321 @@
-{% extends "base.html" %}\r\n{% block title %}Customization | NOVUS{% endblock %}\r\n\r\n{% block content %}\r\n<div style=\"max-width: 1400px; margin: 30px auto; padding: 0 20px;\">\r\n  <h2 class=\"mb-4\" style=\"color: var(--text-primary); font-size: 2rem; font-weight: 700;\">\r\n    <i class=\"fas fa-wand-magic-sparkles me-2\" style=\"color: var(--neon-blue);\"></i>\r\n    Animation Settings\r\n  </h2>\r\n\r\n  <div style=\"background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 12px; padding: 30px;\">\r\n    \r\n    <!-- Animation Sections Grid -->\r\n    <div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px; margin-bottom: 40px;\">\r\n      \r\n      <!-- Manga Entering Animation -->\r\n      <div class=\"animation-section\">\r\n        <h5 style=\"color: var(--text-primary); margin-bottom: 15px; font-size: 1.1rem;\">\r\n          Manga Entering Animation\r\n        </h5>\r\n        \r\n        <!-- Preview -->\r\n        <div id=\"mangaEnterPreview\" class=\"animation-preview\" style=\"background: #000; border-radius: 8px; height: 200px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; position: relative; overflow: hidden;\">\r\n          {% if active_animations.get('manga_enter') %}\r\n            {% set ext = active_animations['manga_enter'].path.split('.')[-1].lower() %}\r\n            {% if ext in ['mp4', 'webm'] %}\r\n              <video src=\"{{ url_for('static', filename=active_animations['manga_enter'].path) }}\" autoplay loop muted style=\"width: 100%; height: 100%; object-fit: cover;\"></video>\r\n            {% elif ext == 'gif' %}\r\n              <img src=\"{{ url_for('static', filename=active_animations['manga_enter'].path) }}\" style=\"width: 100%; height: 100%; object-fit: cover;\" />\r\n            {% endif %}\r\n          {% else %}\r\n            <img src=\"https://via.placeholder.com/400x200/1a1a2e/667eea?text=Manga+Entering+Animation\" style=\"width: 100%; height: 100%; object-fit: cover;\" />\r\n          {% endif %}\r\n        </div>\r\n        \r\n        <!-- Dropdown and Upload -->\r\n        <div style=\"display: flex; gap: 10px;\">\r\n          <select id=\"mangaEnterSelect\" class=\"form-select\" style=\"flex: 1; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; padding: 8px 12px;\">\r\n            <option value=\"\">Select Animation</option>\r\n            <option value=\"default\" {% if not active_animations.get('manga_enter') %}selected{% endif %}>Default (Power Up)</option>\r\n            {% for anim in animations.manga_enter %}\r\n              <option value=\"{{ anim.id }}\" data-path=\"{{ anim.path }}\" {% if anim.is_active %}selected{% endif %}>Custom #{{ loop.index }}</option>\r\n            {% endfor %}\r\n          </select>\r\n          \r\n          <button class=\"btn\" onclick=\"document.getElementById('mangaEnterUpload').click()\" style=\"background: var(--neon-blue); color: #000; font-weight: 600; padding: 8px 16px; border: none; border-radius: 6px;\">\r\n            Upload New\r\n          </button>\r\n          <input type=\"file\" id=\"mangaEnterUpload\" accept=\".mp4,.webm,.gif\" style=\"display: none;\" onchange=\"uploadAnimation('manga_enter', this)\" />\r\n        </div>\r\n      </div>\r\n\r\n      <!-- Log Out Animation -->\r\n      <div class=\"animation-section\">\r\n        <h5 style=\"color: var(--text-primary); margin-bottom: 15px; font-size: 1.1rem;\">\r\n          Log Out Animation\r\n        </h5>\r\n        \r\n        <!-- Preview -->\r\n        <div id=\"logoutPreview\" class=\"animation-preview\" style=\"background: #000; border-radius: 8px; height: 200px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; position: relative; overflow: hidden;\">\r\n          {% if active_animations.get('logout') %}\r\n            {% set ext = active_animations['logout'].path.split('.')[-1].lower() %}\r\n            {% if ext in ['mp4', 'webm'] %}\r\n              <video src=\"{{ url_for('static', filename=active_animations['logout'].path) }}\" autoplay loop muted style=\"width: 100%; height: 100%; object-fit: cover;\"></video>\r\n            {% elif ext == 'gif' %}\r\n              <img src=\"{{ url_for('static', filename=active_animations['logout'].path) }}\" style=\"width: 100%; height: 100%; object-fit: cover;\" />\r\n            {% endif %}\r\n          {% else %}\r\n            <img src=\"https://via.placeholder.com/400x200/1a1a2e/667eea?text=Logout+Animation\" style=\"width: 100%; height: 100%; object-fit: cover;\" />\r\n          {% endif %}\r\n        </div>\r\n        \r\n        <!-- Dropdown and Upload -->\r\n        <div style=\"display: flex; gap: 10px;\">\r\n          <select id=\"logoutSelect\" class=\"form-select\" style=\"flex: 1; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; padding: 8px 12px;\">\r\n            <option value=\"\">Select Animation</option>\r\n            <option value=\"default\" {%  if not active_animations.get('logout') %}selected{% endif %}>Default</option>\r\n            {% for anim in animations.logout %}\r\n              <option value=\"{{ anim.id }}\" data-path=\"{{ anim.path }}\" {% if anim.is_active %}selected{% endif %}>Custom #{{ loop.index }}</option>\r\n            {% endfor %}\r\n          </select>\r\n          \r\n          <button class=\"btn\" onclick=\"document.getElementById('logoutUpload').click()\" style=\"background: var(--neon-blue); color: #000; font-weight: 600; padding: 8px 16px; border: none; border-radius: 6px;\">\r\n            Upload New\r\n          </button>\r\n          <input type=\"file\" id=\"logoutUpload\" accept=\".mp4,.webm,.gif\" style=\"display: none;\" onchange=\"uploadAnimation('logout', this)\" />\r\n        </div>\r\n      </div>\r\n\r\n      <!-- Dashboard Banner -->\r\n      <div class=\"animation-section\" style=\"grid-column: 1 / -1;\">\r\n        <h5 style=\"color: var(--text-primary); margin-bottom: 15px; font-size: 1.1rem;\">\r\n          Dashboard Banner\r\n        </h5>\r\n        \r\n        <!-- Preview -->\r\n        <div id=\"bannerPreview\" class=\"animation-preview\" style=\"background: #000; border-radius: 8px; height: 250px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; position: relative; overflow: hidden;\">\r\n          {% if active_animations.get('banner') %}\r\n            {% set ext = active_animations['banner'].path.split('.')[-1].lower() %}\r\n            {% if ext in ['mp4', 'webm'] %}\r\n              <video src=\"{{ url_for('static', filename=active_animations['banner'].path) }}\" autoplay loop muted style=\"width: 100%; height: 100%; object-fit: cover;\"></video>\r\n            {% elif ext in ['gif', 'jpg', 'jpeg', 'png'] %}\r\n              <img src=\"{{ url_for('static', filename=active_animations['banner'].path) }}\" style=\"width: 100%; height: 100%; object-fit: cover;\" />\r\n            {% endif %}\r\n          {% else %}\r\n            <img src=\"https://via.placeholder.com/1200x250/1a1a2e/667eea?text=Dashboard+Banner\" style=\"width: 100%; height: 100%; object-fit: cover;\" />\r\n          {% endif %}\r\n        </div>\r\n        \r\n        <!-- Dropdown and Upload -->\r\n        <div style=\"display: flex; gap: 10px; max-width: 500px;\">\r\n          <select id=\"bannerSelect\" class=\"form-select\" style=\"flex: 1; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; padding: 8px 12px;\">\r\n            <option value=\"\">Select Banner</option>\r\n            <option value=\"default\" {% if not active_animations.get('banner') %}selected{% endif %}>Default</option>\r\n            {% for anim in animations.banner %}\r\n              <option value=\"{{ anim.id }}\" data-path=\"{{ anim.path }}\" {% if anim.is_active %}selected{% endif %}>Custom #{{ loop.index }}</option>\r\n            {% endfor %}\r\n          </select>\r\n          \r\n          <button class=\"btn\" onclick=\"document.getElementById('bannerUpload').click()\" style=\"background: var(--neon-blue); color: #000; font-weight: 600; padding: 8px 16px; border: none; border-radius: 6px;\">\r\n            Upload New\r\n          </button>\r\n          <input type=\"file\" id=\"bannerUpload\" accept=\".mp4,.webm,.gif,.jpg,.jpeg,.png\" style=\"display: none;\" onchange=\"uploadAnimation('banner', this)\" />\r\n        </div>\r\n      </div>\r\n    </div>\r\n\r\n    <!-- My Animations Library -->\r\n    <div class=\"my-animations-library\">\r\n      <h5 style=\"color: var(--text-primary); margin-bottom: 15px; font-size: 1.3rem;\">\r\n        <i class=\"fas fa-layer-group me-2\"></i>\r\n        My Animations Library\r\n      </h5>\r\n      \r\n      <div id=\"animationsGrid\" style=\"display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;\">\r\n        {% set allAnimations = animations.manga_enter + animations.logout + animations.banner %}\r\n        {% for anim in allAnimations %}\r\n          <div class=\"animation-thumbnail\" data-id=\"{{ anim.id }}\" data-path=\"{{ anim.path }}\" style=\"position: relative; border-radius: 8px; overflow: hidden; border: 2px solid rgba(102, 126, 234, 0.3); cursor: pointer; aspect-ratio: 16/9; background: #000;\">\r\n            {% set ext = anim.path.split('.')[-1].lower() %}\r\n            {% if ext in ['mp4', 'webm'] %}\r\n              <video src=\"{{ url_for('static', filename=anim.path) }}\" muted loop style=\"width: 100%; height: 100%; object-fit: cover;\"></video>\r\n            {% else %}\r\n              <img src=\"{{ url_for('static', filename=anim.path) }}\" style=\"width: 100%; height: 100%; object-fit: cover;\" />\r\n            {% endif %}\r\n            \r\n            <button onclick=\"deleteAnimation({{ anim.id }})\" style=\"position: absolute; top: 5px; right: 5px; background: rgba(220, 53, 69, 0.8); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer;\">\r\n              <i class=\"fas fa-trash\" style=\"font-size: 12px;\"></i>\r\n            </button>\r\n          </div>\r\n        {% else %}\r\n          <div style=\"grid-column: 1 / -1; text-align: center; padding: 40px; color: #999;\">\r\n            <i class=\"fas fa-images\" style=\"font-size: 3rem; margin-bottom: 10px; opacity: 0.5;\"></i>\r\n            <p>No animations uploaded yet</p>\r\n          </div>\r\n        {% endfor %}\r\n        \r\n        <!-- Add New Animation Button -->\r\n        <div onclick=\"document.querySelector('#mangaEnterUpload').click()\" style=\"display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; cursor: pointer; aspect-ratio: 16/9; background: rgba(102, 126, 234, 0.05); transition: all 0.3s;\" onmouseover=\"this.style.borderColor='var(--neon-blue)'; this.style.background='rgba(102, 126, 234, 0.1)';\" onmouseout=\"this.style.borderColor='rgba(102, 126, 234, 0.3)'; this.style.background='rgba(102, 126, 234, 0.05)';\">\r\n          <i class=\"fas fa-plus\" style=\"font-size: 2rem; color: var(--neon-blue); margin-bottom: 8px;\"></i>\r\n          <span style=\"color: var(--neon-blue); font-size: 0.9rem; font-weight: 600;\">Add New Animation</span>\r\n        </div>\r\n      </div>\r\n    </div>\r\n\r\n    <!-- Save Changes Button -->\r\n    <div style=\"text-align: center; margin-top: 30px;\">\r\n      <button onclick=\"saveChanges()\" class=\"btn\" style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; font-weight: 700; padding: 12px 40px; border: none; border-radius: 8px; font-size: 1.1rem; transition: all 0.3s;\" onmouseover=\"this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 25px rgba(102, 126, 234, 0.3)';\" onmouseout=\"this.style.transform='translateY(0)'; this.style.boxShadow='none';\">\r\n        <i class=\"fas fa-save me-2\"></i>\r\n        Save Changes\r\n      </button>\r\n    </div>\r\n  </div>\r\n</div>\r\n\r\n<style>\r\n.animation-thumbnail video:hover,\r\n.animation-thumbnail img:hover {\r\n  transform: scale(1.05);\r\n  transition: transform 0.3s;\r\n}\r\n\r\n.animation-thumbnail:hover {\r\n  border-color: var(--neon-blue);\r\n  box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);\r\n}\r\n</style>\r\n\r\n<script>\r\nlet selectedAnimations = {\r\n  manga_enter: {{ active_animations.get('manga_enter', {}).get('id', 'null') }},\r\n  logout: {{ active_animations.get('logout', {}).get('id', 'null') }},\r\n  banner: {{ active_animations.get('banner', {}).get('id', 'null') }}\r\n};\r\n\r\n// Handle dropdown changes\r\ndocument.getElementById('mangaEnterSelect')?.addEventListener('change', function() {\r\n  if (this.value && this.value !== 'default') {\r\n    selectedAnimations.manga_enter = parseInt(this.value);\r\n    updatePreview('mangaEnterPreview', this.options[this.selectedIndex].dataset.path);\r\n  }\r\n});\r\n\r\ndocument.getElementById('logoutSelect')?.addEventListener('change', function() {\r\n  if (this.value && this.value !== 'default') {\r\n    selectedAnimations.logout = parseInt(this.value);\r\n    updatePreview('logoutPreview', this.options[this.selectedIndex].dataset.path);\r\n  }\r\n});\r\n\r\ndocument.getElementById('bannerSelect')?.addEventListener('change', function() {\r\n  if (this.value && this.value !== 'default') {\r\n    selectedAnimations.banner = parseInt(this.value);\r\n    updatePreview('bannerPreview', this.options[this.selectedIndex].dataset.path);\r\n  }\r\n});\r\n\r\nfunction updatePreview(previewId, path) {\r\n  const preview = document.getElementById(previewId);\r\n  const ext = path.split('.').pop().toLowerCase();\r\n  \r\n  if (['mp4', 'webm'].includes(ext)) {\r\n    preview.innerHTML = `<video src=\"/static/${path}\" autoplay loop muted style=\"width: 100%; height: 100%; object-fit: cover;\"></video>`;\r\n  } else {\r\n    preview.innerHTML = `<img src=\"/static/${path}\" style=\"width: 100%; height: 100%; object-fit: cover;\" />`;\r\n  }\r\n}\r\n\r\nasync function uploadAnimation(type, input) {\r\n  const file = input.files[0];\r\n  if (!file) return;\r\n  \r\n  const formData = new FormData();\r\n  formData.append('animation_file', file);\r\n  formData.append('animation_type', type);\r\n  \r\n  try {\r\n    const response = await fetch('/api/animation/upload', {\r\n      method: 'POST',\r\n      body: formData\r\n    });\r\n    \r\n    if (!response.ok) {\r\n      const error = await response.json();\r\n      alert('Upload failed: ' + (error.error || 'Unknown error'));\r\n      return;\r\n    }\r\n    \r\n    const data = await response.json();\r\n    alert('Animation uploaded successfully!');\r\n    location.reload(); // Refresh to show new animation\r\n  } catch (error) {\r\n    console.error('Upload error:', error);\r\n    alert('Failed to upload animation');\r\n  }\r\n}\r\n\r\nasync function deleteAnimation(id) {\r\n  if (!confirm('Are you sure you want to delete this animation?')) return;\r\n  \r\n  try {\r\n    const response = await fetch(`/api/animation/${id}`, {\r\n      method: 'DELETE'\r\n    });\r\n    \r\n    if (!response.ok) {\r\n      alert('Failed to delete animation');\r\n      return;\r\n    }\r\n    \r\n    alert('Animation deleted successfully!');\r\n    location.reload();\r\n  } catch (error) {\r\n    console.error('Delete error:', error);\r\n    alert('Failed to delete animation');\r\n  }\r\n}\r\n\r\nasync function saveChanges() {\r\n  // Activate selected animations\r\n  const promises = [];\r\n  \r\n  for (const [type, animId] of Object.entries(selectedAnimations)) {\r\n    if (animId && animId !== 'null') {\r\n      promises.push(\r\n        fetch(`/api/animation/${animId}/activate`, {\r\n          method: 'PUT'\r\n        })\r\n      );\r\n    }\r\n  }\r\n  \r\n  try {\r\n    await Promise.all(promises);\r\n    alert('Settings saved successfully!');\r\n    location.reload();\r\n  } catch (error) {\r\n    console.error('Save error:', error);\r\n    alert('Failed to save settings');\r\n  }\r\n}\r\n\r\n// Hover effect for animation thumbnails - play video\r\ndocument.querySelectorAll('.animation-thumbnail video').forEach(video => {\r\n  const container = video.closest('.animation-thumbnail');\r\n  container.addEventListener('mouseenter', () => video.play());\r\n  container.addEventListener('mouseleave', () => {\r\n    video.pause();\r\n    video.currentTime = 0;\r\n  });\r\n});\r\n</script>\r\n{% endblock %}\r\n
+{% extends "base.html" %}
+{% block title %}Customization | NOVUS{% endblock %}
+
+{% block content %}
+<div style="max-width: 1400px; margin: 30px auto; padding: 0 20px;">
+  <h2 class="mb-4" style="color: var(--text-primary); font-size: 2rem; font-weight: 700;">
+    <i class="fas fa-wand-magic-sparkles me-2" style="color: var(--neon-blue);"></i>
+    Animation Settings
+  </h2>
+
+  <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 12px; padding: 30px;">
+    
+    <!-- Animation Sections Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px; margin-bottom: 40px;">
+      
+      <!-- Manga Entering Animation -->
+      <div class="animation-section">
+        <h5 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.1rem;">
+          Manga Entering Animation
+        </h5>
+        
+        <!-- Preview -->
+        <div id="mangaEnterPreview" class="animation-preview" style="background: #000; border-radius: 8px; height: 200px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; position: relative; overflow: hidden;">
+          {% if active_animations.get('manga_enter') %}
+            {% set ext = active_animations['manga_enter'].path.split('.')[-1].lower() %}
+            {% if ext in ['mp4', 'webm'] %}
+              <video src="{{ url_for('static', filename=active_animations['manga_enter'].path) }}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+            {% elif ext == 'gif' %}
+              <img src="{{ url_for('static', filename=active_animations['manga_enter'].path) }}" style="width: 100%; height: 100%; object-fit: cover;" />
+            {% endif %}
+          {% else %}
+            <img src="https://via.placeholder.com/400x200/1a1a2e/667eea?text=Manga+Entering+Animation" style="width: 100%; height: 100%; object-fit: cover;" />
+          {% endif %}
+        </div>
+        
+        <!-- Dropdown and Upload -->
+        <div style="display: flex; gap: 10px;">
+          <select id="mangaEnterSelect" class="form-select" style="flex: 1; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; padding: 8px 12px;">
+            <option value="">Select Animation</option>
+            <option value="default" {% if not active_animations.get('manga_enter') %}selected{% endif %}>Default (Power Up)</option>
+            {% for anim in animations.manga_enter %}
+              <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>Custom #{{ loop.index }}</option>
+            {% endfor %}
+          </select>
+          
+          {% if session.get('role') == 'admin' %}
+          <button class="btn" onclick="document.getElementById('mangaEnterUpload').click()" style="background: var(--neon-blue); color: #000; font-weight: 600; padding: 8px 16px; border: none; border-radius: 6px;">
+            Upload New
+          </button>
+          <input type="file" id="mangaEnterUpload" accept=".mp4,.webm,.gif" style="display: none;" onchange="uploadAnimation('manga_enter', this)" />
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Log Out Animation -->
+      <div class="animation-section">
+        <h5 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.1rem;">
+          Log Out Animation
+        </h5>
+        
+        <!-- Preview -->
+        <div id="logoutPreview" class="animation-preview" style="background: #000; border-radius: 8px; height: 200px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; position: relative; overflow: hidden;">
+          {% if active_animations.get('logout') %}
+            {% set ext = active_animations['logout'].path.split('.')[-1].lower() %}
+            {% if ext in ['mp4', 'webm'] %}
+              <video src="{{ url_for('static', filename=active_animations['logout'].path) }}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+            {% elif ext == 'gif' %}
+              <img src="{{ url_for('static', filename=active_animations['logout'].path) }}" style="width: 100%; height: 100%; object-fit: cover;" />
+            {% endif %}
+          {% else %}
+            <img src="https://via.placeholder.com/400x200/1a1a2e/667eea?text=Logout+Animation" style="width: 100%; height: 100%; object-fit: cover;" />
+          {% endif %}
+        </div>
+        
+        <!-- Dropdown and Upload -->
+        <div style="display: flex; gap: 10px;">
+          <select id="logoutSelect" class="form-select" style="flex: 1; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; padding: 8px 12px;">
+            <option value="">Select Animation</option>
+            <option value="default" {% if not active_animations.get('logout') %}selected{% endif %}>Default</option>
+            {% for anim in animations.logout %}
+              <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>Custom #{{ loop.index }}</option>
+            {% endfor %}
+          </select>
+          
+          {% if session.get('role') == 'admin' %}
+          <button class="btn" onclick="document.getElementById('logoutUpload').click()" style="background: var(--neon-blue); color: #000; font-weight: 600; padding: 8px 16px; border: none; border-radius: 6px;">
+            Upload New
+          </button>
+          <input type="file" id="logoutUpload" accept=".mp4,.webm,.gif" style="display: none;" onchange="uploadAnimation('logout', this)" />
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Dashboard Banner -->
+      <div class="animation-section" style="grid-column: 1 / -1;">
+        <h5 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.1rem;">
+          Dashboard Banner
+        </h5>
+        
+        <!-- Preview -->
+        <div id="bannerPreview" class="animation-preview" style="background: #000; border-radius: 8px; height: 250px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; position: relative; overflow: hidden;">
+          {% if active_animations.get('banner') %}
+            {% set ext = active_animations['banner'].path.split('.')[-1].lower() %}
+            {% if ext in ['mp4', 'webm'] %}
+              <video src="{{ url_for('static', filename=active_animations['banner'].path) }}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+            {% elif ext in ['gif', 'jpg', 'jpeg', 'png'] %}
+              <img src="{{ url_for('static', filename=active_animations['banner'].path) }}" style="width: 100%; height: 100%; object-fit: cover;" />
+            {% endif %}
+          {% else %}
+            <img src="https://via.placeholder.com/1200x250/1a1a2e/667eea?text=Dashboard+Banner" style="width: 100%; height: 100%; object-fit: cover;" />
+          {% endif %}
+        </div>
+        
+        <!-- Dropdown and Upload -->
+        <div style="display: flex; gap: 10px; max-width: 500px;">
+          <select id="bannerSelect" class="form-select" style="flex: 1; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; padding: 8px 12px;">
+            <option value="">Select Banner</option>
+            <option value="default" {% if not active_animations.get('banner') %}selected{% endif %}>Default</option>
+            {% for anim in animations.banner %}
+              <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>Custom #{{ loop.index }}</option>
+            {% endfor %}
+          </select>
+          
+          {% if session.get('role') == 'admin' %}
+          <button class="btn" onclick="document.getElementById('bannerUpload').click()" style="background: var(--neon-blue); color: #000; font-weight: 600; padding: 8px 16px; border: none; border-radius: 6px;">
+            Upload New
+          </button>
+          <input type="file" id="bannerUpload" accept=".mp4,.webm,.gif,.jpg,.jpeg,.png" style="display: none;" onchange="uploadAnimation('banner', this)" />
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- My Animations Library -->
+    {% if session.get('role') == 'admin' %}
+    <div class="my-animations-library">
+      <h5 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.3rem;">
+        <i class="fas fa-layer-group me-2"></i>
+        My Animations Library
+      </h5>
+      
+      <div id="animationsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        {% set allAnimations = animations.manga_enter + animations.logout + animations.banner %}
+        {% for anim in allAnimations %}
+          <div class="animation-thumbnail" data-id="{{ anim.id }}" data-path="{{ anim.path }}" style="position: relative; border-radius: 8px; overflow: hidden; border: 2px solid rgba(102, 126, 234, 0.3); cursor: pointer; aspect-ratio: 16/9; background: #000;">
+            {% set ext = anim.path.split('.')[-1].lower() %}
+            {% if ext in ['mp4', 'webm'] %}
+              <video src="{{ url_for('static', filename=anim.path) }}" muted loop style="width: 100%; height: 100%; object-fit: cover;"></video>
+            {% else %}
+              <img src="{{ url_for('static', filename=anim.path) }}" style="width: 100%; height: 100%; object-fit: cover;" />
+            {% endif %}
+            
+            <button onclick="deleteAnimation({{ anim.id }})" style="position: absolute; top: 5px; right: 5px; background: rgba(220, 53, 69, 0.8); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+              <i class="fas fa-trash" style="font-size: 12px;"></i>
+            </button>
+          </div>
+        {% else %}
+          <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #999;">
+            <i class="fas fa-images" style="font-size: 3rem; margin-bottom: 10px; opacity: 0.5;"></i>
+            <p>No animations uploaded yet</p>
+          </div>
+        {% endfor %}
+        
+        <!-- Add New Animation Button -->
+        <div onclick="document.querySelector('#mangaEnterUpload').click()" style="display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; cursor: pointer; aspect-ratio: 16/9; background: rgba(102, 126, 234, 0.05); transition: all 0.3s;" onmouseover="this.style.borderColor='var(--neon-blue)'; this.style.background='rgba(102, 126, 234, 0.1)';" onmouseout="this.style.borderColor='rgba(102, 126, 234, 0.3)'; this.style.background='rgba(102, 126, 234, 0.05)';">
+          <i class="fas fa-plus" style="font-size: 2rem; color: var(--neon-blue); margin-bottom: 8px;"></i>
+          <span style="color: var(--neon-blue); font-size: 0.9rem; font-weight: 600;">Add New Animation</span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Save Changes Button -->
+    <div style="text-align: center; margin-top: 30px;">
+      <button onclick="saveChanges()" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; font-weight: 700; padding: 12px 40px; border: none; border-radius: 8px; font-size: 1.1rem; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 25px rgba(102, 126, 234, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+        <i class="fas fa-save me-2"></i>
+        Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+.animation-thumbnail video:hover,
+.animation-thumbnail img:hover {
+  transform: scale(1.05);
+  transition: transform 0.3s;
+}
+
+.animation-thumbnail:hover {
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+}
+</style>
+
+<script>
+let selectedAnimations = {
+  manga_enter: {{ active_animations.get('manga_enter', {}).get('id', 'null') }},
+  logout: {{ active_animations.get('logout', {}).get('id', 'null') }},
+  banner: {{ active_animations.get('banner', {}).get('id', 'null') }}
+};
+
+// Handle dropdown changes
+document.getElementById('mangaEnterSelect')?.addEventListener('change', function() {
+  if (this.value && this.value !== 'default') {
+    selectedAnimations.manga_enter = parseInt(this.value);
+    updatePreview('mangaEnterPreview', this.options[this.selectedIndex].dataset.path);
+  }
+});
+
+document.getElementById('logoutSelect')?.addEventListener('change', function() {
+  if (this.value && this.value !== 'default') {
+    selectedAnimations.logout = parseInt(this.value);
+    updatePreview('logoutPreview', this.options[this.selectedIndex].dataset.path);
+  }
+});
+
+document.getElementById('bannerSelect')?.addEventListener('change', function() {
+  if (this.value && this.value !== 'default') {
+    selectedAnimations.banner = parseInt(this.value);
+    updatePreview('bannerPreview', this.options[this.selectedIndex].dataset.path);
+  }
+});
+
+function updatePreview(previewId, path) {
+  const preview = document.getElementById(previewId);
+  const ext = path.split('.').pop().toLowerCase();
+  
+  if (['mp4', 'webm'].includes(ext)) {
+    preview.innerHTML = `<video src="/static/${path}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover;"></video>`;
+  } else {
+    preview.innerHTML = `<img src="/static/${path}" style="width: 100%; height: 100%; object-fit: cover;" />`;
+  }
+}
+
+async function uploadAnimation(type, input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  const formData = new FormData();
+  formData.append('animation_file', file);
+  formData.append('animation_type', type);
+  
+  try {
+    const response = await fetch('/api/animation/upload', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      alert('Upload failed: ' + (error.error || 'Unknown error'));
+      return;
+    }
+    
+    const data = await response.json();
+    alert('Animation uploaded successfully!');
+    location.reload(); // Refresh to show new animation
+  } catch (error) {
+    console.error('Upload error:', error);
+    alert('Failed to upload animation');
+  }
+}
+
+async function deleteAnimation(id) {
+  if (!confirm('Are you sure you want to delete this animation?')) return;
+  
+  try {
+    const response = await fetch(`/api/animation/${id}`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) {
+      alert('Failed to delete animation');
+      return;
+    }
+    
+    alert('Animation deleted successfully!');
+    location.reload();
+  } catch (error) {
+    console.error('Delete error:', error);
+    alert('Failed to delete animation');
+  }
+}
+
+async function saveChanges() {
+  // Activate selected animations
+  const promises = [];
+  
+  for (const [type, animId] of Object.entries(selectedAnimations)) {
+    if (animId && animId !== 'null') {
+      promises.push(
+        fetch(`/api/animation/${animId}/activate`, {
+          method: 'PUT'
+        })
+      );
+    }
+  }
+  
+  try {
+    await Promise.all(promises);
+    alert('Settings saved successfully!');
+    location.reload();
+  } catch (error) {
+    console.error('Save error:', error);
+    alert('Failed to save settings');
+  }
+}
+
+// Hover effect for animation thumbnails - play video
+document.querySelectorAll('.animation-thumbnail video').forEach(video => {
+  const container = video.closest('.animation-thumbnail');
+  container.addEventListener('mouseenter', () => video.play());
+  container.addEventListener('mouseleave', () => {
+    video.pause();
+    video.currentTime = 0;
+  });
+});
+</script>
+{% endblock %}
+
