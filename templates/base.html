@@ -352,6 +352,14 @@
   </a>
   {% endif %}
 
+  <!-- Customization (admin only) -->
+  {% if session.get('role') == 'admin' %}
+  <a href="{{ url_for('customization') }}" class="nav-item">
+    <i class="fas fa-wand-magic-sparkles"></i>
+    <span class="tooltip-text">Customization</span>
+  </a>
+  {% endif %}
+
   <!-- Logout -->
   {% if session.get('user_id') %}
   <a href="#" onclick="handleLogout(event)" class="nav-item nav-item-logout">

@@ -60,15 +60,21 @@ UPLOAD_FOLDER_PDF    = os.path.join(APP_ROOT, "static", "books")
 UPLOAD_FOLDER_AUDIO  = os.path.join(APP_ROOT, "static", "audio")
 UPLOAD_FOLDER_COVERS = os.path.join(APP_ROOT, "static", "covers")
 UPLOAD_FOLDER_MANGA  = os.path.join(APP_ROOT, "static", "manga")
+UPLOAD_FOLDER_ANIMATIONS = os.path.join(APP_ROOT, "static", "animations")
 
 os.makedirs(UPLOAD_FOLDER_PDF, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_AUDIO, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_COVERS, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_MANGA, exist_ok=True)
+os.makedirs(UPLOAD_FOLDER_ANIMATIONS, exist_ok=True)
+os.makedirs(os.path.join(UPLOAD_FOLDER_ANIMATIONS, "manga_enter"), exist_ok=True)
+os.makedirs(os.path.join(UPLOAD_FOLDER_ANIMATIONS, "logout"), exist_ok=True)
+os.makedirs(os.path.join(UPLOAD_FOLDER_ANIMATIONS, "banners"), exist_ok=True)
 
 ALLOWED_PDF   = {"pdf"}
 ALLOWED_AUDIO = {"mp3"}
 ALLOWED_IMG   = {"jpg", "jpeg", "png"}
+ALLOWED_ANIMATION = {"mp4", "webm", "gif"}
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "novus_secret_key")
@@ -108,6 +114,7 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB limit
 MAX_PDF_SIZE = 50 * 1024 * 1024    # 50MB for PDFs
 MAX_AUDIO_SIZE = 100 * 1024 * 1024 # 100MB for audio files
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB for images
+MAX_ANIMATION_SIZE = 100 * 1024 * 1024  # 100MB for animations
 
 # -------------------- LOGGING CONFIGURATION --------------------
 # Create logs directory if it doesn't exist
@@ -692,6 +699,19 @@ def init_db():
             avatar_url  TEXT,
             created_at  TEXT DEFAULT (DATETIME('now')),
             FOREIGN KEY (manga_id) REFERENCES books(id)
+        )
+    """)
+
+    # custom animations table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS custom_animations (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            animation_type TEXT NOT NULL,
+            file_path TEXT NOT NULL,
+            is_active INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
 
@@ -4448,6 +4468,187 @@ def user_delete(user_id):
 
     flash("User deleted.", "success")
     return redirect(url_for("user_management"))
+
+# -------------------- CUSTOMIZATION / ANIMATIONS --------------------
+@app.route("/customization")
+@admin_required
+def customization():
+    """Admin-only customization page for managing animations"""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    user_id = session.get("user_id")
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get all animations for this user
+    c.execute("""
+        SELECT id, animation_type, file_path, is_active, created_at
+        FROM custom_animations
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+    """, (user_id,))
+    animations = c.fetchall()
+    
+    # Organize animations by type
+    animations_dict = {
+        'manga_enter': [],
+        'logout': [],
+        'banner': []
+    }
+    
+    active_animations = {}
+    
+    for anim in animations:
+        anim_data = {
+            'id': anim[0],
+            'type': anim[1],
+            'path': anim[2],
+            'is_active': anim[3],
+            'created_at': anim[4]
+        }
+        animations_dict[anim[1]].append(anim_data)
+        if anim[3] == 1:  # is_active
+            active_animations[anim[1]] = anim_data
+    
+    conn.close()
+    
+    return render_template("customization.html", 
+                         animations=animations_dict,
+                         active_animations=active_animations)
+
+
+@app.route("/api/animation/upload", methods=["POST"])
+@admin_required
+def upload_animation():
+    """Upload a custom animation"""
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    animation_type = request.form.get("animation_type")
+    if animation_type not in ["manga_enter", "logout", "banner"]:
+        return jsonify({"error": "Invalid animation type"}), 400
+    
+    animation_file = request.files.get("animation_file")
+    if not animation_file or not animation_file.filename:
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    # Check file size
+    if animation_file.content_length and animation_file.content_length > MAX_ANIMATION_SIZE:
+        return jsonify({"error": f"File too large. Max size is {MAX_ANIMATION_SIZE // (1024*1024)}MB"}), 400
+    
+    # Check file extension
+    ext = animation_file.filename.rsplit(".", 1)[-1].lower()
+    if ext not in ALLOWED_ANIMATION:
+        return jsonify({"error": f"Invalid file type. Allowed: {', '.join(ALLOWED_ANIMATION)}"}), 400
+    
+    # Save file
+    filename = secure_filename(animation_file.filename)
+    timestamp = int(datetime.now().timestamp())
+    unique_filename = f"{timestamp}_{filename}"
+    
+    subfolder = os.path.join(UPLOAD_FOLDER_ANIMATIONS, animation_type)
+    file_path = os.path.join(subfolder, unique_filename)
+    animation_file.save(file_path)
+    
+    # Save to database
+    relative_path = f"animations/{animation_type}/{unique_filename}"
+    user_id = session.get("user_id")
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO custom_animations (user_id, animation_type, file_path, is_active)
+        VALUES (?, ?, ?, 0)
+    """, (user_id, animation_type, relative_path))
+    animation_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    
+    log_system_event('INFO', 'upload', f'Admin uploaded custom animation: {animation_type}', user_id, {'animation_id': animation_id})
+    
+    return jsonify({
+        "success": True,
+        "animation": {
+            "id": animation_id,
+            "type": animation_type,
+            "path": relative_path
+        }
+    })
+
+
+@app.route("/api/animation/<int:animation_id>/activate", methods=["PUT"])
+@admin_required
+def activate_animation(animation_id):
+    """Set an animation as active"""
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session.get("user_id")
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get animation details
+    c.execute("SELECT animation_type FROM custom_animations WHERE id = ? AND user_id = ?", 
+              (animation_id, user_id))
+    result = c.fetchone()
+    
+    if not result:
+        conn.close()
+        return jsonify({"error": "Animation not found"}), 404
+    
+    animation_type = result[0]
+    
+    # Deactivate all animations of this type for this user
+    c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = ?",
+              (user_id, animation_type))
+    
+    # Activate the selected animation
+    c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (animation_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+
+@app.route("/api/animation/<int:animation_id>", methods=["DELETE"])
+@admin_required
+def delete_animation(animation_id):
+    """Delete an animation"""
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session.get("user_id")
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get animation file path
+    c.execute("SELECT file_path FROM custom_animations WHERE id = ? AND user_id = ?",
+              (animation_id, user_id))
+    result = c.fetchone()
+    
+    if not result:
+        conn.close()
+        return jsonify({"error": "Animation not found"}), 404
+    
+    file_path = result[0]
+    
+    # Delete from database
+    c.execute("DELETE FROM custom_animations WHERE id = ?", (animation_id,))
+    conn.commit()
+    conn.close()
+    
+    # Delete file from filesystem
+    try:
+        full_path = os.path.join(APP_ROOT, "static", file_path)
+        if os.path.exists(full_path):
+            os.remove(full_path)
+    except Exception as e:
+        print(f"Error deleting file: {e}")
+    
+    return jsonify({"success": True})
+
 
 # -------------------- FAQ ROUTE --------------------
 @app.route("/faq")
