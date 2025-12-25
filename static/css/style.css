@@ -234,7 +234,9 @@ a:hover {
   color: var(--neon-blue);
   background-color: #262626;
 }
-.dropdown-nav { position: relative; }
+.dropdown-nav {
+  position: relative;
+}
 
 .dropdown-content {
   display: none;
@@ -260,7 +262,6 @@ a:hover {
   background: #262626;
   color: var(--neon-blue);
 }
-
 
 /* ================================================= */
 /* 5. CTA BUTTONS (Top-right Log In / Log Out)       */
@@ -374,14 +375,23 @@ a.cta-button {
 
 .category-select:hover {
   border-color: rgba(0, 212, 255, 0.5) !important;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(102, 126, 234, 0.08) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.15) 0%,
+    rgba(102, 126, 234, 0.08) 100%
+  ) !important;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15) !important;
 }
 
 .category-select:focus {
   border-color: var(--neon-blue) !important;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(102, 126, 234, 0.1) 100%) !important;
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2), inset 0 0 0 1px rgba(0, 212, 255, 0.1) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.2) 0%,
+    rgba(102, 126, 234, 0.1) 100%
+  ) !important;
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2),
+    inset 0 0 0 1px rgba(0, 212, 255, 0.1) !important;
 }
 
 /* Category Checkbox Styling */
@@ -413,7 +423,7 @@ a.cta-button {
 }
 
 .categories-checkbox-grid input[type="checkbox"]:checked::after {
-  content: '✓';
+  content: "✓";
   position: absolute;
   color: white;
   font-weight: bold;
@@ -1212,7 +1222,6 @@ a.cta-button {
   justify-content: center;
 }
 
-
 .product-title {
   font-weight: 700;
   color: #fff;
@@ -1673,9 +1682,8 @@ body.manga-warping {
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative;          /* ⬅️ important so core centers correctly */
+  position: relative; /* ⬅️ important so core centers correctly */
 }
-
 
 .manga-hero-orbit-inner {
   width: 90px;
@@ -2628,7 +2636,12 @@ MANGA WARP OVERLAY (VORTEX)
 /* ===== MANGA PAGE WRAPPER ===== */
 .manga-page {
   padding: 25px 0 40px;
-  background: radial-gradient(circle at top, #1b2348 0%, #050612 55%, #050612 100%);
+  background: radial-gradient(
+    circle at top,
+    #1b2348 0%,
+    #050612 55%,
+    #050612 100%
+  );
 }
 
 /* Match your existing hero card look */
@@ -2714,11 +2727,10 @@ MANGA WARP OVERLAY (VORTEX)
   height: 280px;
   border-radius: 50%;
   border: 3px solid rgba(196, 168, 255, 0.9);
-  box-shadow:
-    0 0 30px rgba(80, 120, 255, 0.9),
+  box-shadow: 0 0 30px rgba(80, 120, 255, 0.9),
     0 0 120px rgba(80, 120, 255, 0.7);
   animation: heroRingPulse 5s ease-in-out infinite,
-             heroRingSpin 18s linear infinite;
+    heroRingSpin 18s linear infinite;
 }
 
 /* GLOWING CORE */
@@ -2728,9 +2740,7 @@ MANGA WARP OVERLAY (VORTEX)
   height: 190px;
   border-radius: 50%;
   background: radial-gradient(circle, #3bc2ff 0%, #111545 70%);
-  box-shadow:
-    0 0 25px rgba(59, 194, 255, 0.9),
-    0 0 70px rgba(59, 194, 255, 0.5);
+  box-shadow: 0 0 25px rgba(59, 194, 255, 0.9), 0 0 70px rgba(59, 194, 255, 0.5);
   animation: heroCorePulse 4s ease-in-out infinite alternate;
 }
 
@@ -2738,28 +2748,29 @@ MANGA WARP OVERLAY (VORTEX)
 
 @keyframes heroRingPulse {
   0% {
-    box-shadow:
-      0 0 18px rgba(80, 120, 255, 0.6),
+    box-shadow: 0 0 18px rgba(80, 120, 255, 0.6),
       0 0 60px rgba(80, 120, 255, 0.4);
     transform: scale(0.98);
   }
   50% {
-    box-shadow:
-      0 0 38px rgba(80, 120, 255, 1),
+    box-shadow: 0 0 38px rgba(80, 120, 255, 1),
       0 0 140px rgba(80, 120, 255, 0.9);
     transform: scale(1.03);
   }
   100% {
-    box-shadow:
-      0 0 18px rgba(80, 120, 255, 0.6),
+    box-shadow: 0 0 18px rgba(80, 120, 255, 0.6),
       0 0 60px rgba(80, 120, 255, 0.4);
     transform: scale(0.98);
   }
 }
 
 @keyframes heroRingSpin {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes heroCorePulse {
@@ -2776,7 +2787,6 @@ MANGA WARP OVERLAY (VORTEX)
     filter: blur(0.5px);
   }
 }
-
 
 /* ===== MANGAVERSE TOP BAR ===== */
 .mangaverse-bar {
@@ -2899,7 +2909,12 @@ MANGA WARP OVERLAY (VORTEX)
   flex-direction: column;
   border-radius: 20px;
   overflow: hidden;
-  background: radial-gradient(circle at top, #363a64 0%, #141625 45%, #090a14 100%);
+  background: radial-gradient(
+    circle at top,
+    #363a64 0%,
+    #141625 45%,
+    #090a14 100%
+  );
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
 }
 
@@ -2931,8 +2946,14 @@ MANGA WARP OVERLAY (VORTEX)
   letter-spacing: 0.12em;
   margin-bottom: 6px;
 }
-.pill-popular { background: rgba(57, 197, 255, 0.15); color: #7cd0ff; }
-.pill-ongoing { background: rgba(165, 255, 216, 0.16); color: #9fffd0; }
+.pill-popular {
+  background: rgba(57, 197, 255, 0.15);
+  color: #7cd0ff;
+}
+.pill-ongoing {
+  background: rgba(165, 255, 216, 0.16);
+  color: #9fffd0;
+}
 
 .manga-card-title {
   font-size: 1.1rem;
@@ -3069,8 +3090,7 @@ MANGA WARP OVERLAY (VORTEX)
   padding: 30px 32px;
   max-width: 420px;
   width: 100%;
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.7),
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7),
     0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
@@ -3363,7 +3383,7 @@ MANGA WARP OVERLAY (VORTEX)
   margin-top: 18px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.8rem;            /* more space between cards */
+  gap: 1.8rem; /* more space between cards */
 }
 
 /* whole card */
@@ -3374,8 +3394,7 @@ MANGA WARP OVERLAY (VORTEX)
   display: flex;
   align-items: center;
   gap: 18px;
-  box-shadow:
-    0 18px 40px rgba(0, 0, 0, 0.65),
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.65),
     0 0 0 1px rgba(148, 163, 184, 0.12);
 }
 
@@ -3422,7 +3441,6 @@ MANGA WARP OVERLAY (VORTEX)
   color: #38bdf8;
 }
 
-
 /* --- Wishlist --- */
 
 .wishlist-list {
@@ -3467,7 +3485,12 @@ MANGA WARP OVERLAY (VORTEX)
   margin-top: 40px;
   padding: 28px 30px 34px;
   border-radius: 26px;
-  background: radial-gradient(circle at top left, #1f2937 0, #020617 55%, #020617 100%);
+  background: radial-gradient(
+    circle at top left,
+    #1f2937 0,
+    #020617 55%,
+    #020617 100%
+  );
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
 }
 
@@ -3575,7 +3598,8 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 .bc-review-stars {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
   color: #facc15;
   font-size: 0.85rem;
 }
@@ -3735,151 +3759,224 @@ MANGA WARP OVERLAY (VORTEX)
   }
 }
 /* COMMUNITY & DISCOVERY (Book Detail bottom section) */
-.cd-section{margin-top:28px}
-.cd-head h2{
-  text-align:center;
-  letter-spacing:.18em;
-  font-weight:800;
-  color:#cfefff;
-  opacity:.9;
-  margin:10px 0 18px;
+.cd-section {
+  margin-top: 28px;
+}
+.cd-head h2 {
+  text-align: center;
+  letter-spacing: 0.18em;
+  font-weight: 800;
+  color: #cfefff;
+  opacity: 0.9;
+  margin: 10px 0 18px;
 }
 
-.cd-grid{
-  display:grid;
-  grid-template-columns: 1.4fr .9fr;
-  gap:18px;
+.cd-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr;
+  gap: 18px;
 }
 
-.cd-card{
-  background: rgba(10,12,18,.55);
-  border:1px solid rgba(64,220,255,.28);
-  border-radius:18px;
-  box-shadow: 0 0 28px rgba(0,0,0,.35);
-  padding:18px;
+.cd-card {
+  background: rgba(10, 12, 18, 0.55);
+  border: 1px solid rgba(64, 220, 255, 0.28);
+  border-radius: 18px;
+  box-shadow: 0 0 28px rgba(0, 0, 0, 0.35);
+  padding: 18px;
   backdrop-filter: blur(10px);
 }
 
-.cd-title h3{
-  margin:0;
-  font-weight:900;
-  letter-spacing:.12em;
-  color:#eaf9ff;
+.cd-title h3 {
+  margin: 0;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #eaf9ff;
 }
-.cd-title p{margin:4px 0 14px;color:#9fb3c7}
-
-.cd-reviews{grid-column:1/2}
-.cd-wishlist{grid-column:2/3}
-.cd-recs{grid-column:1/3}
-
-.cd-review-list{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
-.cd-review-item{
-  display:flex; gap:12px;
-  background: rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:14px;
-  padding:12px;
+.cd-title p {
+  margin: 4px 0 14px;
+  color: #9fb3c7;
 }
-.cd-avatar{
-  width:44px;height:44px;border-radius:50%;
-  display:grid;place-items:center;
-  color:#001018;font-weight:900;
+
+.cd-reviews {
+  grid-column: 1/2;
+}
+.cd-wishlist {
+  grid-column: 2/3;
+}
+.cd-recs {
+  grid-column: 1/3;
+}
+
+.cd-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.cd-review-item {
+  display: flex;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 12px;
+}
+.cd-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #001018;
+  font-weight: 900;
   background: radial-gradient(circle at 30% 30%, #7ee7ff, #3ad0ff);
-  box-shadow:0 0 16px rgba(64,220,255,.35);
+  box-shadow: 0 0 16px rgba(64, 220, 255, 0.35);
 }
-.cd-review-name{font-weight:800;color:#fff}
-.cd-stars{color:#53dcff; letter-spacing:.08em; margin:2px 0 6px}
-.cd-review-text{color:#d8e5f2; opacity:.92; font-size:.95rem}
+.cd-review-name {
+  font-weight: 800;
+  color: #fff;
+}
+.cd-stars {
+  color: #53dcff;
+  letter-spacing: 0.08em;
+  margin: 2px 0 6px;
+}
+.cd-review-text {
+  color: #d8e5f2;
+  opacity: 0.92;
+  font-size: 0.95rem;
+}
 
-.cd-review-form{
-  display:grid;
+.cd-review-form {
+  display: grid;
   grid-template-columns: 1fr auto;
-  gap:10px;
-  align-items:center;
+  gap: 10px;
+  align-items: center;
 }
-.cd-input{
-  width:100%;
-  background: rgba(0,0,0,.35);
-  border:1px solid rgba(64,220,255,.22);
-  color:#fff;
-  border-radius:12px;
-  padding:10px 12px;
-  outline:none;
+.cd-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(64, 220, 255, 0.22);
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  outline: none;
 }
-.cd-input:focus{border-color: rgba(64,220,255,.55); box-shadow:0 0 0 3px rgba(64,220,255,.12)}
-.cd-btn{
-  background: rgba(64,220,255,.2);
-  border:1px solid rgba(64,220,255,.45);
-  color:#cfefff;
-  font-weight:800;
-  padding:10px 14px;
-  border-radius:12px;
+.cd-input:focus {
+  border-color: rgba(64, 220, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(64, 220, 255, 0.12);
 }
-.cd-btn:hover{filter:brightness(1.15)}
+.cd-btn {
+  background: rgba(64, 220, 255, 0.2);
+  border: 1px solid rgba(64, 220, 255, 0.45);
+  color: #cfefff;
+  font-weight: 800;
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+.cd-btn:hover {
+  filter: brightness(1.15);
+}
 
-.cd-wish-list{display:flex;flex-direction:column;gap:12px}
-.cd-wish-item{
-  display:grid;
+.cd-wish-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cd-wish-item {
+  display: grid;
   grid-template-columns: 56px 1fr;
-  gap:12px;
-  align-items:center;
-  background: rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:14px;
-  padding:10px;
+  gap: 12px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 10px;
 }
-.cd-cover{
-  width:56px;height:56px;border-radius:12px;
-  object-fit:cover;
-  border:1px solid rgba(255,255,255,.10);
+.cd-cover {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
-.cd-cover-ph{
-  display:grid;place-items:center;
-  color:#fff;font-weight:900;
-  background: linear-gradient(135deg,#8a5cff,#53dcff);
+.cd-cover-ph {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 900;
+  background: linear-gradient(135deg, #8a5cff, #53dcff);
 }
-.cd-wish-title{font-weight:800;color:#fff}
-.cd-wish-sub{color:#9fb3c7;font-size:.9rem}
+.cd-wish-title {
+  font-weight: 800;
+  color: #fff;
+}
+.cd-wish-sub {
+  color: #9fb3c7;
+  font-size: 0.9rem;
+}
 
-.cd-recs-grid{
-  display:grid;
+.cd-recs-grid {
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap:14px;
+  gap: 14px;
 }
-.cd-rec{
-  display:grid;
+.cd-rec {
+  display: grid;
   grid-template-columns: 92px 1fr;
-  gap:14px;
-  text-decoration:none;
-  background: rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:16px;
-  padding:14px;
+  gap: 14px;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 14px;
 }
-.cd-rec:hover{border-color: rgba(64,220,255,.35); box-shadow:0 0 18px rgba(64,220,255,.12)}
-.cd-rec-img{
-  width:92px;height:124px;border-radius:14px;
-  object-fit:cover;
-  border:1px solid rgba(255,255,255,.12);
+.cd-rec:hover {
+  border-color: rgba(64, 220, 255, 0.35);
+  box-shadow: 0 0 18px rgba(64, 220, 255, 0.12);
 }
-.cd-rec-info{display:flex;flex-direction:column;gap:6px}
-.cd-rec-title{color:#fff;font-weight:900;font-size:1.08rem}
-.cd-rec-sub{color:#9fb3c7}
-.cd-rec-btn{
-  margin-top:auto;
-  width:max-content;
-  padding:8px 12px;
-  border-radius:12px;
-  border:1px solid rgba(64,220,255,.45);
-  background: rgba(64,220,255,.16);
-  color:#cfefff;
-  font-weight:800;
+.cd-rec-img {
+  width: 92px;
+  height: 124px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.cd-rec-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cd-rec-title {
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.08rem;
+}
+.cd-rec-sub {
+  color: #9fb3c7;
+}
+.cd-rec-btn {
+  margin-top: auto;
+  width: max-content;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(64, 220, 255, 0.45);
+  background: rgba(64, 220, 255, 0.16);
+  color: #cfefff;
+  font-weight: 800;
 }
 
-.cd-empty{color:#9fb3c7; padding:10px 0}
-@media (max-width: 980px){
-  .cd-grid{grid-template-columns:1fr}
-  .cd-recs{grid-column:auto}
+.cd-empty {
+  color: #9fb3c7;
+  padding: 10px 0;
+}
+@media (max-width: 980px) {
+  .cd-grid {
+    grid-template-columns: 1fr;
+  }
+  .cd-recs {
+    grid-column: auto;
+  }
 }
 
 /* ================================================= */
@@ -3912,7 +4009,9 @@ MANGA WARP OVERLAY (VORTEX)
   opacity: 0.6;
 }
 /* Top-right profile icon dropdown */
-.profile-dropdown { position: relative; }
+.profile-dropdown {
+  position: relative;
+}
 
 .profile-menu-btn {
   width: 44px;
@@ -4036,7 +4135,7 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 .avatar-ultimate {
-  border: 2px solid #FFD700;
+  border: 2px solid #ffd700;
 }
 
 .avatar-ultimate:hover {
@@ -4057,13 +4156,13 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 .profile-dd-role {
-  font-size: 0.80rem;
+  font-size: 0.8rem;
   color: #999;
   margin-bottom: 4px;
 }
 
 .profile-dd-plan {
-  font-size: 0.80rem;
+  font-size: 0.8rem;
   color: #bbb;
   word-break: break-word;
 }
@@ -4158,7 +4257,9 @@ MANGA WARP OVERLAY (VORTEX)
     max-width: 320px;
   }
 }
-.no-scroll { overflow: hidden; }
+.no-scroll {
+  overflow: hidden;
+}
 
 .billing-modal {
   position: fixed;
@@ -4167,12 +4268,14 @@ MANGA WARP OVERLAY (VORTEX)
   z-index: 5000;
 }
 
-.billing-modal.show { display: block; }
+.billing-modal.show {
+  display: block;
+}
 
 .billing-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(6px);
 }
 
@@ -4198,12 +4301,14 @@ MANGA WARP OVERLAY (VORTEX)
   border-radius: 999px;
   border: 0;
   background: transparent;
-  color: rgba(255,255,255,0.75);
+  color: rgba(255, 255, 255, 0.75);
   font-size: 30px;
   line-height: 1;
   cursor: pointer;
 }
-.billing-close:hover { color: #fff; }
+.billing-close:hover {
+  color: #fff;
+}
 
 .billing-header h2 {
   margin: 0;
@@ -4228,7 +4333,7 @@ MANGA WARP OVERLAY (VORTEX)
   border-radius: 16px;
   padding: 18px 18px 16px;
   background: rgba(10, 10, 10, 0.35);
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
 }
@@ -4279,7 +4384,7 @@ MANGA WARP OVERLAY (VORTEX)
   list-style: none;
   padding: 0;
   margin: 0 0 12px 0;
-  color: rgba(255,255,255,0.78);
+  color: rgba(255, 255, 255, 0.78);
   flex: 1;
 }
 
@@ -4303,13 +4408,28 @@ MANGA WARP OVERLAY (VORTEX)
 
 /* Rainbow text effect for Ultimate tier */
 @keyframes rainbow-text {
-  0% { background-position: 0% center; }
-  50% { background-position: 100% center; }
-  100% { background-position: 0% center; }
+  0% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+  100% {
+    background-position: 0% center;
+  }
 }
 
 .plan-ultimate .plan-title {
-  background: linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+  background: linear-gradient(
+    90deg,
+    #ff0000,
+    #ff7700,
+    #ffff00,
+    #00ff00,
+    #0000ff,
+    #4b0082,
+    #9400d3
+  );
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4321,7 +4441,7 @@ MANGA WARP OVERLAY (VORTEX)
 
 .plan-featured {
   border: 2px solid rgba(0, 212, 255, 0.55);
-  box-shadow: 0 0 26px rgba(0, 212, 255, 0.10);
+  box-shadow: 0 0 26px rgba(0, 212, 255, 0.1);
   transform: translateY(-4px);
 }
 
@@ -4353,7 +4473,11 @@ MANGA WARP OVERLAY (VORTEX)
   gap: 10px;
   padding: 14px 20px;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 212, 255, 0.15));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 212, 255, 0.25),
+    rgba(0, 212, 255, 0.15)
+  );
   border: 2px solid rgba(0, 212, 255, 0.55);
   color: rgba(125, 220, 255, 0.98);
   font-weight: 900;
@@ -4385,7 +4509,7 @@ MANGA WARP OVERLAY (VORTEX)
   border-radius: 10px;
   border: 0;
   background: transparent;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
 }
 
@@ -4394,8 +4518,12 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 @media (max-width: 900px) {
-  .billing-grid { grid-template-columns: 1fr; }
-  .plan-featured { transform: none; }
+  .billing-grid {
+    grid-template-columns: 1fr;
+  }
+  .plan-featured {
+    transform: none;
+  }
 }
 .sub-counter {
   margin-top: 6px;
@@ -4412,9 +4540,9 @@ MANGA WARP OVERLAY (VORTEX)
   margin-top: 2px;
   padding: 3px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(0,212,255,0.55);
-  background: rgba(0,212,255,0.12);
-  color: rgba(125,220,255,0.98);
+  border: 1px solid rgba(0, 212, 255, 0.55);
+  background: rgba(0, 212, 255, 0.12);
+  color: rgba(125, 220, 255, 0.98);
   font-weight: 800;
   font-size: 0.75rem;
   vertical-align: middle;
@@ -4426,9 +4554,9 @@ MANGA WARP OVERLAY (VORTEX)
   margin-top: 2px;
   padding: 3px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(255,165,0,0.55);
-  background: rgba(255,165,0,0.12);
-  color: rgba(255,200,124,0.98);
+  border: 1px solid rgba(255, 165, 0, 0.55);
+  background: rgba(255, 165, 0, 0.12);
+  color: rgba(255, 200, 124, 0.98);
   font-weight: 700;
   font-size: 0.75rem;
   vertical-align: middle;
@@ -4442,7 +4570,8 @@ MANGA WARP OVERLAY (VORTEX)
 
 /* Plan card glow animation */
 @keyframes plan-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px 2px rgba(0, 212, 255, 0.4);
   }
   50% {
@@ -4478,7 +4607,7 @@ MANGA WARP OVERLAY (VORTEX)
 
 .plan-current-badge i {
   color: rgba(125, 220, 255, 0.98);
-  font-size: 0.70rem;
+  font-size: 0.7rem;
 }
 
 .plan-current-badge.plan-admin-badge {
@@ -4735,7 +4864,9 @@ MANGA WARP OVERLAY (VORTEX)
   z-index: 5000;
 }
 
-.activity-log-modal.show { display: block; }
+.activity-log-modal.show {
+  display: block;
+}
 
 .activity-log-backdrop {
   position: absolute;
@@ -4750,7 +4881,7 @@ MANGA WARP OVERLAY (VORTEX)
   margin: 60px auto;
   padding: 28px;
   border-radius: 18px;
-  
+
   background: rgba(25, 30, 34, 0.55);
   backdrop-filter: blur(14px);
   border: 2px solid rgba(0, 212, 255, 0.35);
@@ -4793,8 +4924,8 @@ MANGA WARP OVERLAY (VORTEX)
   transition: color 0.2s ease;
 }
 
-.activity-log-close:hover { 
-  color: #fff; 
+.activity-log-close:hover {
+  color: #fff;
 }
 
 .activity-log-header h2 {
@@ -4937,7 +5068,11 @@ MANGA WARP OVERLAY (VORTEX)
 
 .reading-level-fill {
   height: 100%;
-  background: linear-gradient(90deg, rgba(0, 212, 255, 0.6), rgba(0, 212, 255, 0.9));
+  background: linear-gradient(
+    90deg,
+    rgba(0, 212, 255, 0.6),
+    rgba(0, 212, 255, 0.9)
+  );
   border-radius: 4px;
   transition: width 0.3s ease;
   box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
@@ -4973,13 +5108,21 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 .activity-log-btn-primary {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.7), rgba(0, 212, 255, 0.5));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 212, 255, 0.7),
+    rgba(0, 212, 255, 0.5)
+  );
   color: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(0, 212, 255, 0.5);
 }
 
 .activity-log-btn-primary:hover {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.9), rgba(0, 212, 255, 0.7));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 212, 255, 0.9),
+    rgba(0, 212, 255, 0.7)
+  );
   box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
   color: #fff;
 }
@@ -5006,7 +5149,9 @@ MANGA WARP OVERLAY (VORTEX)
   z-index: 5000;
 }
 
-.appearance-modal.show { display: block; }
+.appearance-modal.show {
+  display: block;
+}
 
 .appearance-backdrop {
   position: absolute;
@@ -5058,8 +5203,8 @@ MANGA WARP OVERLAY (VORTEX)
   transition: color 0.2s ease;
 }
 
-.appearance-close:hover { 
-  color: #fff; 
+.appearance-close:hover {
+  color: #fff;
 }
 
 .appearance-header h2 {
@@ -5197,10 +5342,18 @@ MANGA WARP OVERLAY (VORTEX)
   color: var(--neon-blue);
 }
 
-.font-size-sample.small { font-size: 16px; }
-.font-size-sample.medium { font-size: 18px; }
-.font-size-sample.large { font-size: 22px; }
-.font-size-sample.xlarge { font-size: 26px; }
+.font-size-sample.small {
+  font-size: 16px;
+}
+.font-size-sample.medium {
+  font-size: 18px;
+}
+.font-size-sample.large {
+  font-size: 22px;
+}
+.font-size-sample.xlarge {
+  font-size: 26px;
+}
 
 /* Density Options */
 .density-options {
@@ -5340,7 +5493,7 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 .toggle-slider::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 2px;
   left: 2px;
@@ -5405,7 +5558,11 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 .appearance-btn.primary:hover {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.9), rgba(0, 212, 255, 0.8));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 212, 255, 0.9),
+    rgba(0, 212, 255, 0.8)
+  );
   box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
   color: #fff;
 }
@@ -5429,36 +5586,117 @@ MANGA WARP OVERLAY (VORTEX)
     padding: 20px;
     width: calc(100% - 20px);
   }
-  
+
   .theme-options {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .font-size-options {
     justify-content: center;
   }
-  
+
   .density-options {
     justify-content: center;
   }
-  
+
   .accent-options {
     justify-content: center;
   }
-  
+
   .appearance-actions {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .appearance-main-actions {
     justify-content: center;
   }
 }
 
 /* ===== RESTORE BILLING MODAL VISIBILITY (safe override) ===== */
-.billing-modal{position:fixed;inset:0;display:none;z-index:5000}
-.billing-modal.show{display:flex}
-.billing-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6)}
-.billing-dialog{position:relative;margin:auto;background:#0b1219;color:#e6f7ff;border:1px solid #1e374a;border-radius:16px;width:min(92vw,920px);max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.6);padding:20px}
+.billing-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 5000;
+}
+.billing-modal.show {
+  display: flex;
+}
+.billing-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+.billing-dialog {
+  position: relative;
+  margin: auto;
+  background: #0b1219;
+  color: #e6f7ff;
+  border: 1px solid #1e374a;
+  border-radius: 16px;
+  width: min(92vw, 920px);
+  max-height: 88vh;
+  overflow: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  padding: 20px;
+}
 /* ===== END RESTORE ===== */
+
+/* ===========================
+   GRANULAR ANIMATION CONTROL
+   =========================== */
+
+/* 1. UI Effects (Micro-interactions) */
+/* Disable hover scaling/motion on common interactive elements */
+body.no-ui-effects .nav-item:hover,
+body.no-ui-effects .btn:hover,
+body.no-ui-effects .btn-neon:hover,
+body.no-ui-effects .sidebar-logo-circle:hover,
+body.no-ui-effects .sidebar-brand-text:hover,
+body.no-ui-effects .card:hover,
+body.no-ui-effects .product-card:hover,
+body.no-ui-effects .team-card:hover,
+body.no-ui-effects .watchlist-card:hover,
+body.no-ui-effects .category-checkbox:hover,
+body.no-ui-effects .payment-option:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Disable pulse animations */
+body.no-ui-effects .loading-pulse,
+body.no-ui-effects .sidebar-logo:hover {
+  animation: none !important;
+}
+
+/* Kill transitions for instant state changes if desired, or keep them for color only. 
+   Here we kill 'transform' transitions specifically if possible, but 'transition: none' is safer for "no animation" feel. */
+body.no-ui-effects .nav-item,
+body.no-ui-effects .btn,
+body.no-ui-effects .card,
+body.no-ui-effects .product-card {
+  transition: some-custom-transition !important; /* Hack: if we set none it kills background fade too. */
+  transition-property: background-color, color, border-color !important; /* Only animate colors */
+}
+
+/* 2. Special Effects (Heavy Animations) */
+/* Hide or freeze overlays */
+body.no-special-effects #manga-warp-overlay,
+body.no-special-effects .logout-overlay,
+body.no-special-effects .success-overlay,
+body.no-special-effects .warp-particles,
+body.no-special-effects .login-particles {
+  display: none !important;
+  animation: none !important;
+}
+
+/* Disable heavy page-load animations like top bar */
+body.no-special-effects .top-loading-bar {
+  display: none !important;
+}
+
+/* Disable manga warp blur effect on body */
+body.no-special-effects.manga-warping {
+  filter: none !important;
+}

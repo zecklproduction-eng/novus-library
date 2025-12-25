@@ -4,15 +4,17 @@
 class AppearanceSettings {
   constructor() {
     this.settings = {
-      theme: 'dark',
-      fontSize: 'medium',
-      density: 'comfortable',
-      accentColor: 'cyan',
+      theme: "dark",
+      fontSize: "medium",
+      density: "comfortable",
+      accentColor: "cyan",
       preferences: {
         smoothScroll: false,
         pageTransitions: true,
-        animations: true
-      }
+        animations: true,
+        uiEffects: true,
+        specialEffects: true,
+      },
     };
     this.init();
   }
@@ -24,7 +26,7 @@ class AppearanceSettings {
   }
 
   bindEvents() {
-    // Modal controls
+    // Modal controls - EXPOSE TO WINDOW
     window.openAppearanceModal = () => this.openModal();
     window.closeAppearanceModal = () => this.closeModal();
     
@@ -152,7 +154,9 @@ class AppearanceSettings {
         preferences: {
           smoothScroll: false,
           pageTransitions: true,
-          animations: true
+          animations: true,
+          uiEffects: true,
+          specialEffects: true
         }
       };
       this.applyAllSettings();
@@ -193,163 +197,106 @@ class AppearanceSettings {
   }
 
   updateUI() {
-    // Update theme selection
-    document.querySelectorAll('.theme-option').forEach(option => {
-      option.classList.toggle('active', option.dataset.theme === this.settings.theme);
+    // ... existing UI updates ...
+    document.querySelectorAll(".theme-option").forEach((option) => {
+      option.classList.toggle(
+        "active",
+        option.dataset.theme === this.settings.theme
+      );
     });
-
-    // Update font size selection
-    document.querySelectorAll('.font-size-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.size === this.settings.fontSize);
+    document.querySelectorAll(".font-size-btn").forEach((btn) => {
+      btn.classList.toggle(
+        "active",
+        btn.dataset.size === this.settings.fontSize
+      );
     });
-
-    // Update density selection
-    document.querySelectorAll('.density-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.density === this.settings.density);
+    document.querySelectorAll(".density-btn").forEach((btn) => {
+      btn.classList.toggle(
+        "active",
+        btn.dataset.density === this.settings.density
+      );
     });
-
-    // Update accent color selection
-    document.querySelectorAll('.accent-option').forEach(option => {
-      option.classList.toggle('active', option.dataset.color === this.settings.accentColor);
+    document.querySelectorAll(".accent-option").forEach((option) => {
+      option.classList.toggle(
+        "active",
+        option.dataset.color === this.settings.accentColor
+      );
     });
 
     // Update preference toggles
-    const toggleSmoothScroll = document.getElementById('toggleSmoothScroll');
-    const togglePageTransitions = document.getElementById('togglePageTransitions');
-    const toggleAnimations = document.getElementById('toggleAnimations');
+    const toggleSmoothScroll = document.getElementById("toggleSmoothScroll");
+    const togglePageTransitions = document.getElementById(
+      "togglePageTransitions"
+    );
+    const toggleAnimations = document.getElementById("toggleAnimations");
+    const toggleUiEffects = document.getElementById("toggleUiEffects");
+    const toggleSpecialEffects = document.getElementById(
+      "toggleSpecialEffects"
+    );
 
-    if (toggleSmoothScroll) toggleSmoothScroll.checked = this.settings.preferences.smoothScroll;
-    if (togglePageTransitions) togglePageTransitions.checked = this.settings.preferences.pageTransitions;
-    if (toggleAnimations) toggleAnimations.checked = this.settings.preferences.animations;
-  }
+    if (toggleSmoothScroll)
+      toggleSmoothScroll.checked = this.settings.preferences.smoothScroll;
+    if (togglePageTransitions)
+      togglePageTransitions.checked = this.settings.preferences.pageTransitions;
+    if (toggleAnimations) {
+      toggleAnimations.checked = this.settings.preferences.animations;
 
-  updateTheme() {
-    const body = document.body;
-    
-    // Remove existing theme classes
-    body.classList.remove('theme-dark', 'theme-light', 'theme-blue', 'theme-purple');
-    
-    // Add new theme class
-    body.classList.add(`theme-${this.settings.theme}`);
-    
-    // Apply theme-specific CSS custom properties
-    this.applyThemeColors();
-  }
+      // Control visibility/interaction of sub-settings based on master toggle
+      const subSettings = document.getElementById("animationSubSettings");
+      if (subSettings) {
+        subSettings.style.opacity = this.settings.preferences.animations
+          ? "1"
+          : "0.5";
+        subSettings.style.pointerEvents = this.settings.preferences.animations
+          ? "auto"
+          : "none";
 
-  applyThemeColors() {
-    const root = document.documentElement;
-    
-    const themeColors = {
-      dark: {
-        '--bg-main': '#1f1f1f',
-        '--bg-card': '#2a2a2a',
-        '--text-primary': '#e0e0e0'
-      },
-      light: {
-        '--bg-main': '#ffffff',
-        '--bg-card': '#f8f9fa',
-        '--text-primary': '#212529'
-      },
-      blue: {
-        '--bg-main': '#0a1628',
-        '--bg-card': '#1e3a8a',
-        '--text-primary': '#e0e7ff'
-      },
-      purple: {
-        '--bg-main': '#2d1b69',
-        '--bg-card': '#581c87',
-        '--text-primary': '#f3e8ff'
+        // Also untick/tick visually based on master?
+        // Better: let them keep their state, but master overrides effect.
       }
-    };
-
-    const colors = themeColors[this.settings.theme];
-    if (colors) {
-      Object.entries(colors).forEach(([property, value]) => {
-        root.style.setProperty(property, value);
-      });
     }
-  }
-
-  updateFontSize() {
-    const body = document.body;
-    
-    // Remove existing font size classes
-    body.classList.remove('font-small', 'font-medium', 'font-large', 'font-xlarge');
-    
-    // Add new font size class
-    body.classList.add(`font-${this.settings.fontSize}`);
-    
-    // Apply font size via CSS custom properties
-    const root = document.documentElement;
-    const fontSizes = {
-      small: '14px',
-      medium: '16px',
-      large: '18px',
-      xlarge: '20px'
-    };
-    
-    root.style.setProperty('--base-font-size', fontSizes[this.settings.fontSize]);
-    body.style.fontSize = fontSizes[this.settings.fontSize];
-  }
-
-  updateDensity() {
-    const body = document.body;
-    
-    // Remove existing density classes
-    body.classList.remove('density-compact', 'density-comfortable', 'density-spacious');
-    
-    // Add new density class
-    body.classList.add(`density-${this.settings.density}`);
-    
-    // Apply density via CSS custom properties
-    const root = document.documentElement;
-    const densities = {
-      compact: '0.8',
-      comfortable: '1.0',
-      spacious: '1.2'
-    };
-    
-    root.style.setProperty('--content-density', densities[this.settings.density]);
-  }
-
-  updateAccentColor() {
-    const root = document.documentElement;
-    
-    // Apply accent color via CSS custom properties
-    const accentColors = {
-      cyan: '#00d4ff',
-      purple: '#667eea',
-      pink: '#ff9a9e',
-      green: '#56ab2f',
-      orange: '#ff6b35'
-    };
-    
-    root.style.setProperty('--neon-blue', accentColors[this.settings.accentColor]);
-    root.style.setProperty('--accent-color', accentColors[this.settings.accentColor]);
+    if (toggleUiEffects)
+      toggleUiEffects.checked = this.settings.preferences.uiEffects;
+    if (toggleSpecialEffects)
+      toggleSpecialEffects.checked = this.settings.preferences.specialEffects;
   }
 
   updatePreferences() {
     const body = document.body;
-    
+
     // Smooth scrolling
     if (this.settings.preferences.smoothScroll) {
-      body.style.scrollBehavior = 'smooth';
+      body.style.scrollBehavior = "smooth";
     } else {
-      body.style.scrollBehavior = 'auto';
+      body.style.scrollBehavior = "auto";
     }
-    
+
     // Page transitions
     if (this.settings.preferences.pageTransitions) {
-      body.classList.remove('no-transitions');
+      body.classList.remove("no-transitions");
     } else {
-      body.classList.add('no-transitions');
+      body.classList.add("no-transitions");
     }
-    
-    // Animations
+
+    // Animations (Master)
     if (this.settings.preferences.animations) {
-      body.classList.remove('no-animations');
+      body.classList.remove("no-animations");
     } else {
-      body.classList.add('no-animations');
+      body.classList.add("no-animations");
+    }
+
+    // UI Effects
+    if (this.settings.preferences.uiEffects) {
+      body.classList.remove("no-ui-effects");
+    } else {
+      body.classList.add("no-ui-effects");
+    }
+
+    // Special Effects
+    if (this.settings.preferences.specialEffects) {
+      body.classList.remove("no-special-effects");
+    } else {
+      body.classList.add("no-special-effects");
     }
   }
 
@@ -361,27 +308,29 @@ class AppearanceSettings {
     this.updatePreferences();
   }
 
-  showToast(message, type = 'info') {
+  showToast(message, type = "info") {
     // Remove existing toasts
-    const existingToast = document.querySelector('.appearance-toast');
+    const existingToast = document.querySelector(".appearance-toast");
     if (existingToast) {
       existingToast.remove();
     }
 
     // Create toast element
-    const toast = document.createElement('div');
+    const toast = document.createElement("div");
     toast.className = `appearance-toast toast-${type}`;
     toast.innerHTML = `
       <div class="toast-content">
-        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i>
+        <i class="fas ${
+          type === "success" ? "fa-check-circle" : "fa-info-circle"
+        }"></i>
         <span>${message}</span>
       </div>
     `;
 
     // Add toast styles if not already present
-    if (!document.querySelector('#appearance-toast-styles')) {
-      const styles = document.createElement('style');
-      styles.id = 'appearance-toast-styles';
+    if (!document.querySelector("#appearance-toast-styles")) {
+      const styles = document.createElement("style");
+      styles.id = "appearance-toast-styles";
       styles.textContent = `
         .appearance-toast {
           position: fixed;
@@ -432,7 +381,7 @@ class AppearanceSettings {
     // Remove toast after 3 seconds
     setTimeout(() => {
       if (toast.parentNode) {
-        toast.style.animation = 'toastSlideIn 0.3s ease-out reverse';
+        toast.style.animation = "toastSlideIn 0.3s ease-out reverse";
         setTimeout(() => {
           if (toast.parentNode) {
             toast.remove();
@@ -444,7 +393,7 @@ class AppearanceSettings {
 }
 
 // Font size CSS classes
-const fontSizeStyles = document.createElement('style');
+const fontSizeStyles = document.createElement("style");
 fontSizeStyles.textContent = `
   .font-small { font-size: 14px; }
   .font-medium { font-size: 16px; }
@@ -476,8 +425,8 @@ fontSizeStyles.textContent = `
 document.head.appendChild(fontSizeStyles);
 
 // Initialize appearance settings when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  new AppearanceSettings();
+document.addEventListener("DOMContentLoaded", () => {
+  window.appearanceSettings = new AppearanceSettings();
 });
 
 // Make AppearanceSettings globally available for debugging

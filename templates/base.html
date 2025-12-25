@@ -937,11 +937,27 @@
             <span class="toggle-slider"></span>
             <span class="toggle-label">Page transitions</span>
           </label>
-          <label class="preference-toggle">
-            <input type="checkbox" id="toggleAnimations" data-action="toggleAnimations" checked>
-            <span class="toggle-slider"></span>
-            <span class="toggle-label">Animations</span>
-          </label>
+          
+          <div class="preference-group" style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
+            <label class="preference-toggle">
+              <input type="checkbox" id="toggleAnimations" data-action="toggleAnimations" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-label" style="font-weight: 600; color: var(--neon-blue);">Enable Animations</span>
+            </label>
+            
+            <div id="animationSubSettings" style="margin-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+              <label class="preference-toggle">
+                <input type="checkbox" id="toggleUiEffects" data-action="toggleUiEffects" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label" style="font-size: 0.9em; color: #bbb;">UI Effects <small>(Hover, Pulse)</small></span>
+              </label>
+              <label class="preference-toggle">
+                <input type="checkbox" id="toggleSpecialEffects" data-action="toggleSpecialEffects" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label" style="font-size: 0.9em; color: #bbb;">Special Effects <small>(Warp, Overlays)</small></span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
     </div>
