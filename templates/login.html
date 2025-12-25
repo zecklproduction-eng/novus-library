@@ -727,7 +727,7 @@
       this.classList.toggle('fa-eye-slash');
     });
 
-    // Form Submit with Animation
+    // Form Submit with Ajax and Animation
     const loginForm = document.getElementById('loginForm');
     const loginBtn = document.getElementById('loginBtn');
     const spinner = document.getElementById('spinner');
@@ -735,27 +735,61 @@
     const loginContainer = document.querySelector('.login-container');
     const successOverlay = document.getElementById('successOverlay');
 
-    // Demo mode - set to true to test animation without actual login
-    const DEMO_MODE = true;
-
     loginForm.addEventListener('submit', function(e) {
-      if (DEMO_MODE) {
-        e.preventDefault();
-        playLoginSuccessAnimation();
-        return;
-      }
+      e.preventDefault();
       
-      spinner.style.display = 'inline-block';
-      btnText.textContent = 'AUTHENTICATING...';
-      loginBtn.disabled = true;
-    });
-
-    function playLoginSuccessAnimation() {
       // Step 1: Loading state
       spinner.style.display = 'inline-block';
       btnText.textContent = 'AUTHENTICATING...';
       loginBtn.disabled = true;
 
+      const formData = new FormData(loginForm);
+      
+      fetch('/login', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json().then(data => ({ status: response.status, data })))
+      .then(({ status, data }) => {
+        if (status === 200 && data.status === 'success') {
+          playLoginSuccessAnimation(data.redirect);
+        } else {
+          // Reset button
+          spinner.style.display = 'none';
+          btnText.textContent = 'LOGIN';
+          loginBtn.disabled = false;
+          
+          // Show error
+          showLoginError(data.message || 'Login failed');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        spinner.style.display = 'none';
+        btnText.textContent = 'LOGIN';
+        loginBtn.disabled = false;
+        showLoginError('Connection error. Please try again.');
+      });
+    });
+
+    function showLoginError(msg) {
+      // Remove existing error
+      const existingError = document.querySelector('.alert-error');
+      if (existingError) existingError.remove();
+      
+      // Create new error
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'alert-error';
+      errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${msg}`;
+      
+      // Insert before form
+      loginForm.parentNode.insertBefore(errorDiv, loginForm);
+    }
+
+    function playLoginSuccessAnimation(redirectUrl) {
       // Step 2: Morph button
       setTimeout(() => {
         spinner.style.display = 'none';
@@ -764,27 +798,27 @@
         
         // Particle burst
         createParticleBurst();
-      }, 1000);
+      }, 500);
 
       // Step 3: Pulse effect
       setTimeout(() => {
         loginBtn.classList.add('success-pulse');
-      }, 1800);
+      }, 1300);
 
       // Step 4: Fade out card
       setTimeout(() => {
         loginContainer.classList.add('fade-out');
-      }, 2500);
+      }, 2000);
 
       // Step 5: Show whole-page overlay
       setTimeout(() => {
         successOverlay.classList.add('show');
-      }, 3000);
+      }, 2500);
 
       // Step 6: Redirect
       setTimeout(() => {
-        window.location.href = '/';
-      }, 6000);
+        window.location.href = redirectUrl || '/';
+      }, 5500);
     }
 
     function createParticleBurst() {

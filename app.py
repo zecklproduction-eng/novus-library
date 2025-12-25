@@ -819,12 +819,16 @@ def login():
         if not user:
             # Log failed login attempt
             log_system_event('WARNING', 'auth', f'Failed login attempt for username: {username}')
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"status": "error", "message": "Invalid username or password."}), 401
             return render_template("login.html", error="Invalid username or password.")
 
         # user[4] = is_banned (0/1), user[5] = status ('active'/'banned')
         if int(user[4]) == 1 or user[5] == "banned":
             # Log banned user login attempt
             log_system_event('WARNING', 'auth', f'Banned user {user[1]} attempted to login', user[0])
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"status": "error", "message": "Your account has been banned."}), 403
             return render_template(
                 "login.html",
                 error="Your account has been banned. Please contact the administrator."
@@ -844,6 +848,9 @@ def login():
 
         # Log successful login
         log_system_event('INFO', 'auth', f'User {user[1]} logged in successfully', user[0])
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"status": "success", "redirect": url_for("home")})
 
         return redirect(url_for("home"))
 
