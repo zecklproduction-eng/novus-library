@@ -78,6 +78,7 @@ ALLOWED_ANIMATION = {"mp4", "webm", "gif"}
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "novus_secret_key")
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 # OAuth Configuration
 if AUTHLIB_AVAILABLE:
