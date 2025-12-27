@@ -4517,6 +4517,55 @@ def customization():
                          animations=animations_dict,
                          active_animations=active_animations)
 
+@app.route("/customization/upload")
+@admin_required
+def customization_upload():
+    print("DEBUG: Entered customization_upload", flush=True)
+    """Admin-only page for uploading custom animations"""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    user_id = session.get("user_id")
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get all animations for this user (admin)
+    c.execute("""
+        SELECT id, animation_type, file_path, is_active, created_at
+        FROM custom_animations
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+    """, (user_id,))
+    animations = c.fetchall()
+    
+    # Organize animations by type
+    animations_dict = {
+        'manga_enter': [],
+        'logout': [],
+        'banner': []
+    }
+    
+    active_animations = {}
+    
+    for anim in animations:
+        anim_data = {
+            'id': anim[0],
+            'type': anim[1],
+            'path': anim[2],
+            'is_active': anim[3],
+            'created_at': anim[4]
+        }
+        animations_dict[anim[1]].append(anim_data)
+        if anim[3] == 1:  # is_active
+            active_animations[anim[1]] = anim_data
+    
+    conn.close()
+    
+    return render_template("customization_upload.html", 
+                         animations=animations_dict,
+                         active_animations=active_animations)
+
+
 
 @app.route("/api/animation/upload", methods=["POST"])
 @admin_required
@@ -4670,7 +4719,7 @@ if __name__ == "__main__":
     # Bind to all interfaces and run without the reloader so external tests can connect reliably
     debug_env = os.environ.get('FLASK_DEBUG', os.environ.get('FLASK_ENV', '0'))
     debug_mode = str(debug_env).lower() in ('1', 'true', 'yes', 'debug')
-    app.run(host='0.0.0.0', port=5000, debug=debug_mode, use_reloader=False)
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
 
 # Ensure DB is initialized exactly once when the app receives requests
 _db_init_done = False
