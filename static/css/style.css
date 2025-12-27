@@ -265,6 +265,7 @@ a:hover {
   color: var(--neon-blue);
 }
 
+
 /* ================================================= */
 /* 5. CTA BUTTONS (Top-right Log In / Log Out)       */
 /* ================================================= */
@@ -6297,3 +6298,31 @@ body.density-spacious .main-content { padding-top: 40px; }
   animation: sparkle 2s infinite;
   pointer-events: none;
 }
+
+/* Custom Image Nav Item - overrides standard nav-item background */
+
+/* Custom Image Nav Item - standard button background with image icon */
+.nav-item-img {
+  /* Inherit standard .nav-item background (don't override with transparent) */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px; /* Add padding so image doesn't touch edges */
+}
+
+.nav-item-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.nav-item-img:hover {
+  /* Inherit standard hover effects */
+  transform: scale(1.1);
+}
+
+.nav-item-img:hover img {
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+}
+
