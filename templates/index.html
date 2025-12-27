@@ -2,14 +2,27 @@
 {% block title %}E-library | Dashboard{% endblock %}
 
 {% block content %}
+  <!-- DEBUG INFO -->
+  <div style="background: #ff0000; color: white; padding: 10px; font-family: monospace; font-size: 14px; position: relative; z-index: 9999;">
+    <strong>DEBUG:</strong><br>
+    User ID: {{ session.get('user_id', 'NOT SET') }}<br>
+    Animations Defined: {{ 'YES' if animations is defined else 'NO' }}<br>
+    Animations Content: {{ animations }}<br>
+    Banner Object: {{ animations.banner if animations is defined else 'N/A' }}<br>
+    Has Animated: {{ has_animated if has_animated is defined else 'NOT CALCULATED' }}<br>
+    Banner BG: {{ banner_bg if banner_bg is defined else 'NOT CALCULATED' }}
+  </div>
 <div class="catalog-page">
-
-  <!-- Hero banner -->
-  {% if animations.banner and animations.banner.path and 'banner_option_novus_blue.png' in animations.banner.path %}
-    <!-- Animated Banner -->
-    <div class="catalog-hero circuit-animated">
-      
-      <!-- Circuit SVG Base -->
+  <!-- Hero Banner Canvas -->
+  {% set has_animated = animations is defined and animations.banner and 'novus_blue' in animations.banner.get('path', '') %}
+  {% set has_custom = animations is defined and animations.banner and animations.banner.get('path', '') and 'novus_blue' not in animations.banner.get('path', '') %}
+  {% set banner_bg = animations.banner.path if (has_animated or has_custom) else 'img/banner_default.png' %}
+  
+  <div class="catalog-hero {% if has_animated %}circuit-animated{% endif %}" 
+       {% if not has_animated %}style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"{% endif %}>
+    
+    {% if has_animated %}
+      <!-- Circuit SVG Animation Layer -->
       <svg class="circuit-lines" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
         <path class="circuit-path" d="M0 100 H400 L450 150 H800" style="animation: drawLine 3s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
         <path class="circuit-path" d="M1920 200 H1500 L1450 250 H1100" style="animation: drawLine 3s 0.5s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
@@ -23,28 +36,22 @@
         <circle class="circuit-dot" cx="1500" cy="200" r="4"/>
         <circle class="circuit-dot" cx="300" cy="400" r="4"/>
         <circle class="circuit-dot" cx="1600" cy="500" r="4"/>
-        <circle class="circuit-dot" cx="200" cy="700" r="4"/>
+        <circle class="circuit-dot" cx="250" cy="750" r="4"/>
+        <circle class="circuit-dot" cx="1650" cy="850" r="4"/>
       </svg>
       
       <div class="glow-particle"></div>
       <div class="glow-particle"></div>
       <div class="glow-particle"></div>
       <div class="glow-particle"></div>
-
-      <div class="catalog-hero-inner container">
-        <h1 class="catalog-title">NOVUS</h1>
-        <p class="catalog-subtitle">A New Way to Read.</p>
-      </div>
+    {% endif %}
+    
+    <!-- Text Overlay (Always Present) -->
+    <div class="catalog-hero-inner container" style="position: relative; z-index: 10;">
+      <h1 class="catalog-title" style="{% if has_animated %}text-shadow: 0 0 10px rgba(0, 243, 255, 0.8);{% endif %}">NOVUS</h1>
+      <p class="catalog-subtitle">A New Way to Read.</p>
     </div>
-  {% else %}
-    <!-- Standard Banner -->
-    <div class="catalog-hero">
-      <div class="catalog-hero-inner container">
-        <h1 class="catalog-title">NOVUS</h1>
-        <p class="catalog-subtitle">A New Way to Read.</p>
-      </div>
-    </div>
-  {% endif %}
+  </div>
 
   <div class="container">
 

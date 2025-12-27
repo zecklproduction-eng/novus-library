@@ -84,24 +84,33 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 # Context Processor to make animations available globally (for banner in base/index)
 @app.context_processor
 def inject_animations():
+    print("=" * 50, flush=True)
+    print("CONTEXT PROCESSOR CALLED", flush=True)
     active_animations = {}
     
     # Avoid DB calls if not needed or if session missing
     if "user_id" in session:
+        print(f"User ID in session: {session['user_id']}", flush=True)
         try:
             conn = get_conn()
             c = conn.cursor()
             c.execute("SELECT animation_type, file_path FROM custom_animations WHERE user_id = ? AND is_active = 1", (session["user_id"],))
             rows = c.fetchall()
+            print(f"Found {len(rows)} active animations", flush=True)
             for row in rows:
                 active_animations[row[0]] = {'path': row[1]}
+                print(f"  - {row[0]}: {row[1]}", flush=True)
             conn.close()
         except Exception as e:
             # Silently fail so we don't crash the whole app if DB is locked/missing
-            print(f"Error fetching animations in context processor: {e}")
+            print(f"Error fetching animations in context processor: {e}", flush=True)
             pass
+    else:
+        print("NO user_id in session", flush=True)
             
     # We inject 'animations' as the active set. 
+    print(f"Returning animations dict: {active_animations}", flush=True)
+    print("=" * 50, flush=True)
     return dict(animations=active_animations)
 
 # OAuth Configuration
@@ -4547,6 +4556,34 @@ def customization():
         if anim[3] == 1:  # is_active
             active_animations[anim[1]] = anim_data
     
+    
+    # SYSTEM PRESETS (Added manually to ensure visibility for all users)
+    # Check if Novus Blue Circuit matches any existing user animation
+    # If the user has it in DB, we DO NOT add the preset duplicate.
+    has_novus_blue_in_db = False
+    for anim in animations_dict['banner']:
+        if 'banner_option_novus_blue.png' in anim['path']:
+            has_novus_blue_in_db = True
+            break
+            
+    if not has_novus_blue_in_db:
+        # Check if Novus Blue Circuit is active (path match logic from before might be redundant if not in list, but used for flag)
+        novus_blue_active = False # Default off if not in DB
+        
+        # Add preset to list
+        novus_blue_preset = {
+            'id': 'preset_novus_blue', # String ID to distinguish
+            'type': 'banner',
+            'path': 'img/banner_option_novus_blue.png',
+            'is_active': 0, 
+            'created_at': 'System'
+        }
+        animations_dict['banner'].insert(0, novus_blue_preset) # Add to top
+
+    # If preset is active, ensure it's in active_animations dict for preview
+    if novus_blue_active:
+         active_animations['banner'] = novus_blue_preset
+
     conn.close()
     
     return render_template("customization.html", 
@@ -4595,6 +4632,32 @@ def customization_upload():
         if anim[3] == 1:  # is_active
             active_animations[anim[1]] = anim_data
     
+    
+    # SYSTEM PRESETS (Added manually to ensure visibility for all users)
+    # Check if Novus Blue Circuit matches any existing user animation
+    has_novus_blue_in_db = False
+    for anim in animations_dict['banner']:
+        if 'banner_option_novus_blue.png' in anim['path']:
+            has_novus_blue_in_db = True
+            break
+            
+    if not has_novus_blue_in_db:
+        novus_blue_active = False
+        
+        # Add preset to list
+        novus_blue_preset = {
+            'id': 'preset_novus_blue', # String ID to distinguish
+            'type': 'banner',
+            'path': 'img/banner_option_novus_blue.png',
+            'is_active': 0,
+            'created_at': 'System'
+        }
+        animations_dict['banner'].insert(0, novus_blue_preset) # Add to top
+
+    # If preset is active, ensure it's in active_animations dict for preview
+    if novus_blue_active:
+         active_animations['banner'] = novus_blue_preset
+
     conn.close()
     
     return render_template("customization_upload.html", 
@@ -4662,7 +4725,7 @@ def upload_animation():
     })
 
 
-@app.route("/api/animation/<int:animation_id>/activate", methods=["PUT"])
+@app.route("/api/animation/<animation_id>/activate", methods=["PUT"])
 @admin_required
 def activate_animation(animation_id):
     """Set an animation as active"""
@@ -4672,6 +4735,49 @@ def activate_animation(animation_id):
     user_id = session.get("user_id")
     conn = get_conn()
     c = conn.cursor()
+    
+    print(f"DEBUG: Activating animation {animation_id} for user {user_id}", flush=True)
+
+    # Handle Banner Reset (Default)
+    if animation_id == 'reset_banner':
+         c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'banner'", (user_id,))
+         conn.commit()
+         conn.close()
+         return jsonify({"success": True})
+
+    # Handle System Presets
+    if animation_id == 'preset_novus_blue':
+        # 1. Deactivate all banners for this user
+        c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'banner'", (user_id,))
+        print("DEBUG: Deactivated existing banners", flush=True)
+
+        # 2. Check if a row exists for this preset
+        # We search just by filename to be robust
+        preset_filename = 'banner_option_novus_blue.png'
+        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path LIKE ?", (user_id, f"%{preset_filename}%"))
+        row = c.fetchone()
+        
+        if row:
+            print(f"DEBUG: Found existing row {row[0]}, activating", flush=True)
+            # Activate existing row
+            c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (row[0],))
+        else:
+            print("DEBUG: Inserting new row for preset", flush=True)
+            # Insert new row
+            # IMPORTANT: Path must be what index.html expects (relative to static)
+            preset_full_path = 'img/banner_option_novus_blue.png' 
+            c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active) VALUES (?, 'banner', ?, 1)", 
+                      (user_id, preset_full_path))
+            
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+
+    # Validate Integer ID for custom animations
+    try:
+        animation_id = int(animation_id)
+    except ValueError:
+        return jsonify({"error": "Invalid ID format"}), 400
     
     # Get animation details
     c.execute("SELECT animation_type FROM custom_animations WHERE id = ? AND user_id = ?", 
