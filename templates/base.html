@@ -413,28 +413,11 @@
               <div class="dropdown-content">
                 <a href="{{ url_for('faq') }}">FAQ & Guidelines</a>
                 <a href="{{ url_for('about') }}">About</a>
-                {% if session.get('role') == 'admin' %}
-                <a href="{{ url_for('customization_upload') }}">Customization Upload</a>
-                {% endif %}
+              </div>
               </div>
             </div>
-          </div>
 
-          <!-- About (always visible) -->
-          <a href="{{ url_for('about') }}" class="nav-link-item ms-3">
-            About
-          </a>
 
-          <!-- Customization -->
-          <!-- Customization - Admin Only -->
-          {% if session.get('role') == 'admin' %}
-          <a href="{{ url_for('customization_upload') }}" class="nav-link-item ms-3">
-            Customization Upload
-          </a>
-          {% endif %}
-
-          
-          <!-- Top-right CTA: Login / Logout -->
   <!-- Top-right: Profile icon dropdown (or Login button if logged out) -->
 {% if session.get('user_id') %}
   <div class="dropdown-nav ms-3 profile-dropdown">

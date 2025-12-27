@@ -5,12 +5,46 @@
 <div class="catalog-page">
 
   <!-- Hero banner -->
-  <div class="catalog-hero">
-    <div class="catalog-hero-inner container">
-      <h1 class="catalog-title">NOVUS</h1>
-      <p class="catalog-subtitle">A New Way to Read.</p>
+  {% if animations.banner and animations.banner.path and 'banner_option_novus_blue.png' in animations.banner.path %}
+    <!-- Animated Banner -->
+    <div class="catalog-hero circuit-animated">
+      
+      <!-- Circuit SVG Base -->
+      <svg class="circuit-lines" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+        <path class="circuit-path" d="M0 100 H400 L450 150 H800" style="animation: drawLine 3s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
+        <path class="circuit-path" d="M1920 200 H1500 L1450 250 H1100" style="animation: drawLine 3s 0.5s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
+        <path class="circuit-path" d="M0 400 H300 L350 450 H600 L650 400 H900" style="animation: drawLine 3s 1s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
+        <path class="circuit-path" d="M1920 500 H1600 L1550 550 H1200" style="animation: drawLine 3s 1.5s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
+        <path class="circuit-path" d="M0 700 H200 L250 750 H500" style="animation: drawLine 3s 2s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
+        <path class="circuit-path" d="M1920 800 H1700 L1650 850 H1400" style="animation: drawLine 3s 2.5s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
+        
+        <circle class="circuit-dot" cx="400" cy="100" r="4"/>
+        <circle class="circuit-dot" cx="800" cy="150" r="4"/>
+        <circle class="circuit-dot" cx="1500" cy="200" r="4"/>
+        <circle class="circuit-dot" cx="300" cy="400" r="4"/>
+        <circle class="circuit-dot" cx="1600" cy="500" r="4"/>
+        <circle class="circuit-dot" cx="200" cy="700" r="4"/>
+      </svg>
+      
+      <div class="glow-particle"></div>
+      <div class="glow-particle"></div>
+      <div class="glow-particle"></div>
+      <div class="glow-particle"></div>
+
+      <div class="catalog-hero-inner container">
+        <h1 class="catalog-title">NOVUS</h1>
+        <p class="catalog-subtitle">A New Way to Read.</p>
+      </div>
     </div>
-  </div>
+  {% else %}
+    <!-- Standard Banner -->
+    <div class="catalog-hero">
+      <div class="catalog-hero-inner container">
+        <h1 class="catalog-title">NOVUS</h1>
+        <p class="catalog-subtitle">A New Way to Read.</p>
+      </div>
+    </div>
+  {% endif %}
 
   <div class="container">
 

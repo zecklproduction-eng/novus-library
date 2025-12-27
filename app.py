@@ -80,6 +80,30 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "novus_secret_key")
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
+
+# Context Processor to make animations available globally (for banner in base/index)
+@app.context_processor
+def inject_animations():
+    active_animations = {}
+    
+    # Avoid DB calls if not needed or if session missing
+    if "user_id" in session:
+        try:
+            conn = get_conn()
+            c = conn.cursor()
+            c.execute("SELECT animation_type, file_path FROM custom_animations WHERE user_id = ? AND is_active = 1", (session["user_id"],))
+            rows = c.fetchall()
+            for row in rows:
+                active_animations[row[0]] = {'path': row[1]}
+            conn.close()
+        except Exception as e:
+            # Silently fail so we don't crash the whole app if DB is locked/missing
+            print(f"Error fetching animations in context processor: {e}")
+            pass
+            
+    # We inject 'animations' as the active set. 
+    return dict(animations=active_animations)
+
 # OAuth Configuration
 if AUTHLIB_AVAILABLE:
     oauth = OAuth(app)
@@ -808,8 +832,20 @@ def home():
 
     conn.close()
 
+    # Fetch active animations (for banner)
+    active_animations = {}
+    if "user_id" in session:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT animation_type, file_path FROM custom_animations WHERE user_id = ? AND is_active = 1", (session["user_id"],))
+        rows = c.fetchall()
+        for row in rows:
+            active_animations[row[0]] = {'path': row[1]}
+        conn.close()
+
     return render_template(
         "index.html",
+        animations=active_animations,
         books=books,
         user_role=session.get("role"),
         categories=categories,

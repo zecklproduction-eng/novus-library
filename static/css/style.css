@@ -6327,3 +6327,192 @@ body.density-spacious .main-content { padding-top: 40px; }
   filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.8));
 }
 
+/* =========================================
+   CUSTOMIZATION PAGE - CYBERPUNK THEME
+   ========================================= */
+:root {
+  --neon-cyan: #00f3ff; /* Specific cyan from mockup */
+}
+
+/* Glass Container */
+.cyberpunk-glass-container {
+  background: rgba(13, 17, 23, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.15), inset 0 0 20px rgba(0, 243, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animation Card */
+.cyberpunk-card {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.cyberpunk-card:hover {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+}
+
+.cyberpunk-card h5 {
+  color: #e0e0e0;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Preview Area */
+.cyberpunk-preview {
+  background: #000;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Dropdown */
+.cyberpunk-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 15px;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cyberpunk-select:focus {
+  background: rgba(0, 0, 0, 0.6);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+  outline: none;
+}
+
+.cyberpunk-select option {
+  background: #1a1a2e; /* Fallback dark bg */
+  color: #fff;
+}
+
+/* Neon Save Button */
+.btn-neon-save {
+  background: transparent;
+  border: 2px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 12px 40px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-neon-save:hover {
+  background: rgba(0, 243, 255, 0.1);
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+  color: #fff;
+  text-shadow: 0 0 8px rgba(0, 243, 255, 0.8);
+}
+
+/* ================================================= */
+/* ANIMATED BANNER (Novus Blue Circuit)             */
+/* ================================================= */
+
+.catalog-hero.circuit-animated {
+  background: #000 !important;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 2px solid var(--neon-blue);
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+}
+
+.catalog-hero.circuit-animated::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(0, 212, 255, 0.08) 0%, transparent 50%);
+  z-index: 1;
+}
+
+.circuit-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.circuit-path {
+  stroke: #00d4ff;
+  stroke-width: 1;
+  fill: none;
+  filter: drop-shadow(0 0 3px #00d4ff);
+}
+
+.circuit-dot {
+  fill: #00d4ff;
+  filter: drop-shadow(0 0 5px #00d4ff);
+}
+
+.glow-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #00d4ff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #00d4ff, 0 0 20px #00d4ff;
+  animation: particleFloat 8s infinite ease-in-out;
+  z-index: 3;
+}
+
+.glow-particle:nth-child(1) { top: 10%; left: 5%; animation-delay: 0s; }
+.glow-particle:nth-child(2) { top: 20%; left: 15%; animation-delay: 1s; }
+.glow-particle:nth-child(3) { top: 70%; left: 10%; animation-delay: 2s; }
+.glow-particle:nth-child(4) { top: 80%; left: 85%; animation-delay: 3s; }
+.glow-particle:nth-child(5) { top: 15%; left: 90%; animation-delay: 4s; }
+.glow-particle:nth-child(6) { top: 60%; left: 95%; animation-delay: 5s; }
+
+@keyframes particleFloat {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.8; }
+  50% { transform: translateY(-20px) scale(1.5); opacity: 1; }
+}
+
+@keyframes drawLine {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Ensure content stays on top */
+.catalog-hero.circuit-animated .catalog-hero-inner {
+  position: relative;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  padding: 40px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.catalog-hero.circuit-animated .catalog-title {
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+}
