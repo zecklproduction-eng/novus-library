@@ -338,11 +338,13 @@
     <span class="tooltip-text">Watchlist</span>
   </a>
 
-  <!-- Linking Option (Custom Image) -->
-  <a href="#" class="nav-item nav-item-img">
-    <img src="{{ url_for('static', filename='img/nav_icon_linking.png') }}" alt="Linking">
-    <span class="tooltip-text">Linking</span>
+  <!-- Customization (New Image Button) - Pro/Ultimate Only -->
+  {% if session.get('plan') in ['pro', 'ultimate'] %}
+  <a href="{{ url_for('customization') }}" class="nav-item nav-item-img nav-customization">
+    <img src="{{ url_for('static', filename='img/nav_icon_customization.png') }}" alt="Customization">
+    <span class="tooltip-text">Customization</span>
   </a>
+  {% endif %}
 
   <!-- Profile -->
   <a href="{{ url_for('profile') }}" class="nav-item">
@@ -358,11 +360,14 @@
   </a>
   {% endif %}
 
-  <!-- Customization (all users) -->
+  <!-- Customization Upload (Old Button) -->
+  <!-- Customization Upload (Old Button) - Admin Only -->
+  {% if session.get('role') == 'admin' %}
   <a href="{{ url_for('customization') }}" class="nav-item nav-customization">
     <i class="fas fa-wand-magic-sparkles"></i>
-    <span class="tooltip-text">Customization</span>
+    <span class="tooltip-text">Customization Upload</span>
   </a>
+  {% endif %}
 
 
 
@@ -408,7 +413,9 @@
               <div class="dropdown-content">
                 <a href="{{ url_for('faq') }}">FAQ & Guidelines</a>
                 <a href="{{ url_for('about') }}">About</a>
+                {% if session.get('role') == 'admin' %}
                 <a href="{{ url_for('customization') }}">Customization Upload</a>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -419,9 +426,12 @@
           </a>
 
           <!-- Customization -->
+          <!-- Customization - Admin Only -->
+          {% if session.get('role') == 'admin' %}
           <a href="{{ url_for('customization') }}" class="nav-link-item ms-3">
-            Customization
+            Customization Upload
           </a>
+          {% endif %}
 
           
           <!-- Top-right CTA: Login / Logout -->
@@ -469,8 +479,9 @@
   </a>
   <a href="{{ url_for('settings') }}"><i class="fas fa-shield"></i> Security</a>
   <a href="#" onclick="openAppearanceModal(); return false;"><i class="fas fa-palette"></i> Appearance</a>
-  <a href="{{ url_for('customization') }}"><i class="fas fa-wand-magic-sparkles"></i> Customization</a>
-  <a href="{{ url_for('customization') }}"><i class="fas fa-cloud-upload-alt"></i> Customization Upload</a>
+  {% if session.get('role') == 'admin' %}
+  <a href="{{ url_for('customization') }}"><i class="fas fa-wand-magic-sparkles"></i> Customization Upload</a>
+  {% endif %}
 
   <!-- CONTENT -->
   <div class="dd-section-title">CONTENT</div>

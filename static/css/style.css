@@ -6302,19 +6302,20 @@ body.density-spacious .main-content { padding-top: 40px; }
 /* Custom Image Nav Item - overrides standard nav-item background */
 
 /* Custom Image Nav Item - standard button background with image icon */
+/* Custom Image Nav Item - standard button background with image icon */
 .nav-item-img {
-  /* Inherit standard .nav-item background (don't override with transparent) */
+  /* Inherit standard .nav-item background */
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px; /* Add padding so image doesn't touch edges */
+  padding: 4px; /* Reduced padding to make icon bigger */
 }
 
 .nav-item-img img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, filter 0.3s ease;
 }
 
 .nav-item-img:hover {
@@ -6323,6 +6324,6 @@ body.density-spacious .main-content { padding-top: 40px; }
 }
 
 .nav-item-img:hover img {
-  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.8));
 }
 
