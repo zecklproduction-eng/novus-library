@@ -2,70 +2,35 @@
 {% block title %}E-library | Dashboard{% endblock %}
 
 {% block content %}
-  <!-- DEBUG INFO -->
-  <div style="background: #ff0000; color: white; padding: 10px; font-family: monospace; font-size: 14px; position: relative; z-index: 9999;">
-    <strong>DEBUG:</strong><br>
-    User ID: {{ session.get('user_id', 'NOT SET') }}<br>
-    Animations Defined: {{ 'YES' if animations is defined else 'NO' }}<br>
-    Animations Content: {{ animations }}<br>
-    Banner Object: {{ animations.banner if animations is defined else 'N/A' }}<br>
-    Has Animated: {{ has_animated if has_animated is defined else 'NOT CALCULATED' }}<br>
-    Banner BG: {{ banner_bg if banner_bg is defined else 'NOT CALCULATED' }}
-  </div>
 <div class="catalog-page">
   <!-- Hero Banner Canvas -->
-  {% set has_animated = animations is defined and animations.banner and 'novus_blue' in animations.banner.get('path', '') %}
-  {% set has_custom = animations is defined and animations.banner and animations.banner.get('path', '') and 'novus_blue' not in animations.banner.get('path', '') %}
+  {% set has_animated = animations is defined and animations.banner and 'novus_blue' in animations.banner.get('path',
+  '') %}
+  {% set has_custom = animations is defined and animations.banner and animations.banner.get('path', '') and 'novus_blue'
+  not in animations.banner.get('path', '') %}
   {% set banner_bg = animations.banner.path if (has_animated or has_custom) else 'img/banner_default.png' %}
-  
-  <div class="catalog-hero {% if has_animated %}circuit-animated{% endif %}" 
-       {% if not has_animated %}style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"{% endif %}>
-    
-    {% if has_animated %}
-      <!-- Circuit SVG Animation Layer -->
-      <svg class="circuit-lines" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
-        <path class="circuit-path" d="M0 100 H400 L450 150 H800" style="animation: drawLine 3s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
-        <path class="circuit-path" d="M1920 200 H1500 L1450 250 H1100" style="animation: drawLine 3s 0.5s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
-        <path class="circuit-path" d="M0 400 H300 L350 450 H600 L650 400 H900" style="animation: drawLine 3s 1s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
-        <path class="circuit-path" d="M1920 500 H1600 L1550 550 H1200" style="animation: drawLine 3s 1.5s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
-        <path class="circuit-path" d="M0 700 H200 L250 750 H500" style="animation: drawLine 3s 2s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
-        <path class="circuit-path" d="M1920 800 H1700 L1650 850 H1400" style="animation: drawLine 3s 2.5s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000;"/>
-        
-        <circle class="circuit-dot" cx="400" cy="100" r="4"/>
-        <circle class="circuit-dot" cx="800" cy="150" r="4"/>
-        <circle class="circuit-dot" cx="1500" cy="200" r="4"/>
-        <circle class="circuit-dot" cx="300" cy="400" r="4"/>
-        <circle class="circuit-dot" cx="1600" cy="500" r="4"/>
-        <circle class="circuit-dot" cx="250" cy="750" r="4"/>
-        <circle class="circuit-dot" cx="1650" cy="850" r="4"/>
-      </svg>
-      
-      <div class="glow-particle"></div>
-      <div class="glow-particle"></div>
-      <div class="glow-particle"></div>
-      <div class="glow-particle"></div>
-    {% endif %}
-    
+
+  <div class="catalog-hero" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');">
+
     <!-- Text Overlay (Always Present) -->
-    <div class="catalog-hero-inner container" style="position: relative; z-index: 10;">
-      <h1 class="catalog-title" style="{% if has_animated %}text-shadow: 0 0 10px rgba(0, 243, 255, 0.8);{% endif %}">NOVUS</h1>
+    <div class="catalog-hero-inner container">
+      <h1 class="catalog-title">NOVUS</h1>
       <p class="catalog-subtitle">A New Way to Read.</p>
+
+      <!-- Breadcrumb inside banner -->
+      <nav class="breadcrumb-row-inline">
+        <a href="{{ url_for(page_endpoint or 'home') }}">Home</a>
+        <span>›</span>
+        <a href="{{ url_for(page_endpoint or 'home') }}">Books</a>
+        {% if selected_category %}
+        <span>›</span>
+        <span class="crumb-current">{{ selected_category }}</span>
+        {% endif %}
+      </nav>
     </div>
   </div>
 
   <div class="container">
-
-    <!-- Breadcrumb -->
-    <nav class="breadcrumb-row">
-      <a href="{{ url_for(page_endpoint or 'home') }}">Home</a>
-      <span>›</span>
-      <a href="{{ url_for(page_endpoint or 'home') }}">Books</a>
-
-      {% if selected_category %}
-      <span>›</span>
-      <span class="crumb-current">{{ selected_category }}</span>
-      {% endif %}
-    </nav>
 
     <div class="content-row">
       <!-- Left: Grid -->
@@ -79,11 +44,12 @@
           </div>
 
           <form method="get" class="sort-form" style="display:flex; gap:8px; align-items:center;">
-            <input type="text" name="q" placeholder="Search title or author..." value="{{ search_query or '' }}" class="form-control" style="min-width:200px;">
+            <input type="text" name="q" placeholder="Search title or author..." value="{{ search_query or '' }}"
+              class="form-control" style="min-width:200px;">
             <select name="category" class="form-select">
               <option value="">All categories</option>
               {% for cat in categories %}
-                <option value="{{ cat }}" {% if cat==selected_category %}selected{% endif %}>{{ cat }}</option>
+              <option value="{{ cat }}" {% if cat==selected_category %}selected{% endif %}>{{ cat }}</option>
               {% endfor %}
             </select>
             <button class="btn btn-orange" type="submit">Search</button>
@@ -92,56 +58,53 @@
 
         <!-- Product grid -->
         <div class="product-grid">
-  {% if books %}
-  {% for b in books %}
-  <div class="product-card">
-    {% if b[7] %}  <!-- b[7] is the is_favorited boolean -->
-    <div class="favorite-heart-top-right">
-      <i class="fas fa-heart text-danger"></i>
-    </div>
-    {% endif %}
-    
-    <div class="product-thumb">
-      {% if b[6] %}
-        <img
-          src="{{ url_for('static', filename=b[6]) }}"
-          alt="{{ b[1] }} cover"
-          class="product-cover-img"
-        />
-      {% else %}
-        <div class="book-icon">
-          <i class="fas fa-book-open"></i>
-        </div>
-      {% endif %}
-    </div>
+          {% if books %}
+          {% for b in books %}
+          <div class="product-card">
+            {% if b[7] %} <!-- b[7] is the is_favorited boolean -->
+            <div class="favorite-heart-top-right">
+              <i class="fas fa-heart text-danger"></i>
+            </div>
+            {% endif %}
 
-    <div class="product-body">
-      <div class="product-title">{{ b[1] }}</div>
-      <div class="product-meta text-muted">
-        {{ b[2] or 'Unknown Author' }} &nbsp;•&nbsp; {{ b[3] or 'General' }}
-      </div>
-    </div>
+            <div class="product-thumb">
+              {% if b[6] %}
+              <img src="{{ url_for('static', filename=b[6]) }}" alt="{{ b[1] }} cover" class="product-cover-img" />
+              {% else %}
+              <div class="book-icon">
+                <i class="fas fa-book-open"></i>
+              </div>
+              {% endif %}
+            </div>
 
-    <div class="product-actions">
-      <a href="{{ url_for('view_book', id=b[0]) }}" class="btn btn-orange">
-        Read
-      </a>
+            <div class="product-body">
+              <div class="product-title">{{ b[1] }}</div>
+              <div class="product-meta text-muted">
+                {{ b[2] or 'Unknown Author' }} &nbsp;•&nbsp; {{ b[3] or 'General' }}
+              </div>
+            </div>
 
-      {% if user_role == 'admin' %}
-      <form method="post" action="{{ url_for('watchlist_book', book_id=b[0]) }}">
-  <input type="hidden" name="status" value="planned">
-  <button class="btn btn-ghost" type="submit">Add to Watchlist</button>
-</form>
+            <div class="product-actions">
+              <a href="{{ url_for('view_book', id=b[0]) }}" class="btn btn-orange">
+                Read
+              </a>
 
-      {% endif %}
-    </div>
-  </div>
-  {% endfor %}
-  {% else %}
-          <div class="empty-note">
-            No books yet. {% if user_role=='admin' %}<a href="{{ url_for('add_book') }}">Add your first book</a>.{% endif %}
+              {% if user_role == 'admin' %}
+              <form method="post" action="{{ url_for('watchlist_book', book_id=b[0]) }}">
+                <input type="hidden" name="status" value="planned">
+                <button class="btn btn-ghost" type="submit">Add to Watchlist</button>
+              </form>
+
+              {% endif %}
+            </div>
           </div>
-  {% endif %}
+          {% endfor %}
+          {% else %}
+          <div class="empty-note">
+            No books yet. {% if user_role=='admin' %}<a href="{{ url_for('add_book') }}">Add your first book</a>.{%
+            endif %}
+          </div>
+          {% endif %}
         </div>
 
       </div>
@@ -157,7 +120,7 @@
             {% for cat in categories %}
             <li>
               <a class="{{ cat==selected_category and 'is-active' or '' }}"
-                 href="{{ url_for('home') }}?category={{ cat|urlencode }}">{{ cat }}</a>
+                href="{{ url_for('home') }}?category={{ cat|urlencode }}">{{ cat }}</a>
             </li>
             {% endfor %}
           </ul>

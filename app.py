@@ -84,33 +84,23 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 # Context Processor to make animations available globally (for banner in base/index)
 @app.context_processor
 def inject_animations():
-    print("=" * 50, flush=True)
-    print("CONTEXT PROCESSOR CALLED", flush=True)
     active_animations = {}
     
     # Avoid DB calls if not needed or if session missing
     if "user_id" in session:
-        print(f"User ID in session: {session['user_id']}", flush=True)
         try:
             conn = get_conn()
             c = conn.cursor()
             c.execute("SELECT animation_type, file_path FROM custom_animations WHERE user_id = ? AND is_active = 1", (session["user_id"],))
             rows = c.fetchall()
-            print(f"Found {len(rows)} active animations", flush=True)
             for row in rows:
                 active_animations[row[0]] = {'path': row[1]}
-                print(f"  - {row[0]}: {row[1]}", flush=True)
             conn.close()
         except Exception as e:
             # Silently fail so we don't crash the whole app if DB is locked/missing
-            print(f"Error fetching animations in context processor: {e}", flush=True)
             pass
-    else:
-        print("NO user_id in session", flush=True)
             
     # We inject 'animations' as the active set. 
-    print(f"Returning animations dict: {active_animations}", flush=True)
-    print("=" * 50, flush=True)
     return dict(animations=active_animations)
 
 # OAuth Configuration
@@ -298,6 +288,40 @@ def billing_checkout():
 def get_conn():
     """Return a connection to the SQLite DB."""
     return sqlite3.connect(DB_PATH)
+
+def apply_default_banner_if_needed(user_id):
+    """
+    Apply the Novus Blue preset banner as default if user has no active banner.
+    This is called after successful login to ensure new users have a banner.
+    """
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Check if user already has an active banner
+    c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND animation_type = 'banner' AND is_active = 1", (user_id,))
+    existing_banner = c.fetchone()
+    
+    if not existing_banner:
+        # User has no active banner, apply the Novus Blue preset as default
+        preset_path = 'img/banner_option_novus_blue.png'
+        
+        # Check if this preset already exists for the user (inactive)
+        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path = ?", (user_id, preset_path))
+        existing_preset = c.fetchone()
+        
+        if existing_preset:
+            # Activate existing preset
+            c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (existing_preset[0],))
+        else:
+            # Insert new preset banner
+            c.execute("""
+                INSERT INTO custom_animations (user_id, animation_type, file_path, is_active)
+                VALUES (?, 'banner', ?, 1)
+            """, (user_id, preset_path))
+        
+        conn.commit()
+    
+    conn.close()
 
 @app.before_request
 def check_banned():
@@ -841,20 +865,20 @@ def home():
 
     conn.close()
 
-    # Fetch active animations (for banner)
-    active_animations = {}
+    # Manually fetch animations for banner
+    animations = {}
     if "user_id" in session:
         conn = get_conn()
         c = conn.cursor()
         c.execute("SELECT animation_type, file_path FROM custom_animations WHERE user_id = ? AND is_active = 1", (session["user_id"],))
         rows = c.fetchall()
         for row in rows:
-            active_animations[row[0]] = {'path': row[1]}
+            animations[row[0]] = {'path': row[1]}
         conn.close()
 
     return render_template(
         "index.html",
-        animations=active_animations,
+        animations=animations,
         books=books,
         user_role=session.get("role"),
         categories=categories,
@@ -924,6 +948,9 @@ def login():
 
         # Log successful login
         log_system_event('INFO', 'auth', f'User {user[1]} logged in successfully', user[0])
+        
+        # Apply default banner if user doesn't have one
+        apply_default_banner_if_needed(user[0])
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({"status": "success", "redirect": url_for("home")})
@@ -1093,6 +1120,10 @@ def oauth_callback(provider):
         session["plan_expires_at"] = None
 
     log_system_event('INFO', 'auth', f'User {username} logged in via {provider}', user_id)
+    
+    # Apply default banner if user doesn't have one
+    apply_default_banner_if_needed(user_id)
+    
     return redirect(url_for("home"))
 
 @app.before_request
@@ -4567,9 +4598,6 @@ def customization():
             break
             
     if not has_novus_blue_in_db:
-        # Check if Novus Blue Circuit is active (path match logic from before might be redundant if not in list, but used for flag)
-        novus_blue_active = False # Default off if not in DB
-        
         # Add preset to list
         novus_blue_preset = {
             'id': 'preset_novus_blue', # String ID to distinguish
@@ -4579,10 +4607,6 @@ def customization():
             'created_at': 'System'
         }
         animations_dict['banner'].insert(0, novus_blue_preset) # Add to top
-
-    # If preset is active, ensure it's in active_animations dict for preview
-    if novus_blue_active:
-         active_animations['banner'] = novus_blue_preset
 
     conn.close()
     
@@ -4642,8 +4666,6 @@ def customization_upload():
             break
             
     if not has_novus_blue_in_db:
-        novus_blue_active = False
-        
         # Add preset to list
         novus_blue_preset = {
             'id': 'preset_novus_blue', # String ID to distinguish
@@ -4653,10 +4675,6 @@ def customization_upload():
             'created_at': 'System'
         }
         animations_dict['banner'].insert(0, novus_blue_preset) # Add to top
-
-    # If preset is active, ensure it's in active_animations dict for preview
-    if novus_blue_active:
-         active_animations['banner'] = novus_blue_preset
 
     conn.close()
     

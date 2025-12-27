@@ -3,9 +3,12 @@
 /* ================================================= */
 
 :root {
-  --bg-main: #1f1f1f; /* Main background */
-  --bg-card: #2a2a2a; /* Cards / panels */
-  --bg-input: #151515; /* Inputs */
+  --bg-main: #1f1f1f;
+  /* Main background */
+  --bg-card: #2a2a2a;
+  /* Cards / panels */
+  --bg-input: #151515;
+  /* Inputs */
   --text-primary: #e0e0e0;
   --text-muted: #999;
   --neon-blue: #00d4ff;
@@ -31,6 +34,7 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: none;
 }
@@ -51,7 +55,8 @@ a:hover {
   flex-direction: column;
   align-items: center;
   padding-top: 30px;
-  overflow-y: auto; /* vertical scroll OK */
+  overflow-y: auto;
+  /* vertical scroll OK */
   overflow-x: visible;
   z-index: 1000;
 }
@@ -167,7 +172,8 @@ a:hover {
 /* ================================================= */
 
 .main-content {
-  margin-left: 90px; /* matches sidebar width */
+  margin-left: 90px;
+  /* matches sidebar width */
   padding: 0 30px;
   transition: padding 0.3s ease, margin 0.3s ease;
 }
@@ -236,6 +242,7 @@ a:hover {
   color: var(--neon-blue);
   background-color: #262626;
 }
+
 .dropdown-nav {
   position: relative;
 }
@@ -283,7 +290,8 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px; /* space between icon and text */
+  gap: 8px;
+  /* space between icon and text */
 }
 
 .cta-button:hover,
@@ -309,6 +317,7 @@ a.cta-button {
   border: none;
   transition: 0.3s;
 }
+
 .btn-neon:hover {
   background-color: white;
   box-shadow: 0 0 15px var(--neon-blue);
@@ -379,21 +388,17 @@ a.cta-button {
 
 .category-select:hover {
   border-color: rgba(0, 212, 255, 0.5) !important;
-  background: linear-gradient(
-    135deg,
-    rgba(102, 126, 234, 0.15) 0%,
-    rgba(102, 126, 234, 0.08) 100%
-  ) !important;
+  background: linear-gradient(135deg,
+      rgba(102, 126, 234, 0.15) 0%,
+      rgba(102, 126, 234, 0.08) 100%) !important;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15) !important;
 }
 
 .category-select:focus {
   border-color: var(--neon-blue) !important;
-  background: linear-gradient(
-    135deg,
-    rgba(102, 126, 234, 0.2) 0%,
-    rgba(102, 126, 234, 0.1) 100%
-  ) !important;
+  background: linear-gradient(135deg,
+      rgba(102, 126, 234, 0.2) 0%,
+      rgba(102, 126, 234, 0.1) 100%) !important;
   box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2),
     inset 0 0 0 1px rgba(0, 212, 255, 0.1) !important;
 }
@@ -613,12 +618,15 @@ a.cta-button {
 .watchlist-filter-btn:nth-child(1) {
   background-color: #2684ff;
 }
+
 .watchlist-filter-btn:nth-child(2) {
   background-color: #34c759;
 }
+
 .watchlist-filter-btn:nth-child(3) {
   background-color: #ffcc00;
 }
+
 .watchlist-filter-btn:nth-child(4) {
   background-color: #ff3b30;
 }
@@ -831,6 +839,7 @@ a.cta-button {
     padding: 8px 10px;
   }
 }
+
 /* ================================================= */
 /* 10. DASHBOARD / INDEX PAGE                        */
 /* ================================================= */
@@ -867,6 +876,7 @@ a.cta-button {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
+
 .stat-card {
   background: #202020;
   border: 1px solid #333;
@@ -874,12 +884,14 @@ a.cta-button {
   padding: 16px;
   text-align: center;
 }
+
 .stat-value {
   font-size: 1.6rem;
   font-weight: 800;
   color: #fff;
   line-height: 1.1;
 }
+
 .stat-label {
   font-size: 0.8rem;
   color: #aaa;
@@ -894,9 +906,11 @@ a.cta-button {
   gap: 14px;
   flex-wrap: wrap;
 }
+
 .cover-thumb {
   width: 110px;
 }
+
 .cover-thumb-img {
   width: 100%;
   height: 150px;
@@ -910,6 +924,7 @@ a.cta-button {
   font-size: 1.2rem;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
 }
+
 .cover-thumb-title {
   margin-top: 6px;
   font-size: 0.85rem;
@@ -923,6 +938,7 @@ a.cta-button {
   padding: 0;
   margin: 0;
 }
+
 .activity-item {
   display: flex;
   gap: 10px;
@@ -930,15 +946,18 @@ a.cta-button {
   padding: 10px 0;
   border-bottom: 1px solid #333;
 }
+
 .activity-item:last-child {
   border-bottom: none;
 }
+
 .activity-item i {
   color: #9ad6ff;
   width: 22px;
   text-align: center;
   margin-top: 2px;
 }
+
 .activity-text {
   color: #e6e6e6;
 }
@@ -949,14 +968,17 @@ a.cta-button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
 @media (max-width: 576px) {
   .stats-grid {
     grid-template-columns: 1fr;
   }
+
   .cover-thumb {
     width: 44%;
   }
 }
+
 /* =======================
    ABOUT / TEAM PAGE
    ======================= */
@@ -964,6 +986,7 @@ a.cta-button {
   font-weight: 900;
   letter-spacing: 0.5px;
 }
+
 .about-hero {
   background: #242424;
 }
@@ -973,11 +996,13 @@ a.cta-button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
+
 @media (max-width: 992px) {
   .team-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
 @media (max-width: 576px) {
   .team-grid {
     grid-template-columns: 1fr;
@@ -996,6 +1021,7 @@ a.cta-button {
   text-align: center;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
+
 .team-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 18px 30px rgba(0, 0, 0, 0.85);
@@ -1014,11 +1040,13 @@ a.cta-button {
   overflow: hidden;
   margin-bottom: 12px;
 }
+
 .team-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .team-initials {
   width: 100%;
   height: 100%;
@@ -1036,9 +1064,11 @@ a.cta-button {
   font-size: 1.05rem;
   color: #fff;
 }
+
 .team-role {
   font-size: 0.9rem;
 }
+
 .team-bio {
   font-size: 0.9rem;
   color: #cfcfcf;
@@ -1048,6 +1078,7 @@ a.cta-button {
 .team-links {
   margin-top: 12px;
 }
+
 .badge-soft {
   display: inline-block;
   padding: 6px 10px;
@@ -1057,53 +1088,78 @@ a.cta-button {
   color: #ddd;
   font-size: 0.78rem;
 }
+
 /* =========================
    CATALOG DASHBOARD (Home)
    ========================= */
 .catalog-hero {
   height: 220px;
-  background-image: url("{{ url_for('static', filename='img/banner.jpg') if false else '' }}");
-  /* if you have a banner image: put it at /static/img/banner.jpg and uncomment next line */
-  background: url("/static/img/banner.jpg") center/cover no-repeat,
-    radial-gradient(60% 60% at 50% 40%, #444 0, #222 70%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #1f1f1f;
   border-bottom: 1px solid #3a3a3a;
+  position: relative;
 }
+
 .catalog-hero-inner {
   height: 100%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+  padding-left: 20px;
 }
+
 .catalog-title {
   color: #fff;
   font-weight: 900;
   font-size: 2.4rem;
   letter-spacing: 0.02em;
-  margin: 0;
-}
-.catalog-subtitle {
-  color: #ddd;
-  margin: 4px 0 0 2px;
+  margin: 0 0 4px 0;
 }
 
-.breadcrumb-row {
+.catalog-subtitle {
+  color: #ddd;
+  margin: 0 0 20px 0;
+  font-size: 0.95rem;
+}
+
+/* Inline breadcrumb inside banner */
+.breadcrumb-row-inline {
   display: flex;
   align-items: center;
   gap: 8px;
   color: #bbb;
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-top: -26px;
-  margin-bottom: 18px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55);
+  font-size: 0.9rem;
 }
+
+/* Inline breadcrumb link styles */
+.breadcrumb-row-inline a {
+  color: #e6e6e6;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.breadcrumb-row-inline a:hover {
+  color: var(--neon-blue);
+}
+
+.breadcrumb-row-inline .crumb-current {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Hide old breadcrumb-row (not used anymore) */
+.breadcrumb-row {
+  display: none;
+}
+
 .breadcrumb-row a {
   color: #e6e6e6;
   text-decoration: none;
 }
+
 .breadcrumb-row .crumb-current {
   color: #fff;
   font-weight: 700;
@@ -1114,16 +1170,16 @@ a.cta-button {
   grid-template-columns: 1fr 300px;
   gap: 22px;
 }
+
 @media (max-width: 992px) {
   .content-row {
     grid-template-columns: 1fr;
   }
 }
 
-.grid-col {
-}
-.sidebar-col {
-}
+.grid-col {}
+
+.sidebar-col {}
 
 .grid-toolbar {
   display: flex;
@@ -1131,14 +1187,17 @@ a.cta-button {
   justify-content: space-between;
   margin-bottom: 14px;
 }
+
 .result-count {
   color: #cfcfcf;
 }
+
 .sort-form {
   display: flex;
   gap: 10px;
   align-items: center;
 }
+
 .sort-form .form-select {
   background: #1f1f1f;
   border: 1px solid #3a3a3a;
@@ -1152,11 +1211,13 @@ a.cta-button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
+
 @media (max-width: 1200px) {
   .product-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
 @media (max-width: 576px) {
   .product-grid {
     grid-template-columns: 1fr;
@@ -1199,6 +1260,7 @@ a.cta-button {
   color: #dc3545;
   text-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
 }
+
 .product-thumb {
   width: 100%;
   aspect-ratio: 4 / 3;
@@ -1230,6 +1292,7 @@ a.cta-button {
   font-weight: 700;
   color: #fff;
 }
+
 .product-meta {
   font-size: 0.9rem;
   color: #b9b9b9;
@@ -1279,6 +1342,7 @@ a.cta-button {
   color: #fff;
   box-shadow: 0 4px 10px rgba(228, 91, 47, 0.3);
 }
+
 .btn-orange:hover {
   filter: brightness(1.05);
 }
@@ -1288,6 +1352,7 @@ a.cta-button {
   color: #ddd;
   border: 1px solid #3a3a3a;
 }
+
 .btn-ghost:hover {
   border-color: #e45b2f;
   color: #fff;
@@ -1319,11 +1384,13 @@ a.cta-button {
   padding: 16px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
 }
+
 .sidebar-title {
   font-weight: 800;
   color: #fff;
   margin-bottom: 12px;
 }
+
 .category-list {
   list-style: none;
   margin: 0;
@@ -1332,6 +1399,7 @@ a.cta-button {
   flex-direction: column;
   gap: 8px;
 }
+
 .category-list a {
   display: block;
   background: #262626;
@@ -1342,15 +1410,18 @@ a.cta-button {
   border-radius: 8px;
   transition: 0.15s;
 }
+
 .category-list a:hover {
   border-color: #e45b2f;
   color: #fff;
 }
+
 .category-list a.is-active {
   border-color: #e45b2f;
   background: #2d2d2d;
   color: #fff;
 }
+
 /* ===========================
    SIDEBAR LAYOUT + SCROLL
    =========================== */
@@ -1359,7 +1430,8 @@ a.cta-button {
   position: fixed;
   top: 0;
   left: 0;
-  width: 80px; /* narrow but clean */
+  width: 80px;
+  /* narrow but clean */
   height: 100vh;
   background: #181a1f;
   padding: 18px 0 20px;
@@ -1367,14 +1439,17 @@ a.cta-button {
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  overflow-y: auto; /* 🔹 make sidebar scrollable */
-  scrollbar-width: thin; /* Firefox */
+  overflow-y: auto;
+  /* 🔹 make sidebar scrollable */
+  scrollbar-width: thin;
+  /* Firefox */
 }
 
 /* Optional: thinner scrollbar in WebKit */
 .sidebar::-webkit-scrollbar {
   width: 6px;
 }
+
 .sidebar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 10px;
@@ -1424,10 +1499,12 @@ a.cta-button {
 }
 
 .sidebar .nav-link {
-  width: 52px; /* 🔹 slightly smaller than before */
+  width: 52px;
+  /* 🔹 slightly smaller than before */
   height: 52px;
   border-radius: 20px;
-  margin: 6px auto; /* more breathing room */
+  margin: 6px auto;
+  /* more breathing room */
   padding: 0;
   display: flex;
   align-items: center;
@@ -1456,7 +1533,8 @@ a.cta-button {
 
 /* 🔹 smaller icons themselves */
 .sidebar .nav-link i {
-  font-size: 1.2rem; /* was probably ~1.5–1.8rem */
+  font-size: 1.2rem;
+  /* was probably ~1.5–1.8rem */
 }
 
 /* if you have svg icons inside */
@@ -1464,10 +1542,13 @@ a.cta-button {
   width: 20px;
   height: 20px;
 }
+
 /* Hide sidebar scrollbar but keep scrolling */
 .sidebar {
-  overflow-y: auto; /* still scrolls with wheel / trackpad */
-  scrollbar-width: none; /* Firefox: hide scrollbar */
+  overflow-y: auto;
+  /* still scrolls with wheel / trackpad */
+  scrollbar-width: none;
+  /* Firefox: hide scrollbar */
 }
 
 /* Chrome / Edge / Safari: hide scrollbar */
@@ -1481,29 +1562,34 @@ a.cta-button {
   background: transparent;
   border: none;
 }
+
 /* ===========================
    LOGO HOVER ANIMATION
    =========================== */
 .sidebar-logo:hover {
   animation: logoPulseGlow 1s 0.3s normal;
 }
+
 @keyframes logoPulseGlow {
   0% {
     transform: translateY(0) scale(1);
     box-shadow: 0 0 0 rgba(79, 208, 255, 0);
     filter: brightness(1);
   }
+
   50% {
     transform: translateY(-2px) scale(1.08);
     box-shadow: 0 0 18px rgba(79, 208, 255, 0.95);
     filter: brightness(1.05);
   }
+
   100% {
     transform: translateY(-1px) scale(1.04);
     box-shadow: 0 0 10px rgba(79, 208, 255, 0.7);
     filter: brightness(1.1);
   }
 }
+
 /* ===========================
    NOVUS TEXT HOVER ANIMATION
    =========================== */
@@ -1535,15 +1621,21 @@ a.cta-button {
   transform: translateY(-4px);
   letter-spacing: 0.25em;
 }
+
 /* Sidebar: only vertical scrolling, no horizontal */
 .sidebar {
-  overflow-y: auto; /* keep up/down */
-  overflow-x: hidden; /* ❌ disable left/right scroll */
+  overflow-y: auto;
+  /* keep up/down */
+  overflow-x: hidden;
+  /* ❌ disable left/right scroll */
 }
+
 .sidebar {
   overflow-y: auto;
-  overflow-x: hidden; /* no side scroll */
+  overflow-x: hidden;
+  /* no side scroll */
 }
+
 /* ===========================
    MANGA WARP TRANSITION
    =========================== */
@@ -1552,11 +1644,9 @@ a.cta-button {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(
-    circle at center,
-    rgba(0, 240, 255, 0),
-    rgba(0, 0, 0, 0) 60%
-  );
+  background: radial-gradient(circle at center,
+      rgba(0, 240, 255, 0),
+      rgba(0, 0, 0, 0) 60%);
   opacity: 0;
   transform: scale(0.9);
   transition: opacity 0.45s ease, transform 0.45s ease, background 0.45s ease;
@@ -1566,34 +1656,29 @@ a.cta-button {
 #manga-warp-overlay.show {
   opacity: 1;
   transform: scale(1.05);
-  background: radial-gradient(
-      circle at center,
+  background: radial-gradient(circle at center,
       rgba(0, 240, 255, 0.35),
-      rgba(5, 8, 20, 0.98) 55%
-    ),
-    radial-gradient(
-      circle at 10% 10%,
+      rgba(5, 8, 20, 0.98) 55%),
+    radial-gradient(circle at 10% 10%,
       rgba(255, 45, 117, 0.35),
-      transparent 60%
-    );
+      transparent 60%);
 }
 
 body.manga-warping {
   filter: blur(1px) brightness(0.7);
   transition: filter 0.45s ease;
 }
+
 /* ===========================
    MANGA REALM THEME
    Applied when body has class="manga-theme"
    =========================== */
 
 .manga-theme {
-  background: radial-gradient(
-    circle at top,
-    #1b1035 0,
-    #050814 50%,
-    #02040a 100%
-  );
+  background: radial-gradient(circle at top,
+      #1b1035 0,
+      #050814 50%,
+      #02040a 100%);
   color: #f7f7ff;
   font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont,
     sans-serif;
@@ -1664,16 +1749,12 @@ body.manga-warping {
   position: relative;
   min-height: 160px;
   border-radius: 24px;
-  background: radial-gradient(
-      circle at 20% 0%,
+  background: radial-gradient(circle at 20% 0%,
       rgba(0, 240, 255, 0.25),
-      transparent 55%
-    ),
-    radial-gradient(
-      circle at 80% 100%,
+      transparent 55%),
+    radial-gradient(circle at 80% 100%,
       rgba(255, 45, 117, 0.3),
-      transparent 60%
-    ),
+      transparent 60%),
     radial-gradient(circle at 50% 40%, #020617, #020617 55%, transparent 56%);
   display: flex;
   align-items: center;
@@ -1686,7 +1767,8 @@ body.manga-warping {
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative; /* ⬅️ important so core centers correctly */
+  position: relative;
+  /* ⬅️ important so core centers correctly */
 }
 
 .manga-hero-orbit-inner {
@@ -1808,10 +1890,12 @@ body.manga-warping {
     opacity: 0;
     transform: scale(0.4);
   }
+
   40% {
     opacity: 1;
     transform: scale(1);
   }
+
   100% {
     opacity: 0;
     transform: scale(1.3);
@@ -1842,12 +1926,10 @@ body.manga-warping {
    =========================== */
 
 body.manga-theme {
-  background: radial-gradient(
-    circle at top,
-    #222437 0%,
-    #050612 50%,
-    #050509 100%
-  );
+  background: radial-gradient(circle at top,
+      #222437 0%,
+      #050612 50%,
+      #050509 100%);
   font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
 }
@@ -1911,12 +1993,10 @@ body.manga-theme {
   width: 260px;
   height: 260px;
   border-radius: 50%;
-  background: radial-gradient(
-    circle at 30% 20%,
-    #ff9cf2,
-    #4b5dff 60%,
-    #050518 100%
-  );
+  background: radial-gradient(circle at 30% 20%,
+      #ff9cf2,
+      #4b5dff 60%,
+      #050518 100%);
   box-shadow: 0 0 50px rgba(130, 100, 255, 0.9);
   overflow: hidden;
 }
@@ -2092,6 +2172,7 @@ body.manga-theme {
   font-size: 0.8rem;
   color: #a4a7d7;
 }
+
 /* =========================================
    MANGA DIMENSIONAL PAGE-FLIP TRANSITION
    Inspired by: Digital Page-Flip + Color Flash
@@ -2099,7 +2180,8 @@ body.manga-theme {
 
 body.manga-transition {
   position: relative;
-  overflow: hidden; /* avoid weird scrollbars during flash */
+  overflow: hidden;
+  /* avoid weird scrollbars during flash */
 }
 
 /* Darken current world slightly */
@@ -2107,11 +2189,9 @@ body.manga-transition::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(
-    circle at center,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(67, 42, 180, 0.6) 60%
-  );
+  background: radial-gradient(circle at center,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(67, 42, 180, 0.6) 60%);
   pointer-events: none;
   z-index: 998;
   opacity: 0;
@@ -2128,24 +2208,20 @@ body.manga-transition::before {
   inset: 0;
   z-index: 9998;
   background:
-    /* blue glow around the vortex */ radial-gradient(
-      circle at center,
+    /* blue glow around the vortex */
+    radial-gradient(circle at center,
       rgba(90, 190, 255, 0.45) 0%,
-      rgba(90, 190, 255, 0) 55%
-    ),
+      rgba(90, 190, 255, 0) 55%),
     /* soft white halo fading out */
-      radial-gradient(
-        circle at center,
-        rgba(255, 255, 255, 0.18) 0%,
-        rgba(255, 255, 255, 0) 65%
-      ),
-    /* solid purple base so corners are purple, not black */ #6c46de;
-  background: radial-gradient(
-    circle at center,
-    rgba(120, 210, 255, 0.35) 0%,
-    rgba(30, 0, 80, 0.95) 55%,
-    rgba(5, 0, 25, 0.98) 100%
-  );
+    radial-gradient(circle at center,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0) 65%),
+    /* solid purple base so corners are purple, not black */
+    #6c46de;
+  background: radial-gradient(circle at center,
+      rgba(120, 210, 255, 0.35) 0%,
+      rgba(30, 0, 80, 0.95) 55%,
+      rgba(5, 0, 25, 0.98) 100%);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
@@ -2154,6 +2230,7 @@ body.manga-transition::before {
   pointer-events: none;
   transition: opacity 0.18s linear;
 }
+
 /* Dim everything behind the portal */
 body.manga-warp .main-content,
 body.manga-warp .sidebar,
@@ -2185,12 +2262,10 @@ body.manga-warp .warp-overlay {
   border-radius: 50%;
   box-shadow: 0 0 0 5px rgba(245, 245, 255, 0.9),
     0 0 35px rgba(255, 255, 255, 0.95), 0 0 110px rgba(0, 170, 255, 0.9);
-  background: radial-gradient(
-    circle,
-    transparent 62%,
-    rgba(255, 255, 255, 0.96) 70%,
-    rgba(255, 255, 255, 0) 80%
-  );
+  background: radial-gradient(circle,
+      transparent 62%,
+      rgba(255, 255, 255, 0.96) 70%,
+      rgba(255, 255, 255, 0) 80%);
   animation: warpPulse 0.9s ease-out forwards;
 }
 
@@ -2199,21 +2274,21 @@ body.manga-warp .warp-overlay {
   width: 520px;
   height: 520px;
   border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(0, 170, 255, 0.55) 0%,
-    rgba(0, 30, 120, 0) 70%
-  );
+  background: radial-gradient(circle,
+      rgba(0, 170, 255, 0.55) 0%,
+      rgba(0, 30, 120, 0) 70%);
   filter: blur(3px);
   animation: warpGlow 0.75s ease-out forwards;
 }
 
 /* --- CENTER TEXT LABEL --- */
 .warp-label {
-  position: absolute; /* relative to the overlay */
+  position: absolute;
+  /* relative to the overlay */
   left: 50%;
   top: 50%;
-  transform: translate(-50%, 80px); /* just under centre */
+  transform: translate(-50%, 80px);
+  /* just under centre */
   z-index: 2;
   font-size: clamp(1.4rem, 2vw, 1.9rem);
   font-weight: 700;
@@ -2226,21 +2301,19 @@ body.manga-warp .warp-overlay {
 }
 
 //* =========================
-MANGA WARP OVERLAY (VORTEX)
-   ========================== */
+MANGA WARP OVERLAY (VORTEX)==========================*/
 
 /* Hidden by default */
 .warp-overlay {
   position: fixed;
   inset: 0;
   z-index: 9998;
-  background: radial-gradient(
-    circle at center,
-    rgba(0, 150, 255, 0.3) 0%,
-    rgba(0, 18, 70, 0.95) 55%,
-    rgba(0, 5, 40, 1) 100%
-  );
-  display: none; /* default: off */
+  background: radial-gradient(circle at center,
+      rgba(0, 150, 255, 0.3) 0%,
+      rgba(0, 18, 70, 0.95) 55%,
+      rgba(0, 5, 40, 1) 100%);
+  display: none;
+  /* default: off */
   align-items: center;
   justify-content: center;
 }
@@ -2256,6 +2329,7 @@ MANGA WARP OVERLAY (VORTEX)
   0% {
     opacity: 0;
   }
+
   100% {
     opacity: 1;
   }
@@ -2284,23 +2358,19 @@ MANGA WARP OVERLAY (VORTEX)
   height: 360px;
   box-shadow: 0 0 0 5px rgba(245, 245, 255, 0.9),
     0 0 35px rgba(255, 255, 255, 0.95), 0 0 110px rgba(0, 170, 255, 0.9);
-  background: radial-gradient(
-    circle,
-    transparent 62%,
-    rgba(255, 255, 255, 0.96) 70%,
-    rgba(255, 255, 255, 0) 80%
-  );
+  background: radial-gradient(circle,
+      transparent 62%,
+      rgba(255, 255, 255, 0.96) 70%,
+      rgba(255, 255, 255, 0) 80%);
   animation: warpPulse 0.9s ease-out forwards;
 }
 
 .warp-halo {
   width: 520px;
   height: 520px;
-  background: radial-gradient(
-    circle,
-    rgba(0, 170, 255, 0.55) 0%,
-    rgba(0, 30, 120, 0) 70%
-  );
+  background: radial-gradient(circle,
+      rgba(0, 170, 255, 0.55) 0%,
+      rgba(0, 30, 120, 0) 70%);
   filter: blur(3px);
   animation: warpGlow 0.75s ease-out forwards;
 }
@@ -2310,7 +2380,8 @@ MANGA WARP OVERLAY (VORTEX)
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, 80px); /* under centre */
+  transform: translate(-50%, 80px);
+  /* under centre */
   z-index: 2;
   font-size: clamp(1.4rem, 2vw, 1.9rem);
   font-weight: 700;
@@ -2333,10 +2404,12 @@ MANGA WARP OVERLAY (VORTEX)
     transform: scale(0.2);
     opacity: 0;
   }
+
   40% {
     transform: scale(1.05);
     opacity: 1;
   }
+
   100% {
     transform: scale(1);
   }
@@ -2346,6 +2419,7 @@ MANGA WARP OVERLAY (VORTEX)
   0% {
     transform: rotate(0deg) scale(0.6);
   }
+
   100% {
     transform: rotate(360deg) scale(1.02);
   }
@@ -2356,6 +2430,7 @@ MANGA WARP OVERLAY (VORTEX)
     opacity: 0;
     transform: scale(0.6);
   }
+
   100% {
     opacity: 1;
     transform: scale(1);
@@ -2367,11 +2442,13 @@ MANGA WARP OVERLAY (VORTEX)
     opacity: 0;
     transform: translate(-50%, 90px);
   }
+
   100% {
     opacity: 1;
     transform: translate(-50%, 80px);
   }
 }
+
 /* ---------- BOOK DETAIL LAYOUT ---------- */
 
 .book-detail-wrapper {
@@ -2397,11 +2474,9 @@ MANGA WARP OVERLAY (VORTEX)
 /* Main glass card */
 .book-detail-card {
   margin-top: 8px;
-  background: radial-gradient(
-      circle at top left,
+  background: radial-gradient(circle at top left,
       rgba(59, 130, 246, 0.35),
-      transparent 60%
-    ),
+      transparent 60%),
     var(--bg-card);
   border-radius: 26px;
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -2435,11 +2510,9 @@ MANGA WARP OVERLAY (VORTEX)
   width: 190px;
   height: 230px;
   border-radius: 26px;
-  background: radial-gradient(
-      circle at 20% 0%,
+  background: radial-gradient(circle at 20% 0%,
       rgba(56, 189, 248, 0.5),
-      transparent 55%
-    ),
+      transparent 55%),
     #11131b;
   display: flex;
   justify-content: center;
@@ -2566,11 +2639,9 @@ MANGA WARP OVERLAY (VORTEX)
   margin-top: 24px;
   padding: 18px 20px 16px;
   border-radius: 18px;
-  background: radial-gradient(
-    circle at top left,
-    rgba(34, 197, 94, 0.2),
-    rgba(15, 23, 42, 1)
-  );
+  background: radial-gradient(circle at top left,
+      rgba(34, 197, 94, 0.2),
+      rgba(15, 23, 42, 1));
   border: 1px solid rgba(148, 163, 184, 0.45);
 }
 
@@ -2637,15 +2708,14 @@ MANGA WARP OVERLAY (VORTEX)
     align-items: center;
   }
 }
+
 /* ===== MANGA PAGE WRAPPER ===== */
 .manga-page {
   padding: 25px 0 40px;
-  background: radial-gradient(
-    circle at top,
-    #1b2348 0%,
-    #050612 55%,
-    #050612 100%
-  );
+  background: radial-gradient(circle at top,
+      #1b2348 0%,
+      #050612 55%,
+      #050612 100%);
 }
 
 /* Match your existing hero card look */
@@ -2692,6 +2762,7 @@ MANGA WARP OVERLAY (VORTEX)
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.6);
 }
+
 .manga-hero-footnote span {
   color: #ff64ff;
 }
@@ -2707,6 +2778,7 @@ MANGA WARP OVERLAY (VORTEX)
   font-weight: 600;
   box-shadow: 0 0 18px rgba(255, 100, 255, 0.5);
 }
+
 .btn-manga-ghost {
   padding: 10px 22px;
   border-radius: 999px;
@@ -2756,11 +2828,13 @@ MANGA WARP OVERLAY (VORTEX)
       0 0 60px rgba(80, 120, 255, 0.4);
     transform: scale(0.98);
   }
+
   50% {
     box-shadow: 0 0 38px rgba(80, 120, 255, 1),
       0 0 140px rgba(80, 120, 255, 0.9);
     transform: scale(1.03);
   }
+
   100% {
     box-shadow: 0 0 18px rgba(80, 120, 255, 0.6),
       0 0 60px rgba(80, 120, 255, 0.4);
@@ -2772,6 +2846,7 @@ MANGA WARP OVERLAY (VORTEX)
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -2782,10 +2857,12 @@ MANGA WARP OVERLAY (VORTEX)
     transform: scale(0.96);
     filter: blur(0px);
   }
+
   50% {
     transform: scale(1.02);
     filter: blur(1px);
   }
+
   100% {
     transform: scale(0.98);
     filter: blur(0.5px);
@@ -2813,6 +2890,7 @@ MANGA WARP OVERLAY (VORTEX)
   font-weight: 900;
   letter-spacing: 0.22em;
 }
+
 .mv-logo-accent {
   font-size: 1.4rem;
   font-weight: 900;
@@ -2826,6 +2904,7 @@ MANGA WARP OVERLAY (VORTEX)
   display: flex;
   gap: 14px;
 }
+
 .mv-tab {
   border: none;
   padding: 8px 20px;
@@ -2836,6 +2915,7 @@ MANGA WARP OVERLAY (VORTEX)
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .mv-tab-active,
 .mv-tab:hover {
   background: #38c6ff;
@@ -2853,6 +2933,7 @@ MANGA WARP OVERLAY (VORTEX)
   overflow: hidden;
   background: rgba(4, 9, 30, 0.8);
 }
+
 .mv-search input {
   flex: 1;
   border: none;
@@ -2861,9 +2942,11 @@ MANGA WARP OVERLAY (VORTEX)
   color: #e3ebff;
   font-size: 0.95rem;
 }
+
 .mv-search input::placeholder {
   color: #7080b1;
 }
+
 .mv-search button {
   border: none;
   width: 64px;
@@ -2873,6 +2956,7 @@ MANGA WARP OVERLAY (VORTEX)
   align-items: center;
   cursor: pointer;
 }
+
 .mv-search button i {
   color: #02030a;
   font-size: 1rem;
@@ -2895,6 +2979,7 @@ MANGA WARP OVERLAY (VORTEX)
   font-weight: 700;
   margin-bottom: 4px;
 }
+
 .manga-section-subtitle {
   font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.65);
@@ -2913,12 +2998,10 @@ MANGA WARP OVERLAY (VORTEX)
   flex-direction: column;
   border-radius: 20px;
   overflow: hidden;
-  background: radial-gradient(
-    circle at top,
-    #363a64 0%,
-    #141625 45%,
-    #090a14 100%
-  );
+  background: radial-gradient(circle at top,
+      #363a64 0%,
+      #141625 45%,
+      #090a14 100%);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
 }
 
@@ -2926,12 +3009,15 @@ MANGA WARP OVERLAY (VORTEX)
   height: 150px;
   border-radius: 20px 20px 0 0;
 }
+
 .cover-pink {
   background: linear-gradient(135deg, #ff9ad5, #ff6ab0);
 }
+
 .cover-blue {
   background: linear-gradient(135deg, #7cc7ff, #5084ff);
 }
+
 .cover-green {
   background: linear-gradient(135deg, #a5ffd8, #4ee3ac);
 }
@@ -2939,6 +3025,7 @@ MANGA WARP OVERLAY (VORTEX)
 .manga-card-body {
   padding: 16px 18px 18px;
 }
+
 .manga-tag-pill {
   display: inline-block;
   font-size: 0.7rem;
@@ -2950,10 +3037,12 @@ MANGA WARP OVERLAY (VORTEX)
   letter-spacing: 0.12em;
   margin-bottom: 6px;
 }
+
 .pill-popular {
   background: rgba(57, 197, 255, 0.15);
   color: #7cd0ff;
 }
+
 .pill-ongoing {
   background: rgba(165, 255, 216, 0.16);
   color: #9fffd0;
@@ -2964,11 +3053,13 @@ MANGA WARP OVERLAY (VORTEX)
   font-weight: 700;
   margin-bottom: 4px;
 }
+
 .manga-card-desc {
   font-size: 0.9rem;
   color: rgba(230, 236, 255, 0.8);
   margin-bottom: 10px;
 }
+
 .manga-card-meta {
   display: flex;
   justify-content: space-between;
@@ -3016,6 +3107,7 @@ MANGA WARP OVERLAY (VORTEX)
   flex-wrap: wrap;
   gap: 8px;
 }
+
 .chip {
   border-radius: 999px;
   border: 1px solid rgba(95, 118, 196, 0.6);
@@ -3025,6 +3117,7 @@ MANGA WARP OVERLAY (VORTEX)
   color: #cdd5ff;
   cursor: pointer;
 }
+
 .chip-active,
 .chip:hover {
   background: rgba(56, 198, 255, 0.25);
@@ -3040,6 +3133,7 @@ MANGA WARP OVERLAY (VORTEX)
   color: #d7ddff;
   margin-bottom: 6px;
 }
+
 .status-check input {
   width: 16px;
   height: 16px;
@@ -3051,12 +3145,14 @@ MANGA WARP OVERLAY (VORTEX)
   padding: 0;
   margin: 6px 0 0;
 }
+
 .manga-top-list li {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 6px 0;
 }
+
 .rank-badge {
   width: 24px;
   height: 24px;
@@ -3069,21 +3165,26 @@ MANGA WARP OVERLAY (VORTEX)
   justify-content: center;
   font-weight: 700;
 }
+
 .top-info .top-title {
   font-size: 0.9rem;
   font-weight: 600;
 }
+
 .top-info .top-sub {
   font-size: 0.75rem;
   color: #9ca6dc;
 }
+
 .auth-center-wrapper {
-  min-height: calc(100vh - 80px); /* 80px ~ header height, adjust if needed */
+  min-height: calc(100vh - 80px);
+  /* 80px ~ header height, adjust if needed */
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
 }
+
 .auth-page-wrapper {
   min-height: calc(100vh - 80px);
 }
@@ -3134,6 +3235,7 @@ MANGA WARP OVERLAY (VORTEX)
 .auth-link:hover {
   text-decoration: underline;
 }
+
 .back-link {
   color: var(--neon-blue);
   text-decoration: none;
@@ -3150,6 +3252,7 @@ MANGA WARP OVERLAY (VORTEX)
   padding: 24px 28px;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
 }
+
 /* ===========================================
    BOOK READING PAGE – COMMUNITY & DISCOVERY
    =========================================== */
@@ -3170,6 +3273,7 @@ MANGA WARP OVERLAY (VORTEX)
   border: 1px solid #333;
   text-decoration: none;
 }
+
 .reading-back-link:hover {
   color: #fff;
   border-color: var(--neon-blue);
@@ -3185,6 +3289,7 @@ MANGA WARP OVERLAY (VORTEX)
   font-weight: 800;
   color: #fff;
 }
+
 .reading-author {
   font-size: 1.1rem;
 }
@@ -3203,11 +3308,13 @@ MANGA WARP OVERLAY (VORTEX)
   border: 2px solid #404b63;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.9);
 }
+
 .reading-cover-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .reading-cover-placeholder {
   width: 210px;
   height: 300px;
@@ -3242,6 +3349,7 @@ MANGA WARP OVERLAY (VORTEX)
   letter-spacing: 0.18em;
   color: #f5f5f5;
 }
+
 .community-subtitle {
   font-size: 0.85rem;
   color: #a8b3d1;
@@ -3252,11 +3360,13 @@ MANGA WARP OVERLAY (VORTEX)
   grid-template-columns: 2fr 2fr 1.5fr;
   gap: 18px;
 }
+
 @media (max-width: 1200px) {
   .community-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
+
 @media (max-width: 768px) {
   .community-grid {
     grid-template-columns: 1fr;
@@ -3274,6 +3384,7 @@ MANGA WARP OVERLAY (VORTEX)
 .community-panel-header {
   margin-bottom: 10px;
 }
+
 .community-panel-label {
   font-size: 0.8rem;
   font-weight: 700;
@@ -3281,6 +3392,7 @@ MANGA WARP OVERLAY (VORTEX)
   letter-spacing: 0.13em;
   color: #e1e6ff;
 }
+
 .community-panel-sub {
   margin: 2px 0 0;
   font-size: 0.8rem;
@@ -3294,12 +3406,14 @@ MANGA WARP OVERLAY (VORTEX)
   overflow-y: auto;
   padding-right: 4px;
 }
+
 .review-item {
   display: flex;
   gap: 10px;
   padding: 8px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
+
 .review-item:last-child {
   border-bottom: none;
 }
@@ -3322,17 +3436,21 @@ MANGA WARP OVERLAY (VORTEX)
 .review-body {
   font-size: 0.86rem;
 }
+
 .review-user {
   font-weight: 700;
   color: #fefefe;
 }
+
 .review-stars i {
   color: #ffcc00;
   font-size: 0.75rem;
 }
+
 .review-text {
   color: #e2e2e2;
 }
+
 .review-meta {
   font-size: 0.7rem;
   color: #9ba1b7;
@@ -3343,9 +3461,11 @@ MANGA WARP OVERLAY (VORTEX)
   resize: vertical;
   min-height: 64px;
 }
+
 .form-label-sm {
   font-size: 0.8rem;
 }
+
 .review-rating-select {
   min-width: 90px;
 }
@@ -3357,6 +3477,7 @@ MANGA WARP OVERLAY (VORTEX)
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
+
 @media (max-width: 576px) {
   .recommend-grid {
     grid-template-columns: 1fr;
@@ -3387,7 +3508,8 @@ MANGA WARP OVERLAY (VORTEX)
   margin-top: 18px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.8rem; /* more space between cards */
+  gap: 1.8rem;
+  /* more space between cards */
 }
 
 /* whole card */
@@ -3452,12 +3574,14 @@ MANGA WARP OVERLAY (VORTEX)
   margin: 6px 0 0;
   padding: 0;
 }
+
 .wishlist-item {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 6px 0;
 }
+
 .wishlist-rank {
   width: 26px;
   height: 26px;
@@ -3471,30 +3595,32 @@ MANGA WARP OVERLAY (VORTEX)
   font-size: 0.85rem;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.9);
 }
+
 .wishlist-main {
   flex: 1;
 }
+
 .wishlist-title {
   font-size: 0.9rem;
   font-weight: 600;
   color: #fbfbfb;
 }
+
 .wishlist-meta {
   font-size: 0.78rem;
   color: #a3acc9;
 }
+
 /* ===== COMMUNITY & DISCOVERY STRIP ON BOOK PAGE ===== */
 
 .book-community {
   margin-top: 40px;
   padding: 28px 30px 34px;
   border-radius: 26px;
-  background: radial-gradient(
-    circle at top left,
-    #1f2937 0,
-    #020617 55%,
-    #020617 100%
-  );
+  background: radial-gradient(circle at top left,
+      #1f2937 0,
+      #020617 55%,
+      #020617 100%);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
 }
 
@@ -3762,10 +3888,12 @@ MANGA WARP OVERLAY (VORTEX)
     padding: 22px 18px 24px;
   }
 }
+
 /* COMMUNITY & DISCOVERY (Book Detail bottom section) */
 .cd-section {
   margin-top: 28px;
 }
+
 .cd-head h2 {
   text-align: center;
   letter-spacing: 0.18em;
@@ -3796,6 +3924,7 @@ MANGA WARP OVERLAY (VORTEX)
   letter-spacing: 0.12em;
   color: #eaf9ff;
 }
+
 .cd-title p {
   margin: 4px 0 14px;
   color: #9fb3c7;
@@ -3804,9 +3933,11 @@ MANGA WARP OVERLAY (VORTEX)
 .cd-reviews {
   grid-column: 1/2;
 }
+
 .cd-wishlist {
   grid-column: 2/3;
 }
+
 .cd-recs {
   grid-column: 1/3;
 }
@@ -3817,6 +3948,7 @@ MANGA WARP OVERLAY (VORTEX)
   gap: 12px;
   margin-bottom: 14px;
 }
+
 .cd-review-item {
   display: flex;
   gap: 12px;
@@ -3825,6 +3957,7 @@ MANGA WARP OVERLAY (VORTEX)
   border-radius: 14px;
   padding: 12px;
 }
+
 .cd-avatar {
   width: 44px;
   height: 44px;
@@ -3836,15 +3969,18 @@ MANGA WARP OVERLAY (VORTEX)
   background: radial-gradient(circle at 30% 30%, #7ee7ff, #3ad0ff);
   box-shadow: 0 0 16px rgba(64, 220, 255, 0.35);
 }
+
 .cd-review-name {
   font-weight: 800;
   color: #fff;
 }
+
 .cd-stars {
   color: #53dcff;
   letter-spacing: 0.08em;
   margin: 2px 0 6px;
 }
+
 .cd-review-text {
   color: #d8e5f2;
   opacity: 0.92;
@@ -3857,6 +3993,7 @@ MANGA WARP OVERLAY (VORTEX)
   gap: 10px;
   align-items: center;
 }
+
 .cd-input {
   width: 100%;
   background: rgba(0, 0, 0, 0.35);
@@ -3866,10 +4003,12 @@ MANGA WARP OVERLAY (VORTEX)
   padding: 10px 12px;
   outline: none;
 }
+
 .cd-input:focus {
   border-color: rgba(64, 220, 255, 0.55);
   box-shadow: 0 0 0 3px rgba(64, 220, 255, 0.12);
 }
+
 .cd-btn {
   background: rgba(64, 220, 255, 0.2);
   border: 1px solid rgba(64, 220, 255, 0.45);
@@ -3878,6 +4017,7 @@ MANGA WARP OVERLAY (VORTEX)
   padding: 10px 14px;
   border-radius: 12px;
 }
+
 .cd-btn:hover {
   filter: brightness(1.15);
 }
@@ -3887,6 +4027,7 @@ MANGA WARP OVERLAY (VORTEX)
   flex-direction: column;
   gap: 12px;
 }
+
 .cd-wish-item {
   display: grid;
   grid-template-columns: 56px 1fr;
@@ -3897,6 +4038,7 @@ MANGA WARP OVERLAY (VORTEX)
   border-radius: 14px;
   padding: 10px;
 }
+
 .cd-cover {
   width: 56px;
   height: 56px;
@@ -3904,6 +4046,7 @@ MANGA WARP OVERLAY (VORTEX)
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .cd-cover-ph {
   display: grid;
   place-items: center;
@@ -3911,10 +4054,12 @@ MANGA WARP OVERLAY (VORTEX)
   font-weight: 900;
   background: linear-gradient(135deg, #8a5cff, #53dcff);
 }
+
 .cd-wish-title {
   font-weight: 800;
   color: #fff;
 }
+
 .cd-wish-sub {
   color: #9fb3c7;
   font-size: 0.9rem;
@@ -3925,6 +4070,7 @@ MANGA WARP OVERLAY (VORTEX)
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
 }
+
 .cd-rec {
   display: grid;
   grid-template-columns: 92px 1fr;
@@ -3935,10 +4081,12 @@ MANGA WARP OVERLAY (VORTEX)
   border-radius: 16px;
   padding: 14px;
 }
+
 .cd-rec:hover {
   border-color: rgba(64, 220, 255, 0.35);
   box-shadow: 0 0 18px rgba(64, 220, 255, 0.12);
 }
+
 .cd-rec-img {
   width: 92px;
   height: 124px;
@@ -3946,19 +4094,23 @@ MANGA WARP OVERLAY (VORTEX)
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
+
 .cd-rec-info {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
+
 .cd-rec-title {
   color: #fff;
   font-weight: 900;
   font-size: 1.08rem;
 }
+
 .cd-rec-sub {
   color: #9fb3c7;
 }
+
 .cd-rec-btn {
   margin-top: auto;
   width: max-content;
@@ -3974,10 +4126,12 @@ MANGA WARP OVERLAY (VORTEX)
   color: #9fb3c7;
   padding: 10px 0;
 }
+
 @media (max-width: 980px) {
   .cd-grid {
     grid-template-columns: 1fr;
   }
+
   .cd-recs {
     grid-column: auto;
   }
@@ -4008,10 +4162,12 @@ MANGA WARP OVERLAY (VORTEX)
   color: #fff;
   box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
 }
+
 .description-area:empty:before {
   content: attr(data-placeholder);
   opacity: 0.6;
 }
+
 /* Top-right profile icon dropdown */
 .profile-dropdown {
   position: relative;
@@ -4042,12 +4198,15 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 .profile-dropdown-content {
-  min-width: 220px; /* slightly wider than Help & Info */
+  min-width: 220px;
+  /* slightly wider than Help & Info */
   max-height: 80vh;
   overflow-y: auto;
   overflow-x: hidden;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -4061,6 +4220,7 @@ MANGA WARP OVERLAY (VORTEX)
   margin: 8px 6px;
   border-radius: 999px;
 }
+
 .avatar-preview {
   width: 68px;
   height: 68px;
@@ -4077,6 +4237,7 @@ MANGA WARP OVERLAY (VORTEX)
   object-fit: cover;
   display: block;
 }
+
 .dd-section-title {
   font-size: 0.7rem;
   font-weight: 800;
@@ -4124,15 +4285,19 @@ MANGA WARP OVERLAY (VORTEX)
   0% {
     box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
   }
+
   25% {
     box-shadow: 0 0 20px 8px rgba(255, 127, 0, 0.6);
   }
+
   50% {
     box-shadow: 0 0 30px 12px rgba(0, 255, 0, 0.5);
   }
+
   75% {
     box-shadow: 0 0 20px 8px rgba(0, 127, 255, 0.6);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(255, 0, 127, 0.7);
   }
@@ -4261,6 +4426,7 @@ MANGA WARP OVERLAY (VORTEX)
     max-width: 320px;
   }
 }
+
 .no-scroll {
   overflow: hidden;
 }
@@ -4310,6 +4476,7 @@ MANGA WARP OVERLAY (VORTEX)
   line-height: 1;
   cursor: pointer;
 }
+
 .billing-close:hover {
   color: #fff;
 }
@@ -4320,6 +4487,7 @@ MANGA WARP OVERLAY (VORTEX)
   font-weight: 900;
   letter-spacing: 0.5px;
 }
+
 .billing-header p {
   margin: 6px 0 0;
   opacity: 0.75;
@@ -4415,25 +4583,25 @@ MANGA WARP OVERLAY (VORTEX)
   0% {
     background-position: 0% center;
   }
+
   50% {
     background-position: 100% center;
   }
+
   100% {
     background-position: 0% center;
   }
 }
 
 .plan-ultimate .plan-title {
-  background: linear-gradient(
-    90deg,
-    #ff0000,
-    #ff7700,
-    #ffff00,
-    #00ff00,
-    #0000ff,
-    #4b0082,
-    #9400d3
-  );
+  background: linear-gradient(90deg,
+      #ff0000,
+      #ff7700,
+      #ffff00,
+      #00ff00,
+      #0000ff,
+      #4b0082,
+      #9400d3);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4477,11 +4645,9 @@ MANGA WARP OVERLAY (VORTEX)
   gap: 10px;
   padding: 14px 20px;
   border-radius: 10px;
-  background: linear-gradient(
-    135deg,
-    rgba(0, 212, 255, 0.25),
-    rgba(0, 212, 255, 0.15)
-  );
+  background: linear-gradient(135deg,
+      rgba(0, 212, 255, 0.25),
+      rgba(0, 212, 255, 0.15));
   border: 2px solid rgba(0, 212, 255, 0.55);
   color: rgba(125, 220, 255, 0.98);
   font-weight: 900;
@@ -4525,10 +4691,12 @@ MANGA WARP OVERLAY (VORTEX)
   .billing-grid {
     grid-template-columns: 1fr;
   }
+
   .plan-featured {
     transform: none;
   }
 }
+
 .sub-counter {
   margin-top: 6px;
   margin-bottom: 4px;
@@ -4574,10 +4742,12 @@ MANGA WARP OVERLAY (VORTEX)
 
 /* Plan card glow animation */
 @keyframes plan-glow {
+
   0%,
   100% {
     box-shadow: 0 0 20px 2px rgba(0, 212, 255, 0.4);
   }
+
   50% {
     box-shadow: 0 0 40px 6px rgba(0, 212, 255, 0.6);
   }
@@ -4623,6 +4793,7 @@ MANGA WARP OVERLAY (VORTEX)
 .plan-current-badge.plan-admin-badge i {
   color: rgba(255, 200, 124, 0.98);
 }
+
 /* ========== NOTIFICATION SYSTEM ========== */
 .notification-container {
   position: relative;
@@ -5072,11 +5243,9 @@ MANGA WARP OVERLAY (VORTEX)
 
 .reading-level-fill {
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 212, 255, 0.6),
-    rgba(0, 212, 255, 0.9)
-  );
+  background: linear-gradient(90deg,
+      rgba(0, 212, 255, 0.6),
+      rgba(0, 212, 255, 0.9));
   border-radius: 4px;
   transition: width 0.3s ease;
   box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
@@ -5112,21 +5281,17 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 .activity-log-btn-primary {
-  background: linear-gradient(
-    135deg,
-    rgba(0, 212, 255, 0.7),
-    rgba(0, 212, 255, 0.5)
-  );
+  background: linear-gradient(135deg,
+      rgba(0, 212, 255, 0.7),
+      rgba(0, 212, 255, 0.5));
   color: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(0, 212, 255, 0.5);
 }
 
 .activity-log-btn-primary:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(0, 212, 255, 0.9),
-    rgba(0, 212, 255, 0.7)
-  );
+  background: linear-gradient(135deg,
+      rgba(0, 212, 255, 0.9),
+      rgba(0, 212, 255, 0.7));
   box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
   color: #fff;
 }
@@ -5349,12 +5514,15 @@ MANGA WARP OVERLAY (VORTEX)
 .font-size-sample.small {
   font-size: 16px;
 }
+
 .font-size-sample.medium {
   font-size: 18px;
 }
+
 .font-size-sample.large {
   font-size: 22px;
 }
+
 .font-size-sample.xlarge {
   font-size: 26px;
 }
@@ -5508,11 +5676,11 @@ MANGA WARP OVERLAY (VORTEX)
   transition: transform 0.3s ease;
 }
 
-.preference-toggle input[type="checkbox"]:checked + .toggle-slider {
+.preference-toggle input[type="checkbox"]:checked+.toggle-slider {
   background: var(--neon-blue);
 }
 
-.preference-toggle input[type="checkbox"]:checked + .toggle-slider::before {
+.preference-toggle input[type="checkbox"]:checked+.toggle-slider::before {
   transform: translateX(26px);
 }
 
@@ -5562,11 +5730,9 @@ MANGA WARP OVERLAY (VORTEX)
 }
 
 .appearance-btn.primary:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(0, 212, 255, 0.9),
-    rgba(0, 212, 255, 0.8)
-  );
+  background: linear-gradient(135deg,
+      rgba(0, 212, 255, 0.9),
+      rgba(0, 212, 255, 0.8));
   box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
   color: #fff;
 }
@@ -5624,14 +5790,17 @@ MANGA WARP OVERLAY (VORTEX)
   display: none;
   z-index: 5000;
 }
+
 .billing-modal.show {
   display: flex;
 }
+
 .billing-backdrop {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
 }
+
 .billing-dialog {
   position: relative;
   margin: auto;
@@ -5645,6 +5814,7 @@ MANGA WARP OVERLAY (VORTEX)
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   padding: 20px;
 }
+
 /* ===== END RESTORE ===== */
 
 /* ===========================
@@ -5680,8 +5850,10 @@ body.no-ui-effects .nav-item,
 body.no-ui-effects .btn,
 body.no-ui-effects .card,
 body.no-ui-effects .product-card {
-  transition: some-custom-transition !important; /* Hack: if we set none it kills background fade too. */
-  transition-property: background-color, color, border-color !important; /* Only animate colors */
+  transition: some-custom-transition !important;
+  /* Hack: if we set none it kills background fade too. */
+  transition-property: background-color, color, border-color !important;
+  /* Only animate colors */
 }
 
 /* 2. Special Effects (Heavy Animations) */
@@ -5750,8 +5922,8 @@ body.no-special-effects.manga-warping {
   max-height: 85vh;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 
-              0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -5780,7 +5952,7 @@ body.no-special-effects.manga-warping {
   display: flex;
   align-items: center;
   gap: 12px;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .appearance-header h2 i {
@@ -5831,13 +6003,16 @@ body.no-special-effects.manga-warping {
 .appearance-content::-webkit-scrollbar {
   width: 6px;
 }
+
 .appearance-content::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .appearance-content::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
 }
+
 .appearance-content::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
@@ -5870,7 +6045,8 @@ body.no-special-effects.manga-warping {
 
 .theme-option {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08); /* faint border */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* faint border */
   border-radius: 14px;
   padding: 14px;
   cursor: pointer;
@@ -5899,13 +6075,24 @@ body.no-special-effects.manga-warping {
   height: 36px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-.dark-theme-preview { background: #1f1f1f; }
-.light-theme-preview { background: #f0f2f5; }
-.blue-theme-preview { background: #0f172a; }
-.purple-theme-preview { background: #2d1b4e; }
+.dark-theme-preview {
+  background: #1f1f1f;
+}
+
+.light-theme-preview {
+  background: #f0f2f5;
+}
+
+.blue-theme-preview {
+  background: #0f172a;
+}
+
+.purple-theme-preview {
+  background: #2d1b4e;
+}
 
 .theme-option span {
   font-weight: 500;
@@ -5991,7 +6178,8 @@ body.no-special-effects.manga-warping {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: 3px solid rgba(255,255,255,0.1); /* outer ring */
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  /* outer ring */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -6002,12 +6190,13 @@ body.no-special-effects.manga-warping {
 
 .accent-option:hover {
   transform: scale(1.15);
-  border-color: rgba(255,255,255,0.3);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .accent-option.active {
-  border-color: #fff; /* white ring */
-  box-shadow: 0 0 20px rgba(255,255,255,0.4);
+  border-color: #fff;
+  /* white ring */
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
 }
 
 .accent-check {
@@ -6016,7 +6205,7 @@ body.no-special-effects.manga-warping {
   opacity: 0;
   transform: scale(0.5);
   transition: all 0.2s;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .accent-option.active .accent-check {
@@ -6070,14 +6259,14 @@ body.no-special-effects.manga-warping {
   top: 3px;
   left: 3px;
   transition: 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.preference-toggle input:checked + .toggle-slider {
+.preference-toggle input:checked+.toggle-slider {
   background: var(--neon-blue);
 }
 
-.preference-toggle input:checked + .toggle-slider::before {
+.preference-toggle input:checked+.toggle-slider::before {
   left: 25px;
 }
 
@@ -6086,8 +6275,9 @@ body.no-special-effects.manga-warping {
   padding: 20px 28px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
-  display:flex;
-  justify-content: flex-end; /* Align to right like modern modals */
+  display: flex;
+  justify-content: flex-end;
+  /* Align to right like modern modals */
   gap: 12px;
 }
 
@@ -6161,7 +6351,7 @@ body.theme-light .sidebar {
 
 body.theme-light .sidebar-logo {
   border: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 body.theme-light .nav-item {
@@ -6174,17 +6364,18 @@ body.theme-light .nav-item:hover {
 }
 
 body.theme-light .top-header-minimal {
-  background: rgba(255,255,255,0.9);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
   border-bottom-color: #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-body.theme-light .nav-link-item, 
+body.theme-light .nav-link-item,
 body.theme-light .dropdown-btn {
   color: #4b5563;
 }
-body.theme-light .nav-link-item:hover, 
+
+body.theme-light .nav-link-item:hover,
 body.theme-light .dropdown-btn:hover {
   background-color: #f3f4f6;
 }
@@ -6235,7 +6426,8 @@ body.theme-purple {
   --text-primary: #e9d5ff;
   --text-muted: #a78bfa;
   --border-subtle: #4c1d95;
-  --neon-blue: #d8b4fe; /* Override neon for purple theme */
+  --neon-blue: #d8b4fe;
+  /* Override neon for purple theme */
 }
 
 body.theme-purple .sidebar {
@@ -6247,29 +6439,54 @@ body.theme-purple .sidebar {
 /* FONT SIZES & DENSITY                              */
 /* ================================================= */
 
-body.font-small { font-size: 14px; }
-body.font-medium { font-size: 16px; }
-body.font-large { font-size: 18px; }
-body.font-xlarge { font-size: 20px; }
+body.font-small {
+  font-size: 14px;
+}
 
-body.density-compact { --section-gap: 15px; }
-body.density-comfortable { --section-gap: 25px; }
-body.density-spacious { --section-gap: 40px; }
+body.font-medium {
+  font-size: 16px;
+}
 
-body.density-compact .main-content { padding-top: 10px; }
-body.density-spacious .main-content { padding-top: 40px; }
+body.font-large {
+  font-size: 18px;
+}
+
+body.font-xlarge {
+  font-size: 20px;
+}
+
+body.density-compact {
+  --section-gap: 15px;
+}
+
+body.density-comfortable {
+  --section-gap: 25px;
+}
+
+body.density-spacious {
+  --section-gap: 40px;
+}
+
+body.density-compact .main-content {
+  padding-top: 10px;
+}
+
+body.density-spacious .main-content {
+  padding-top: 40px;
+}
 
 
 /* Special styling for Customization sidebar button (Purple Gradient) */
 .nav-customization {
-  background: linear-gradient(135deg, #b06ab3 0%, #4568dc 100%); /* Purple to Blue */
+  background: linear-gradient(135deg, #b06ab3 0%, #4568dc 100%);
+  /* Purple to Blue */
   position: relative;
   overflow: hidden;
 }
 
 .nav-customization i {
-  color: white; 
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .nav-customization:hover {
@@ -6280,9 +6497,20 @@ body.density-spacious .main-content { padding-top: 40px; }
 
 /* Add a subtle sparkle animation */
 @keyframes sparkle {
-  0% { opacity: 0; transform: scale(0); }
-  50% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0); }
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0);
+  }
 }
 
 .nav-customization::after {
@@ -6308,7 +6536,8 @@ body.density-spacious .main-content { padding-top: 40px; }
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 4px; /* Reduced padding to make icon bigger */
+  padding: 4px;
+  /* Reduced padding to make icon bigger */
 }
 
 .nav-item-img img {
@@ -6331,7 +6560,8 @@ body.density-spacious .main-content { padding-top: 40px; }
    CUSTOMIZATION PAGE - CYBERPUNK THEME
    ========================================= */
 :root {
-  --neon-cyan: #00f3ff; /* Specific cyan from mockup */
+  --neon-cyan: #00f3ff;
+  /* Specific cyan from mockup */
 }
 
 /* Glass Container */
@@ -6400,7 +6630,8 @@ body.density-spacious .main-content { padding-top: 40px; }
 }
 
 .cyberpunk-select option {
-  background: #1a1a2e; /* Fallback dark bg */
+  background: #1a1a2e;
+  /* Fallback dark bg */
   color: #fff;
 }
 
@@ -6427,95 +6658,7 @@ body.density-spacious .main-content { padding-top: 40px; }
   text-shadow: 0 0 8px rgba(0, 243, 255, 0.8);
 }
 
+
 /* ================================================= */
-/* ANIMATED BANNER (Novus Blue Circuit)             */
+/* END OF CUSTOMIZATION STYLES                       */
 /* ================================================= */
-
-.catalog-hero.circuit-animated {
-  background: #000 !important;
-  position: relative;
-  overflow: hidden;
-  border-bottom: 2px solid var(--neon-blue);
-  box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.catalog-hero.circuit-animated::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: 
-    radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 50%, rgba(0, 212, 255, 0.08) 0%, transparent 50%);
-  z-index: 1;
-}
-
-.circuit-lines {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.4;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.circuit-path {
-  stroke: #00d4ff;
-  stroke-width: 1;
-  fill: none;
-  filter: drop-shadow(0 0 3px #00d4ff);
-}
-
-.circuit-dot {
-  fill: #00d4ff;
-  filter: drop-shadow(0 0 5px #00d4ff);
-}
-
-.glow-particle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: #00d4ff;
-  border-radius: 50%;
-  box-shadow: 0 0 10px #00d4ff, 0 0 20px #00d4ff;
-  animation: particleFloat 8s infinite ease-in-out;
-  z-index: 3;
-}
-
-.glow-particle:nth-child(1) { top: 10%; left: 5%; animation-delay: 0s; }
-.glow-particle:nth-child(2) { top: 20%; left: 15%; animation-delay: 1s; }
-.glow-particle:nth-child(3) { top: 70%; left: 10%; animation-delay: 2s; }
-.glow-particle:nth-child(4) { top: 80%; left: 85%; animation-delay: 3s; }
-.glow-particle:nth-child(5) { top: 15%; left: 90%; animation-delay: 4s; }
-.glow-particle:nth-child(6) { top: 60%; left: 95%; animation-delay: 5s; }
-
-@keyframes particleFloat {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 0.8; }
-  50% { transform: translateY(-20px) scale(1.5); opacity: 1; }
-}
-
-@keyframes drawLine {
-  to { stroke-dashoffset: 0; }
-}
-
-/* Ensure content stays on top */
-.catalog-hero.circuit-animated .catalog-hero-inner {
-  position: relative;
-  z-index: 10;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
-  padding: 40px;
-  border-radius: 20px;
-  border: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.catalog-hero.circuit-animated .catalog-title {
-  text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
-}
