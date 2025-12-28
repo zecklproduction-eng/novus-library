@@ -3,45 +3,65 @@
 
 {% block content %}
 <div style="max-width: 1400px; margin: 30px auto; padding: 0 20px;">
-  
+
   <div class="cyberpunk-glass-container">
-    <h2 class="mb-5" style="color: #fff; font-size: 2rem; font-weight: 400; letter-spacing: 1px;">
-      Customization Upload
-    </h2>
-    
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px;">
+      <h2 style="color: #fff; font-size: 2rem; font-weight: 400; letter-spacing: 1px; margin: 0;">
+        Customization Upload
+      </h2>
+      <button onclick="showUploadInfo()"
+        style="background: rgba(0, 212, 255, 0.2); border: 1px solid rgba(0, 212, 255, 0.4); color: var(--neon-cyan); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;"
+        onmouseover="this.style.background='rgba(0, 212, 255, 0.3)'"
+        onmouseout="this.style.background='rgba(0, 212, 255, 0.2)'">
+        <i class="fas fa-info"></i>
+      </button>
+    </div>
+
     <!-- Top Row: Main Animations -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 40px; margin-bottom: 50px;">
-      
+    <div
+      style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 40px; margin-bottom: 50px;">
+
       <!-- Manga Entering Animation -->
       <div class="cyberpunk-card">
         <h5 class="mb-3">Manga Entering Animation</h5>
-        
+
         <!-- Preview -->
         <div id="mangaEnterPreview" class="cyberpunk-preview mb-3">
           {% if active_animations.get('manga_enter') %}
-            {% set ext = active_animations['manga_enter'].path.split('.')[-1].lower() %}
-            {% if ext in ['mp4', 'webm'] %}
-              <video src="{{ url_for('static', filename=active_animations['manga_enter'].path) }}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-            {% elif ext == 'gif' %}
-              <img src="{{ url_for('static', filename=active_animations['manga_enter'].path) }}" style="width: 100%; height: 100%; object-fit: cover;" />
-            {% endif %}
+          {% set ext = active_animations['manga_enter'].path.split('.')[-1].lower() %}
+          {% if ext in ['mp4', 'webm'] %}
+          <video src="{{ url_for('static', filename=active_animations['manga_enter'].path) }}" autoplay loop muted
+            style="width: 100%; height: 100%; object-fit: cover;"></video>
+          {% elif ext == 'gif' %}
+          <img src="{{ url_for('static', filename=active_animations['manga_enter'].path) }}"
+            style="width: 100%; height: 100%; object-fit: cover;" />
+          {% endif %}
           {% else %}
-            <img src="{{ url_for('static', filename='img/manga_enter_default.png') }}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />
+          <img src="{{ url_for('static', filename='img/manga_enter_default.png') }}"
+            style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />
           {% endif %}
         </div>
-        
+
         <!-- Dropdown & Upload -->
         <div style="display: flex; gap: 10px;">
           <select id="mangaEnterSelect" class="cyberpunk-select" style="flex: 1;">
             <option value="">Select Animation</option>
-            <option value="default" {% if not active_animations.get('manga_enter') %}selected{% endif %}>Default (Power Up)</option>
+            <option value="default" {% if not active_animations.get('manga_enter') %}selected{% endif %}>Default (Power
+              Up)</option>
             {% for anim in animations.manga_enter %}
-              <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>Custom #{{ loop.index }}</option>
+            <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{
+              anim.name or ("Custom #" ~ loop.index) }}</option>
             {% endfor %}
           </select>
-          
-          <input type="file" id="mangaEnterUpload" hidden accept=".mp4,.webm,.gif" onchange="uploadAnimation('manga_enter', this)">
-          <button onclick="document.querySelector('#mangaEnterUpload').click()" style="background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.4); color: #fff; border-radius: 8px; width: 42px; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onmouseover="this.style.background='rgba(102, 126, 234, 0.4)'" onmouseout="this.style.background='rgba(102, 126, 234, 0.2)'">
+
+          <input type="text" id="manga_enterName" class="cyberpunk-input" placeholder="Name..."
+            style="width: 150px; padding: 5px 10px; border-radius: 5px; border: 1px solid rgba(0,212,255,0.3); background: rgba(0,0,0,0.3); color: #fff;">
+          <input type="file" id="mangaEnterUpload" hidden accept=".mp4,.webm,.gif"
+            onchange="uploadAnimation('manga_enter', this)">
+          <button onclick="document.querySelector('#mangaEnterUpload').click()"
+            style="background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.4); color: #fff; border-radius: 8px; width: 42px; display: flex; align-items: center; justify-content: center; transition: all 0.3s;"
+            onmouseover="this.style.background='rgba(102, 126, 234, 0.4)'"
+            onmouseout="this.style.background='rgba(102, 126, 234, 0.2)'">
             <i class="fas fa-upload"></i>
           </button>
         </div>
@@ -50,108 +70,148 @@
       <!-- Log Out Animation -->
       <div class="cyberpunk-card">
         <h5 class="mb-3">Log Out Animation</h5>
-        
+
         <!-- Preview -->
         <div id="logoutPreview" class="cyberpunk-preview mb-3">
           {% if active_animations.get('logout') %}
-            {% set ext = active_animations['logout'].path.split('.')[-1].lower() %}
-            {% if ext in ['mp4', 'webm'] %}
-              <video src="{{ url_for('static', filename=active_animations['logout'].path) }}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-            {% elif ext == 'gif' %}
-              <img src="{{ url_for('static', filename=active_animations['logout'].path) }}" style="width: 100%; height: 100%; object-fit: cover;" />
-            {% endif %}
+          {% set ext = active_animations['logout'].path.split('.')[-1].lower() %}
+          {% if ext in ['mp4', 'webm'] %}
+          <video src="{{ url_for('static', filename=active_animations['logout'].path) }}" autoplay loop muted
+            style="width: 100%; height: 100%; object-fit: cover;"></video>
+          {% elif ext == 'gif' %}
+          <img src="{{ url_for('static', filename=active_animations['logout'].path) }}"
+            style="width: 100%; height: 100%; object-fit: cover;" />
+          {% endif %}
           {% else %}
-             <img src="{{ url_for('static', filename='img/logout_default.png') }}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />
+          <img src="{{ url_for('static', filename='img/logout_default.png') }}"
+            style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />
           {% endif %}
         </div>
-        
+
         <!-- Dropdown & Upload -->
         <div style="display: flex; gap: 10px;">
           <select id="logoutSelect" class="cyberpunk-select" style="flex: 1;">
             <option value="">Select Animation</option>
             <option value="default" {% if not active_animations.get('logout') %}selected{% endif %}>Default</option>
             {% for anim in animations.logout %}
-              <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>Custom #{{ loop.index }}</option>
+            <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{
+              anim.name or ("Custom #" ~ loop.index) }}</option>
             {% endfor %}
           </select>
-          
-          <input type="file" id="logoutUpload" hidden accept=".mp4,.webm,.gif" onchange="uploadAnimation('logout', this)">
-          <button onclick="document.querySelector('#logoutUpload').click()" style="background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.4); color: #fff; border-radius: 8px; width: 42px; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onmouseover="this.style.background='rgba(102, 126, 234, 0.4)'" onmouseout="this.style.background='rgba(102, 126, 234, 0.2)'">
+
+          <input type="text" id="logoutName" class="cyberpunk-input" placeholder="Name..."
+            style="width: 150px; padding: 5px 10px; border-radius: 5px; border: 1px solid rgba(0,212,255,0.3); background: rgba(0,0,0,0.3); color: #fff;">
+          <input type="file" id="logoutUpload" hidden accept=".mp4,.webm,.gif"
+            onchange="uploadAnimation('logout', this)">
+          <button onclick="document.querySelector('#logoutUpload').click()"
+            style="background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.4); color: #fff; border-radius: 8px; width: 42px; display: flex; align-items: center; justify-content: center; transition: all 0.3s;"
+            onmouseover="this.style.background='rgba(102, 126, 234, 0.4)'"
+            onmouseout="this.style.background='rgba(102, 126, 234, 0.2)'">
             <i class="fas fa-upload"></i>
           </button>
         </div>
       </div>
-    
+
     </div>
 
     <!-- Dashboard Banner -->
     <div class="cyberpunk-card mb-5">
       <h5 class="mb-3">Dashboard Banner</h5>
-      
+
       <!-- Preview -->
       <div id="bannerPreview" class="cyberpunk-preview mb-3" style="height: 250px;">
         {% if active_animations.get('banner') %}
-          {% set ext = active_animations['banner'].path.split('.')[-1].lower() %}
-          {% if ext in ['mp4', 'webm'] %}
-            <video src="{{ url_for('static', filename=active_animations['banner'].path) }}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-          {% elif ext in ['gif', 'jpg', 'jpeg', 'png'] %}
-            <img src="{{ url_for('static', filename=active_animations['banner'].path) }}" style="width: 100%; height: 100%; object-fit: cover;" />
-          {% endif %}
+        {% set ext = active_animations['banner'].path.split('.')[-1].lower() %}
+        {% if ext in ['mp4', 'webm'] %}
+        <video src="{{ url_for('static', filename=active_animations['banner'].path) }}" autoplay loop muted
+          style="width: 100%; height: 100%; object-fit: cover;"></video>
+        {% elif ext in ['gif', 'jpg', 'jpeg', 'png'] %}
+        <img src="{{ url_for('static', filename=active_animations['banner'].path) }}"
+          style="width: 100%; height: 100%; object-fit: cover;" />
+        {% endif %}
         {% else %}
-          <img src="{{ url_for('static', filename='img/banner_default.png') }}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />
+        <img src="{{ url_for('static', filename='img/banner_default.png') }}"
+          style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />
         {% endif %}
       </div>
-      
-      <!-- Dropdown & Upload -->
-      <div style="display: flex; gap: 10px; max-width: 600px;">
-        <select id="bannerSelect" class="cyberpunk-select" style="flex: 1;">
+
+      <!-- Dropdown & Upload with Embedded Text Checkbox -->
+      <div style="display: flex; gap: 10px; max-width: 600px; align-items: start; flex-wrap: wrap;">
+        <select id="bannerSelect" class="cyberpunk-select" style="flex: 1; min-width: 250px;">
           <option value="">Select Banner</option>
           <option value="default" {% if not active_animations.get('banner') %}selected{% endif %}>Default</option>
           {% for anim in animations.banner %}
-             <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>
-               {% if 'banner_option_novus_blue.png' in anim.path %}
-                 Cyber Theme (Animated)
-               {% else %}
-                 Custom #{{ loop.index }}
-               {% endif %}
-             </option>
+          {% set ext = anim.path.split('.')[-1].lower() %}
+          {% set is_animated = ext in ['gif', 'mp4', 'webm'] %}
+          <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>
+            {% if 'banner_option_novus_blue.png' in anim.path %}
+            Cyber Theme (Animated) 🎬
+            {% else %}
+            {{ anim.name or ("Custom #" ~ loop.index) }}{% if is_animated %} 🎬{% endif %}
+            {% endif %}
+          </option>
           {% endfor %}
         </select>
-        
-        <input type="file" id="bannerUpload" hidden accept=".img,.jpg,.jpeg,.png,.gif,.mp4,.webm" onchange="uploadAnimation('banner', this)">
-        <button onclick="document.querySelector('#bannerUpload').click()" style="background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.4); color: #fff; border-radius: 8px; width: 42px; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onmouseover="this.style.background='rgba(102, 126, 234, 0.4)'" onmouseout="this.style.background='rgba(102, 126, 234, 0.2)'">
-          <i class="fas fa-upload"></i>
-        </button>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; flex: 1;">
+          <div style="display: flex; gap: 10px;">
+            <input type="text" id="bannerName" class="cyberpunk-input" placeholder="Name..."
+              style="width: 150px; padding: 5px 10px; border-radius: 5px; border: 1px solid rgba(0,212,255,0.3); background: rgba(0,0,0,0.3); color: #fff;">
+            <input type="file" id="bannerUpload" hidden accept=".img,.jpg,.jpeg,.png,.gif,.mp4,.webm"
+              onchange="uploadAnimation('banner', this)">
+            <button onclick="document.querySelector('#bannerUpload').click()"
+              style="background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.4); color: #fff; border-radius: 8px; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; transition: all 0.3s;"
+              onmouseover="this.style.background='rgba(102, 126, 234, 0.4)'"
+              onmouseout="this.style.background='rgba(102, 126, 234, 0.2)'">
+              <i class="fas fa-upload"></i>
+            </button>
+          </div>
+
+          <label
+            style="display: flex; align-items: center; gap: 8px; color: #bbb; font-size: 0.85rem; cursor: pointer;">
+            <input type="checkbox" id="bannerHasAnimated" style="cursor: pointer;">
+            <span>This banner has animations (show indicator icon)</span>
+          </label>
+        </div>
       </div>
     </div>
 
     <!-- My Animations Library -->
     <div class="mb-5">
       <h5 class="mb-3" style="color: #fff; font-weight: 500;">My Animations Library</h5>
-      
-      <div id="animationsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px;">
+
+      <div id="animationsGrid"
+        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px;">
         {% set allAnimations = animations.manga_enter + animations.logout + animations.banner %}
         {% for anim in allAnimations %}
-          <div class="animation-thumbnail cyberpunk-card p-1" style="cursor: pointer; aspect-ratio: 16/9; overflow: hidden; padding: 4px; position: relative;">
-            {% set ext = anim.path.split('.')[-1].lower() %}
-            {% if ext in ['mp4', 'webm'] %}
-              <video src="{{ url_for('static', filename=anim.path) }}" muted loop style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"></video>
-            {% else %}
-              <img src="{{ url_for('static', filename=anim.path) }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
-            {% endif %}
-            
-            <button onclick="deleteAnimation({{ anim.id }})" style="position: absolute; top: 10px; right: 10px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-              <i class="fas fa-trash" style="font-size: 12px;"></i>
-            </button>
-          </div>
+        <div class="animation-thumbnail cyberpunk-card p-1"
+          style="cursor: pointer; aspect-ratio: 16/9; overflow: hidden; padding: 4px; position: relative;">
+          {% set ext = anim.path.split('.')[-1].lower() %}
+          {% if ext in ['mp4', 'webm'] %}
+          <video src="{{ url_for('static', filename=anim.path) }}" muted loop
+            style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"></video>
+          {% else %}
+          <img src="{{ url_for('static', filename=anim.path) }}"
+            style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
+          {% endif %}
+
+          <button onclick="deleteAnimation({{ anim.id }})"
+            style="position: absolute; top: 10px; right: 10px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;"
+            onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+            <i class="fas fa-trash" style="font-size: 12px;"></i>
+          </button>
+        </div>
         {% else %}
-          <div style="grid-column: 1 / -1; padding: 20px; color: #666; font-style: italic;">
-            No custom animations found.
-          </div>
+        <div style="grid-column: 1 / -1; padding: 20px; color: #666; font-style: italic;">
+          No custom animations found.
+        </div>
         {% endfor %}
-        
+
         <!-- Add New (Generic Trigger) -->
-        <div onclick="document.querySelector('#mangaEnterUpload').click()" style="display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed rgba(0, 243, 255, 0.3); border-radius: 12px; cursor: pointer; aspect-ratio: 16/9; background: rgba(0, 243, 255, 0.05); transition: all 0.3s;" onmouseover="this.style.borderColor='var(--neon-cyan)'; this.style.background='rgba(0, 243, 255, 0.1)';" onmouseout="this.style.borderColor='rgba(0, 243, 255, 0.3)'; this.style.background='rgba(0, 243, 255, 0.05)';">
+        <div onclick="document.querySelector('#mangaEnterUpload').click()"
+          style="display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed rgba(0, 243, 255, 0.3); border-radius: 12px; cursor: pointer; aspect-ratio: 16/9; background: rgba(0, 243, 255, 0.05); transition: all 0.3s;"
+          onmouseover="this.style.borderColor='var(--neon-cyan)'; this.style.background='rgba(0, 243, 255, 0.1)';"
+          onmouseout="this.style.borderColor='rgba(0, 243, 255, 0.3)'; this.style.background='rgba(0, 243, 255, 0.05)';">
           <i class="fas fa-plus" style="font-size: 2rem; color: var(--neon-cyan); margin-bottom: 8px;"></i>
           <span style="color: var(--neon-cyan); font-size: 0.9rem; font-weight: 600;">Upload New</span>
         </div>
@@ -168,159 +228,259 @@
   </div>
 </div>
 
-<style>
-.animation-thumbnail video:hover,
-.animation-thumbnail img:hover {
-  transform: scale(1.05);
-  transition: transform 0.3s;
-}
+<!-- Upload Info Modal -->
+<div id="uploadInfoModal"
+  style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center;">
+  <div
+    style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid rgba(0, 212, 255, 0.3); border-radius: 16px; padding: 30px; max-width: 600px; width: 90%; box-shadow: 0 0 40px rgba(0, 212, 255, 0.2); position: relative;">
+    <button onclick="hideUploadInfo()"
+      style="position: absolute; top: 15px; right: 15px; background: rgba(220, 53, 69, 0.2); border: 1px solid rgba(220, 53, 69, 0.4); color: #dc3545; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;"
+      onmouseover="this.style.background='rgba(220, 53, 69, 0.3)'"
+      onmouseout="this.style.background='rgba(220, 53, 69, 0.2)'">
+      <i class="fas fa-times"></i>
+    </button>
 
-.animation-thumbnail:hover {
-  border-color: var(--neon-blue);
-  box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
-}
+    <h3
+      style="color: var(--neon-cyan); margin-bottom: 20px; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
+      <i class="fas fa-upload"></i>
+      Upload Guidelines
+    </h3>
+
+    <div style="color: #ddd; line-height: 1.6;">
+      <div style="margin-bottom: 20px;">
+        <h4 style="color: #fff; font-size: 1.1rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-image" style="color: var(--neon-blue);"></i>
+          Banner Images
+        </h4>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li style="margin-bottom: 5px;"><strong>Recommended Dimensions:</strong> 1920x400px (21:9 aspect ratio)</li>
+          <li style="margin-bottom: 5px;"><strong>Formats:</strong> JPG, PNG, GIF, WebP</li>
+          <li><strong>Max File Size:</strong> 5 MB</li>
+        </ul>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <h4 style="color: #fff; font-size: 1.1rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-video" style="color: var(--neon-blue);"></i>
+          Video Banners
+        </h4>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li style="margin-bottom: 5px;"><strong>Recommended Dimensions:</strong> 1920x400px</li>
+          <li style="margin-bottom: 5px;"><strong>Formats:</strong> MP4, WebM</li>
+          <li><strong>Max File Size:</strong> 10 MB</li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 style="color: #fff; font-size: 1.1rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-film" style="color: var(--neon-blue);"></i>
+          Animations (Manga Enter/Logout)
+        </h4>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li style="margin-bottom: 5px;"><strong>Recommended Dimensions:</strong> 800x600px (4:3 aspect ratio)</li>
+          <li style="margin-bottom: 5px;"><strong>Formats:</strong> MP4, WebM, GIF</li>
+          <li><strong>Max File Size:</strong> 8 MB</li>
+        </ul>
+      </div>
+
+      <div
+        style="margin-top: 20px; padding: 15px; background: rgba(0, 212, 255, 0.1); border-left: 3px solid var(--neon-cyan); border-radius: 4px;">
+        <p style="margin: 0; font-size: 0.9rem;">
+          <i class="fas fa-lightbulb" style="color: #ffd700; margin-right: 8px;"></i>
+          <strong>Tip:</strong> For best results, use high-quality images optimized for web. Animated content performs
+          better as video (MP4/WebM) rather than GIF.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .animation-thumbnail video:hover,
+  .animation-thumbnail img:hover {
+    transform: scale(1.05);
+    transition: transform 0.3s;
+  }
+
+  .animation-thumbnail:hover {
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+  }
 </style>
 
 <script>
-let selectedAnimations = {
-  manga_enter: {{ active_animations.get('manga_enter', {}).get('id', None)|tojson }},
-  logout: {{ active_animations.get('logout', {}).get('id', None)|tojson }},
-  banner: {{ active_animations.get('banner', {}).get('id', None)|tojson }}
-};
-
-// Handle dropdown changes
-document.getElementById('mangaEnterSelect')?.addEventListener('change', function() {
-  if (this.value && this.value !== 'default') {
-    selectedAnimations.manga_enter = this.value;
-    updatePreview('mangaEnterPreview', this.options[this.selectedIndex].dataset.path);
-  } else if (this.value === 'default' || this.value === '') {
-    selectedAnimations.manga_enter = null;
-    document.getElementById('mangaEnterPreview').innerHTML = `<img src="/static/img/manga_enter_default.png" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />`;
+  // Upload Info Modal Functions
+  function showUploadInfo() {
+    document.getElementById('uploadInfoModal').style.display = 'flex';
   }
-});
 
-document.getElementById('logoutSelect')?.addEventListener('change', function() {
-  if (this.value && this.value !== 'default') {
-    selectedAnimations.logout = this.value;
-    updatePreview('logoutPreview', this.options[this.selectedIndex].dataset.path);
-  } else if (this.value === 'default' || this.value === '') {
-    selectedAnimations.logout = null;
-    document.getElementById('logoutPreview').innerHTML = `<img src="/static/img/logout_default.png" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />`;
+  function hideUploadInfo() {
+    document.getElementById('uploadInfoModal').style.display = 'none';
   }
-});
 
-document.getElementById('bannerSelect')?.addEventListener('change', function() {
-  if (this.value && this.value !== 'default') {
-    selectedAnimations.banner = this.value;
-    updatePreview('bannerPreview', this.options[this.selectedIndex].dataset.path);
-  } else if (this.value === 'default' || this.value === '') {
-    selectedAnimations.banner = 'reset_banner'; // Special ID to trigger deactivation
-    document.getElementById('bannerPreview').innerHTML = `<img src="/static/img/banner_default.png" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />`;
-  }
-});
-});
-
-function updatePreview(previewId, path) {
-  const preview = document.getElementById(previewId);
-  const ext = path.split('.').pop().toLowerCase();
-  
-  if (['mp4', 'webm'].includes(ext)) {
-    preview.innerHTML = `<video src="/static/${path}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover;"></video>`;
-  } else {
-    preview.innerHTML = `<img src="/static/${path}" style="width: 100%; height: 100%; object-fit: cover;" />`;
-  }
-}
-
-async function uploadAnimation(type, input) {
-  const file = input.files[0];
-  if (!file) return;
-  
-  const formData = new FormData();
-  formData.append('animation_file', file);
-  formData.append('animation_type', type);
-  
-  try {
-    const response = await fetch('/api/animation/upload', {
-      method: 'POST',
-      body: formData
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      alert('Upload failed: ' + (error.error || 'Unknown error'));
-      return;
+  // Close modal on outside click
+  document.getElementById('uploadInfoModal')?.addEventListener('click', function (e) {
+    if (e.target === this) {
+      hideUploadInfo();
     }
-    
-    const data = await response.json();
-    alert('Animation uploaded successfully!');
-    location.reload(); // Refresh to show new animation
-  } catch (error) {
-    console.error('Upload error:', error);
-    alert('Failed to upload animation');
-  }
-}
-
-async function deleteAnimation(id) {
-  if (!confirm('Are you sure you want to delete this animation?')) return;
-  
-  try {
-    const response = await fetch(`/api/animation/${id}`, {
-      method: 'DELETE'
-    });
-    
-    if (!response.ok) {
-      alert('Failed to delete animation');
-      return;
-    }
-    
-    alert('Animation deleted successfully!');
-    location.reload();
-  } catch (error) {
-    console.error('Delete error:', error);
-    alert('Failed to delete animation');
-  }
-}
-
-async function saveChanges() {
-  // Activate selected animations
-  const promises = [];
-  
-  for (const [type, animId] of Object.entries(selectedAnimations)) {
-    if (animId && animId !== 'null') {
-      console.log(`Saving ${type}: ${animId}`);
-      promises.push(
-        fetch(`/api/animation/${animId}/activate`, {
-          method: 'PUT'
-        }).then(async (response) => {
-          if (!response.ok) {
-            const error = await response.json().catch(() => ({error: 'Unknown error'}));
-            throw new Error(`Failed to activate ${type}: ${error.error || response.statusText}`);
-          }
-          return response.json();
-        })
-      );
-    }
-  }
-  
-  try {
-    await Promise.all(promises);
-    alert('Settings saved successfully!');
-    location.reload();
-  } catch (error) {
-    console.error('Save error:', error);
-    alert('Failed to save settings: ' + error.message);
-  }
-}
-
-// Hover effect for animation thumbnails - play video
-document.querySelectorAll('.animation-thumbnail video').forEach(video => {
-  const container = video.closest('.animation-thumbnail');
-  container.addEventListener('mouseenter', () => video.play());
-  container.addEventListener('mouseleave', () => {
-    video.pause();
-    video.currentTime = 0;
   });
-});
+
+  let selectedAnimations = {
+    manga_enter: {{ active_animations.get('manga_enter', {}).get('id', None) | tojson }},
+  logout: { { active_animations.get('logout', {}).get('id', None) | tojson } },
+  banner: { { active_animations.get('banner', {}).get('id', None) | tojson } }
+  };
+
+  // Handle dropdown changes
+  document.getElementById('mangaEnterSelect')?.addEventListener('change', function () {
+    if (this.value && this.value !== 'default') {
+      selectedAnimations.manga_enter = this.value;
+      updatePreview('mangaEnterPreview', this.options[this.selectedIndex].dataset.path);
+    } else if (this.value === 'default' || this.value === '') {
+      selectedAnimations.manga_enter = null;
+      document.getElementById('mangaEnterPreview').innerHTML = `<img src="/static/img/manga_enter_default.png" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />`;
+    }
+  });
+
+  document.getElementById('logoutSelect')?.addEventListener('change', function () {
+    if (this.value && this.value !== 'default') {
+      selectedAnimations.logout = this.value;
+      updatePreview('logoutPreview', this.options[this.selectedIndex].dataset.path);
+    } else if (this.value === 'default' || this.value === '') {
+      selectedAnimations.logout = null;
+      document.getElementById('logoutPreview').innerHTML = `<img src="/static/img/logout_default.png" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />`;
+    }
+  });
+
+  document.getElementById('bannerSelect')?.addEventListener('change', function () {
+    if (this.value && this.value !== 'default') {
+      selectedAnimations.banner = this.value;
+      updatePreview('bannerPreview', this.options[this.selectedIndex].dataset.path);
+    } else if (this.value === 'default' || this.value === '') {
+      selectedAnimations.banner = 'reset_banner'; // Special ID to trigger deactivation
+      document.getElementById('bannerPreview').innerHTML = `<img src="/static/img/banner_default.png" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />`;
+    }
+  });
+
+  function updatePreview(previewId, path) {
+    const preview = document.getElementById(previewId);
+    const ext = path.split('.').pop().toLowerCase();
+
+    if (['mp4', 'webm'].includes(ext)) {
+      preview.innerHTML = `<video src="/static/${path}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover;"></video>`;
+    } else {
+      preview.innerHTML = `<img src="/static/${path}" style="width: 100%; height: 100%; object-fit: cover;" />`;
+    }
+  }
+
+  async function uploadAnimation(type, input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Get Name
+    // Handle 'manga_enter' vs 'manga_enterName' (underscore consistency)
+    // ID mapping: manga_enter -> manga_enterName, logout -> logoutName, banner -> bannerName
+    const nameInputId = type + 'Name';
+    const nameInput = document.getElementById(nameInputId);
+    if (!nameInput || !nameInput.value.trim()) {
+      alert("Please enter a name for the animation.");
+      input.value = ''; // clear file
+      return;
+    }
+    const name = nameInput.value.trim();
+
+    const formData = new FormData();
+    formData.append('animation_file', file);
+    formData.append('animation_type', type);
+    formData.append('animation_name', name);
+
+    // For banners, include has_animated flag
+    if (type === 'banner') {
+      const hasAnimated = document.getElementById('bannerHasAnimated')?.checked || false;
+      formData.append('has_animated', hasAnimated ? 'true' : 'false');
+    }
+
+    try {
+      const response = await fetch('/api/animation/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert('Upload failed: ' + (error.error || 'Unknown error'));
+        return;
+      }
+
+      const data = await response.json();
+      alert('Animation uploaded successfully!');
+      location.reload(); // Refresh to show new animation
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload animation');
+    }
+  }
+
+  async function deleteAnimation(id) {
+    if (!confirm('Are you sure you want to delete this animation?')) return;
+
+    try {
+      const response = await fetch(`/api/animation/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        alert('Failed to delete animation');
+        return;
+      }
+
+      alert('Animation deleted successfully!');
+      location.reload();
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete animation');
+    }
+  }
+
+  async function saveChanges() {
+    // Activate selected animations
+    const promises = [];
+
+    for (const [type, animId] of Object.entries(selectedAnimations)) {
+      if (animId && animId !== 'null') {
+        console.log(`Saving ${type}: ${animId}`);
+        promises.push(
+          fetch(`/api/animation/${animId}/activate`, {
+            method: 'PUT'
+          }).then(async (response) => {
+            if (!response.ok) {
+              const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+              throw new Error(`Failed to activate ${type}: ${error.error || response.statusText}`);
+            }
+            return response.json();
+          })
+        );
+      }
+    }
+
+    try {
+      await Promise.all(promises);
+      alert('Settings saved successfully!');
+      location.reload();
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Failed to save settings: ' + error.message);
+    }
+  }
+
+  // Hover effect for animation thumbnails - play video
+  document.querySelectorAll('.animation-thumbnail video').forEach(video => {
+    const container = video.closest('.animation-thumbnail');
+    container.addEventListener('mouseenter', () => video.play());
+    container.addEventListener('mouseleave', () => {
+      video.pause();
+      video.currentTime = 0;
+    });
+  });
 </script>
 {% endblock %}
-

@@ -302,8 +302,8 @@ def apply_default_banner_if_needed(user_id):
     existing_banner = c.fetchone()
     
     if not existing_banner:
-        # User has no active banner, apply the Novus Blue preset as default
-        preset_path = 'img/banner_option_novus_blue.png'
+        # User has no active banner, apply the default banner
+        preset_path = 'img/banner_default.png'
         
         # Check if this preset already exists for the user (inactive)
         c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path = ?", (user_id, preset_path))
@@ -4559,7 +4559,7 @@ def customization():
     
     # Get all animations for this user
     c.execute("""
-        SELECT id, animation_type, file_path, is_active, created_at
+        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name
         FROM custom_animations
         WHERE user_id = ?
         ORDER BY created_at DESC
@@ -4581,7 +4581,9 @@ def customization():
             'type': anim[1],
             'path': anim[2],
             'is_active': anim[3],
-            'created_at': anim[4]
+            'created_at': anim[4],
+            'has_animated': anim[5],
+            'name': anim[6]
         }
         animations_dict[anim[1]].append(anim_data)
         if anim[3] == 1:  # is_active
@@ -4604,7 +4606,8 @@ def customization():
             'type': 'banner',
             'path': 'img/banner_option_novus_blue.png',
             'is_active': 0, 
-            'created_at': 'System'
+            'created_at': 'System',
+            'name': 'Novus Blue (Animated)'
         }
         animations_dict['banner'].insert(0, novus_blue_preset) # Add to top
 
@@ -4628,7 +4631,7 @@ def customization_upload():
     
     # Get all animations for this user (admin)
     c.execute("""
-        SELECT id, animation_type, file_path, is_active, created_at
+        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name
         FROM custom_animations
         WHERE user_id = ?
         ORDER BY created_at DESC
@@ -4650,7 +4653,9 @@ def customization_upload():
             'type': anim[1],
             'path': anim[2],
             'is_active': anim[3],
-            'created_at': anim[4]
+            'created_at': anim[4],
+            'has_animated': anim[5],
+            'name': anim[6]
         }
         animations_dict[anim[1]].append(anim_data)
         if anim[3] == 1:  # is_active
@@ -4672,7 +4677,8 @@ def customization_upload():
             'type': 'banner',
             'path': 'img/banner_option_novus_blue.png',
             'is_active': 0,
-            'created_at': 'System'
+            'created_at': 'System',
+            'name': 'Novus Blue (Animated)'
         }
         animations_dict['banner'].insert(0, novus_blue_preset) # Add to top
 
@@ -4721,12 +4727,16 @@ def upload_animation():
     relative_path = f"animations/{animation_type}/{unique_filename}"
     user_id = session.get("user_id")
     
+    # Get has_animated parameter (defaults to 0 for backwards compatibility)
+    has_animated = 1 if request.form.get("has_animated") == "true" else 0
+    name = request.form.get("animation_name")
+    
     conn = get_conn()
     c = conn.cursor()
     c.execute("""
-        INSERT INTO custom_animations (user_id, animation_type, file_path, is_active)
-        VALUES (?, ?, ?, 0)
-    """, (user_id, animation_type, relative_path))
+        INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, has_animated, name)
+        VALUES (?, ?, ?, 0, ?, ?)
+    """, (user_id, animation_type, relative_path, has_animated, name))
     animation_id = c.lastrowid
     conn.commit()
     conn.close()
@@ -4738,7 +4748,10 @@ def upload_animation():
         "animation": {
             "id": animation_id,
             "type": animation_type,
-            "path": relative_path
+            "id": animation_id,
+            "type": animation_type,
+            "path": relative_path,
+            "name": name
         }
     })
 
@@ -4770,7 +4783,6 @@ def activate_animation(animation_id):
         print("DEBUG: Deactivated existing banners", flush=True)
 
         # 2. Check if a row exists for this preset
-        # We search just by filename to be robust
         preset_filename = 'banner_option_novus_blue.png'
         c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path LIKE ?", (user_id, f"%{preset_filename}%"))
         row = c.fetchone()
@@ -4782,11 +4794,46 @@ def activate_animation(animation_id):
         else:
             print("DEBUG: Inserting new row for preset", flush=True)
             # Insert new row
-            # IMPORTANT: Path must be what index.html expects (relative to static)
             preset_full_path = 'img/banner_option_novus_blue.png' 
             c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active) VALUES (?, 'banner', ?, 1)", 
                       (user_id, preset_full_path))
             
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+        
+    # Handle Person Preset for Manga Enter
+    if animation_id == 'preset_person_manga_enter':
+        c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'manga_enter'", (user_id,))
+        
+        preset_filename = 'person.png'
+        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND animation_type = 'manga_enter' AND file_path LIKE ?", (user_id, f"%{preset_filename}%"))
+        row = c.fetchone()
+        
+        if row:
+            c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (row[0],))
+        else:
+            preset_full_path = 'img/person.png'
+            c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active) VALUES (?, 'manga_enter', ?, 1)", 
+                      (user_id, preset_full_path))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+
+    # Handle Person Preset for Logout
+    if animation_id == 'preset_person_logout':
+        c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'logout'", (user_id,))
+        
+        preset_filename = 'person.png'
+        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND animation_type = 'logout' AND file_path LIKE ?", (user_id, f"%{preset_filename}%"))
+        row = c.fetchone()
+        
+        if row:
+            c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (row[0],))
+        else:
+            preset_full_path = 'img/person.png'
+            c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active) VALUES (?, 'logout', ?, 1)", 
+                      (user_id, preset_full_path))
         conn.commit()
         conn.close()
         return jsonify({"success": True})

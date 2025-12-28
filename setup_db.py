@@ -36,6 +36,20 @@ cursor.execute('''
     )
 ''')
 
+print("3b. Creating Custom Animations table...")
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS custom_animations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        animation_type TEXT,
+        file_path TEXT,
+        is_active INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        has_animated INTEGER DEFAULT 0,
+        name VARCHAR(100)
+    )
+''')
+
 print("4. Adding Admin & Student accounts...")
 try:
     # Admin User

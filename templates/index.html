@@ -12,22 +12,29 @@
 
   <div class="catalog-hero" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');">
 
-    <!-- Text Overlay (Always Present) -->
+    <!-- Text Overlay (Always shown) -->
     <div class="catalog-hero-inner container">
       <h1 class="catalog-title">NOVUS</h1>
       <p class="catalog-subtitle">A New Way to Read.</p>
-
-      <!-- Breadcrumb inside banner -->
-      <nav class="breadcrumb-row-inline">
-        <a href="{{ url_for(page_endpoint or 'home') }}">Home</a>
-        <span>›</span>
-        <a href="{{ url_for(page_endpoint or 'home') }}">Books</a>
-        {% if selected_category %}
-        <span>›</span>
-        <span class="crumb-current">{{ selected_category }}</span>
-        {% endif %}
-      </nav>
     </div>
+
+    <!-- Animated Icon Indicator (shown if banner has animations) -->
+    {% if animations.banner and animations.banner.has_animated %}
+    <div class="banner-animated-indicator">
+      <i class="fas fa-film"></i>
+    </div>
+    {% endif %}
+
+    <!-- Breadcrumb at bottom spanning full width -->
+    <nav class="breadcrumb-row-inline">
+      <a href="{{ url_for(page_endpoint or 'home') }}">Home</a>
+      <span>›</span>
+      <a href="{{ url_for(page_endpoint or 'home') }}">Books</a>
+      {% if selected_category %}
+      <span>›</span>
+      <span class="crumb-current">{{ selected_category }}</span>
+      {% endif %}
+    </nav>
   </div>
 
   <div class="container">
@@ -44,8 +51,12 @@
           </div>
 
           <form method="get" class="sort-form" style="display:flex; gap:8px; align-items:center;">
-            <input type="text" name="q" placeholder="Search title or author..." value="{{ search_query or '' }}"
-              class="form-control" style="min-width:200px;">
+            <div style="position: relative; min-width: 200px;">
+              <i class="fas fa-search"
+                style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888; pointer-events: none;"></i>
+              <input type="text" name="q" placeholder="Search title or author..." value="{{ search_query or '' }}"
+                class="form-control" style="padding-left: 38px;">
+            </div>
             <select name="category" class="form-select">
               <option value="">All categories</option>
               {% for cat in categories %}

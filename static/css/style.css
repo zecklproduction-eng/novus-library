@@ -1100,10 +1100,13 @@ a.cta-button {
   background-color: #1f1f1f;
   border-bottom: 1px solid #3a3a3a;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 30px;
 }
 
 .catalog-hero-inner {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1125,29 +1128,86 @@ a.cta-button {
   font-size: 0.95rem;
 }
 
-/* Inline breadcrumb inside banner */
+/* Breadcrumb at bottom of banner spanning full width */
 .breadcrumb-row-inline {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: #bbb;
   font-size: 0.9rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  padding: 14px 30px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  width: 100%;
+  margin: 0;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 /* Inline breadcrumb link styles */
 .breadcrumb-row-inline a {
   color: #e6e6e6;
   text-decoration: none;
-  transition: color 0.2s;
+  transition: all 0.2s ease;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
 .breadcrumb-row-inline a:hover {
   color: var(--neon-blue);
+  background-color: rgba(0, 212, 255, 0.1);
+}
+
+.breadcrumb-row-inline span {
+  color: #888;
+  user-select: none;
 }
 
 .breadcrumb-row-inline .crumb-current {
   color: #fff;
   font-weight: 600;
+}
+
+/* Animated Banner Indicator Icon - top right corner */
+.banner-animated-indicator {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  border-radius: 50%;
+  border: 2px solid rgba(0, 212, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  animation: pulseGlow 2s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+.banner-animated-indicator i {
+  font-size: 1.2rem;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
+}
+
+@keyframes pulseGlow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    border-color: rgba(0, 212, 255, 0.6);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.7);
+    border-color: rgba(0, 212, 255, 0.9);
+  }
 }
 
 /* Hide old breadcrumb-row (not used anymore) */
