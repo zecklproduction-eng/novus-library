@@ -31,6 +31,10 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}"
     />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/animations.css') }}"
+    />
 
     <style>
       /* Pulsing Loading Bar with Glow */
@@ -549,28 +553,53 @@
     </div>
 
     <!-- MANGA WARP OVERLAY -->
-    <div id="manga-warp-overlay" class="warp-overlay">
+    <div id="manga-warp-overlay" class="warp-overlay {{ anim_styles.manga if anim_styles else 'classic' }}">
+      {% if animations.manga_enter %}
+      <div class="custom-anim-media">
+        {% set path = animations.manga_enter.path %}
+        {% set ext = path.split('.')[-1].lower() %}
+        {% if ext in ['mp4', 'webm'] %}
+          <video src="{{ url_for('static', filename=path) }}" autoplay loop muted></video>
+        {% else %}
+          <img src="{{ url_for('static', filename=path) }}" />
+        {% endif %}
+      </div>
+      {% endif %}
       <div class="warp-core"></div>
       <div class="warp-ring"></div>
       <div class="warp-halo"></div>
-
       <div class="warp-particles">
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
+        <span></span><span></span><span></span><span></span><span></span>
       </div>
-
       <div class="warp-label">ENTERING MANGA UNIVERSE…</div>
     </div>
 
     <!-- LOGOUT ANIMATION OVERLAY -->
-    <div id="logoutOverlay" class="logout-overlay">
+    <div id="logoutOverlay" class="logout-overlay {{ anim_styles.logout if anim_styles else 'fade' }}">
+      {% if animations.logout %}
+      <div class="custom-anim-media">
+        {% set path = animations.logout.path %}
+        {% set ext = path.split('.')[-1].lower() %}
+        {% if ext in ['mp4', 'webm'] %}
+          <video src="{{ url_for('static', filename=path) }}" autoplay loop muted></video>
+        {% else %}
+          <img src="{{ url_for('static', filename=path) }}" />
+        {% endif %}
+      </div>
+      {% endif %}
+      
+      {% if anim_styles.logout == 'shutter' %}
+      <div class="shutter-overlay-container">
+        {% for i in range(10) %}<div class="shutter-blade"></div>{% endfor %}
+      </div>
+      {% elif anim_styles.logout == 'pixel' %}
+      <div class="pixel-overlay-container">
+        {% for i in range(100) %}<div class="pixel-block"></div>{% endfor %}
+      </div>
+      {% endif %}
+
       <div class="logout-animation">
-        <div class="logout-icon">
-          <i class="fas fa-sign-out-alt"></i>
-        </div>
+        <div class="logout-icon"><i class="fas fa-sign-out-alt"></i></div>
         <div class="logout-text">Logging Out...</div>
         <div class="logout-subtext">See you next time!</div>
       </div>
@@ -1380,11 +1409,24 @@
         }
 
         overlay.classList.add('show');
+        
+        // Trigger specific style effects if needed
+        if (overlay.classList.contains('shutter')) {
+          overlay.querySelectorAll('.shutter-blade').forEach((b, i) => {
+             b.style.transitionDelay = (i * 0.05) + 's';
+          });
+          setTimeout(() => overlay.classList.add('active'), 50);
+        } else if (overlay.classList.contains('pixel')) {
+          overlay.querySelectorAll('.pixel-block').forEach((b, i) => {
+             b.style.transitionDelay = (Math.random() * 0.5) + 's';
+          });
+          setTimeout(() => overlay.classList.add('active'), 50);
+        }
 
         // Redirect to logout after animation
         setTimeout(() => {
           window.location.href = '{{ url_for("logout") }}';
-        }, 2000); // 2 second delay for animation
+        }, 2500); // Increased delay for richer animations
       }
 
       // Page load completion handler
@@ -1414,8 +1456,8 @@
         console.log('Opening modal for user:', userId, userName, context);
 
         // Don't show modal for current user
-        const currentUserId = {{ session.get('user_id') or 'null' }};
-        if (userId == currentUserId) {
+        const loggedInUserId = '{{ session.get("user_id", "") }}';
+        if (userId == loggedInUserId) {
           console.log('Not showing modal for current user');
           // Temporarily show modal anyway for testing
           // return;

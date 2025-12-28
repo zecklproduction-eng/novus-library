@@ -252,11 +252,59 @@
         font-size: 1rem;
     }
     .name-input-group input:focus { outline: none; border-color: #00f2ff; }
+
+    /* Tab Navigation */
+    .tab-nav {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 30px;
+        background: rgba(255,255,255,0.03);
+        padding: 6px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+    .tab-link {
+        padding: 12px 24px;
+        border-radius: 10px;
+        color: rgba(255,255,255,0.6);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .tab-link:hover {
+        color: rgba(255,255,255,0.85);
+        background: rgba(255,255,255,0.05);
+    }
+    .tab-link.active {
+        background: linear-gradient(135deg, rgba(189,0,255,0.2), rgba(0,242,255,0.15));
+        color: #fff;
+        box-shadow: 0 0 20px rgba(189,0,255,0.15);
+    }
+    .tab-link i {
+        font-size: 1rem;
+    }
 </style>
 
 <div class="studio-content">
     <div class="section-header">
         <h2><span>Animation</span> Studio</h2>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+        <a href="{{ url_for('customization') }}" class="tab-link">
+            <i class="fas fa-sliders-h"></i>
+            Animation Settings
+        </a>
+        <a href="{{ url_for('customization_upload') }}" class="tab-link active">
+            <i class="fas fa-cloud-upload-alt"></i>
+            Upload Studio
+        </a>
     </div>
 
     <div class="config-grid">
@@ -278,7 +326,7 @@
             </div>
             <select class="dropdown-select" id="bannerSelect" onchange="changeAnimation('banner', this)">
                 <option value="default" {% if not active_animations.get('banner') %}selected{% endif %}>Default (None)</option>
-                {% for anim in animations.banner %}
+                {% for anim in all_animations.banner %}
                 <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Custom #" ~ loop.index) }}</option>
                 {% endfor %}
             </select>
@@ -302,18 +350,18 @@
             </div>
             <select class="dropdown-select" id="manga_enterSelect" onchange="changeAnimation('manga_enter', this)">
                 <option value="default" {% if not active_animations.get('manga_enter') %}selected{% endif %}>Default (Classic Slide)</option>
-                {% for anim in animations.manga_enter %}
+                {% for anim in all_animations.manga_enter %}
                 <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Custom #" ~ loop.index) }}</option>
                 {% endfor %}
             </select>
         </div>
 
-        <!-- Login Sequence (uses logout type) -->
+        <!-- Login Sequence -->
         <div class="preview-card">
             <div class="card-label">Login Sequence</div>
             <div class="video-box" id="loginPreview">
-                {% if active_animations.get('logout') %}
-                    {% set path = active_animations['logout'].path %}
+                {% if active_animations.get('login') %}
+                    {% set path = active_animations['login'].path %}
                     {% set ext = path.split('.')[-1].lower() %}
                     {% if ext in ['mp4', 'webm'] %}
                         <video src="{{ url_for('static', filename=path) }}" autoplay loop muted></video>
@@ -324,9 +372,9 @@
                     <span class="placeholder">No Animation Set</span>
                 {% endif %}
             </div>
-            <select class="dropdown-select" id="loginSelect" onchange="changeAnimation('logout', this)">
-                <option value="default" {% if not active_animations.get('logout') %}selected{% endif %}>Default (Standard Fade)</option>
-                {% for anim in animations.logout %}
+            <select class="dropdown-select" id="loginSelect" onchange="changeAnimation('login', this)">
+                <option value="default" {% if not active_animations.get('login') %}selected{% endif %}>Default (Standard Fade)</option>
+                {% for anim in all_animations.login %}
                 <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Custom #" ~ loop.index) }}</option>
                 {% endfor %}
             </select>
@@ -350,7 +398,7 @@
             </div>
             <select class="dropdown-select" id="logoutSelect" onchange="changeAnimation('logout', this)">
                 <option value="default" {% if not active_animations.get('logout') %}selected{% endif %}>Default (Standard Fade)</option>
-                {% for anim in animations.logout %}
+                {% for anim in all_animations.logout %}
                 <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Custom #" ~ loop.index) }}</option>
                 {% endfor %}
             </select>
@@ -364,7 +412,7 @@
             <span style="font-size: 11px; font-weight: bold; margin-top: 5px;">UPLOAD NEW</span>
         </div>
 
-        {% for anim in animations.banner %}
+        {% for anim in all_animations.banner %}
         <div class="lib-item" title="{{ anim.name }} (Banner)">
             {% set ext = anim.path.split('.')[-1].lower() %}
             {% if ext in ['mp4', 'webm'] %}<video src="{{ url_for('static', filename=anim.path) }}" muted></video>
@@ -372,7 +420,7 @@
         </div>
         {% endfor %}
 
-        {% for anim in animations.manga_enter %}
+        {% for anim in all_animations.manga_enter %}
         <div class="lib-item" title="{{ anim.name }} (Manga)">
             {% set ext = anim.path.split('.')[-1].lower() %}
             {% if ext in ['mp4', 'webm'] %}<video src="{{ url_for('static', filename=anim.path) }}" muted></video>
@@ -380,7 +428,15 @@
         </div>
         {% endfor %}
 
-        {% for anim in animations.logout %}
+        {% for anim in all_animations.login %}
+        <div class="lib-item" title="{{ anim.name }} (Login)">
+            {% set ext = anim.path.split('.')[-1].lower() %}
+            {% if ext in ['mp4', 'webm'] %}<video src="{{ url_for('static', filename=anim.path) }}" muted></video>
+            {% else %}<img src="{{ url_for('static', filename=anim.path) }}" />{% endif %}
+        </div>
+        {% endfor %}
+
+        {% for anim in all_animations.logout %}
         <div class="lib-item" title="{{ anim.name }} (Logout)">
             {% set ext = anim.path.split('.')[-1].lower() %}
             {% if ext in ['mp4', 'webm'] %}<video src="{{ url_for('static', filename=anim.path) }}" muted></video>
@@ -414,7 +470,7 @@
                     <span class="icon">📖</span>
                     <span class="label">Manga Entry</span>
                 </div>
-                <div class="select-card" onclick="goToUpload('logout', 'Login Sequence')">
+                <div class="select-card" onclick="goToUpload('login', 'Login Sequence')">
                     <span class="icon">🔐</span>
                     <span class="label">Login Seq.</span>
                 </div>
@@ -512,9 +568,9 @@
         if (!selectedFile) { alert('Please select a file first.'); return; }
 
         const formData = new FormData();
-        formData.append('file', selectedFile);
+        formData.append('animation_file', selectedFile);
         formData.append('animation_type', currentType);
-        formData.append('name', animationNameInput.value || 'Untitled');
+        formData.append('animation_name', animationNameInput.value || 'Untitled');
 
         executeBtn.innerText = 'PROCESSING...';
         executeBtn.style.opacity = '0.7';

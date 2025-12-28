@@ -4,13 +4,25 @@
 {% block content %}
 <div class="catalog-page">
   <!-- Hero Banner Canvas -->
-  {% set has_animated = animations is defined and animations.banner and 'novus_blue' in animations.banner.get('path',
-  '') %}
-  {% set has_custom = animations is defined and animations.banner and animations.banner.get('path', '') and 'novus_blue'
-  not in animations.banner.get('path', '') %}
-  {% set banner_bg = animations.banner.path if (has_animated or has_custom) else 'img/banner_default.png' %}
+  {% set banner_bg = animations.banner.path if animations.banner else 'img/banner_default.png' %}
+  {% set is_video = banner_bg.lower().endswith(('.mp4', '.webm')) %}
 
-  <div class="catalog-hero" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');">
+  <div class="catalog-hero {{ 'glitch-banner' if anim_styles.dashboard == 'cyber' }}" 
+       {% if not is_video %}style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"{% endif %}>
+    
+    {% if is_video %}
+    <video class="hero-video-bg" autoplay loop muted playsinline>
+      <source src="{{ url_for('static', filename=banner_bg) }}">
+    </video>
+    {% endif %}
+
+    {% if anim_styles.dashboard == 'cyber' %}
+      <div class="glitch-layers">
+        <div class="glitch-layer" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"></div>
+        <div class="glitch-layer" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"></div>
+        <div class="glitch-layer" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"></div>
+      </div>
+    {% endif %}
 
     <!-- Text Overlay (Always shown) -->
     <div class="catalog-hero-inner container">

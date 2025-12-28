@@ -1,371 +1,838 @@
 {% extends "base.html" %}
-{% block title %}Customization | NOVUS{% endblock %}
+{% block title %}Animation Settings | NOVUS{% endblock %}
 
 {% block content %}
 <style>
+    /* ===== ANIMATION SETTINGS CORE STYLES ===== */
     :root {
-        --cust-bg-dark: #0f0f0f;
-        --cust-bg-card: #1a1a1c;
-        --cust-primary: #69c5e8;
-        --cust-accent: #8a4baf;
-        --cust-text-main: #ffffff;
-        --cust-text-muted: #888;
-        --cust-radius: 12px;
+        --anim-bg: #070A12;
+        --cyan: #22d3ee;
+        --magenta: #e879f9;
+        --sky: #38bdf8;
+        --orange: #fb923c;
     }
 
     .main-content {
-        background-color: var(--cust-bg-dark) !important;
+        background: var(--anim-bg) !important;
         min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        padding-bottom: 80px !important;
+        position: relative;
+        overflow-x: hidden;
     }
 
-    .cust-header {
+    /* Circuit Background */
+    .circuit-bg {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+    }
+    .circuit-bg::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: 
+            radial-gradient(circle at 30% 20%, rgba(34,211,238,0.20), transparent 50%),
+            radial-gradient(circle at 70% 30%, rgba(232,121,249,0.16), transparent 52%),
+            radial-gradient(circle at 50% 90%, rgba(56,189,248,0.14), transparent 55%);
+    }
+    .circuit-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.45), rgba(0,0,0,0.70));
+    }
+
+    /* Grid Pattern */
+    .grid-pattern {
+        position: absolute;
+        inset: 0;
+        background-image: 
+            linear-gradient(rgba(34,211,238,0.08) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(34,211,238,0.08) 1px, transparent 1px);
+        background-size: 34px 26px;
+        opacity: 0.4;
+    }
+
+    /* Main Content Area */
+    .settings-wrapper {
+        position: relative;
+        z-index: 1;
         padding: 30px 40px;
-        border-bottom: 1px solid #222;
+        max-width: 1400px;
+        margin: 0 auto;
     }
-    .cust-header h1 { margin: 0; font-weight: 800; letter-spacing: 1px; font-size: 1.8rem; }
-    .cust-header p { margin: 8px 0 0; color: var(--cust-text-muted); font-size: 0.95rem; }
 
-    .upload-container {
-        flex: 1;
-        padding: 40px;
+    /* Page Header with Tabs */
+    .settings-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 25px;
+    }
+    .settings-title {
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: var(--cyan);
+    }
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .breadcrumb {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.7);
+    }
+
+    /* Tab Navigation */
+    .tab-nav {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 30px;
+        background: rgba(255,255,255,0.03);
+        padding: 6px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+    .tab-link {
+        padding: 12px 24px;
+        border-radius: 10px;
+        color: rgba(255,255,255,0.6);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .tab-link:hover {
+        color: rgba(255,255,255,0.85);
+        background: rgba(255,255,255,0.05);
+    }
+    .tab-link.active {
+        background: linear-gradient(135deg, rgba(34,211,238,0.2), rgba(232,121,249,0.15));
+        color: #fff;
+        box-shadow: 0 0 20px rgba(34,211,238,0.15);
+    }
+    .tab-link i {
+        font-size: 1rem;
+    }
+
+    /* Panel Grid */
+    .panels-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 30px;
-        overflow-y: auto;
+        gap: 24px;
+        margin-bottom: 40px;
     }
 
-    .upload-card {
-        background: var(--cust-bg-card);
-        border-radius: var(--cust-radius);
-        padding: 25px;
-        display: flex;
-        flex-direction: column;
-        border: 1px solid #333;
-        transition: 0.3s;
+    /* Panel Card */
+    .panel {
+        background: rgba(255,255,255,0.05);
+        border-radius: 24px;
+        padding: 24px;
+        position: relative;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.35);
     }
-    .upload-card:hover { border-color: #444; }
+    .panel::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 24px;
+        padding: 1px;
+        background: linear-gradient(135deg, var(--panel-color), transparent 60%);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+        opacity: 0.5;
+    }
+    .panel.cyan { --panel-color: var(--cyan); }
+    .panel.magenta { --panel-color: var(--magenta); }
+    .panel.sky { --panel-color: var(--sky); }
+    .panel.orange { --panel-color: var(--orange); }
 
-    .card-title {
-        font-size: 1rem;
-        margin-bottom: 18px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .tag {
-        font-size: 0.65rem;
-        background: #222;
-        padding: 4px 8px;
-        border-radius: 4px;
-        color: var(--cust-text-muted);
-        border: 1px solid #333;
-    }
-
-    .drop-zone {
-        flex: 1;
-        min-height: 180px;
-        border: 2px dashed #444;
-        border-radius: 8px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        background: rgba(0,0,0,0.2);
-    }
-    .drop-zone:hover {
-        border-color: var(--cust-primary);
-        background: rgba(105, 197, 232, 0.05);
-        box-shadow: 0 0 15px rgba(105, 197, 232, 0.1);
-    }
-    .drop-zone.dragover {
-        border-color: var(--cust-primary);
-        background: rgba(105, 197, 232, 0.1);
-    }
-    .drop-zone.uploaded {
-        border-color: var(--cust-accent);
-        background: rgba(138, 75, 175, 0.1);
-    }
-
-    .drop-zone-icon {
-        font-size: 2.5rem;
-        color: #444;
-        margin-bottom: 12px;
-        transition: 0.3s;
-    }
-    .drop-zone:hover .drop-zone-icon { color: var(--cust-primary); transform: translateY(-5px); }
-
-    .drop-text {
-        color: var(--cust-text-muted);
-        font-size: 0.85rem;
-        text-align: center;
-    }
-    .drop-text span { color: var(--cust-primary); text-decoration: underline; }
-
-    .file-input { display: none; }
-
-    .file-info {
-        display: none;
-        width: 100%;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 20px;
-    }
-    .file-info.show { display: flex; }
-
-    .file-name {
-        font-weight: bold;
-        color: var(--cust-text-main);
-        margin-bottom: 10px;
-        word-break: break-all;
-        text-align: center;
-        font-size: 0.9rem;
-    }
-
-    .progress-container {
-        width: 80%;
-        height: 4px;
-        background: #333;
-        border-radius: 2px;
-        overflow: hidden;
-    }
-    .progress-bar {
-        width: 0%;
-        height: 100%;
-        background: linear-gradient(90deg, var(--cust-accent), var(--cust-primary));
-        box-shadow: 0 0 10px var(--cust-primary);
-        transition: width 0.3s;
-    }
-
-    .upload-status {
-        color: var(--cust-primary);
-        font-size: 0.75rem;
-        margin-top: 8px;
-        font-weight: 600;
-    }
-
-    .default-content { text-align: center; }
-    .default-content.hidden { display: none; }
-
-    .action-bar {
-        position: fixed;
-        bottom: 0;
-        left: 90px;
-        right: 0;
-        padding: 18px 40px;
-        background: rgba(15, 15, 15, 0.95);
-        border-top: 1px solid #222;
+    .panel-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        backdrop-filter: blur(10px);
-        z-index: 100;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+    .panel-title {
+        font-size: 0.9rem;
+        font-weight: 800;
+        letter-spacing: 0.15em;
+        color: var(--panel-color);
+    }
+    .selected-chip {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        color: rgba(255,255,255,0.7);
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
-    .info-text { font-size: 0.85rem; color: #555; }
-
-    .btn-apply {
-        background: var(--cust-text-main);
-        color: black;
-        border: none;
-        padding: 12px 35px;
-        font-weight: bold;
-        border-radius: 6px;
+    /* Option Buttons */
+    .options-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .option-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        color: rgba(255,255,255,0.85);
+        font-size: 0.9rem;
+        font-weight: 500;
         cursor: pointer;
-        transition: 0.2s;
+        transition: all 0.2s ease;
+        text-align: left;
+        width: 100%;
+    }
+    .option-btn:hover {
+        background: rgba(255,255,255,0.08);
+        transform: translateY(-1px);
+    }
+    .option-btn.selected {
+        background: rgba(255,255,255,0.12);
+        box-shadow: 0 0 0 1px var(--panel-color), 0 0 20px rgba(var(--panel-color-rgb), 0.25);
+    }
+    .option-btn .check {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255,255,255,0.05);
+    }
+    .option-btn.selected .check {
+        background: var(--panel-color);
+        border-color: var(--panel-color);
+        color: #000;
+    }
+    .option-btn.custom-anim {
+        border-left: 3px solid var(--magenta);
+    }
+
+    /* Custom Animation Indicator */
+    .custom-badge {
+        font-size: 0.65rem;
+        background: rgba(232,121,249,0.2);
+        color: var(--magenta);
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin-left: 8px;
+    }
+
+    /* Preview Box */
+    .preview-section {
+        margin-top: 16px;
+    }
+    .preview-label {
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.15em;
+        color: rgba(255,255,255,0.5);
+        margin-bottom: 8px;
+    }
+    .preview-box {
+        height: 80px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(0,0,0,0.4);
+        overflow: hidden;
+        position: relative;
+    }
+    .preview-box img, .preview-box video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Animated Previews */
+    .preview-box .glow {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 40% 40%, rgba(var(--panel-color-rgb), 0.15), transparent 60%);
+    }
+    .preview-box .lines {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 12px;
+        gap: 8px;
+    }
+    .preview-box .line {
+        height: 6px;
+        border-radius: 3px;
+        background: rgba(255,255,255,0.08);
+    }
+    .preview-box .line:nth-child(1) { width: 60%; }
+    .preview-box .line:nth-child(2) { width: 80%; }
+    .preview-box .line:nth-child(3) { width: 45%; }
+
+    /* Glitch Animation */
+    .preview-glitch .glitch-layer {
+        position: absolute;
+        inset: 0;
+        animation: glitchAnim 1.2s infinite;
+    }
+    .preview-glitch .scan-lines {
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(255,255,255,0.03) 2px,
+            rgba(255,255,255,0.03) 4px
+        );
+    }
+    @keyframes glitchAnim {
+        0%, 100% { transform: translate(0, 0); }
+        20% { transform: translate(-3px, 1px); }
+        40% { transform: translate(3px, -1px); }
+        60% { transform: translate(-2px, 2px); }
+        80% { transform: translate(2px, -2px); }
+    }
+
+    /* Warp Animation */
+    .preview-warp .warp-lines {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+    }
+    .preview-warp .warp-line {
+        position: absolute;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        animation: warpMove 2s infinite ease-in-out;
+    }
+    @keyframes warpMove {
+        0%, 100% { transform: translateX(-20%); }
+        50% { transform: translateX(20%); }
+    }
+
+    /* Pulse Animation */
+    .preview-pulse {
+        animation: pulseAnim 1.8s infinite ease-in-out;
+    }
+    @keyframes pulseAnim {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+    }
+
+    /* Shutter Animation */
+    .preview-shutter .shutters {
+        display: flex;
+        height: 100%;
+    }
+    .preview-shutter .shutter {
+        flex: 1;
+        background: rgba(255,255,255,0.08);
+        animation: shutterAnim 2s infinite ease-in-out;
+    }
+    .preview-shutter .shutter:nth-child(1) { animation-delay: 0s; }
+    .preview-shutter .shutter:nth-child(2) { animation-delay: 0.05s; }
+    .preview-shutter .shutter:nth-child(3) { animation-delay: 0.1s; }
+    .preview-shutter .shutter:nth-child(4) { animation-delay: 0.15s; }
+    .preview-shutter .shutter:nth-child(5) { animation-delay: 0.2s; }
+    @keyframes shutterAnim {
+        0%, 100% { transform: translateY(-100%); }
+        40%, 60% { transform: translateY(0); }
+    }
+
+    /* Apply Button */
+    .apply-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+    }
+    .btn-apply {
+        background: linear-gradient(90deg, #e879f9, #a855f7, #fb923c);
+        border: none;
+        padding: 16px 48px;
+        border-radius: 16px;
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: 0.15em;
+        cursor: pointer;
+        box-shadow: 0 18px 60px rgba(0,0,0,0.45);
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    .btn-apply::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: 17px;
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
     }
     .btn-apply:hover {
-        background: var(--cust-primary);
-        box-shadow: 0 0 15px var(--cust-primary);
+        transform: translateY(-2px);
+        box-shadow: 0 22px 70px rgba(168, 85, 247, 0.35);
+    }
+
+    .btn-reset {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.5);
+        font-size: 0.85rem;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+    .btn-reset:hover { color: rgba(255,255,255,0.75); }
+
+    .save-message {
+        font-size: 0.8rem;
+        color: #34d399;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .save-message.show { opacity: 1; }
+
+    .tip-text {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.4);
+        margin-top: 8px;
     }
 </style>
 
-<div class="cust-header">
-    <h1>Upload Custom Assets</h1>
-    <p>Import local files to override system defaults. Supported: .MP4, .WEBM, .GIF, .PNG, .JPG</p>
+<div class="circuit-bg">
+    <div class="grid-pattern"></div>
 </div>
 
-<div class="upload-container">
-    <!-- Login Animation -->
-    <div class="upload-card" data-type="logout">
-        <div class="card-title">
-            Login Animation <span class="tag">Max 15MB</span>
+<div class="settings-wrapper">
+    <div class="settings-header">
+        <div class="settings-title">CUSTOMIZATION</div>
+        <div class="header-right">
+            <div class="breadcrumb">Settings ▸ Animations</div>
         </div>
-        <label class="drop-zone" id="drop-logout">
-            <input type="file" class="file-input" accept=".mp4,.webm,.gif,.png,.jpg,.jpeg" onchange="handleFile(this, 'logout')">
-            <div class="default-content">
-                <div class="drop-zone-icon">⇪</div>
-                <div class="drop-text">Drag files here or <span>browse</span></div>
-            </div>
-            <div class="file-info">
-                <div class="file-name" id="name-logout">filename.mp4</div>
-                <div class="progress-container">
-                    <div class="progress-bar" id="progress-logout"></div>
-                </div>
-                <div class="upload-status">UPLOAD COMPLETE</div>
-            </div>
-        </label>
     </div>
 
-    <!-- Manga Entry -->
-    <div class="upload-card" data-type="manga_enter">
-        <div class="card-title">
-            Manga Entry <span class="tag">Max 10MB</span>
-        </div>
-        <label class="drop-zone" id="drop-manga_enter">
-            <input type="file" class="file-input" accept=".mp4,.webm,.gif,.png,.jpg,.jpeg" onchange="handleFile(this, 'manga_enter')">
-            <div class="default-content">
-                <div class="drop-zone-icon">⇪</div>
-                <div class="drop-text">Drag files here or <span>browse</span></div>
-            </div>
-            <div class="file-info">
-                <div class="file-name" id="name-manga_enter">filename.mp4</div>
-                <div class="progress-container">
-                    <div class="progress-bar" id="progress-manga_enter"></div>
-                </div>
-                <div class="upload-status">UPLOAD COMPLETE</div>
-            </div>
-        </label>
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+        <a href="{{ url_for('customization') }}" class="tab-link active">
+            <i class="fas fa-sliders-h"></i>
+            Animation Settings
+        </a>
+        {% if session.get('role') == 'admin' %}
+        <a href="{{ url_for('customization_upload') }}" class="tab-link">
+            <i class="fas fa-cloud-upload-alt"></i>
+            Upload Studio
+        </a>
+        {% endif %}
     </div>
 
-    <!-- Dashboard Banner -->
-    <div class="upload-card" data-type="banner">
-        <div class="card-title">
-            Dashboard Banner <span class="tag">Image/Video</span>
-        </div>
-        <label class="drop-zone" id="drop-banner">
-            <input type="file" class="file-input" accept=".mp4,.webm,.gif,.png,.jpg,.jpeg" onchange="handleFile(this, 'banner')">
-            <div class="default-content">
-                <div class="drop-zone-icon">⇪</div>
-                <div class="drop-text">Drag files here or <span>browse</span></div>
-            </div>
-            <div class="file-info">
-                <div class="file-name" id="name-banner">filename.png</div>
-                <div class="progress-container">
-                    <div class="progress-bar" id="progress-banner"></div>
+    <div class="panels-grid">
+        <!-- LOGIN ANIMATION -->
+        <div class="panel cyan" style="--panel-color-rgb: 34,211,238;">
+            <div class="panel-header">
+                <div class="panel-title">LOGIN ANIMATION</div>
+                <div class="selected-chip" id="login-selected">
+                    {% if active_animations.get('login') %}{{ active_animations['login'].name or 'Custom' }}{% else %}Standard Fade{% endif %}
                 </div>
-                <div class="upload-status">UPLOAD COMPLETE</div>
             </div>
-        </label>
+            <div class="options-list">
+                <button class="option-btn {% if not active_animations.get('login') %}selected{% endif %}" data-panel="login" data-value="standard" data-label="Standard Fade">
+                    <span>Standard Fade</span>
+                    <span class="check">{% if not active_animations.get('login') %}✓{% endif %}</span>
+                </button>
+                <button class="option-btn" data-panel="login" data-value="glitch" data-label="Cyber Glitch">
+                    <span>Cyber Glitch</span>
+                    <span class="check"></span>
+                </button>
+                <button class="option-btn" data-panel="login" data-value="warp" data-label="Warp Speed">
+                    <span>Warp Speed</span>
+                    <span class="check"></span>
+                </button>
+                {% for anim in all_animations.login %}
+                <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="login" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                    <span>{{ anim.name or ("Custom #" ~ loop.index) }}<span class="custom-badge">UPLOADED</span></span>
+                    <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                </button>
+                {% endfor %}
+            </div>
+            <div class="preview-section">
+                <div class="preview-label">CURRENT</div>
+                <div class="preview-box" id="login-preview">
+                    {% if active_animations.get('login') %}
+                        {% set ext = active_animations['login'].path.split('.')[-1].lower() %}
+                        {% if ext in ['mp4', 'webm'] %}
+                            <video src="{{ url_for('static', filename=active_animations['login'].path) }}" autoplay loop muted></video>
+                        {% else %}
+                            <img src="{{ url_for('static', filename=active_animations['login'].path) }}" />
+                        {% endif %}
+                    {% else %}
+                    <div class="glow"></div>
+                    <div class="lines">
+                        <div class="line"></div>
+                        <div class="line"></div>
+                        <div class="line"></div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- MANGA ENTERING -->
+        <div class="panel magenta" style="--panel-color-rgb: 232,121,249;">
+            <div class="panel-header">
+                <div class="panel-title">MANGA ENTERING</div>
+                <div class="selected-chip" id="manga-selected">
+                    {% if active_animations.get('manga_enter') %}{{ active_animations['manga_enter'].name or 'Custom' }}{% else %}Classic Slide{% endif %}
+                </div>
+            </div>
+            <div class="options-list">
+                <button class="option-btn {% if not active_animations.get('manga_enter') %}selected{% endif %}" data-panel="manga" data-value="classic" data-label="Classic Slide">
+                    <span>Classic Slide</span>
+                    <span class="check">{% if not active_animations.get('manga_enter') %}✓{% endif %}</span>
+                </button>
+                <button class="option-btn" data-panel="manga" data-value="holo" data-label="Holographic Materialize">
+                    <span>Holographic Materialize</span>
+                    <span class="check"></span>
+                </button>
+                <button class="option-btn" data-panel="manga" data-value="unfold" data-label="Digital Unfold">
+                    <span>Digital Unfold</span>
+                    <span class="check"></span>
+                </button>
+                {% for anim in all_animations.manga_enter %}
+                <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="manga" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                    <span>{{ anim.name or ("Custom #" ~ loop.index) }}<span class="custom-badge">UPLOADED</span></span>
+                    <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                </button>
+                {% endfor %}
+            </div>
+            <div class="preview-section">
+                <div class="preview-label">CURRENT</div>
+                <div class="preview-box" id="manga-preview">
+                    {% if active_animations.get('manga_enter') %}
+                        {% set ext = active_animations['manga_enter'].path.split('.')[-1].lower() %}
+                        {% if ext in ['mp4', 'webm'] %}
+                            <video src="{{ url_for('static', filename=active_animations['manga_enter'].path) }}" autoplay loop muted></video>
+                        {% else %}
+                            <img src="{{ url_for('static', filename=active_animations['manga_enter'].path) }}" />
+                        {% endif %}
+                    {% else %}
+                    <div class="glow"></div>
+                    <div class="lines">
+                        <div class="line"></div>
+                        <div class="line"></div>
+                        <div class="line"></div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD BANNER -->
+        <div class="panel sky" style="--panel-color-rgb: 56,189,248;">
+            <div class="panel-header">
+                <div class="panel-title">DASHBOARD BANNER</div>
+                <div class="selected-chip" id="dashboard-selected">
+                    {% if active_animations.get('banner') %}{{ active_animations['banner'].name or 'Custom' }}{% else %}None{% endif %}
+                </div>
+            </div>
+            <div class="options-list">
+                <button class="option-btn {% if not active_animations.get('banner') %}selected{% endif %}" data-panel="dashboard" data-value="none" data-label="None">
+                    <span>None (Default)</span>
+                    <span class="check">{% if not active_animations.get('banner') %}✓{% endif %}</span>
+                </button>
+                {% for anim in all_animations.banner %}
+                <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="dashboard" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                    <span>{{ anim.name or ("Banner #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                    <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                </button>
+                {% endfor %}
+            </div>
+            <div class="preview-section">
+                <div class="preview-label">CURRENT</div>
+                <div class="preview-box" id="dashboard-preview">
+                    {% if active_animations.get('banner') %}
+                        {% set ext = active_animations['banner'].path.split('.')[-1].lower() %}
+                        {% if ext in ['mp4', 'webm'] %}
+                            <video src="{{ url_for('static', filename=active_animations['banner'].path) }}" autoplay loop muted></video>
+                        {% else %}
+                            <img src="{{ url_for('static', filename=active_animations['banner'].path) }}" />
+                        {% endif %}
+                    {% else %}
+                    <div class="glow"></div>
+                    <div class="lines">
+                        <div class="line"></div>
+                        <div class="line"></div>
+                        <div class="line"></div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- LOGOUT ANIMATION -->
+        <div class="panel orange" style="--panel-color-rgb: 251,146,60;">
+            <div class="panel-header">
+                <div class="panel-title">LOGOUT ANIMATION</div>
+                <div class="selected-chip" id="logout-selected">
+                    {% if active_animations.get('logout') %}{{ active_animations['logout'].name or 'Custom' }}{% else %}Smooth Fade Out{% endif %}
+                </div>
+            </div>
+            <div class="options-list">
+                <button class="option-btn {% if not active_animations.get('logout') %}selected{% endif %}" data-panel="logout" data-value="fade" data-label="Smooth Fade Out">
+                    <span>Smooth Fade Out</span>
+                    <span class="check">{% if not active_animations.get('logout') %}✓{% endif %}</span>
+                </button>
+                <button class="option-btn" data-panel="logout" data-value="shutter" data-label="Security Shutter">
+                    <span>Security Shutter</span>
+                    <span class="check"></span>
+                </button>
+                <button class="option-btn" data-panel="logout" data-value="pixel" data-label="Pixel Disintegrate">
+                    <span>Pixel Disintegrate</span>
+                    <span class="check"></span>
+                </button>
+                {% for anim in all_animations.logout %}
+                <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="logout" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                    <span>{{ anim.name or ("Custom #" ~ loop.index) }}<span class="custom-badge">UPLOADED</span></span>
+                    <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                </button>
+                {% endfor %}
+            </div>
+            <div class="preview-section">
+                <div class="preview-label">CURRENT</div>
+                <div class="preview-box" id="logout-preview">
+                    {% if active_animations.get('logout') %}
+                        {% set ext = active_animations['logout'].path.split('.')[-1].lower() %}
+                        {% if ext in ['mp4', 'webm'] %}
+                            <video src="{{ url_for('static', filename=active_animations['logout'].path) }}" autoplay loop muted></video>
+                        {% else %}
+                            <img src="{{ url_for('static', filename=active_animations['logout'].path) }}" />
+                        {% endif %}
+                    {% else %}
+                    <div class="glow"></div>
+                    <div class="lines">
+                        <div class="line"></div>
+                        <div class="line"></div>
+                        <div class="line"></div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Logout Sequence -->
-    <div class="upload-card" data-type="logout">
-        <div class="card-title">
-            Logout Sequence <span class="tag">Max 15MB</span>
+    <div class="apply-section">
+        <button class="btn-apply" onclick="applyChanges()">APPLY CHANGES</button>
+        <button class="btn-reset" onclick="resetDefaults()">Reset to Default</button>
+        <div class="save-message" id="saveMessage">Saved ✓</div>
+        <div class="tip-text">
+            {% if session.get('role') == 'admin' %}
+            <a href="{{ url_for('customization_upload') }}" style="color: var(--magenta);">Upload custom animations →</a>
+            {% endif %}
         </div>
-        <label class="drop-zone" id="drop-logout2">
-            <input type="file" class="file-input" accept=".mp4,.webm,.gif,.png,.jpg,.jpeg" onchange="handleFile(this, 'logout', 'logout2')">
-            <div class="default-content">
-                <div class="drop-zone-icon">⇪</div>
-                <div class="drop-text">Drag files here or <span>browse</span></div>
-            </div>
-            <div class="file-info">
-                <div class="file-name" id="name-logout2">filename.mp4</div>
-                <div class="progress-container">
-                    <div class="progress-bar" id="progress-logout2"></div>
-                </div>
-                <div class="upload-status">UPLOAD COMPLETE</div>
-            </div>
-        </label>
     </div>
-</div>
-
-<div class="action-bar">
-    <span class="info-text">Changes will require a page refresh to take effect.</span>
-    <button class="btn-apply" onclick="applyAllAssets()">APPLY ASSETS</button>
 </div>
 
 <script>
-    const pendingUploads = {};
+    const selections = {
+        login: '{{ active_animations.get("login", {}).get("id", anim_styles.get("login", "standard")) }}',
+        manga: '{{ active_animations.get("manga_enter", {}).get("id", anim_styles.get("manga", "classic")) }}',
+        dashboard: '{{ active_animations.get("banner", {}).get("id", anim_styles.get("dashboard", "none")) }}',
+        logout: '{{ active_animations.get("logout", {}).get("id", anim_styles.get("logout", "fade")) }}'
+    };
 
-    function handleFile(input, type, zoneId = null) {
-        const id = zoneId || type;
-        if (input.files && input.files[0]) {
-            const zone = document.getElementById('drop-' + id);
-            const progress = document.getElementById('progress-' + id);
-            const nameDisplay = document.getElementById('name-' + id);
-            const defaultContent = zone.querySelector('.default-content');
-            const fileInfo = zone.querySelector('.file-info');
+    // Map panel types to animation_type for API
+    const panelToType = {
+        login: 'login',
+        manga: 'manga_enter',
+        dashboard: 'banner',
+        logout: 'logout'
+    };
 
-            nameDisplay.innerText = input.files[0].name;
-            defaultContent.classList.add('hidden');
-            fileInfo.classList.add('show');
-            zone.classList.add('uploaded');
+    // Handle option button clicks
+    document.querySelectorAll('.option-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const panel = this.dataset.panel;
+            const value = this.dataset.value;
+            const label = this.dataset.label;
+            const path = this.dataset.path;
 
-            // Simulate progress
-            setTimeout(() => { progress.style.width = "30%"; }, 100);
-            setTimeout(() => { progress.style.width = "70%"; }, 400);
-            setTimeout(() => { progress.style.width = "100%"; }, 800);
+            // Update selection
+            selections[panel] = value;
 
-            // Store for batch upload
-            pendingUploads[type] = {
-                file: input.files[0],
-                name: input.files[0].name.split('.')[0]
-            };
-        }
-    }
+            // Update UI
+            const panelEl = this.closest('.panel');
+            panelEl.querySelectorAll('.option-btn').forEach(b => {
+                b.classList.remove('selected');
+                b.querySelector('.check').textContent = '';
+            });
+            this.classList.add('selected');
+            this.querySelector('.check').textContent = '✓';
 
-    // Drag and drop handlers
-    document.querySelectorAll('.drop-zone').forEach(zone => {
-        zone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            zone.classList.add('dragover');
-        });
-        zone.addEventListener('dragleave', () => {
-            zone.classList.remove('dragover');
-        });
-        zone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            zone.classList.remove('dragover');
-            const input = zone.querySelector('input');
-            if (e.dataTransfer.files.length > 0) {
-                input.files = e.dataTransfer.files;
-                input.dispatchEvent(new Event('change'));
-            }
+            // Update chip
+            document.getElementById(`${panel}-selected`).textContent = label;
+
+            // Update preview
+            updatePreview(panel, value, path);
         });
     });
 
-    async function applyAllAssets() {
-        const btn = document.querySelector('.btn-apply');
-        const types = Object.keys(pendingUploads);
+    function updatePreview(panel, value, path) {
+        const preview = document.getElementById(`${panel}-preview`);
         
-        if (types.length === 0) {
-            alert('No files selected to upload.');
+        // If custom animation with path, show the file
+        if (path) {
+            const ext = path.split('.').pop().toLowerCase();
+            if (['mp4', 'webm'].includes(ext)) {
+                preview.innerHTML = `<video src="/static/${path}" autoplay loop muted></video>`;
+            } else {
+                preview.innerHTML = `<img src="/static/${path}" />`;
+            }
             return;
         }
 
-        btn.innerText = 'UPLOADING...';
+        // Otherwise show CSS animation
+        preview.className = 'preview-box';
+        
+        if (value === 'glitch') {
+            preview.innerHTML = `
+                <div class="glow"></div>
+                <div class="preview-glitch">
+                    <div class="glitch-layer"></div>
+                    <div class="scan-lines"></div>
+                </div>
+            `;
+        } else if (value === 'warp') {
+            preview.innerHTML = `
+                <div class="glow"></div>
+                <div class="preview-warp">
+                    <div class="warp-lines">
+                        <div class="warp-line" style="top: 20%; width: 60%; left: 10%;"></div>
+                        <div class="warp-line" style="top: 40%; width: 80%; left: 5%;"></div>
+                        <div class="warp-line" style="top: 60%; width: 50%; left: 20%;"></div>
+                        <div class="warp-line" style="top: 80%; width: 70%; left: 8%;"></div>
+                    </div>
+                </div>
+            `;
+        } else if (value === 'pulse') {
+            preview.classList.add('preview-pulse');
+            preview.innerHTML = `
+                <div class="glow"></div>
+                <div class="lines">
+                    <div class="line"></div>
+                    <div class="line"></div>
+                    <div class="line"></div>
+                </div>
+            `;
+        } else if (value === 'shutter') {
+            preview.innerHTML = `
+                <div class="glow"></div>
+                <div class="preview-shutter">
+                    <div class="shutters">
+                        <div class="shutter"></div>
+                        <div class="shutter"></div>
+                        <div class="shutter"></div>
+                        <div class="shutter"></div>
+                        <div class="shutter"></div>
+                    </div>
+                </div>
+            `;
+        } else {
+            preview.innerHTML = `
+                <div class="glow"></div>
+                <div class="lines">
+                    <div class="line"></div>
+                    <div class="line"></div>
+                    <div class="line"></div>
+                </div>
+            `;
+        }
+    }
+
+    async function applyChanges() {
+        const btn = document.querySelector('.btn-apply');
+        btn.textContent = 'SAVING...';
         btn.disabled = true;
 
-        for (const type of types) {
-            const { file, name } = pendingUploads[type];
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('animation_type', type);
-            formData.append('name', name);
+        // Apply each selection
+        for (const [panel, value] of Object.entries(selections)) {
+            const animType = panelToType[panel];
+            let targetId;
+            
+            if (value.startsWith('custom_')) {
+                targetId = value.replace('custom_', '');
+            } else {
+                targetId = value;
+            }
 
             try {
-                const res = await fetch('/api/animation/upload', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (!data.success) {
-                    console.error('Failed to upload ' + type + ':', data.error);
-                }
+                await fetch(`/api/animation/${targetId}/activate`, { 
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: animType })
+                });
             } catch (err) {
-                console.error('Error uploading ' + type + ':', err);
+                console.error('Error saving:', err);
             }
         }
 
-        btn.innerText = 'APPLIED ✓';
-        btn.style.background = '#69c5e8';
-        setTimeout(() => location.reload(), 1000);
+        btn.textContent = 'APPLY CHANGES';
+        btn.disabled = false;
+        document.getElementById('saveMessage').classList.add('show');
+        setTimeout(() => {
+            document.getElementById('saveMessage').classList.remove('show');
+        }, 2000);
+    }
+
+    async function resetDefaults() {
+        const btn = document.querySelector('.btn-reset');
+        btn.textContent = 'Resetting...';
+
+        // Reset all types
+        const types = ['login', 'banner', 'manga_enter', 'logout'];
+        for (const type of types) {
+            try {
+                await fetch(`/api/animation/reset_${type}/activate`, { 
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch (err) {
+                console.error('Error resetting:', err);
+            }
+        }
+
+        btn.textContent = 'Reset to Default';
+        location.reload();
     }
 </script>
 {% endblock %}

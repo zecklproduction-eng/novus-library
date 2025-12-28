@@ -635,6 +635,7 @@
 
   <!-- Success Overlay -->
   <div class="success-overlay" id="successOverlay">
+    <div id="loginCustomAnimContainer" class="custom-anim-media" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: -1;"></div>
     <div class="scanning-line"></div>
     <div class="success-content">
       <div class="success-icon-large">
@@ -755,7 +756,7 @@
       .then(response => response.json().then(data => ({ status: response.status, data })))
       .then(({ status, data }) => {
         if (status === 200 && data.status === 'success') {
-          playLoginSuccessAnimation(data.redirect);
+          playLoginSuccessAnimation(data.redirect, data.login_style, data.custom_anim);
         } else {
           // Reset button
           spinner.style.display = 'none';
@@ -789,13 +790,29 @@
       loginForm.parentNode.insertBefore(errorDiv, loginForm);
     }
 
-    function playLoginSuccessAnimation(redirectUrl) {
+    function playLoginSuccessAnimation(redirectUrl, loginStyle, customAnim) {
       // Step 2: Morph button
       setTimeout(() => {
         spinner.style.display = 'none';
         btnText.style.display = 'none';
         loginBtn.classList.add('success');
         
+        // Handle Glitch/Custom styles
+        if (loginStyle === 'glitch') {
+            document.body.classList.add('glitch-active');
+            // Adding dynamic glitch layers
+            const glitchContainer = document.createElement('div');
+            glitchContainer.className = 'glitch-layers';
+            for(let i=0; i<3; i++) {
+                const layer = document.createElement('div');
+                layer.className = 'glitch-layer';
+                // Use a snapshot of the current page as glitch background if possible, or just colors
+                layer.style.backgroundColor = i === 0 ? 'rgba(255,0,193,0.3)' : (i === 1 ? 'rgba(0,255,249,0.3)' : 'rgba(255,255,255,0.1)');
+                glitchContainer.appendChild(layer);
+            }
+            document.body.appendChild(glitchContainer);
+        }
+
         // Particle burst
         createParticleBurst();
       }, 500);
@@ -812,6 +829,15 @@
 
       // Step 5: Show whole-page overlay
       setTimeout(() => {
+        if (customAnim) {
+            const container = document.getElementById('loginCustomAnimContainer');
+            const ext = customAnim.split('.').pop().toLowerCase();
+            if (['mp4', 'webm'].includes(ext)) {
+                container.innerHTML = `<video src="/static/${customAnim}" autoplay loop muted style="width:100%; height:100%; object-fit:cover;"></video>`;
+            } else {
+                container.innerHTML = `<img src="/static/${customAnim}" style="width:100%; height:100%; object-fit:cover;">`;
+            }
+        }
         successOverlay.classList.add('show');
       }, 2500);
 
