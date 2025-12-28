@@ -34,7 +34,7 @@ try:
 except Exception:
     requests = None
     REQUESTS_AVAILABLE = False
-    print('Warning: Python package "requests" not found. Optional features (OpenAI calls, external tests) will be disabled. Install with: pip install requests')
+    # print('Warning: Python package "requests" not found. Optional features (OpenAI calls, external tests) will be disabled. Install with: pip install requests')
 from werkzeug.utils import secure_filename
 from functools import wraps
 try:
@@ -42,7 +42,7 @@ try:
     PDF_EXTRACTION_AVAILABLE = True
 except ImportError:
     PDF_EXTRACTION_AVAILABLE = False
-    print('Warning: pdf2image not available. PDF to image conversion will be disabled. Install with: pip install pdf2image')
+    # print('Warning: pdf2image not available. PDF to image conversion will be disabled. Install with: pip install pdf2image')
 
 try:
     from authlib.integrations.flask_client import OAuth
@@ -50,7 +50,7 @@ try:
 except ImportError:
     OAuth = None
     AUTHLIB_AVAILABLE = False
-    print("Warning: Authlib not found. OAuth features disabled.")
+    # print("Warning: Authlib not found. OAuth features disabled.")
 
 # -------------------- PATHS / CONFIG --------------------
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -4620,7 +4620,6 @@ def customization():
 @app.route("/customization/upload")
 @admin_required
 def customization_upload():
-    print("DEBUG: Entered customization_upload", flush=True)
     """Admin-only page for uploading custom animations"""
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -4766,8 +4765,6 @@ def activate_animation(animation_id):
     user_id = session.get("user_id")
     conn = get_conn()
     c = conn.cursor()
-    
-    print(f"DEBUG: Activating animation {animation_id} for user {user_id}", flush=True)
 
     # Handle Banner Reset (Default)
     if animation_id == 'reset_banner':
@@ -4776,11 +4773,24 @@ def activate_animation(animation_id):
          conn.close()
          return jsonify({"success": True})
 
+    # Handle Manga Enter Reset (Default)
+    if animation_id == 'reset_manga_enter':
+         c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'manga_enter'", (user_id,))
+         conn.commit()
+         conn.close()
+         return jsonify({"success": True})
+
+    # Handle Logout Reset (Default)
+    if animation_id == 'reset_logout':
+         c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'logout'", (user_id,))
+         conn.commit()
+         conn.close()
+         return jsonify({"success": True})
+
     # Handle System Presets
     if animation_id == 'preset_novus_blue':
         # 1. Deactivate all banners for this user
         c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'banner'", (user_id,))
-        print("DEBUG: Deactivated existing banners", flush=True)
 
         # 2. Check if a row exists for this preset
         preset_filename = 'banner_option_novus_blue.png'
@@ -4788,11 +4798,9 @@ def activate_animation(animation_id):
         row = c.fetchone()
         
         if row:
-            print(f"DEBUG: Found existing row {row[0]}, activating", flush=True)
             # Activate existing row
             c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (row[0],))
         else:
-            print("DEBUG: Inserting new row for preset", flush=True)
             # Insert new row
             preset_full_path = 'img/banner_option_novus_blue.png' 
             c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active) VALUES (?, 'banner', ?, 1)", 
@@ -4926,7 +4934,7 @@ if __name__ == "__main__":
     # Bind to all interfaces and run without the reloader so external tests can connect reliably
     debug_env = os.environ.get('FLASK_DEBUG', os.environ.get('FLASK_ENV', '0'))
     debug_mode = str(debug_env).lower() in ('1', 'true', 'yes', 'debug')
-    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=True)
 
 # Ensure DB is initialized exactly once when the app receives requests
 _db_init_done = False
