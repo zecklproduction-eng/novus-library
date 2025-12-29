@@ -98,13 +98,14 @@ def inject_animations():
             conn = get_conn()
             c = conn.cursor()
             # Get active custom animations
-            c.execute("SELECT animation_type, file_path, name, COALESCE(has_animated, 0) FROM custom_animations WHERE user_id = ? AND is_active = 1", (session["user_id"],))
+            c.execute("SELECT animation_type, file_path, name, COALESCE(has_animated, 0), category FROM custom_animations WHERE user_id = ? AND is_active = 1", (session["user_id"],))
             rows = c.fetchall()
             for row in rows:
                 active_animations[row[0]] = {
                     'path': row[1], 
                     'name': row[2],
-                    'has_animated': row[3]
+                    'has_animated': row[3],
+                    'category': row[4]
                 }
             
             # Get animation style settings
@@ -321,8 +322,8 @@ def apply_default_banner_if_needed(user_id):
     existing_banner = c.fetchone()
     
     if not existing_banner:
-        # User has no active banner, apply the default banner
-        preset_path = 'img/banner_default.png'
+        # User has no active banner, apply the Novus Blue banner as default (Animation #2)
+        preset_path = 'img/banner_option_novus_blue.png'
         
         # Check if this preset already exists for the user (inactive)
         c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path = ?", (user_id, preset_path))
@@ -334,8 +335,8 @@ def apply_default_banner_if_needed(user_id):
         else:
             # Insert new preset banner
             c.execute("""
-                INSERT INTO custom_animations (user_id, animation_type, file_path, is_active)
-                VALUES (?, 'banner', ?, 1)
+                INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name, category)
+                VALUES (?, 'banner', ?, 1, 'Novus Blue', 'animation')
             """, (user_id, preset_path))
         
         conn.commit()
@@ -788,9 +789,17 @@ def init_db():
             file_path TEXT NOT NULL,
             is_active INTEGER DEFAULT 0,
             created_at TEXT DEFAULT (DATETIME('now')),
+            category TEXT DEFAULT 'animation',
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
+
+    # Add category column to custom_animations if it doesn't exist
+    try:
+        c.execute("ALTER TABLE custom_animations ADD COLUMN category TEXT DEFAULT 'animation'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
 
     # animation settings table (for style preferences like 'glitch', 'warp', 'shutter')
     c.execute("""
@@ -4595,7 +4604,7 @@ def customization():
     
     # Get all custom animations for this user
     c.execute("""
-        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name
+        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name, category
         FROM custom_animations
         WHERE user_id = ?
         ORDER BY created_at DESC
@@ -4620,7 +4629,8 @@ def customization():
             'is_active': anim[3],
             'created_at': anim[4],
             'has_animated': anim[5],
-            'name': anim[6]
+            'name': anim[6],
+            'category': anim[7]
         }
         if anim[1] in animations_dict:
             animations_dict[anim[1]].append(anim_data)
@@ -4631,7 +4641,19 @@ def customization():
     # Actually inject_animations context processor handles results in 'anim_styles'
     
     # SYSTEM PRESETS
-    # Novus Blue Banner
+    # Login Preset
+    has_login_default = any('hero-anime.jpg' in a['path'] for a in animations_dict['login'])
+    if not has_login_default:
+        animations_dict['login'].insert(0, {
+            'id': 'preset_login_default',
+            'type': 'login',
+            'path': 'img/hero-anime.jpg',
+            'is_active': 0,
+            'name': 'Default Login Hero',
+            'category': 'animation'
+        })
+
+    # Novus Blue Banner (Dashboard)
     has_novus_blue = any('banner_option_novus_blue.png' in a['path'] for a in animations_dict['banner'])
     if not has_novus_blue:
         animations_dict['banner'].insert(0, {
@@ -4639,7 +4661,69 @@ def customization():
             'type': 'banner',
             'path': 'img/banner_option_novus_blue.png',
             'is_active': 0,
-            'name': 'Novus Blue (Animated)'
+            'name': 'Novus Blue (Animated)',
+            'category': 'animation'
+        })
+
+    # Jungle Presets
+    # Jungle Login
+    has_jungle_login = any('jungle_login.png' in a['path'] for a in animations_dict['login'])
+    if not has_jungle_login:
+        animations_dict['login'].append({
+            'id': 'preset_jungle_login',
+            'type': 'login',
+            'path': 'img/jungle_login.png',
+            'is_active': 0,
+            'name': 'Jungle Ruins',
+            'category': 'animation'
+        })
+
+    # Jungle Manga Enter
+    has_jungle_manga = any('jungle_manga.png' in a['path'] for a in animations_dict['manga_enter'])
+    if not has_jungle_manga:
+        animations_dict['manga_enter'].append({
+            'id': 'preset_jungle_manga',
+            'type': 'manga_enter',
+            'path': 'img/jungle_manga.png',
+            'is_active': 0,
+            'name': 'Jungle Temple Path',
+            'category': 'animation'
+        })
+
+    # Jungle Logout
+    has_jungle_logout = any('jungle_logout.png' in a['path'] for a in animations_dict['logout'])
+    if not has_jungle_logout:
+        animations_dict['logout'].append({
+            'id': 'preset_jungle_logout',
+            'type': 'logout',
+            'path': 'img/jungle_logout.png',
+            'is_active': 0,
+            'name': 'Moonlit Jungle',
+            'category': 'animation'
+        })
+
+    # Manga Enter Preset
+    has_manga_default = any('manga_enter_default.png' in a['path'] for a in animations_dict['manga_enter'])
+    if not has_manga_default:
+        animations_dict['manga_enter'].insert(0, {
+            'id': 'preset_manga_default',
+            'type': 'manga_enter',
+            'path': 'img/manga_enter_default.png',
+            'is_active': 0,
+            'name': 'Default Manga Slide',
+            'category': 'animation'
+        })
+
+    # Logout Preset
+    has_logout_default = any('logout_default.png' in a['path'] for a in animations_dict['logout'])
+    if not has_logout_default:
+        animations_dict['logout'].insert(0, {
+            'id': 'preset_logout_default',
+            'type': 'logout',
+            'path': 'img/logout_default.png',
+            'is_active': 0,
+            'name': 'Default Logout Ease',
+            'category': 'animation'
         })
 
     conn.close()
@@ -4660,7 +4744,7 @@ def customization_upload():
     
     # Get all animations for this user (admin)
     c.execute("""
-        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name
+        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name, category
         FROM custom_animations
         WHERE user_id = ?
         ORDER BY created_at DESC
@@ -4685,7 +4769,8 @@ def customization_upload():
             'is_active': anim[3],
             'created_at': anim[4],
             'has_animated': anim[5],
-            'name': anim[6]
+            'name': anim[6],
+            'category': anim[7]
         }
         if anim[1] in animations_dict:
             animations_dict[anim[1]].append(anim_data)
@@ -4709,7 +4794,8 @@ def customization_upload():
             'path': 'img/banner_option_novus_blue.png',
             'is_active': 0,
             'created_at': 'System',
-            'name': 'Novus Blue (Animated)'
+            'name': 'Novus Blue (Animated)',
+            'category': 'style'
         }
         animations_dict['banner'].insert(0, novus_blue_preset) # Add to top
 
@@ -4729,7 +4815,7 @@ def upload_animation():
         return jsonify({"error": "Unauthorized"}), 401
     
     animation_type = request.form.get("animation_type")
-    if animation_type not in ["manga_enter", "logout", "banner"]:
+    if animation_type not in ["login", "manga_enter", "logout", "banner"]:
         return jsonify({"error": "Invalid animation type"}), 400
     
     animation_file = request.files.get("animation_file")
@@ -4762,12 +4848,14 @@ def upload_animation():
     has_animated = 1 if request.form.get("has_animated") == "true" else 0
     name = request.form.get("animation_name")
     
+    category = request.form.get("category", "animation")
+    
     conn = get_conn()
     c = conn.cursor()
     c.execute("""
-        INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, has_animated, name)
-        VALUES (?, ?, ?, 0, ?, ?)
-    """, (user_id, animation_type, relative_path, has_animated, name))
+        INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, has_animated, name, category)
+        VALUES (?, ?, ?, 0, ?, ?, ?)
+    """, (user_id, animation_type, relative_path, has_animated, name, category))
     animation_id = c.lastrowid
     conn.commit()
     conn.close()
@@ -4779,12 +4867,65 @@ def upload_animation():
         "animation": {
             "id": animation_id,
             "type": animation_type,
-            "id": animation_id,
-            "type": animation_type,
             "path": relative_path,
-            "name": name
+            "name": name,
+            "category": category
         }
     })
+
+
+@app.route("/api/animation/<int:anim_id>/update", methods=["POST"])
+@admin_required
+def update_animation_api(anim_id):
+    """Update animation details (name/category)"""
+    data = request.json
+    name = data.get('name')
+    category = data.get('category')
+    
+    if not name or not category:
+        return jsonify({"error": "Missing required fields"}), 400
+        
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE custom_animations SET name = ?, category = ? WHERE id = ?", (name, category, anim_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+
+@app.route("/api/animation/<int:anim_id>/delete", methods=["DELETE"])
+@admin_required
+def delete_animation_api(anim_id):
+    """Delete an animation and its associated file"""
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get file path first
+    c.execute("SELECT file_path FROM custom_animations WHERE id = ?", (anim_id,))
+    row = c.fetchone()
+    
+    if not row:
+        conn.close()
+        return jsonify({"error": "Animation not found"}), 404
+        
+    file_path = row[0]
+    
+    # Delete from DB
+    c.execute("DELETE FROM custom_animations WHERE id = ?", (anim_id,))
+    conn.commit()
+    conn.close()
+    
+    # Delete file from disk if it exists and is not a preset
+    if file_path and not file_path.startswith('img/'):
+        full_path = os.path.join(APP_ROOT, "static", file_path)
+        if os.path.exists(full_path):
+            try:
+                os.remove(full_path)
+            except Exception as e:
+                print(f"Error deleting file: {e}")
+                
+    return jsonify({"success": True})
 
 
 @app.route("/api/animation/<animation_id>/activate", methods=["PUT"])
@@ -4802,10 +4943,10 @@ def activate_animation(animation_id):
 
     # Define valid style presets
     style_presets = [
-        'standard', 'glitch',        # login
-        'classic', 'warp',           # manga
-        'none', 'cyber',             # dashboard/banner
-        'fade', 'shutter', 'pixel'    # logout
+        'standard', 'glitch', 'neon', 'blur', 'jungle', # login
+        'classic', 'warp', 'slide_up', 'zoom', 'jungle', 'cave', # manga
+        'none', 'cyber', 'matrix', 'grid',           # dashboard/banner
+        'fade', 'shutter', 'pixel', 'shrink', 'bounce', 'jungle' # logout
     ]
 
     # Map categories to DB setting keys
@@ -4859,6 +5000,57 @@ def activate_animation(animation_id):
         return jsonify({"success": True, "mode": "reset"})
 
     # 3. Handle System Presets (legacy/special)
+    if animation_id == 'preset_jungle_login':
+        c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'login'", (user_id,))
+        preset_path = 'img/jungle_login.png'
+        c.execute("INSERT INTO animation_settings (user_id, setting_key, setting_value) VALUES (?, 'login', 'standard') ON CONFLICT(user_id, setting_key) DO UPDATE SET setting_value = 'standard'", (user_id,))
+        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path LIKE ?", (user_id, f"%{preset_path}%"))
+        row = c.fetchone()
+        if row: c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (row[0],))
+        else: c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name, category) VALUES (?, 'login', ?, 1, 'Jungle Ruins', 'animation')", (user_id, preset_path))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+
+    if animation_id == 'preset_jungle_manga':
+        c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'manga_enter'", (user_id,))
+        preset_path = 'img/jungle_manga.png'
+        c.execute("INSERT INTO animation_settings (user_id, setting_key, setting_value) VALUES (?, 'manga', 'jungle') ON CONFLICT(user_id, setting_key) DO UPDATE SET setting_value = 'jungle'", (user_id,))
+        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path LIKE ?", (user_id, f"%{preset_path}%"))
+        row = c.fetchone()
+        if row: c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (row[0],))
+        else: c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name, category) VALUES (?, 'manga_enter', ?, 1, 'Jungle Temple Path', 'animation')", (user_id, preset_path))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+
+    if animation_id == 'preset_jungle_logout':
+        c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'logout'", (user_id,))
+        preset_path = 'img/jungle_logout.png'
+        c.execute("INSERT INTO animation_settings (user_id, setting_key, setting_value) VALUES (?, 'logout', 'fade') ON CONFLICT(user_id, setting_key) DO UPDATE SET setting_value = 'fade'", (user_id,))
+        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path LIKE ?", (user_id, f"%{preset_path}%"))
+        row = c.fetchone()
+        if row: c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (row[0],))
+        else: c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name, category) VALUES (?, 'logout', ?, 1, 'Moonlit Jungle', 'animation')", (user_id, preset_path))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+
+    if animation_id == 'preset_login_default':
+        c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'login'", (user_id,))
+        preset_path = 'img/hero-anime.jpg'
+        c.execute("INSERT INTO animation_settings (user_id, setting_key, setting_value) VALUES (?, 'login', 'standard') ON CONFLICT(user_id, setting_key) DO UPDATE SET setting_value = 'standard'", (user_id,))
+        
+        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path LIKE ?", (user_id, f"%{preset_path}%"))
+        row = c.fetchone()
+        if row:
+            c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (row[0],))
+        else:
+            c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name, category) VALUES (?, 'login', ?, 1, 'Default Login Hero', 'animation')", (user_id, preset_path))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+
     if animation_id == 'preset_novus_blue':
         c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'banner'", (user_id,))
         preset_path = 'img/banner_option_novus_blue.png'
@@ -4870,7 +5062,37 @@ def activate_animation(animation_id):
         if row:
             c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (row[0],))
         else:
-            c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name) VALUES (?, 'banner', ?, 1, 'Novus Blue')", (user_id, preset_path))
+            c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name, category) VALUES (?, 'banner', ?, 1, 'Novus Blue', 'animation')", (user_id, preset_path))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+
+    if animation_id == 'preset_manga_default':
+        c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'manga_enter'", (user_id,))
+        preset_path = 'img/manga_enter_default.png'
+        c.execute("INSERT INTO animation_settings (user_id, setting_key, setting_value) VALUES (?, 'manga', 'classic') ON CONFLICT(user_id, setting_key) DO UPDATE SET setting_value = 'classic'", (user_id,))
+        
+        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path LIKE ?", (user_id, f"%{preset_path}%"))
+        row = c.fetchone()
+        if row:
+            c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (row[0],))
+        else:
+            c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name, category) VALUES (?, 'manga_enter', ?, 1, 'Default Manga Slide', 'animation')", (user_id, preset_path))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+
+    if animation_id == 'preset_logout_default':
+        c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = 'logout'", (user_id,))
+        preset_path = 'img/logout_default.png'
+        c.execute("INSERT INTO animation_settings (user_id, setting_key, setting_value) VALUES (?, 'logout', 'fade') ON CONFLICT(user_id, setting_key) DO UPDATE SET setting_value = 'fade'", (user_id,))
+        
+        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path LIKE ?", (user_id, f"%{preset_path}%"))
+        row = c.fetchone()
+        if row:
+            c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (row[0],))
+        else:
+            c.execute("INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name, category) VALUES (?, 'logout', ?, 1, 'Default Logout Ease', 'animation')", (user_id, preset_path))
         conn.commit()
         conn.close()
         return jsonify({"success": True})

@@ -366,6 +366,148 @@
         40%, 60% { transform: translateY(0); }
     }
 
+    /* Neon Pulse */
+    .preview-neon {
+        animation: neonPulse 1.5s infinite alternate;
+        box-shadow: 0 0 20px var(--panel-color), inset 0 0 20px var(--panel-color);
+        border: 2px solid var(--panel-color);
+    }
+    @keyframes neonPulse {
+        from { opacity: 0.5; filter: brightness(1); }
+        to { opacity: 1; filter: brightness(1.5); }
+    }
+
+    /* Motion Blur */
+    .preview-blur {
+        filter: blur(8px);
+        animation: blurIn 2s infinite alternate;
+    }
+    @keyframes blurIn {
+        from { filter: blur(12px); transform: scale(0.9); }
+        to { filter: blur(0px); transform: scale(1.1); }
+    }
+
+    /* Slide Up */
+    .preview-slide-up {
+        animation: slideUp 1.2s infinite;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+    }
+    .preview-slide-up::after {
+        content: '';
+        height: 40px;
+        background: var(--panel-color);
+        width: 100%;
+        opacity: 0.6;
+    }
+    @keyframes slideUp {
+        0% { transform: translateY(100%); opacity: 0; }
+        50% { transform: translateY(0); opacity: 1; }
+        100% { transform: translateY(-100%); opacity: 0; }
+    }
+
+    /* Zoom */
+    .preview-zoom {
+        animation: zoomEffect 2s infinite;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .preview-zoom::after {
+        content: 'ZOOM';
+        color: var(--panel-color);
+        font-weight: 900;
+        font-size: 2rem;
+    }
+    @keyframes zoomEffect {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1.5); opacity: 1; }
+        100% { transform: scale(3); opacity: 0; }
+    }
+
+    /* Matrix */
+    .preview-matrix {
+        background: #000;
+        overflow: hidden;
+        position: relative;
+    }
+    .preview-matrix::after {
+        content: '10101101\n01101010\n10110110\n01011011';
+        color: #0f0;
+        font-family: monospace;
+        position: absolute;
+        top: -100%;
+        left: 10px;
+        white-space: pre;
+        animation: matrixFall 2s infinite linear;
+    }
+    @keyframes matrixFall {
+        to { transform: translateY(200%); }
+    }
+
+    /* Grid Scan */
+    .preview-grid {
+        background-image: 
+            linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-size: 20px 20px;
+        position: relative;
+    }
+    .preview-grid::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: var(--panel-color);
+        box-shadow: 0 0 15px var(--panel-color);
+        animation: gridScan 2s infinite;
+    }
+    @keyframes gridScan {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(250px); }
+    }
+
+    /* Shrink */
+    .preview-shrink {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .preview-shrink::after {
+        content: '';
+        width: 80px;
+        height: 80px;
+        background: var(--panel-color);
+        animation: shrinkAnim 1.5s infinite;
+    }
+    @keyframes shrinkAnim {
+        0% { transform: scale(2); opacity: 0; }
+        50% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(0); opacity: 0; }
+    }
+
+    /* Bounce */
+    .preview-bounce {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .preview-bounce::after {
+        content: '';
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--panel-color);
+        animation: bounceAnim 0.6s infinite alternate cubic-bezier(0.5, 0.05, 1, 0.5);
+    }
+    @keyframes bounceAnim {
+        from { transform: translateY(-60px); }
+        to { transform: translateY(40px) scaleX(1.2) scaleY(0.8); }
+    }
+
     /* Apply Button */
     .apply-section {
         display: flex;
@@ -429,6 +571,49 @@
         color: rgba(255,255,255,0.4);
         margin-top: 8px;
     }
+
+    /* Category Toggle */
+    .category-toggle {
+        display: flex;
+        gap: 4px;
+        background: rgba(255,255,255,0.03);
+        padding: 4px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.06);
+        margin-bottom: 20px;
+    }
+    .toggle-btn {
+        flex: 1;
+        padding: 8px 12px;
+        border-radius: 9px;
+        border: none;
+        background: transparent;
+        color: rgba(255,255,255,0.5);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+    }
+    .toggle-btn.active {
+        background: rgba(255,255,255,0.08);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .toggle-btn:hover:not(.active) {
+        color: rgba(255,255,255,0.8);
+        background: rgba(255,255,255,0.04);
+    }
+
+    .options-group {
+        display: none;
+    }
+    .options-group.active {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
 </style>
 
 <div class="circuit-bg">
@@ -463,28 +648,68 @@
             <div class="panel-header">
                 <div class="panel-title">LOGIN ANIMATION</div>
                 <div class="selected-chip" id="login-selected">
-                    {% if active_animations.get('login') %}{{ active_animations['login'].name or 'Custom' }}{% else %}Standard Fade{% endif %}
+                    {% if active_animations.get('login') %}
+                        {{ active_animations['login'].name or 'Custom' }}
+                    {% else %}
+                        {{ anim_styles.get('login', 'standard')|replace('_', ' ')|title }}
+                    {% endif %}
                 </div>
             </div>
+            <div class="category-toggle">
+                <button class="toggle-btn active" onclick="switchCategory('login', 'style')">Styles</button>
+                <button class="toggle-btn" onclick="switchCategory('login', 'animation')">Animations</button>
+            </div>
             <div class="options-list">
-                <button class="option-btn {% if not active_animations.get('login') %}selected{% endif %}" data-panel="login" data-value="standard" data-label="Standard Fade">
-                    <span>Standard Fade</span>
-                    <span class="check">{% if not active_animations.get('login') %}✓{% endif %}</span>
-                </button>
-                <button class="option-btn" data-panel="login" data-value="glitch" data-label="Cyber Glitch">
-                    <span>Cyber Glitch</span>
-                    <span class="check"></span>
-                </button>
-                <button class="option-btn" data-panel="login" data-value="warp" data-label="Warp Speed">
-                    <span>Warp Speed</span>
-                    <span class="check"></span>
-                </button>
-                {% for anim in all_animations.login %}
-                <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="login" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                    <span>{{ anim.name or ("Custom #" ~ loop.index) }}<span class="custom-badge">UPLOADED</span></span>
-                    <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                </button>
-                {% endfor %}
+                <!-- Styles Group -->
+                <div class="options-group active" id="login-style-group">
+                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'standard' %}selected{% endif %}" data-panel="login" data-value="standard" data-label="Standard Fade">
+                        <span>Standard Fade</span>
+                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'standard' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'glitch' %}selected{% endif %}" data-panel="login" data-value="glitch" data-label="Cyber Glitch">
+                        <span>Cyber Glitch</span>
+                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'glitch' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'warp' %}selected{% endif %}" data-panel="login" data-value="warp" data-label="Warp Speed">
+                        <span>Warp Speed</span>
+                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'warp' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'neon' %}selected{% endif %}" data-panel="login" data-value="neon" data-label="Neon Pulse">
+                        <span>Neon Pulse</span>
+                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'neon' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'blur' %}selected{% endif %}" data-panel="login" data-value="blur" data-label="Motion Blur">
+                        <span>Motion Blur</span>
+                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'blur' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'none' %}selected{% endif %}" data-panel="login" data-value="none" data-label="None (Static)">
+                        <span>None (Static)</span>
+                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'none' %}✓{% endif %}</span>
+                    </button>
+                    {% for anim in all_animations.login if anim.category == 'style' %}
+                    <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="login" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                        <span>{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                        <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Animations Group -->
+                <div class="options-group" id="login-animation-group">
+                    {% set anim_found = false %}
+                    {% for anim in all_animations.login if anim.category == 'animation' %}
+                        {% set anim_found = true %}
+                        <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="login" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                            <span>{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                            <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                        </button>
+                    {% endfor %}
+                    {% if not anim_found %}
+                        <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; padding: 20px;">
+                            No animations uploaded yet.
+                        </div>
+                    {% endif %}
+                </div>
             </div>
             <div class="preview-section">
                 <div class="preview-label">CURRENT</div>
@@ -513,28 +738,72 @@
             <div class="panel-header">
                 <div class="panel-title">MANGA ENTERING</div>
                 <div class="selected-chip" id="manga-selected">
-                    {% if active_animations.get('manga_enter') %}{{ active_animations['manga_enter'].name or 'Custom' }}{% else %}Classic Slide{% endif %}
+                    {% if active_animations.get('manga_enter') %}
+                        {{ active_animations['manga_enter'].name or 'Custom' }}
+                    {% else %}
+                        {{ anim_styles.get('manga', 'classic')|replace('_', ' ')|title }}
+                    {% endif %}
                 </div>
             </div>
+            <div class="category-toggle">
+                <button class="toggle-btn active" onclick="switchCategory('manga', 'style')">Styles</button>
+                <button class="toggle-btn" onclick="switchCategory('manga', 'animation')">Animations</button>
+            </div>
             <div class="options-list">
-                <button class="option-btn {% if not active_animations.get('manga_enter') %}selected{% endif %}" data-panel="manga" data-value="classic" data-label="Classic Slide">
-                    <span>Classic Slide</span>
-                    <span class="check">{% if not active_animations.get('manga_enter') %}✓{% endif %}</span>
-                </button>
-                <button class="option-btn" data-panel="manga" data-value="holo" data-label="Holographic Materialize">
-                    <span>Holographic Materialize</span>
-                    <span class="check"></span>
-                </button>
-                <button class="option-btn" data-panel="manga" data-value="unfold" data-label="Digital Unfold">
-                    <span>Digital Unfold</span>
-                    <span class="check"></span>
-                </button>
-                {% for anim in all_animations.manga_enter %}
-                <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="manga" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                    <span>{{ anim.name or ("Custom #" ~ loop.index) }}<span class="custom-badge">UPLOADED</span></span>
-                    <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                </button>
-                {% endfor %}
+                <!-- Styles Group -->
+                <div class="options-group active" id="manga-style-group">
+                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'classic' %}selected{% endif %}" data-panel="manga" data-value="classic" data-label="Classic Slide">
+                        <span>Classic Slide</span>
+                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'classic' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'warp' %}selected{% endif %}" data-panel="manga" data-value="warp" data-label="Warp Speed">
+                        <span>Warp Speed</span>
+                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'warp' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'slide_up' %}selected{% endif %}" data-panel="manga" data-value="slide_up" data-label="Slide Up">
+                        <span>Slide Up</span>
+                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'slide_up' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'zoom' %}selected{% endif %}" data-panel="manga" data-value="zoom" data-label="Zoom Enter">
+                        <span>Zoom Enter</span>
+                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'zoom' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'none' %}selected{% endif %}" data-panel="manga" data-value="none" data-label="None (Direct)">
+                        <span>None (Direct)</span>
+                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'none' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'holo' %}selected{% endif %}" data-panel="manga" data-value="holo" data-label="Holographic Materialize">
+                        <span>Holographic</span>
+                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'holo' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'unfold' %}selected{% endif %}" data-panel="manga" data-value="unfold" data-label="Digital Unfold">
+                        <span>Digital Unfold</span>
+                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'unfold' %}✓{% endif %}</span>
+                    </button>
+                    {% for anim in all_animations.manga_enter if anim.category == 'style' %}
+                    <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="manga" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                        <span>{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                        <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Animations Group -->
+                <div class="options-group" id="manga-animation-group">
+                    {% set anim_found = false %}
+                    {% for anim in all_animations.manga_enter if anim.category == 'animation' %}
+                        {% set anim_found = true %}
+                        <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="manga" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                            <span>{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                            <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                        </button>
+                    {% endfor %}
+                    {% if not anim_found %}
+                        <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; padding: 20px;">
+                            No animations uploaded yet.
+                        </div>
+                    {% endif %}
+                </div>
             </div>
             <div class="preview-section">
                 <div class="preview-label">CURRENT</div>
@@ -563,20 +832,60 @@
             <div class="panel-header">
                 <div class="panel-title">DASHBOARD BANNER</div>
                 <div class="selected-chip" id="dashboard-selected">
-                    {% if active_animations.get('banner') %}{{ active_animations['banner'].name or 'Custom' }}{% else %}None{% endif %}
+                    {% if active_animations.get('banner') %}
+                        {{ active_animations['banner'].name or 'Custom' }}
+                    {% else %}
+                        {{ anim_styles.get('dashboard', 'none')|replace('_', ' ')|title }}
+                    {% endif %}
                 </div>
             </div>
+            <div class="category-toggle">
+                <button class="toggle-btn active" onclick="switchCategory('dashboard', 'style')">Styles</button>
+                <button class="toggle-btn" onclick="switchCategory('dashboard', 'animation')">Animations</button>
+            </div>
             <div class="options-list">
-                <button class="option-btn {% if not active_animations.get('banner') %}selected{% endif %}" data-panel="dashboard" data-value="none" data-label="None">
-                    <span>None (Default)</span>
-                    <span class="check">{% if not active_animations.get('banner') %}✓{% endif %}</span>
-                </button>
-                {% for anim in all_animations.banner %}
-                <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="dashboard" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                    <span>{{ anim.name or ("Banner #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
-                    <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                </button>
-                {% endfor %}
+                <!-- Styles Group -->
+                <div class="options-group active" id="dashboard-style-group">
+                    <button class="option-btn {% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'none' %}selected{% endif %}" data-panel="dashboard" data-value="none" data-label="None">
+                        <span>None (Default)</span>
+                        <span class="check">{% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'none' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'matrix' %}selected{% endif %}" data-panel="dashboard" data-value="matrix" data-label="Matrix Rain">
+                        <span>Matrix Rain</span>
+                        <span class="check">{% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'matrix' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'grid' %}selected{% endif %}" data-panel="dashboard" data-value="grid" data-label="Digital Grid">
+                        <span>Digital Grid</span>
+                        <span class="check">{% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'grid' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'cyber' %}selected{% endif %}" data-panel="dashboard" data-value="cyber" data-label="Cyber Tech">
+                        <span>Cyber Tech</span>
+                        <span class="check">{% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'cyber' %}✓{% endif %}</span>
+                    </button>
+                    {% for anim in all_animations.banner if anim.category == 'style' %}
+                    <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="dashboard" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                        <span>{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                        <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Animations Group -->
+                <div class="options-group" id="dashboard-animation-group">
+                    {% set anim_found = false %}
+                    {% for anim in all_animations.banner if anim.category == 'animation' %}
+                        {% set anim_found = true %}
+                        <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="dashboard" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                            <span>{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                            <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                        </button>
+                    {% endfor %}
+                    {% if not anim_found %}
+                        <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; padding: 20px;">
+                            No animations uploaded yet.
+                        </div>
+                    {% endif %}
+                </div>
             </div>
             <div class="preview-section">
                 <div class="preview-label">CURRENT</div>
@@ -605,28 +914,68 @@
             <div class="panel-header">
                 <div class="panel-title">LOGOUT ANIMATION</div>
                 <div class="selected-chip" id="logout-selected">
-                    {% if active_animations.get('logout') %}{{ active_animations['logout'].name or 'Custom' }}{% else %}Smooth Fade Out{% endif %}
+                    {% if active_animations.get('logout') %}
+                        {{ active_animations['logout'].name or 'Custom' }}
+                    {% else %}
+                        {{ anim_styles.get('logout', 'fade')|replace('_', ' ')|title }}
+                    {% endif %}
                 </div>
             </div>
+            <div class="category-toggle">
+                <button class="toggle-btn active" onclick="switchCategory('logout', 'style')">Styles</button>
+                <button class="toggle-btn" onclick="switchCategory('logout', 'animation')">Animations</button>
+            </div>
             <div class="options-list">
-                <button class="option-btn {% if not active_animations.get('logout') %}selected{% endif %}" data-panel="logout" data-value="fade" data-label="Smooth Fade Out">
-                    <span>Smooth Fade Out</span>
-                    <span class="check">{% if not active_animations.get('logout') %}✓{% endif %}</span>
-                </button>
-                <button class="option-btn" data-panel="logout" data-value="shutter" data-label="Security Shutter">
-                    <span>Security Shutter</span>
-                    <span class="check"></span>
-                </button>
-                <button class="option-btn" data-panel="logout" data-value="pixel" data-label="Pixel Disintegrate">
-                    <span>Pixel Disintegrate</span>
-                    <span class="check"></span>
-                </button>
-                {% for anim in all_animations.logout %}
-                <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="logout" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                    <span>{{ anim.name or ("Custom #" ~ loop.index) }}<span class="custom-badge">UPLOADED</span></span>
-                    <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                </button>
-                {% endfor %}
+                <!-- Styles Group -->
+                <div class="options-group active" id="logout-style-group">
+                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'fade' %}selected{% endif %}" data-panel="logout" data-value="fade" data-label="Smooth Fade Out">
+                        <span>Smooth Fade Out</span>
+                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'fade' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'shrink' %}selected{% endif %}" data-panel="logout" data-value="shrink" data-label="Shrink Exit">
+                        <span>Shrink Exit</span>
+                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'shrink' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'bounce' %}selected{% endif %}" data-panel="logout" data-value="bounce" data-label="Bounce Out">
+                        <span>Bounce Out</span>
+                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'bounce' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'none' %}selected{% endif %}" data-panel="logout" data-value="none" data-label="None (Instant)">
+                        <span>None (Instant)</span>
+                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'none' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'shutter' %}selected{% endif %}" data-panel="logout" data-value="shutter" data-label="Security Shutter">
+                        <span>Security Shutter</span>
+                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'shutter' %}✓{% endif %}</span>
+                    </button>
+                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'pixel' %}selected{% endif %}" data-panel="logout" data-value="pixel" data-label="Pixel Disintegrate">
+                        <span>Pixel Disintegrate</span>
+                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'pixel' %}✓{% endif %}</span>
+                    </button>
+                    {% for anim in all_animations.logout if anim.category == 'style' %}
+                    <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="logout" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                        <span>{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                        <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Animations Group -->
+                <div class="options-group" id="logout-animation-group">
+                    {% set anim_found = false %}
+                    {% for anim in all_animations.logout if anim.category == 'animation' %}
+                        {% set anim_found = true %}
+                        <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="logout" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                            <span>{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                            <span class="check">{% if anim.is_active %}✓{% endif %}</span>
+                        </button>
+                    {% endfor %}
+                    {% if not anim_found %}
+                        <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; padding: 20px;">
+                            No animations uploaded yet.
+                        </div>
+                    {% endif %}
+                </div>
             </div>
             <div class="preview-section">
                 <div class="preview-label">CURRENT</div>
@@ -767,6 +1116,32 @@
                     </div>
                 </div>
             `;
+        } else if (value === 'neon') {
+            preview.classList.add('preview-neon');
+            preview.innerHTML = '<div class="glow"></div>';
+        } else if (value === 'blur') {
+            preview.classList.add('preview-blur');
+            preview.innerHTML = '<div class="glow"></div>';
+        } else if (value === 'slide_up') {
+            preview.classList.add('preview-slide-up');
+            preview.innerHTML = '<div class="glow"></div>';
+        } else if (value === 'zoom') {
+            preview.classList.add('preview-zoom');
+            preview.innerHTML = '<div class="glow"></div>';
+        } else if (value === 'matrix') {
+            preview.classList.add('preview-matrix');
+            preview.innerHTML = '';
+        } else if (value === 'grid') {
+            preview.classList.add('preview-grid');
+            preview.innerHTML = '<div class="glow"></div>';
+        } else if (value === 'shrink') {
+            preview.classList.add('preview-shrink');
+            preview.innerHTML = '<div class="glow"></div>';
+        } else if (value === 'bounce') {
+            preview.classList.add('preview-bounce');
+            preview.innerHTML = '<div class="glow"></div>';
+        } else if (value === 'none') {
+            preview.innerHTML = '<span class="placeholder">Static (No Animation)</span>';
         } else {
             preview.innerHTML = `
                 <div class="glow"></div>
@@ -834,5 +1209,35 @@
         btn.textContent = 'Reset to Default';
         location.reload();
     }
+    function switchCategory(panel, category) {
+        // Update toggle buttons
+        const panelEl = document.querySelector(`.panel.${panel === 'login' ? 'cyan' : panel === 'manga' ? 'magenta' : panel === 'dashboard' ? 'sky' : 'orange'}`);
+        panelEl.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.textContent.toLowerCase().includes(category));
+        });
+
+        // Update groups
+        panelEl.querySelectorAll('.options-group').forEach(group => {
+            group.classList.remove('active');
+        });
+        document.getElementById(`${panel}-${category}-group`).classList.add('active');
+    }
+
+    // Auto-switch to animation tab if active animation is an 'animation' category
+    window.addEventListener('DOMContentLoaded', () => {
+        const categories = {
+            login: '{{ active_animations.get("login", {}).get("category", "style") }}',
+            manga: '{{ active_animations.get("manga_enter", {}).get("category", "style") }}',
+            dashboard: '{{ active_animations.get("banner", {}).get("category", "style") }}',
+            logout: '{{ active_animations.get("logout", {}).get("category", "style") }}'
+        };
+
+        for (const [panel, cat] of Object.entries(categories)) {
+            if (cat === 'animation') {
+                switchCategory(panel, 'animation');
+            }
+        }
+    });
+
 </script>
 {% endblock %}

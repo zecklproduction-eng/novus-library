@@ -116,6 +116,40 @@
     }
     .lib-item.add-new:hover { background: rgba(189, 0, 255, 0.15); }
 
+    .lib-item { position: relative; }
+    .lib-item-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        opacity: 0;
+        transition: 0.2s;
+        backdrop-filter: blur(4px);
+    }
+    .lib-item:hover .lib-item-overlay { opacity: 1; }
+    .lib-action-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: 0.2s;
+        border: none;
+        color: white;
+    }
+    .btn-edit { background: rgba(0, 242, 255, 0.2); border: 1px solid rgba(0, 242, 255, 0.4); }
+    .btn-edit:hover { background: var(--studio-primary); color: #000; }
+    .btn-delete { background: rgba(255, 51, 102, 0.2); border: 1px solid rgba(255, 51, 102, 0.4); }
+    .btn-delete:hover { background: var(--studio-action); color: #fff; }
+
+    .category-select-group { margin-bottom: 20px; }
+    .category-select-group label { display: block; color: #888; margin-bottom: 8px; font-size: 0.9rem; }
+
     /* Upload Now Button */
     .bottom-action-container {
         position: fixed;
@@ -327,7 +361,7 @@
             <select class="dropdown-select" id="bannerSelect" onchange="changeAnimation('banner', this)">
                 <option value="default" {% if not active_animations.get('banner') %}selected{% endif %}>Default (None)</option>
                 {% for anim in all_animations.banner %}
-                <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Custom #" ~ loop.index) }}</option>
+                <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Banner Animation #" ~ loop.index) }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -351,7 +385,7 @@
             <select class="dropdown-select" id="manga_enterSelect" onchange="changeAnimation('manga_enter', this)">
                 <option value="default" {% if not active_animations.get('manga_enter') %}selected{% endif %}>Default (Classic Slide)</option>
                 {% for anim in all_animations.manga_enter %}
-                <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Custom #" ~ loop.index) }}</option>
+                <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Manga Animation #" ~ loop.index) }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -375,7 +409,7 @@
             <select class="dropdown-select" id="loginSelect" onchange="changeAnimation('login', this)">
                 <option value="default" {% if not active_animations.get('login') %}selected{% endif %}>Default (Standard Fade)</option>
                 {% for anim in all_animations.login %}
-                <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Custom #" ~ loop.index) }}</option>
+                <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Login Animation #" ~ loop.index) }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -399,7 +433,7 @@
             <select class="dropdown-select" id="logoutSelect" onchange="changeAnimation('logout', this)">
                 <option value="default" {% if not active_animations.get('logout') %}selected{% endif %}>Default (Standard Fade)</option>
                 {% for anim in all_animations.logout %}
-                <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Custom #" ~ loop.index) }}</option>
+                <option value="{{ anim.id }}" data-path="{{ anim.path }}" {% if anim.is_active %}selected{% endif %}>{{ anim.name or ("Logout Animation #" ~ loop.index) }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -412,35 +446,30 @@
             <span style="font-size: 11px; font-weight: bold; margin-top: 5px;">UPLOAD NEW</span>
         </div>
 
-        {% for anim in all_animations.banner %}
-        <div class="lib-item" title="{{ anim.name }} (Banner)">
-            {% set ext = anim.path.split('.')[-1].lower() %}
-            {% if ext in ['mp4', 'webm'] %}<video src="{{ url_for('static', filename=anim.path) }}" muted></video>
-            {% else %}<img src="{{ url_for('static', filename=anim.path) }}" />{% endif %}
-        </div>
-        {% endfor %}
+        {% set all_items = [] %}
+        {% for anim in all_animations.banner %}{% set _ = anim.update({'typeName': 'Banner'}) %}{% set _ = all_items.append(anim) %}{% endfor %}
+        {% for anim in all_animations.manga_enter %}{% set _ = anim.update({'typeName': 'Manga'}) %}{% set _ = all_items.append(anim) %}{% endfor %}
+        {% for anim in all_animations.login %}{% set _ = anim.update({'typeName': 'Login'}) %}{% set _ = all_items.append(anim) %}{% endfor %}
+        {% for anim in all_animations.logout %}{% set _ = anim.update({'typeName': 'Logout'}) %}{% set _ = all_items.append(anim) %}{% endfor %}
 
-        {% for anim in all_animations.manga_enter %}
-        <div class="lib-item" title="{{ anim.name }} (Manga)">
+        {% for anim in all_items if 'preset' not in anim.id|string %}
+        <div class="lib-item" title="{{ anim.name }} ({{ anim.typeName }})">
             {% set ext = anim.path.split('.')[-1].lower() %}
             {% if ext in ['mp4', 'webm'] %}<video src="{{ url_for('static', filename=anim.path) }}" muted></video>
             {% else %}<img src="{{ url_for('static', filename=anim.path) }}" />{% endif %}
-        </div>
-        {% endfor %}
-
-        {% for anim in all_animations.login %}
-        <div class="lib-item" title="{{ anim.name }} (Login)">
-            {% set ext = anim.path.split('.')[-1].lower() %}
-            {% if ext in ['mp4', 'webm'] %}<video src="{{ url_for('static', filename=anim.path) }}" muted></video>
-            {% else %}<img src="{{ url_for('static', filename=anim.path) }}" />{% endif %}
-        </div>
-        {% endfor %}
-
-        {% for anim in all_animations.logout %}
-        <div class="lib-item" title="{{ anim.name }} (Logout)">
-            {% set ext = anim.path.split('.')[-1].lower() %}
-            {% if ext in ['mp4', 'webm'] %}<video src="{{ url_for('static', filename=anim.path) }}" muted></video>
-            {% else %}<img src="{{ url_for('static', filename=anim.path) }}" />{% endif %}
+            
+            <div class="lib-item-overlay">
+                <button class="lib-action-btn btn-edit" title="Edit" onclick="openEditModal('{{ anim.id }}', '{{ anim.name }}', '{{ anim.category }}')">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="lib-action-btn btn-delete" title="Delete" onclick="deleteAnimation('{{ anim.id }}')">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+            
+            <div style="position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 9px; color: #aaa;">
+                {{ anim.category|upper }}
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -492,6 +521,15 @@
                 <input type="text" id="animationName" placeholder="e.g., Holographic Materialize">
             </div>
 
+            <div class="category-select-group">
+                <label for="categorySelect">Category (Styles show in Styles tab, Animations in Animations tab)</label>
+                <select id="categorySelect" class="dropdown-select">
+                    <option value="" disabled selected>-- Select Category --</option>
+                    <option value="style">Style</option>
+                    <option value="animation">Animation</option>
+                </select>
+            </div>
+
             <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
                 <input type="file" id="fileInput" hidden accept=".mp4,.webm,.gif,.png,.jpg,.jpeg">
                 <div class="upload-icon">☁️</div>
@@ -518,19 +556,45 @@
     const dropZone = document.getElementById('dropZone');
     const selectedFileName = document.getElementById('selectedFileName');
     const animationNameInput = document.getElementById('animationName');
+    const categorySelect = document.getElementById('categorySelect');
     const executeBtn = document.getElementById('executeBtn');
 
     let currentType = '';
     let selectedFile = null;
+    let editingId = null;
 
     function togglePopup(show) {
         modal.classList.toggle('show', show);
         if (show) {
-            goBack();
             selectedFile = null;
             selectedFileName.textContent = '';
             animationNameInput.value = '';
+            categorySelect.value = '';
+            editingId = null;
+            document.querySelector('.popup-title').innerHTML = 'Initialize <span>Upload</span>';
+            document.querySelector('.popup-subtitle').textContent = 'Select the system component to modify.';
+            executeBtn.innerText = 'Execute Upload';
+            executeBtn.style.background = '';
+            dropZone.style.display = 'flex';
         }
+    }
+
+    function openEditModal(id, name, category) {
+        editingId = id;
+        animationNameInput.value = name;
+        categorySelect.value = category;
+        
+        togglePopup(true);
+        step1.style.display = 'none';
+        step2.style.display = 'block';
+        
+        document.querySelector('.popup-title').innerHTML = 'Edit <span>Animation</span>';
+        document.querySelector('.popup-subtitle').textContent = 'Modify animation properties.';
+        targetTitle.innerText = 'EDIT MODE';
+        
+        // Hide drop zone in edit mode
+        dropZone.style.display = 'none';
+        executeBtn.innerText = 'Save Changes';
     }
 
     function goToUpload(type, label) {
@@ -565,12 +629,18 @@
     });
 
     async function executeUpload() {
-        if (!selectedFile) { alert('Please select a file first.'); return; }
+        if (!editingId && !selectedFile) { alert('Please select a file first.'); return; }
+        if (!categorySelect.value) { alert('Please select a category.'); return; }
+
+        if (editingId) {
+            return saveEdit();
+        }
 
         const formData = new FormData();
         formData.append('animation_file', selectedFile);
         formData.append('animation_type', currentType);
         formData.append('animation_name', animationNameInput.value || 'Untitled');
+        formData.append('category', categorySelect.value);
 
         executeBtn.innerText = 'PROCESSING...';
         executeBtn.style.opacity = '0.7';
@@ -594,6 +664,54 @@
             executeBtn.innerText = 'Execute Upload';
             executeBtn.style.background = '';
             executeBtn.style.opacity = '1';
+        }
+    }
+
+    async function saveEdit() {
+        const name = animationNameInput.value || 'Untitled';
+        const category = categorySelect.value;
+        
+        executeBtn.innerText = 'SAVING...';
+        executeBtn.style.opacity = '0.7';
+        
+        try {
+            const response = await fetch(`/api/animation/${editingId}/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, category })
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                executeBtn.innerText = 'SAVED ✓';
+                executeBtn.style.background = '#00ff88';
+                setTimeout(() => { togglePopup(false); location.reload(); }, 1200);
+            } else {
+                alert(result.error || 'Update failed.');
+                executeBtn.innerText = 'Save Changes';
+                executeBtn.style.opacity = '1';
+            }
+        } catch (err) {
+            alert('Network error: ' + err.message);
+            executeBtn.innerText = 'Save Changes';
+            executeBtn.style.opacity = '1';
+        }
+    }
+
+    async function deleteAnimation(id) {
+        if (!confirm('Are you sure you want to delete this animation? This cannot be undone.')) return;
+        
+        try {
+            const response = await fetch(`/api/animation/${id}/delete`, { method: 'DELETE' });
+            const result = await response.json();
+            
+            if (result.success) {
+                location.reload();
+            } else {
+                alert(result.error || 'Deletion failed.');
+            }
+        } catch (err) {
+            alert('Network error: ' + err.message);
         }
     }
 
