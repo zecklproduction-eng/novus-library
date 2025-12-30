@@ -646,10 +646,25 @@
         executeBtn.style.opacity = '0.7';
 
         try {
-            const response = await fetch('/api/animation/upload', { method: 'POST', body: formData });
-            const result = await response.json();
+            const response = await fetch('/api/animation/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const textFn = await response.text(); 
+            let result;
+            try {
+                 result = JSON.parse(textFn);
+            } catch(e) {
+                 throw new Error("Server returned non-JSON: " + textFn.substring(0, 150));
+            }
 
             if (result.success) {
+                // Auto-activate the new animation
+                try {
+                     await fetch(`/api/animation/${result.animation.id}/activate`, { method: 'PUT' });
+                } catch(e) { console.error("Auto-activation failed", e); }
+
                 executeBtn.innerText = 'SUCCESS ✓';
                 executeBtn.style.background = '#00ff88';
                 setTimeout(() => { togglePopup(false); location.reload(); }, 1200);
@@ -659,6 +674,7 @@
                 alert(result.error || 'Upload failed.');
                 setTimeout(() => { executeBtn.innerText = 'Execute Upload'; executeBtn.style.background = ''; executeBtn.style.opacity = '1'; }, 1500);
             }
+
         } catch (err) {
             alert('Network error: ' + err.message);
             executeBtn.innerText = 'Execute Upload';

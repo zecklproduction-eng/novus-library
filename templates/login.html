@@ -638,19 +638,7 @@
   <div class="success-overlay" id="successOverlay">
     <div id="loginCustomAnimContainer" class="custom-anim-media" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: -1;"></div>
     
-    <!-- Strange Light Emission -->
-    <div class="strange-light"></div>
-    
-    <!-- Cave Entrance Mask -->
-    <div class="cave-entrance"></div>
-
-    <!-- Rocky Filter definition -->
-    <svg style="position: absolute; width: 0; height: 0;">
-      <filter id="rocky-filter">
-        <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="5" result="noise" />
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="35" />
-      </filter>
-    </svg>
+    <svg style="position: absolute; width: 0; height: 0;"></svg>
 
     <div class="scanning-line"></div>
     <div class="success-content">
@@ -869,45 +857,64 @@
         successOverlay.classList.add('show');
       }, 2500);
 
-      // Step 6: Redirect
-      setTimeout(() => {
-        window.location.href = redirectUrl || '/';
-      }, 5500);
+      // Step 6: Dynamic Redirect
+      const video = successOverlay.querySelector('video');
+      const performRedirect = (del) => {
+        setTimeout(() => {
+          window.location.href = redirectUrl || '/';
+        }, del);
+      };
+
+      if (video) {
+        const startTimer = () => {
+          // Add 2500ms because the overlay itself only starts at 2.5s into the function
+          const vidDuration = Math.min(video.duration * 1000 || 3000, 12000);
+          performRedirect(vidDuration + 2500); 
+        };
+        if (video.readyState >= 1) startTimer();
+        else {
+            video.onloadedmetadata = startTimer;
+            setTimeout(startTimer, 1500); // Safety
+        }
+      } else {
+        performRedirect(3000 + 2500); // 3s for images + 2.5s initial delay
+      }
     }
 
     function createParticleBurst() {
       const btnRect = loginBtn.getBoundingClientRect();
-      const centerX = btnRect.left + btnRect.width / 2;
-      const centerY = btnRect.top + btnRect.height / 2;
+      const cX = btnRect.left + btnRect.width / 2;
+      const cY = btnRect.top + btnRect.height / 2;
 
       for (let i = 0; i < 15; i++) {
-        const particle = document.createElement('div');
-        particle.className = `particle-burst ${i % 2 === 0 ? 'green' : 'cyan'}`;
-        document.body.appendChild(particle);
+        const p = document.createElement('div');
+        const isGreen = i % 2 === 0;
+        p.className = 'particle-burst ' + (isGreen ? 'green' : 'cyan');
+        document.body.appendChild(p);
 
-        const angle = (i / 15) * Math.PI * 2;
-        const velocity = 100 + Math.random() * 80;
-        const size = 5 + Math.random() * 8;
+        const a = (i / 15) * Math.PI * 2;
+        const v = 100 + Math.random() * 80;
+        const s = 5 + Math.random() * 8;
 
-        particle.style.width = `${size}px`;
-        particle.style.height = `${size}px`;
-        particle.style.left = `${centerX}px`;
-        particle.style.top = `${centerY}px`;
-        particle.style.position = 'fixed';
+        p.style.width = s + 'px';
+        p.style.height = s + 'px';
+        p.style.left = cX + 'px';
+        p.style.top = cY + 'px';
+        p.style.position = 'fixed';
 
-        const destX = centerX + Math.cos(angle) * velocity;
-        const destY = centerY + Math.sin(angle) * velocity;
+        const dX = cX + Math.cos(a) * v;
+        const dY = cY + Math.sin(a) * v;
 
-        particle.animate([
+        p.animate([
           { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
-          { transform: `translate(${destX - centerX}px, ${destY - centerY}px) scale(0)`, opacity: 0 }
+          { transform: 'translate(' + (dX - cX) + 'px, ' + (dY - cY) + 'px) scale(0)', opacity: 0 }
         ], {
           duration: 800,
           easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
           fill: 'forwards'
         });
 
-        setTimeout(() => particle.remove(), 900);
+        setTimeout(() => p.remove(), 900);
       }
     }
 

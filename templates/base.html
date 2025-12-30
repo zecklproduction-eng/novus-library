@@ -553,19 +553,7 @@
     </div>
 
     <div id="manga-warp-overlay" class="warp-overlay {{ anim_styles.manga if anim_styles else 'classic' }}">
-      <!-- Strange Light Emission -->
-      <div class="strange-light"></div>
-      
-      <!-- Cave Entrance Mask -->
-      <div class="cave-entrance"></div>
 
-      <!-- Rocky Filter definition -->
-      <svg style="position: absolute; width: 0; height: 0;">
-        <filter id="rocky-filter">
-          <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="5" result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="35" />
-        </filter>
-      </svg>
 
       {% if animations.manga_enter %}
       <div class="custom-anim-media">
@@ -589,6 +577,8 @@
     </div>
 
     <div id="logoutOverlay" class="logout-overlay {{ anim_styles.logout if anim_styles else 'fade' }}">
+      <svg style="position: absolute; width: 0; height: 0;"></svg>
+
       {% if animations.logout %}
       <div class="custom-anim-media">
         {% set path = animations.logout.path %}
@@ -1062,17 +1052,7 @@
     mangaLink.addEventListener("click", function (e) {
       e.preventDefault(); 
 
-      // 1. Determine theme and set timing
-      let duration = 1000; // Default classic warp
-      
-      // Fallback detection: if image/video source contains 'jungle', force jungle class
-      const customMedia = overlay.querySelector('.custom-anim-media img, .custom-anim-media video');
-      const isJungle = overlay.classList.contains('jungle') || (customMedia && (customMedia.src.includes('jungle') || customMedia.src.includes('cave')));
-      
-      if (isJungle) {
-          overlay.classList.add('jungle');
-          duration = 2400; // Match the 2.5s CSS zoom
-      }
+
 
       // 2. Reset and Play
       document.body.classList.remove("manga-warp");
@@ -1083,9 +1063,24 @@
       document.body.classList.add("manga-warp");
 
       // 3. Redirect after animation completes
-      setTimeout(() => {
-        window.location.href = this.href;
-      }, duration);
+      const video = overlay.querySelector('video');
+      const performRedirect = (del) => {
+          setTimeout(() => { window.location.href = this.href; }, del);
+      };
+
+      if (video) {
+          const startTimer = () => {
+              const vidDuration = Math.min(video.duration * 1000 || 3000, 12000);
+              performRedirect(vidDuration);
+          };
+          if (video.readyState >= 1) startTimer();
+          else {
+              video.onloadedmetadata = startTimer;
+              setTimeout(startTimer, 1500); // Safety fallback
+          }
+      } else {
+          performRedirect(3000); // 3s fallback for static images
+      }
     });
   });
 </script>
@@ -1368,31 +1363,34 @@
         const overlay = document.getElementById('logoutOverlay');
         const topLoadingBar = document.getElementById('topLoadingBar');
 
-        // Show top loading bar
+        // Show loading bar
         if (topLoadingBar) {
           topLoadingBar.classList.add('show');
           topLoadingBar.classList.remove('page-load');
         }
 
+        // Show overlay
         overlay.classList.add('show');
-        
-        // Trigger specific style effects if needed
-        if (overlay.classList.contains('shutter')) {
-          overlay.querySelectorAll('.shutter-blade').forEach((b, i) => {
-             b.style.transitionDelay = (i * 0.05) + 's';
-          });
-          setTimeout(() => overlay.classList.add('active'), 50);
-        } else if (overlay.classList.contains('pixel')) {
-          overlay.querySelectorAll('.pixel-block').forEach((b, i) => {
-             b.style.transitionDelay = (Math.random() * 0.5) + 's';
-          });
-          setTimeout(() => overlay.classList.add('active'), 50);
-        }
 
         // Redirect to logout after animation
-        setTimeout(() => {
-          window.location.href = '{{ url_for("logout") }}';
-        }, 2500); // Increased delay for richer animations
+        const video = overlay.querySelector('video');
+        const performLogout = (del) => {
+            setTimeout(() => { window.location.href = '{{ url_for("logout") }}'; }, del);
+        };
+
+        if (video) {
+            const startTimer = () => {
+                const vidDuration = Math.min(video.duration * 1000 || 3000, 12000);
+                performLogout(vidDuration);
+            };
+            if (video.readyState >= 1) startTimer();
+            else {
+                video.onloadedmetadata = startTimer;
+                setTimeout(startTimer, 1500); // Safety
+            }
+        } else {
+            performLogout(3000); // 3s for images
+        }
       }
 
       // Page load completion handler

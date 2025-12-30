@@ -66,10 +66,7 @@ os.makedirs(UPLOAD_FOLDER_PDF, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_AUDIO, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_COVERS, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_MANGA, exist_ok=True)
-os.makedirs(UPLOAD_FOLDER_ANIMATIONS, exist_ok=True)
-os.makedirs(os.path.join(UPLOAD_FOLDER_ANIMATIONS, "manga_enter"), exist_ok=True)
-os.makedirs(os.path.join(UPLOAD_FOLDER_ANIMATIONS, "logout"), exist_ok=True)
-os.makedirs(os.path.join(UPLOAD_FOLDER_ANIMATIONS, "banner"), exist_ok=True)
+
 
 ALLOWED_PDF   = {"pdf"}
 ALLOWED_AUDIO = {"mp3"}
@@ -159,6 +156,28 @@ MAX_PDF_SIZE = 50 * 1024 * 1024    # 50MB for PDFs
 MAX_AUDIO_SIZE = 100 * 1024 * 1024 # 100MB for audio files
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB for images
 MAX_ANIMATION_SIZE = 100 * 1024 * 1024  # 100MB for animations
+
+# Global Error Handlers for API JSON responses
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({"error": f"File too large. Max size is {app.config['MAX_CONTENT_LENGTH'] // (1024*1024)}MB"}), 413
+    return "File too large", 413
+
+@app.errorhandler(404)
+def not_found_error(error):
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({"error": "Resource not found"}), 404
+    return "Not Found", 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({"error": "Internal server error"}), 500
+    return "Internal Server Error", 500
+
+
+
 
 # -------------------- LOGGING CONFIGURATION --------------------
 # Create logs directory if it doesn't exist
@@ -4665,9 +4684,11 @@ def customization():
             'category': 'animation'
         })
 
-    # Jungle Presets
+    # Jungle Presets (Only add if no user-uploaded 'jungle' version exists)
+    # This prevents the user's "Moonlit Jungle" from appearing next to a duplicate system preset.
+    
     # Jungle Login
-    has_jungle_login = any('jungle_login.png' in a['path'] for a in animations_dict['login'])
+    has_jungle_login = any('jungle' in a['path'].lower() or 'jungle' in a['name'].lower() for a in animations_dict['login'])
     if not has_jungle_login:
         animations_dict['login'].append({
             'id': 'preset_jungle_login',
@@ -4679,7 +4700,7 @@ def customization():
         })
 
     # Jungle Manga Enter
-    has_jungle_manga = any('jungle_manga.png' in a['path'] for a in animations_dict['manga_enter'])
+    has_jungle_manga = any('jungle' in a['path'].lower() or 'jungle' in a['name'].lower() for a in animations_dict['manga_enter'])
     if not has_jungle_manga:
         animations_dict['manga_enter'].append({
             'id': 'preset_jungle_manga',
@@ -4691,7 +4712,7 @@ def customization():
         })
 
     # Jungle Logout
-    has_jungle_logout = any('jungle_logout.png' in a['path'] for a in animations_dict['logout'])
+    has_jungle_logout = any('jungle' in a['path'].lower() or 'jungle' in a['name'].lower() for a in animations_dict['logout'])
     if not has_jungle_logout:
         animations_dict['logout'].append({
             'id': 'preset_jungle_logout',
@@ -4778,26 +4799,33 @@ def customization_upload():
             active_animations[anim[1]] = anim_data
     
     
-    # SYSTEM PRESETS (Added manually to ensure visibility for all users)
+    # SYSTEM PRESETS (Added manually to ensure visibility)
     # Check if Novus Blue Circuit matches any existing user animation
-    has_novus_blue_in_db = False
-    for anim in animations_dict['banner']:
-        if 'banner_option_novus_blue.png' in anim['path']:
-            has_novus_blue_in_db = True
-            break
-            
+    has_novus_blue_in_db = any('banner_option_novus_blue.png' in a['path'] for a in animations_dict['banner'])
     if not has_novus_blue_in_db:
-        # Add preset to list
-        novus_blue_preset = {
-            'id': 'preset_novus_blue', # String ID to distinguish
+        animations_dict['banner'].insert(0, {
+            'id': 'preset_novus_blue',
             'type': 'banner',
             'path': 'img/banner_option_novus_blue.png',
             'is_active': 0,
             'created_at': 'System',
             'name': 'Novus Blue (Animated)',
             'category': 'style'
-        }
-        animations_dict['banner'].insert(0, novus_blue_preset) # Add to top
+        })
+
+    # Apply similar jungle pruning to upload page too
+    for cat in ['login', 'manga_enter', 'logout']:
+        has_jungle = any('jungle' in a['path'].lower() or 'jungle' in a['name'].lower() for a in animations_dict[cat])
+        if not has_jungle:
+            preset_name = 'Jungle Ruins' if cat == 'login' else ('Jungle Temple Path' if cat == 'manga_enter' else 'Moonlit Jungle')
+            animations_dict[cat].append({
+                'id': f'preset_jungle_{cat.split("_")[0]}',
+                'type': cat,
+                'path': f'img/jungle_{cat.split("_")[0]}.png',
+                'is_active': 0,
+                'name': preset_name,
+                'category': 'animation'
+            })
 
     conn.close()
     
@@ -4808,11 +4836,13 @@ def customization_upload():
 
 
 @app.route("/api/animation/upload", methods=["POST"])
-@admin_required
 def upload_animation():
     """Upload a custom animation"""
+    # Ensure user is logged in and is admin for API endpoint
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
+    if session.get("role") != "admin":
+        return jsonify({"error": "Admin access required"}), 403
     
     animation_type = request.form.get("animation_type")
     if animation_type not in ["login", "manga_enter", "logout", "banner"]:
@@ -4822,8 +4852,9 @@ def upload_animation():
     if not animation_file or not animation_file.filename:
         return jsonify({"error": "No file uploaded"}), 400
     
-    # Check file size
-    if animation_file.content_length and animation_file.content_length > MAX_ANIMATION_SIZE:
+    # Check file size (safely)
+    file_size = getattr(animation_file, "content_length", None) or request.content_length
+    if file_size and file_size > MAX_ANIMATION_SIZE:
         return jsonify({"error": f"File too large. Max size is {MAX_ANIMATION_SIZE // (1024*1024)}MB"}), 400
     
     # Check file extension
@@ -4837,10 +4868,10 @@ def upload_animation():
     unique_filename = f"{timestamp}_{filename}"
     
     subfolder = os.path.join(UPLOAD_FOLDER_ANIMATIONS, animation_type)
+    os.makedirs(subfolder, exist_ok=True)
     file_path = os.path.join(subfolder, unique_filename)
     animation_file.save(file_path)
     
-    # Save to database
     relative_path = f"animations/{animation_type}/{unique_filename}"
     user_id = session.get("user_id")
     
@@ -5113,9 +5144,17 @@ def activate_animation(animation_id):
         # Activate this one
         c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (anim_id,))
         
-        # Also ensure style is 'none' for custom animations to avoid overlapping presets
+        # AUTO-DETECT STYLE: If custom name/path contains 'jungle' or 'cave', set style to 'jungle'
+        c.execute("SELECT name, file_path FROM custom_animations WHERE id = ?", (anim_id,))
+        n_p = c.fetchone()
+        name_path = (str(n_p[0] or "") + str(n_p[1] or "")).lower()
+        
+        style_to_use = 'none'
+        if 'jungle' in name_path or 'cave' in name_path:
+            style_to_use = 'jungle'
+        
         setting_key = cat_to_setting.get(anim_type, anim_type)
-        c.execute("INSERT INTO animation_settings (user_id, setting_key, setting_value) VALUES (?, ?, 'none') ON CONFLICT(user_id, setting_key) DO UPDATE SET setting_value = 'none'", (user_id, setting_key))
+        c.execute("INSERT INTO animation_settings (user_id, setting_key, setting_value) VALUES (?, ?, ?) ON CONFLICT(user_id, setting_key) DO UPDATE SET setting_value = excluded.setting_value", (user_id, setting_key, style_to_use))
         
         conn.commit()
         conn.close()
@@ -5433,10 +5472,7 @@ def extract_image_text():
         text = ai.extract_text_from_image(temp_path)
         
         # Clean up temp file
-        try:
-            os.remove(temp_path)
-        except:
-            pass
+        os.remove(temp_path)
         
         return jsonify({
             'success': True,

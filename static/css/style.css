@@ -1250,9 +1250,6 @@ a.cta-button {
   }
 }
 
-.grid-col {}
-
-.sidebar-col {}
 
 .grid-toolbar {
   display: flex;
@@ -2272,12 +2269,10 @@ body.manga-transition::before {
 }
 
 
+/* --- Custom Media Container (Shared) --- */
 .custom-anim-media {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   z-index: 5;
   display: flex;
   align-items: center;
@@ -2349,9 +2344,88 @@ body.manga-transition::before {
 
 /* Consolidating main warp-overlay styles below... */
 
-/* =========================
+/* =========================================
+   LOGOUT OVERLAY SYSTEM
+   ========================================= */
+
+.logout-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg-main, #0a0b10);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.logout-overlay.show {
+  display: flex;
+  animation: logoutOverlayFade 0.3s ease-out forwards;
+}
+
+/* Theme Overrides for Logout */
+.logout-overlay.jungle, .logout-overlay.cave {
+    background: #000;
+}
+
+.logout-overlay.jungle .custom-anim-media,
+.logout-overlay.cave .custom-anim-media {
+    animation: caveZoomIn 2.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+@keyframes logoutOverlayFade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Shutter effect styles */
+.shutter-overlay-container {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.shutter-blade {
+    flex: 1;
+    background: #000;
+    transform: translateX(-100%);
+    transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.logout-overlay.active .shutter-blade {
+    transform: translateX(0);
+}
+
+/* Pixel effect styles */
+.pixel-overlay-container {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(10, 1fr);
+    z-index: 10;
+    pointer-events: none;
+}
+
+.pixel-block {
+    background: #000;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.4s ease-out;
+}
+
+.logout-overlay.active .pixel-block {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+/* =========================================
    MANGA WARP OVERLAY (VORTEX)
-   ========================== */
+   ========================================= */
 
 /* Hidden by default */
 .warp-overlay {
@@ -2365,24 +2439,35 @@ body.manga-transition::before {
   display: none;
   align-items: center;
   justify-content: center;
-  overflow: hidden; /* Important for zoom effect */
+  overflow: hidden;
 }
 
-/* Show + fade in when JS adds .show */
 .warp-overlay.show {
   display: flex;
   animation: warpOverlayFade 0.2s linear forwards;
 }
 
-/* Immersive Cave Portal Effects (Overrides) */
-.warp-overlay.jungle, .warp-overlay.cave {
-    background: #000;
+/* Immersive Cave Portal Effects (Shared Overrides) */
+.warp-overlay.jungle, .warp-overlay.cave,
+.success-overlay.jungle, .success-overlay.cave,
+.logout-overlay.jungle, .logout-overlay.cave {
+    background: #000 !important;
 }
 
 .warp-overlay.jungle .custom-anim-media,
 .warp-overlay.cave .custom-anim-media {
-    /* Use a slightly faster zoom to fit reasonable wait times */
-    animation: caveZoomIn 2.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+    /* 2.2s total: Stage 1 (Hold) ~0.4s, Stage 2 (Zoom) ~1.8s */
+    animation: caveZoomIn 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* Subtle breathing to make static images feel alive before zoom */
+.success-overlay.jungle .custom-anim-media img {
+    animation: jungleBreathing 3s ease-in-out infinite;
+}
+
+@keyframes jungleBreathing {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.03); filter: brightness(1.1); }
 }
 
 .warp-overlay.jungle .cave-entrance, 
@@ -2392,48 +2477,84 @@ body.manga-transition::before {
     inset: -50px;
     z-index: 20;
     pointer-events: none;
-    box-shadow: inset 0 0 150px 100px #000;
+    box-shadow: inset 0 0 100px 50px #000;
     background: 
-        radial-gradient(ellipse at center, transparent 30%, #000 70%),
+        radial-gradient(ellipse at center, transparent 40%, #000 75%),
         repeating-radial-gradient(circle at 50% 50%, transparent 0, #000 2px, transparent 4px);
     background-blend-mode: multiply;
-    filter: url(#rocky-filter) contrast(200%) brightness(0.5);
-    opacity: 0.9;
+    filter: url(#rocky-filter) contrast(150%);
+    opacity: 0.75;
 }
 
 .cave-entrance { display: none; }
 
 .warp-overlay.jungle .strange-light, 
-.warp-overlay.cave .strange-light {
+.warp-overlay.cave .strange-light,
+.success-overlay.jungle .strange-light,
+.success-overlay.cave .strange-light,
+.logout-overlay.jungle .strange-light,
+.logout-overlay.cave .strange-light {
     display: block;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 300px;
-    height: 300px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(0, 212, 255, 0.8) 0%, rgba(120, 255, 0, 0.4) 40%, transparent 70%);
-    filter: blur(40px);
+    width: 2px;
+    height: 2px;
     z-index: 12;
-    animation: strangeLightPulse 2s infinite ease-in-out;
-    mix-blend-mode: screen;
+    pointer-events: none;
+    /* Fade out the whole light group as we finish zooming */
+    animation: strangeLightFadeOut 2.2s ease-in forwards;
+}
+
+@keyframes strangeLightFadeOut {
+    0%, 70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
 }
 
 .strange-light { display: none; }
 
+.strange-ray {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 150px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.8), rgba(120, 255, 0, 0.6), transparent);
+    transform-origin: left center;
+    filter: blur(1px);
+    opacity: 0;
+    mix-blend-mode: screen;
+}
+
+/* Specific ray timings and rotations */
+.strange-ray:nth-child(1) { transform: rotate(0deg); animation: strangeRayMove 0.8s infinite 0s; }
+.strange-ray:nth-child(2) { transform: rotate(45deg); animation: strangeRayMove 0.9s infinite 0.1s; }
+.strange-ray:nth-child(3) { transform: rotate(90deg); animation: strangeRayMove 1.0s infinite 0.2s; }
+.strange-ray:nth-child(4) { transform: rotate(135deg); animation: strangeRayMove 0.85s infinite 0.3s; }
+.strange-ray:nth-child(5) { transform: rotate(180deg); animation: strangeRayMove 0.95s infinite 0.4s; }
+.strange-ray:nth-child(6) { transform: rotate(225deg); animation: strangeRayMove 1.1s infinite 0.5s; }
+.strange-ray:nth-child(7) { transform: rotate(270deg); animation: strangeRayMove 0.75s infinite 0.6s; }
+.strange-ray:nth-child(8) { transform: rotate(315deg); animation: strangeRayMove 0.9s infinite 0.7s; }
+
+@keyframes strangeRayMove {
+    0% { transform: rotate(var(--r, 0deg)) translateX(20px) scaleX(0.1); opacity: 0; }
+    15% { transform: rotate(var(--r, 0deg)) translateX(50px) scaleX(1); opacity: 0.9; }
+    80% { opacity: 0.8; }
+    90% { opacity: 0; }
+    100% { transform: rotate(var(--r, 0deg)) translateX(600px) scaleX(3); opacity: 0; }
+}
+
 @keyframes strangeLightPulse {
-    0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); filter: blur(40px) hue-rotate(0deg); }
-    50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.6); filter: blur(60px) hue-rotate(90deg); }
+    0%, 100% { opacity: 0.2; transform: translate(-50%, -50%) scale(1); filter: blur(20px); }
+    50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.2); filter: blur(30px); }
 }
 
 @keyframes caveZoomIn {
-    0% { transform: scale(1); filter: brightness(1) blur(0); }
-    60% { transform: scale(3); filter: brightness(1.5) blur(1px); }
-    100% { transform: scale(12); filter: brightness(4) blur(15px); opacity: 0; }
+    0%, 20% { transform: scale(1); filter: brightness(1) blur(0); }
+    100% { transform: scale(25); filter: brightness(3.5) blur(10px); opacity: 0; }
 }
 
-/* Faint fade-in for overall overlay */
 @keyframes warpOverlayFade {
   0% { opacity: 0; }
   100% { opacity: 1; }
@@ -6716,6 +6837,85 @@ body.density-spacious .main-content {
 }
 
 
+
 /* ================================================= */
-/* END OF CUSTOMIZATION STYLES                       */
+/* LOGOUT OVERLAY STYLES                             */
+/* ================================================= */
+
+.logout-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0d0d0d 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.logout-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.logout-overlay .custom-anim-media {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.logout-overlay .custom-anim-media img,
+.logout-overlay .custom-anim-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logout-overlay .logout-animation {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: #fff;
+}
+
+.logout-overlay .logout-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  color: #00d4ff;
+  animation: pulse 1.5s infinite;
+}
+
+.logout-overlay .logout-text {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.logout-overlay .logout-subtext {
+  font-size: 1rem;
+  color: #aaa;
+}
+
+/* Jungle theme for logout overlay */
+.logout-overlay.jungle {
+  background: linear-gradient(135deg, #0d1f0d 0%, #1a2f1a 50%, #0a1a0a 100%);
+}
+
+.logout-overlay.jungle .custom-anim-media {
+  animation: jungleBreathing 3s ease-in-out infinite;
+}
+
+/* ================================================= */
+/* END OF LOGOUT OVERLAY STYLES                      */
 /* ================================================= */
