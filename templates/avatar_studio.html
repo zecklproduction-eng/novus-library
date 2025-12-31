@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}NOVUS | Avatar Studio{% endblock %}
+
+{% block content %}
+<div class="avatar-studio-container fade-in">
+    
+    <!-- LEFT COLUMN: Profile Card Preview -->
+    <div class="studio-col studio-left">
+        <div class="studio-card profile-preview-card">
+            <div class="studio-avatar-container" id="profileCardAvatar">
+                <div class="studio-avatar-frame {{ avatar_settings.avatar_frame|default('none') }}">
+                    <div class="studio-avatar-img-wrapper" style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
+                        {% if user_avatar %}
+                        <img src="{{ user_avatar }}" alt="User Avatar" class="studio-avatar-img">
+                        {% else %}
+                        <i class="fas fa-user-circle studio-avatar-placeholder"></i>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <h2 class="studio-username">{{ session.get('username') }}</h2>
+            <div class="studio-role">{{ session.get('role')|capitalize }}</div>
+            
+            <div class="studio-plan-badge {{ session.get('plan') }}">
+                <i class="fas fa-crown"></i> {{ session.get('plan')|capitalize }} Member
+            </div>
+            
+            <a href="{{ url_for('profile') }}" class="studio-edit-link">
+                <i class="fas fa-pen"></i> Edit Profile
+            </a>
+        </div>
+    </div>
+
+    <!-- CENTER COLUMN: Main Preview Area -->
+    <div class="studio-col studio-center">
+        <div class="studio-main-preview">
+            <div class="studio-preview-header">
+                <div class="preview-tab active"><i class="fas fa-eye"></i> Preview</div>
+                <div class="preview-actions">
+                    <label class="switch-label">
+                        <input type="checkbox" id="slipToggle">
+                        <span class="slider"></span>
+                        <span class="label-text">Slip</span>
+                    </label>
+                    <button class="icon-btn"><i class="fas fa-cog"></i></button>
+                </div>
+            </div>
+            
+            <div class="studio-preview-canvas">
+                <div class="studio-avatar-large-container">
+                    <div class="studio-avatar-frame large {{ avatar_settings.avatar_frame|default('none') }}" id="mainPreviewFrame">
+                        <div class="studio-avatar-img-wrapper large" id="mainPreviewWrapper" style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
+                            {% if user_avatar %}
+                            <img src="{{ user_avatar }}" alt="User Avatar" class="studio-avatar-img">
+                            {% else %}
+                            <i class="fas fa-user-circle studio-avatar-placeholder"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="studio-preview-footer">
+                <button class="studio-btn-outline" onclick="document.getElementById('avatarInput').click()">Replace Avatar</button>
+                <button class="studio-btn-outline" onclick="setFrame('none')">Remove Frame</button>
+                <form id="avatarUploadForm" style="display:none">
+                     <input type="file" id="avatarInput" accept="image/*" onchange="handleAvatarUpload(this)">
+                </form>
+            </div>
+        </div>
+        
+        <!-- Quick Frame Style Selector in Center (Optional, but in reference) -->
+        <div class="studio-quick-selector">
+            <h3>Frame Style</h3>
+            <div class="frame-grid-mini">
+                <div class="frame-option mini" onclick="setFrame('none')" title="None">
+                    <div class="frame-preview-mini none"></div>
+                    <span>None</span>
+                </div>
+                <!-- Mini previews -->
+                <div class="frame-option mini" onclick="setFrame('neon')" title="Neon">
+                    <div class="frame-preview-mini neon"></div>
+                </div>
+                <div class="frame-option mini" onclick="setFrame('gold')" title="Gold">
+                    <div class="frame-preview-mini gold"></div>
+                </div>
+                 <div class="frame-option mini" onclick="setFrame('blue_fire')" title="Blue Fire">
+                    <div class="frame-preview-mini blue_fire"></div>
+                </div>
+                 <div class="frame-option mini" onclick="setFrame('red_pulse')" title="Red Pulse">
+                    <div class="frame-preview-mini red_pulse"></div>
+                </div>
+            </div>
+             <button class="studio-btn-link"><i class="fas fa-link"></i> Share Preview Link</button>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Settings Panel -->
+    <div class="studio-col studio-right">
+        <div class="studio-settings-panel">
+            <div class="studio-settings-header">
+                <h3>Avatar Settings</h3>
+            </div>
+            
+            <div class="studio-tabs">
+                <div class="studio-tab active" data-tab="frames" onclick="switchTab('frames')">Frames</div>
+                <div class="studio-tab" data-tab="backgrounds" onclick="switchTab('backgrounds')">Backgrounds</div>
+                <div class="studio-tab" data-tab="badges" onclick="switchTab('badges')">Badges</div>
+            </div>
+            
+            <div class="studio-tab-content active" id="tab-frames">
+                <!-- Frame Style Grid -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h4>Frame Style</h4>
+                        <button class="btn-text-small" onclick="setFrame('none')"><i class="fas fa-layer-group"></i> Remove Frame</button>
+                    </div>
+                    
+                    <div class="frame-grid">
+                        <div class="frame-option" onclick="setFrame('none')">
+                            <div class="frame-preview none"></div>
+                            <span class="label">None</span>
+                        </div>
+                        <div class="frame-option" onclick="setFrame('simple_ring')">
+                            <div class="frame-preview simple_ring"></div>
+                        </div>
+                         <div class="frame-option" onclick="setFrame('gold_crown')">
+                            <div class="frame-preview gold_crown"></div>
+                        </div>
+                        <div class="frame-option" onclick="setFrame('neon_hex')">
+                            <div class="frame-preview neon_hex"></div>
+                        </div>
+                        
+                         <div class="frame-option" onclick="setFrame('fire_ring')">
+                            <div class="frame-preview fire_ring"></div>
+                        </div>
+                         <div class="frame-option" onclick="setFrame('ice_crystals')">
+                            <div class="frame-preview ice_crystals"></div>
+                        </div>
+                         <div class="frame-option" onclick="setFrame('dark_wings')">
+                            <div class="frame-preview dark_wings"></div>
+                        </div>
+
+                        <!-- New Frames -->
+                         <div class="frame-option" onclick="setFrame('steampunk')">
+                            <div class="frame-preview steampunk"></div>
+                        </div>
+                         <div class="frame-option" onclick="setFrame('nature')">
+                            <div class="frame-preview nature"></div>
+                        </div>
+                         <div class="frame-option" onclick="setFrame('cosmic')">
+                            <div class="frame-preview cosmic"></div>
+                        </div>
+                         <div class="frame-option" onclick="setFrame('cyber')">
+                            <div class="frame-preview cyber"></div>
+                        </div>
+                         <div class="frame-option" onclick="setFrame('rainbow')">
+                            <div class="frame-preview rainbow"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Border Style -->
+                <div class="settings-section">
+                    <h4>Border Style</h4>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" onclick="setBorderType('solid')" id="btn-border-solid"><span class="dot solid"></span> Solid</button>
+                        <button class="toggle-btn" onclick="setBorderType('gradient')" id="btn-border-gradient"><span class="dot gradient"></span> Gradient</button>
+                        <button class="toggle-btn" onclick="setBorderType('none')" id="btn-border-none"><span class="dot none"></span> None</button>
+                    </div>
+                </div>
+                
+                <!-- Border Color -->
+                <div class="settings-section">
+                    <h4>Border Color</h4>
+                    <div class="color-slider-container">
+                         <div class="color-slider" id="colorSlider"></div>
+                    </div>
+                    <div class="color-swatches">
+                        <div class="swatch" style="--c: #ff9900" onclick="setColor('#ff9900')"></div>
+                        <div class="swatch" style="--c: #ffee00" onclick="setColor('#ffee00')"></div>
+                        <div class="swatch" style="--c: #00d4ff" onclick="setColor('#00d4ff')"></div>
+                        <div class="swatch" style="--c: #00ff99" onclick="setColor('#00ff99')"></div>
+                        <div class="swatch" style="--c: #5c6bc0" onclick="setColor('#5c6bc0')"></div>
+                        <div class="swatch" style="--c: #e0e0e0" onclick="setColor('#e0e0e0')"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="studio-tab-content" id="tab-backgrounds">
+                 <div class="settings-section">
+                    <h4>Avatar Background</h4>
+                    <div class="bg-grid">
+                        <div class="bg-option" onclick="setBg('none')" style="background: #222;">None</div>
+                        <div class="bg-option" onclick="setBg('circuit')" style="background: url('/static/img/bg_circuit.png');">Circuit</div>
+                        <div class="bg-option" onclick="setBg('stars')" style="background: url('/static/img/stars.png');">Stars</div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <!-- Bottom Actions -->
+            <div class="studio-actions-footer">
+                <div class="action-row">
+                    <button class="action-btn"><i class="fas fa-undo"></i> Undo</button>
+                    <button class="action-btn"><i class="fas fa-redo"></i> Redo</button>
+                    <button class="version-link"><i class="fas fa-history"></i> Version History ></button>
+                </div>
+                <div class="action-row main">
+                    <div class="group-undo">
+                        <button class="action-btn"><i class="fas fa-undo"></i> Undo</button>
+                        <button class="action-btn"><i class="fas fa-redo"></i> Redo</button>
+                    </div>
+                    <button class="btn-publish" onclick="publishAvatar()">Publish</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<script>
+    let currentSettings = {
+        frame: "{{ avatar_settings.avatar_frame|default('none') }}",
+        borderType: "{{ avatar_settings.avatar_border|default('solid') }}",
+        color: "{{ avatar_settings.avatar_color|default('#00d4ff') }}",
+        bg: "{{ avatar_settings.avatar_bg|default('none') }}"
+    };
+
+    function setFrame(frameName) {
+        currentSettings.frame = frameName;
+        updatePreview();
+    }
+    
+    function setBorderType(type) {
+        currentSettings.borderType = type;
+        
+        document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-border-${type}`).classList.add('active');
+        
+        updatePreview();
+    }
+    
+    function setColor(color) {
+        currentSettings.color = color;
+        updatePreview();
+    }
+    
+    function setBg(bg) {
+        currentSettings.bg = bg;
+        updatePreview();
+    }
+    
+    function updatePreview() {
+        // Update both previews (left and center)
+        const frames = document.querySelectorAll('.studio-avatar-frame');
+        const wrappers = document.querySelectorAll('.studio-avatar-img-wrapper');
+        
+        frames.forEach(el => {
+            el.className = `studio-avatar-frame ${el.classList.contains('large') ? 'large' : ''} ${currentSettings.frame}`;
+        });
+        
+        wrappers.forEach(el => {
+            el.style.setProperty('--border-color', currentSettings.color);
+            // Apply border type logic via classes or styles
+            el.classList.remove('border-solid', 'border-gradient', 'border-none');
+            el.classList.add(`border-${currentSettings.borderType}`);
+        });
+    }
+    
+    function switchTab(tabName) {
+        document.querySelectorAll('.studio-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.studio-tab-content').forEach(c => c.classList.remove('active'));
+        
+        document.querySelector(`.studio-tab[data-tab="${tabName}"]`).classList.add('active');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+    
+    function publishAvatar() {
+        const btn = document.querySelector('.btn-publish');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        btn.disabled = true;
+        
+        fetch('/api/avatar/save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                avatar_frame: currentSettings.frame,
+                avatar_border: currentSettings.borderType,
+                avatar_color: currentSettings.color,
+                avatar_bg: currentSettings.bg
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                btn.innerHTML = 'Saved!';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 2000);
+            } else {
+                alert('Error saving');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+    }
+    
+    // Init state
+    window.addEventListener('DOMContentLoaded', () => {
+        setBorderType(currentSettings.borderType);
+    });
+</script>
+{% endblock %}

@@ -5364,6 +5364,61 @@ def delete_animation(animation_id):
     return jsonify({"success": True})
 
 
+
+# -------------------- AVATAR STUDIO --------------------
+@app.route("/avatar-studio")
+def avatar_studio():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    return render_template("avatar_studio.html")
+
+@app.route("/api/avatar/save", methods=["POST"])
+def save_avatar_settings():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session["user_id"]
+    data = request.json
+    
+    # settings keys: 'avatar_frame', 'avatar_border', 'avatar_color', 'avatar_bg'
+    allowed_keys = ['avatar_frame', 'avatar_border', 'avatar_color', 'avatar_bg']
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    for key in allowed_keys:
+        if key in data:
+            val = data[key]
+            c.execute("""
+                INSERT INTO animation_settings (user_id, setting_key, setting_value)
+                VALUES (?, ?, ?)
+                ON CONFLICT(user_id, setting_key) DO UPDATE SET setting_value = excluded.setting_value
+            """, (user_id, key, val))
+            
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+@app.context_processor
+def inject_avatar_settings():
+    if "user_id" not in session:
+        return {}
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT setting_key, setting_value FROM animation_settings WHERE user_id = ?", (session["user_id"],))
+    rows = c.fetchall()
+    conn.close()
+    
+    avatar_settings = {}
+    for key, val in rows:
+        if key.startswith('avatar_'):
+            avatar_settings[key] = val
+            
+    return {'avatar_settings': avatar_settings}
+
+
 # -------------------- FAQ ROUTE --------------------
 @app.route("/faq")
 def faq():
