@@ -4623,12 +4623,51 @@ def customization():
     
     # Get all custom animations for this user
     c.execute("""
-        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name, category
+        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name, category, user_id
         FROM custom_animations
         WHERE user_id = ?
         ORDER BY created_at DESC
     """, (user_id,))
-    animations = c.fetchall()
+    user_animations = c.fetchall()
+
+    # Get GLOBAL animations (uploaded by admins)
+    c.execute("""
+        SELECT ca.id, ca.animation_type, ca.file_path, ca.is_active, ca.created_at, COALESCE(ca.has_animated, 0), ca.name, ca.category, ca.user_id, ca.min_plan
+        FROM custom_animations ca
+        JOIN users u ON ca.user_id = u.id
+        WHERE u.role = 'admin'
+        ORDER BY ca.created_at DESC
+    """)
+    global_animations = c.fetchall()
+
+    # Determine User's Plan Level
+    conn = get_conn() # Re-open just to be safe or reuse c if it's the same conn
+    # users table has 'plan' column: basic, pro, ultimate
+    c.execute("SELECT plan, role FROM users WHERE id = ?", (user_id,))
+    user_row = c.fetchone()
+    user_plan = user_row[0] if user_row else 'basic'
+    user_role = user_row[1] if user_row else 'user'
+    
+    plan_levels = {'basic': 0, 'pro': 1, 'ultimate': 2, 'admin': 3}
+    user_level = plan_levels.get(user_plan, 0)
+    if user_role == 'admin':
+        user_level = 3 # Admins see everything
+
+    # Merge lists
+    user_file_paths = {row[2] for row in user_animations}
+    
+    animations = list(user_animations)
+    for anim in global_animations:
+        # anim[9] is min_plan
+        min_plan = anim[9] or 'basic'
+        req_level = plan_levels.get(min_plan, 0)
+        
+        # Filter: Only show if user level >= required level
+        if user_level >= req_level:
+             # If user doesn't have this file path, add it as a global option
+            if anim[2] not in user_file_paths:
+                animations.append(anim)
+
     
     # Organize animations by type
     animations_dict = {
@@ -4645,11 +4684,12 @@ def customization():
             'id': anim[0],
             'type': anim[1],
             'path': anim[2],
-            'is_active': anim[3],
+            'is_active': anim[3] if anim[8] == user_id else 0, # Only show active if it's THEIR copy
             'created_at': anim[4],
             'has_animated': anim[5],
             'name': anim[6],
-            'category': anim[7]
+            'category': anim[7],
+            'is_global': (anim[8] != user_id) # Flag if it belongs to admin
         }
         if anim[1] in animations_dict:
             animations_dict[anim[1]].append(anim_data)
@@ -4765,7 +4805,7 @@ def customization_upload():
     
     # Get all animations for this user (admin)
     c.execute("""
-        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name, category
+        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name, category, min_plan
         FROM custom_animations
         WHERE user_id = ?
         ORDER BY created_at DESC
@@ -4791,7 +4831,8 @@ def customization_upload():
             'created_at': anim[4],
             'has_animated': anim[5],
             'name': anim[6],
-            'category': anim[7]
+            'category': anim[7],
+            'min_plan': anim[8] or 'basic'
         }
         if anim[1] in animations_dict:
             animations_dict[anim[1]].append(anim_data)
@@ -4878,20 +4919,21 @@ def upload_animation():
     # Get has_animated parameter (defaults to 0 for backwards compatibility)
     has_animated = 1 if request.form.get("has_animated") == "true" else 0
     name = request.form.get("animation_name")
+    min_plan = request.form.get("min_plan", "basic")
     
     category = request.form.get("category", "animation")
     
     conn = get_conn()
     c = conn.cursor()
     c.execute("""
-        INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, has_animated, name, category)
-        VALUES (?, ?, ?, 0, ?, ?, ?)
-    """, (user_id, animation_type, relative_path, has_animated, name, category))
+        INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, has_animated, name, category, min_plan)
+        VALUES (?, ?, ?, 0, ?, ?, ?, ?)
+    """, (user_id, animation_type, relative_path, has_animated, name, category, min_plan))
     animation_id = c.lastrowid
     conn.commit()
     conn.close()
     
-    log_system_event('INFO', 'upload', f'Admin uploaded custom animation: {animation_type}', user_id, {'animation_id': animation_id})
+    log_system_event('INFO', 'upload', f'Admin uploaded custom animation: {animation_type}', user_id, {'animation_id': animation_id, 'min_plan': min_plan})
     
     return jsonify({
         "success": True,
@@ -4900,7 +4942,8 @@ def upload_animation():
             "type": animation_type,
             "path": relative_path,
             "name": name,
-            "category": category
+            "category": category,
+            "min_plan": min_plan
         }
     })
 
@@ -4908,17 +4951,20 @@ def upload_animation():
 @app.route("/api/animation/<int:anim_id>/update", methods=["POST"])
 @admin_required
 def update_animation_api(anim_id):
-    """Update animation details (name/category)"""
+    """Update animation details (name/category/min_plan)"""
     data = request.json
     name = data.get('name')
     category = data.get('category')
+    min_plan = data.get('min_plan', 'basic') # New update
     
     if not name or not category:
         return jsonify({"error": "Missing required fields"}), 400
         
     conn = get_conn()
     c = conn.cursor()
-    c.execute("UPDATE custom_animations SET name = ?, category = ? WHERE id = ?", (name, category, anim_id))
+    
+    # Verify ownership or admin
+    c.execute("UPDATE custom_animations SET name = ?, category = ?, min_plan = ? WHERE id = ?", (name, category, min_plan, anim_id))
     conn.commit()
     conn.close()
     
@@ -5131,23 +5177,56 @@ def activate_animation(animation_id):
     # 4. Handle Custom Animation IDs (Integer)
     try:
         anim_id = int(animation_id)
-        # Get animation type for this ID
-        c.execute("SELECT animation_type FROM custom_animations WHERE id = ? AND user_id = ?", (anim_id, user_id))
+        
+        # Check if animation exists and get ownership info
+        c.execute("""
+            SELECT ca.animation_type, ca.user_id, ca.file_path, ca.name, ca.category, ca.has_animated, u.role 
+            FROM custom_animations ca
+            JOIN users u ON ca.user_id = u.id
+            WHERE ca.id = ?
+        """, (anim_id,))
         row = c.fetchone()
+        
         if not row:
             conn.close()
             return jsonify({"error": "Animation not found"}), 404
         
-        anim_type = row[0]
+        anim_type, owner_id, file_path, name, category, has_animated, owner_role = row
+        
+        # LOGIC:
+        # 1. If User owns it -> Just activate it
+        # 2. If Admin owns it -> Clone it to User's library, then activate the clone
+        
+        target_anim_id = anim_id
+        
+        if owner_id != user_id:
+            if owner_role == 'admin':
+                # CLONE IT
+                # Check if we already have a copy (sanity check)
+                c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path = ?", (user_id, file_path))
+                existing_copy = c.fetchone()
+                
+                if existing_copy:
+                    target_anim_id = existing_copy[0]
+                else:
+                    c.execute("""
+                        INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, has_animated, name, category)
+                        VALUES (?, ?, ?, 0, ?, ?, ?)
+                    """, (user_id, anim_type, file_path, has_animated, name, category))
+                    target_anim_id = c.lastrowid
+            else:
+                conn.close()
+                return jsonify({"error": "Unauthorized to use this animation"}), 403
+
+        # Now activate target_anim_id (which is definitely owned by user now)
+        
         # Deactivate others of same type
         c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = ?", (user_id, anim_type))
-        # Activate this one
-        c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (anim_id,))
+        # Activate the target
+        c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (target_anim_id,))
         
         # AUTO-DETECT STYLE: If custom name/path contains 'jungle' or 'cave', set style to 'jungle'
-        c.execute("SELECT name, file_path FROM custom_animations WHERE id = ?", (anim_id,))
-        n_p = c.fetchone()
-        name_path = (str(n_p[0] or "") + str(n_p[1] or "")).lower()
+        name_path = (str(name or "") + str(file_path or "")).lower()
         
         style_to_use = 'none'
         if 'jungle' in name_path or 'cave' in name_path:

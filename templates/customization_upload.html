@@ -459,7 +459,7 @@
             {% else %}<img src="{{ url_for('static', filename=anim.path) }}" />{% endif %}
             
             <div class="lib-item-overlay">
-                <button class="lib-action-btn btn-edit" title="Edit" onclick="openEditModal('{{ anim.id }}', '{{ anim.name }}', '{{ anim.category }}')">
+                <button class="lib-action-btn btn-edit" title="Edit" onclick="openEditModal('{{ anim.id }}', '{{ anim.name }}', '{{ anim.category }}', '{{ anim.min_plan }}')">
                     <i class="fas fa-edit"></i>
                 </button>
                 <button class="lib-action-btn btn-delete" title="Delete" onclick="deleteAnimation('{{ anim.id }}')">
@@ -467,8 +467,13 @@
                 </button>
             </div>
             
-            <div style="position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 9px; color: #aaa;">
-                {{ anim.category|upper }}
+            <div style="position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 9px; color: #aaa; display: flex; gap: 4px;">
+                <span>{{ anim.category|upper }}</span>
+                {% if anim.min_plan and anim.min_plan != 'basic' %}
+                <span style="color: {% if anim.min_plan=='admin' %}#ff3366{% elif anim.min_plan=='ultimate' %}#bd00ff{% else %}#00f2ff{% endif %}; font-weight: bold;">
+                    {{ anim.min_plan|upper }}
+                </span>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -530,6 +535,25 @@
                 </select>
             </div>
 
+            <!-- Plan Selection (New) -->
+            <div class="name-input-group">
+                <label>Plan Access Tag</label>
+                <div style="display: flex; gap: 15px; margin-top: 5px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #fff;">
+                        <input type="radio" name="min_plan" value="basic" checked> Free/Basic
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #00f2ff;">
+                        <input type="radio" name="min_plan" value="pro"> Pro
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #bd00ff;">
+                        <input type="radio" name="min_plan" value="ultimate"> Ultimate
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #ff3366;">
+                        <input type="radio" name="min_plan" value="admin"> Admin Only
+                    </label>
+                </div>
+            </div>
+
             <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
                 <input type="file" id="fileInput" hidden accept=".mp4,.webm,.gif,.png,.jpg,.jpeg">
                 <div class="upload-icon">☁️</div>
@@ -579,12 +603,19 @@
         }
     }
 
-    function openEditModal(id, name, category) {
+    function openEditModal(id, name, category, min_plan) {
+        togglePopup(true); // RESET first
+        
         editingId = id;
         animationNameInput.value = name;
         categorySelect.value = category;
         
-        togglePopup(true);
+        // Set Plan Tag
+        const planRadios = document.getElementsByName('min_plan');
+        for(let radio of planRadios) {
+            radio.checked = (radio.value === (min_plan || 'basic'));
+        }
+        
         step1.style.display = 'none';
         step2.style.display = 'block';
         
@@ -602,6 +633,12 @@
         step1.style.display = 'none';
         step2.style.display = 'block';
         targetTitle.innerText = label.toUpperCase();
+        
+        // Default to Basic for new uploads
+        const planRadios = document.getElementsByName('min_plan');
+        for(let radio of planRadios) {
+            radio.checked = (radio.value === 'basic');
+        }
     }
 
     function goBack() {
@@ -641,6 +678,12 @@
         formData.append('animation_type', currentType);
         formData.append('animation_name', animationNameInput.value || 'Untitled');
         formData.append('category', categorySelect.value);
+        
+        // Get selected plan
+        const planRadios = document.getElementsByName('min_plan');
+        let selectedPlan = 'basic';
+        for(let radio of planRadios) { if(radio.checked) selectedPlan = radio.value; }
+        formData.append('min_plan', selectedPlan);
 
         executeBtn.innerText = 'PROCESSING...';
         executeBtn.style.opacity = '0.7';
@@ -687,6 +730,11 @@
         const name = animationNameInput.value || 'Untitled';
         const category = categorySelect.value;
         
+        // Get selected plan
+        const planRadios = document.getElementsByName('min_plan');
+        let selectedPlan = 'basic';
+        for(let radio of planRadios) { if(radio.checked) selectedPlan = radio.value; }
+        
         executeBtn.innerText = 'SAVING...';
         executeBtn.style.opacity = '0.7';
         
@@ -694,7 +742,7 @@
             const response = await fetch(`/api/animation/${editingId}/update`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, category })
+                body: JSON.stringify({ name, category, min_plan: selectedPlan })
             });
             const result = await response.json();
             
