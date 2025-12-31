@@ -816,12 +816,7 @@
                             <img src="{{ url_for('static', filename=active_animations['manga_enter'].path) }}" />
                         {% endif %}
                     {% else %}
-                    <div class="glow"></div>
-                    <div class="lines">
-                        <div class="line"></div>
-                        <div class="line"></div>
-                        <div class="line"></div>
-                    </div>
+                        <video src="{{ url_for('static', filename='img/2b65722c-8014-43be-97a0-6e86501b0070.mp4') }}" autoplay loop muted style="width:100%; height:100%; object-fit:cover;"></video>
                     {% endif %}
                 </div>
             </div>
@@ -1142,6 +1137,8 @@
             preview.innerHTML = '<div class="glow"></div>';
         } else if (value === 'none') {
             preview.innerHTML = '<span class="placeholder">Static (No Animation)</span>';
+        } else if (value === 'classic') {
+             preview.innerHTML = `<video src="/static/img/2b65722c-8014-43be-97a0-6e86501b0070.mp4" autoplay loop muted style="width:100%; height:100%; object-fit:cover;"></video>`;
         } else {
             preview.innerHTML = `
                 <div class="glow"></div>

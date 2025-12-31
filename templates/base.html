@@ -560,20 +560,21 @@
         {% set path = animations.manga_enter.path %}
         {% set ext = path.split('.')[-1].lower() %}
         {% if ext in ['mp4', 'webm'] %}
-          <video src="{{ url_for('static', filename=path) }}" autoplay loop muted></video>
+          <video src="{{ url_for('static', filename=path) }}" 
+                 autoplay muted playsinline preload="auto"
+                 onplay="console.log('Video started playing automatically')"
+                 onerror="console.error('Video loading error!', this.error)"></video>
         {% else %}
           <img src="{{ url_for('static', filename=path) }}" />
         {% endif %}
       </div>
       {% else %}
-      <div class="warp-core"></div>
-      <div class="warp-ring"></div>
-      <div class="warp-halo"></div>
-      <div class="warp-particles">
-        <span></span><span></span><span></span><span></span><span></span>
+      <div class="custom-anim-media">
+        <video src="{{ url_for('static', filename='img/2b65722c-8014-43be-97a0-6e86501b0070.mp4') }}" 
+               muted playsinline preload="auto"></video>
       </div>
-      <div class="warp-label">ENTERING MANGA UNIVERSE…</div>
       {% endif %}
+
     </div>
 
     <div id="logoutOverlay" class="logout-overlay {{ anim_styles.logout if anim_styles else 'fade' }}">
@@ -584,7 +585,7 @@
         {% set path = animations.logout.path %}
         {% set ext = path.split('.')[-1].lower() %}
         {% if ext in ['mp4', 'webm'] %}
-          <video src="{{ url_for('static', filename=path) }}" autoplay loop muted></video>
+          <video src="{{ url_for('static', filename=path) }}" autoplay muted playsinline preload="auto"></video>
         {% else %}
           <img src="{{ url_for('static', filename=path) }}" />
         {% endif %}
@@ -1051,21 +1052,62 @@
 
     mangaLink.addEventListener("click", function (e) {
       e.preventDefault(); 
+      const href = this.href;
 
-
-
-      // 2. Reset and Play
+      // 1. Reset
       document.body.classList.remove("manga-warp");
       overlay.classList.remove("show");
+      overlay.style.cssText = "";
       void document.body.offsetWidth; // Force Reflow
 
+      // 2. Force Visibility (High Z-Index & Black Background)
+      overlay.style.position = "fixed";
+      overlay.style.top = "0";
+      overlay.style.left = "0";
+      overlay.style.width = "100vw";
+      overlay.style.height = "100vh";
+      overlay.style.zIndex = "2147483647"; 
+      overlay.style.backgroundColor = "black";
+      overlay.style.opacity = "1";
+      overlay.style.visibility = "visible";
+      overlay.style.display = "flex";
+      overlay.style.transition = "none";
+      overlay.style.animation = "none";
+      
       overlay.classList.add("show");
       document.body.classList.add("manga-warp");
 
-      // 3. Redirect after animation completes
+      // 3. Play video if exists
       const video = overlay.querySelector('video');
+      if (video) {
+        // Ensure parent container is visible and has no conflicting animations
+        const parent = video.parentElement;
+        if (parent) {
+            parent.style.display = "block";
+            parent.style.width = "100%";
+            parent.style.height = "100%";
+            parent.style.zIndex = "2147483647";
+            parent.style.position = "absolute"; 
+            parent.style.animation = "none"; // Disable Zoom Effect
+            parent.style.opacity = "1";
+        }
+
+        // Ensure Video is visible
+        video.style.display = "block";
+        video.style.width = "100%";
+        video.style.height = "100%";
+        video.style.objectFit = "cover";
+        video.style.zIndex = "2147483647";
+        video.style.opacity = "1";
+        video.style.visibility = "visible";
+        
+        video.currentTime = 0;
+        video.play().catch(err => console.error("Manga video play error:", err));
+      }
+
+      // 4. Redirect after video/animation
       const performRedirect = (del) => {
-          setTimeout(() => { window.location.href = this.href; }, del);
+          setTimeout(() => { window.location.href = href; }, del);
       };
 
       if (video) {
@@ -1076,15 +1118,14 @@
           if (video.readyState >= 1) startTimer();
           else {
               video.onloadedmetadata = startTimer;
-              setTimeout(startTimer, 1500); // Safety fallback
+              setTimeout(startTimer, 1500); 
           }
       } else {
-          performRedirect(3000); // 3s fallback for static images
+          performRedirect(3000);
       }
     });
   });
 </script>
-
     <!-- Dropdown + delete helper -->
     <script>
       function toggleDropdown(button) {

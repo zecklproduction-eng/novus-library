@@ -1707,38 +1707,6 @@ a.cta-button {
 }
 
 /* ===========================
-   MANGA WARP TRANSITION
-   =========================== */
-
-#manga-warp-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(circle at center,
-      rgba(0, 240, 255, 0),
-      rgba(0, 0, 0, 0) 60%);
-  opacity: 0;
-  transform: scale(0.9);
-  transition: opacity 0.45s ease, transform 0.45s ease, background 0.45s ease;
-  z-index: 999;
-}
-
-#manga-warp-overlay.show {
-  opacity: 1;
-  transform: scale(1.05);
-  background: radial-gradient(circle at center,
-      rgba(0, 240, 255, 0.35),
-      rgba(5, 8, 20, 0.98) 55%),
-    radial-gradient(circle at 10% 10%,
-      rgba(255, 45, 117, 0.35),
-      transparent 60%);
-}
-
-body.manga-warping {
-  filter: blur(1px) brightness(0.7);
-  transition: filter 0.45s ease;
-}
-
 /* ===========================
    MANGA REALM THEME
    Applied when body has class="manga-theme"
@@ -2427,182 +2395,6 @@ body.manga-transition::before {
    MANGA WARP OVERLAY (VORTEX)
    ========================================= */
 
-/* Hidden by default */
-.warp-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9998;
-  background: radial-gradient(circle at center,
-      rgba(0, 150, 255, 0.3) 0%,
-      rgba(0, 18, 70, 0.95) 55%,
-      rgba(0, 5, 40, 1) 100%);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.warp-overlay.show {
-  display: flex;
-  animation: warpOverlayFade 0.2s linear forwards;
-}
-
-/* Immersive Cave Portal Effects (Shared Overrides) */
-.warp-overlay.jungle, .warp-overlay.cave,
-.success-overlay.jungle, .success-overlay.cave,
-.logout-overlay.jungle, .logout-overlay.cave {
-    background: #000 !important;
-}
-
-.warp-overlay.jungle .custom-anim-media,
-.warp-overlay.cave .custom-anim-media {
-    /* 2.2s total: Stage 1 (Hold) ~0.4s, Stage 2 (Zoom) ~1.8s */
-    animation: caveZoomIn 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-}
-
-/* Subtle breathing to make static images feel alive before zoom */
-.success-overlay.jungle .custom-anim-media img {
-    animation: jungleBreathing 3s ease-in-out infinite;
-}
-
-@keyframes jungleBreathing {
-    0%, 100% { transform: scale(1); filter: brightness(1); }
-    50% { transform: scale(1.03); filter: brightness(1.1); }
-}
-
-.warp-overlay.jungle .cave-entrance, 
-.warp-overlay.cave .cave-entrance {
-    display: block;
-    position: absolute;
-    inset: -50px;
-    z-index: 20;
-    pointer-events: none;
-    box-shadow: inset 0 0 100px 50px #000;
-    background: 
-        radial-gradient(ellipse at center, transparent 40%, #000 75%),
-        repeating-radial-gradient(circle at 50% 50%, transparent 0, #000 2px, transparent 4px);
-    background-blend-mode: multiply;
-    filter: url(#rocky-filter) contrast(150%);
-    opacity: 0.75;
-}
-
-.cave-entrance { display: none; }
-
-.warp-overlay.jungle .strange-light, 
-.warp-overlay.cave .strange-light,
-.success-overlay.jungle .strange-light,
-.success-overlay.cave .strange-light,
-.logout-overlay.jungle .strange-light,
-.logout-overlay.cave .strange-light {
-    display: block;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 2px;
-    height: 2px;
-    z-index: 12;
-    pointer-events: none;
-    /* Fade out the whole light group as we finish zooming */
-    animation: strangeLightFadeOut 2.2s ease-in forwards;
-}
-
-@keyframes strangeLightFadeOut {
-    0%, 70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
-}
-
-.strange-light { display: none; }
-
-.strange-ray {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 150px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.8), rgba(120, 255, 0, 0.6), transparent);
-    transform-origin: left center;
-    filter: blur(1px);
-    opacity: 0;
-    mix-blend-mode: screen;
-}
-
-/* Specific ray timings and rotations */
-.strange-ray:nth-child(1) { transform: rotate(0deg); animation: strangeRayMove 0.8s infinite 0s; }
-.strange-ray:nth-child(2) { transform: rotate(45deg); animation: strangeRayMove 0.9s infinite 0.1s; }
-.strange-ray:nth-child(3) { transform: rotate(90deg); animation: strangeRayMove 1.0s infinite 0.2s; }
-.strange-ray:nth-child(4) { transform: rotate(135deg); animation: strangeRayMove 0.85s infinite 0.3s; }
-.strange-ray:nth-child(5) { transform: rotate(180deg); animation: strangeRayMove 0.95s infinite 0.4s; }
-.strange-ray:nth-child(6) { transform: rotate(225deg); animation: strangeRayMove 1.1s infinite 0.5s; }
-.strange-ray:nth-child(7) { transform: rotate(270deg); animation: strangeRayMove 0.75s infinite 0.6s; }
-.strange-ray:nth-child(8) { transform: rotate(315deg); animation: strangeRayMove 0.9s infinite 0.7s; }
-
-@keyframes strangeRayMove {
-    0% { transform: rotate(var(--r, 0deg)) translateX(20px) scaleX(0.1); opacity: 0; }
-    15% { transform: rotate(var(--r, 0deg)) translateX(50px) scaleX(1); opacity: 0.9; }
-    80% { opacity: 0.8; }
-    90% { opacity: 0; }
-    100% { transform: rotate(var(--r, 0deg)) translateX(600px) scaleX(3); opacity: 0; }
-}
-
-@keyframes strangeLightPulse {
-    0%, 100% { opacity: 0.2; transform: translate(-50%, -50%) scale(1); filter: blur(20px); }
-    50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.2); filter: blur(30px); }
-}
-
-@keyframes caveZoomIn {
-    0%, 20% { transform: scale(1); filter: brightness(1) blur(0); }
-    100% { transform: scale(25); filter: brightness(3.5) blur(10px); opacity: 0; }
-}
-
-@keyframes warpOverlayFade {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-}
-
-/* --- core + ring + halo --- */
-.warp-core,
-.warp-ring,
-.warp-halo {
-  position: absolute;
-  border-radius: 50%;
-}
-
-/* center glowing blue core */
-.warp-core {
-  width: 260px;
-  height: 260px;
-  background: radial-gradient(circle, #0fb4ff 0%, #0090ff 45%, #00194a 100%);
-  box-shadow: 0 0 55px rgba(30, 178, 255, 0.85),
-    0 0 120px rgba(0, 200, 255, 0.85);
-  animation: warpSpin 0.9s ease-in-out forwards;
-}
-
-.warp-ring {
-  width: 360px;
-  height: 360px;
-  box-shadow: 0 0 0 5px rgba(245, 245, 255, 0.9),
-    0 0 35px rgba(255, 255, 255, 0.95), 0 0 110px rgba(0, 170, 255, 0.9);
-  background: radial-gradient(circle,
-      transparent 62%,
-      rgba(255, 255, 255, 0.96) 70%,
-      rgba(255, 255, 255, 0) 80%);
-  animation: warpPulse 0.9s ease-out forwards;
-}
-
-.warp-halo {
-  width: 520px;
-  height: 520px;
-  background: radial-gradient(circle,
-      rgba(0, 170, 255, 0.55) 0%,
-      rgba(0, 30, 120, 0) 70%);
-  filter: blur(3px);
-  animation: warpGlow 0.75s ease-out forwards;
-}
-
-/* Fade label in whenever overlay is shown */
-.warp-overlay.show .warp-label {
-  animation: warpLabelFade 0.45s ease-out forwards 0.15s;
 }
 
 /* --- ANIMATIONS --- */
@@ -6035,11 +5827,6 @@ body.no-ui-effects .product-card {
 }
 
 /* 2. Special Effects (Heavy Animations) */
-/* Hide or freeze overlays */
-body.no-special-effects #manga-warp-overlay,
-body.no-special-effects .logout-overlay,
-body.no-special-effects .success-overlay,
-body.no-special-effects .warp-particles,
 body.no-special-effects .login-particles {
   display: none !important;
   animation: none !important;
@@ -6919,3 +6706,255 @@ body.density-spacious .main-content {
 /* ================================================= */
 /* END OF LOGOUT OVERLAY STYLES                      */
 /* ================================================= */
+
+
+/* ================================================= */
+/* MANGA WARP OVERLAY                                */
+/* ================================================= */
+
+#manga-warp-overlay {
+  background: #000;
+}
+
+#manga-warp-overlay.classic {
+  background: radial-gradient(circle at center, #1a0033 0%, #000 100%);
+}
+
+.warp-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+  overflow: hidden;
+}
+
+.warp-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+body.manga-warp .warp-overlay {
+  animation: warp-zoom 1s ease-out forwards;
+}
+
+@keyframes warp-zoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(2); }
+}
+
+.warp-core {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 50px 20px #fff, 0 0 100px 40px #667eea;
+  animation: warp-pulse 0.5s infinite alternate;
+}
+
+@keyframes warp-pulse {
+  from { transform: scale(1); opacity: 0.8; }
+  to { transform: scale(1.5); opacity: 1; }
+}
+
+.warp-ring {
+  position: absolute;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 50%;
+  animation: warp-ring-expand 2s infinite linear;
+}
+
+@keyframes warp-ring-expand {
+  0% { width: 0; height: 0; opacity: 1; border-width: 5px; }
+  100% { width: 150vw; height: 150vw; opacity: 0; border-width: 1px; }
+}
+
+.warp-halo {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.2) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: warp-halo-pulse 2s infinite alternate;
+}
+
+@keyframes warp-halo-pulse {
+  0% { transform: scale(0.8); opacity: 0.3; }
+  100% { transform: scale(1.2); opacity: 0.6; }
+}
+
+.warp-particles span {
+  position: absolute;
+  width: 2px;
+  height: 100px;
+  background: linear-gradient(to bottom, transparent, #fff);
+  opacity: 0.5;
+  animation: warp-particle-fly 0.5s infinite linear;
+}
+
+@keyframes warp-particle-fly {
+  0% { transform: rotate(var(--angle)) translateY(0); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: rotate(var(--angle)) translateY(-100vh); opacity: 0; }
+}
+
+.warp-label {
+  position: absolute;
+  bottom: 15%;
+  color: #fff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 5px;
+  text-shadow: 0 0 20px #667eea;
+  animation: warp-label-fade 1s infinite alternate;
+}
+
+@keyframes warp-label-fade {
+  from { opacity: 0.4; transform: translateY(0); }
+  to { opacity: 1; transform: translateY(-10px); }
+}
+
+.warp-overlay .custom-anim-media {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.warp-overlay .custom-anim-media img,
+.warp-overlay .custom-anim-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+/* ================================================= */
+/* JUNGLE & CAVE OVERRIDES (Relocated)              */
+/* ================================================= */
+
+/* Immersive Cave Portal Effects (Shared Overrides) */
+.warp-overlay.jungle, .warp-overlay.cave,
+.success-overlay.jungle, .success-overlay.cave,
+.logout-overlay.jungle, .logout-overlay.cave {
+    background: #000 !important;
+}
+
+.warp-overlay.jungle .custom-anim-media,
+.warp-overlay.cave .custom-anim-media {
+    /* 2.2s total: Stage 1 (Hold) ~0.4s, Stage 2 (Zoom) ~1.8s */
+    animation: caveZoomIn 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* Subtle breathing to make static images feel alive before zoom */
+.success-overlay.jungle .custom-anim-media img {
+    animation: jungleBreathing 3s ease-in-out infinite;
+}
+
+@keyframes jungleBreathing {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.03); filter: brightness(1.1); }
+}
+
+.warp-overlay.jungle .cave-entrance, 
+.warp-overlay.cave .cave-entrance {
+    display: block;
+    position: absolute;
+    inset: -50px;
+    z-index: 20;
+    pointer-events: none;
+    box-shadow: inset 0 0 100px 50px #000;
+    background: 
+        radial-gradient(ellipse at center, transparent 40%, #000 75%),
+        repeating-radial-gradient(circle at 50% 50%, transparent 0, #000 2px, transparent 4px);
+    background-blend-mode: multiply;
+    filter: url(#rocky-filter) contrast(150%);
+    opacity: 0.75;
+}
+
+.cave-entrance { display: none; }
+
+.warp-overlay.jungle .strange-light, 
+.warp-overlay.cave .strange-light,
+.success-overlay.jungle .strange-light,
+.success-overlay.cave .strange-light,
+.logout-overlay.jungle .strange-light,
+.logout-overlay.cave .strange-light {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 2px;
+    z-index: 12;
+    pointer-events: none;
+    /* Fade out the whole light group as we finish zooming */
+    animation: strangeLightFadeOut 2.2s ease-in forwards;
+}
+
+@keyframes strangeLightFadeOut {
+    0%, 70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
+}
+
+.strange-light { display: none; }
+
+.strange-ray {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 150px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.8), rgba(120, 255, 0, 0.6), transparent);
+    transform-origin: left center;
+    filter: blur(1px);
+    opacity: 0;
+    mix-blend-mode: screen;
+}
+
+/* Specific ray timings and rotations */
+.strange-ray:nth-child(1) { transform: rotate(0deg); animation: strangeRayMove 0.8s infinite 0s; }
+.strange-ray:nth-child(2) { transform: rotate(45deg); animation: strangeRayMove 0.9s infinite 0.1s; }
+.strange-ray:nth-child(3) { transform: rotate(90deg); animation: strangeRayMove 1.0s infinite 0.2s; }
+.strange-ray:nth-child(4) { transform: rotate(135deg); animation: strangeRayMove 0.85s infinite 0.3s; }
+.strange-ray:nth-child(5) { transform: rotate(180deg); animation: strangeRayMove 0.95s infinite 0.4s; }
+.strange-ray:nth-child(6) { transform: rotate(225deg); animation: strangeRayMove 1.1s infinite 0.5s; }
+.strange-ray:nth-child(7) { transform: rotate(270deg); animation: strangeRayMove 0.75s infinite 0.6s; }
+.strange-ray:nth-child(8) { transform: rotate(315deg); animation: strangeRayMove 0.9s infinite 0.7s; }
+
+@keyframes strangeRayMove {
+    0% { transform: rotate(var(--r, 0deg)) translateX(20px) scaleX(0.1); opacity: 0; }
+    15% { transform: rotate(var(--r, 0deg)) translateX(50px) scaleX(1); opacity: 0.9; }
+    80% { opacity: 0.8; }
+    90% { opacity: 0; }
+    100% { transform: rotate(var(--r, 0deg)) translateX(600px) scaleX(3); opacity: 0; }
+}
+
+@keyframes strangeLightPulse {
+    0%, 100% { opacity: 0.2; transform: translate(-50%, -50%) scale(1); filter: blur(20px); }
+    50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.2); filter: blur(30px); }
+}
+
+@keyframes caveZoomIn {
+    0%, 20% { transform: scale(1); filter: brightness(1) blur(0); }
+    100% { transform: scale(25); filter: brightness(3.5) blur(10px); opacity: 0; }
+}
+
+@keyframes warpOverlayFade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
