@@ -74,6 +74,8 @@
         font-weight: 800;
         letter-spacing: 0.12em;
         color: var(--cyan);
+        display: flex;
+        align-items: center;
     }
     .header-right {
         display: flex;
@@ -407,6 +409,76 @@
         100% { transform: translateY(-100%); opacity: 0; }
     }
 
+    /* Rainbow Glow for Ultimate */
+    @keyframes rainbowGlow {
+        0% { color: #ff0000; text-shadow: 0 0 5px #ff0000; }
+        16% { color: #ff8000; text-shadow: 0 0 5px #ff8000; }
+        33% { color: #ffff00; text-shadow: 0 0 5px #ffff00; }
+        50% { color: #00ff00; text-shadow: 0 0 5px #00ff00; }
+        66% { color: #0000ff; text-shadow: 0 0 5px #0000ff; }
+        83% { color: #8000ff; text-shadow: 0 0 5px #8000ff; }
+        100% { color: #ff0080; text-shadow: 0 0 5px #ff0080; }
+    }
+    /* Only animate if body has glow-active class */
+    body.glow-active .text-rainbow {
+        animation: rainbowGlow 2s linear infinite;
+        font-weight: bold;
+    }
+    .text-rainbow {
+        font-weight: bold; /* Static fallback */
+    }
+
+    /* Toggle Switch */
+    .glow-toggle-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: 20px;
+        background: rgba(255,255,255,0.05);
+        padding: 6px 12px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .glow-label {
+        font-size: 0.75rem;
+        color: var(--magenta);
+        font-weight: 700;
+        letter-spacing: 0.05em;
+    }
+    .toggle-switch {
+        position: relative;
+        width: 36px;
+        height: 20px;
+        margin: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(255,255,255,0.2);
+        transition: .4s;
+        border-radius: 20px;
+    }
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    input:checked + .slider {
+        background-color: var(--magenta);
+        box-shadow: 0 0 10px var(--magenta);
+    }
+    input:checked + .slider:before {
+        transform: translateX(16px);
+    }
+
     /* Zoom */
     .preview-zoom {
         animation: zoomEffect 2s infinite;
@@ -622,7 +694,18 @@
 
 <div class="settings-wrapper">
     <div class="settings-header">
-        <div class="settings-title">CUSTOMIZATION</div>
+        <div class="settings-title">
+            CUSTOMIZATION
+            {% if user_plan == 'ultimate' or user_role == 'admin' %}
+            <div class="glow-toggle-wrapper">
+                <span class="glow-label">ULTIMATE GLOW</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="glowToggle" onchange="toggleGlow(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            {% endif %}
+        </div>
         <div class="header-right">
             <div class="breadcrumb">Settings ▸ Animations</div>
         </div>
@@ -700,7 +783,7 @@
                     {% for anim in all_animations.login if anim.category == 'animation' %}
                         {% set anim_found = true %}
                         <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="login" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                            <span>{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                             <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
                             <span class="check">{% if anim.is_active %}✓{% endif %}</span>
                         </button>
                     {% endfor %}
@@ -794,7 +877,7 @@
                     {% for anim in all_animations.manga_enter if anim.category == 'animation' %}
                         {% set anim_found = true %}
                         <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="manga" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                            <span>{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                             <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
                             <span class="check">{% if anim.is_active %}✓{% endif %}</span>
                         </button>
                     {% endfor %}
@@ -859,7 +942,7 @@
                     </button>
                     {% for anim in all_animations.banner if anim.category == 'style' %}
                     <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="dashboard" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                        <span>{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                        <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
                         <span class="check">{% if anim.is_active %}✓{% endif %}</span>
                     </button>
                     {% endfor %}
@@ -871,7 +954,7 @@
                     {% for anim in all_animations.banner if anim.category == 'animation' %}
                         {% set anim_found = true %}
                         <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="dashboard" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                            <span>{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                            <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
                             <span class="check">{% if anim.is_active %}✓{% endif %}</span>
                         </button>
                     {% endfor %}
@@ -949,7 +1032,7 @@
                     </button>
                     {% for anim in all_animations.logout if anim.category == 'style' %}
                     <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="logout" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                        <span>{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                        <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
                         <span class="check">{% if anim.is_active %}✓{% endif %}</span>
                     </button>
                     {% endfor %}
@@ -961,7 +1044,7 @@
                     {% for anim in all_animations.logout if anim.category == 'animation' %}
                         {% set anim_found = true %}
                         <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="logout" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                            <span>{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
+                            <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
                             <span class="check">{% if anim.is_active %}✓{% endif %}</span>
                         </button>
                     {% endfor %}
@@ -1187,24 +1270,24 @@
     }
 
     async function resetDefaults() {
+        if(!confirm('Are you sure you want to reset all animation settings to default?')) return;
+        
         const btn = document.querySelector('.btn-reset');
         btn.textContent = 'Resetting...';
 
-        // Reset all types
-        const types = ['login', 'banner', 'manga_enter', 'logout'];
-        for (const type of types) {
-            try {
-                await fetch(`/api/animation/reset_${type}/activate`, { 
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-            } catch (err) {
-                console.error('Error resetting:', err);
+        try {
+            const response = await fetch('/api/animation/reset', { method: 'POST' });
+            const data = await response.json();
+            if(data.success) {
+                location.reload();
+            } else {
+                 alert('Reset failed.');
+                 btn.textContent = 'Reset to Default';
             }
+        } catch (err) {
+            console.error('Error resetting:', err);
+            btn.textContent = 'Reset to Default';
         }
-
-        btn.textContent = 'Reset to Default';
-        location.reload();
     }
     function switchCategory(panel, category) {
         // Update toggle buttons
@@ -1234,7 +1317,32 @@
                 switchCategory(panel, 'animation');
             }
         }
+
+        // Initialize Glow based on localStorage (default to true for ultimate)
+        const storedGlow = localStorage.getItem('ultimate_glow');
+        const toggle = document.getElementById('glowToggle');
+        
+        if (toggle) {
+            // If never set, default to true for ultimate users
+            if (storedGlow === null || storedGlow === 'true') {
+                toggle.checked = true;
+                toggleGlow(true);
+            } else {
+                toggle.checked = false;
+                toggleGlow(false);
+            }
+        }
     });
 
+    /* GLOW TOGGLE LOGIC */
+    function toggleGlow(enabled) {
+        if(enabled) {
+            document.body.classList.add('glow-active');
+            localStorage.setItem('ultimate_glow', 'true');
+        } else {
+            document.body.classList.remove('glow-active');
+            localStorage.setItem('ultimate_glow', 'false');
+        }
+    }
 </script>
 {% endblock %}

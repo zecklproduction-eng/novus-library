@@ -4623,7 +4623,7 @@ def customization():
     
     # Get all custom animations for this user
     c.execute("""
-        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name, category, user_id
+        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name, category, user_id, min_plan
         FROM custom_animations
         WHERE user_id = ?
         ORDER BY created_at DESC
@@ -4689,7 +4689,8 @@ def customization():
             'has_animated': anim[5],
             'name': anim[6],
             'category': anim[7],
-            'is_global': (anim[8] != user_id) # Flag if it belongs to admin
+            'is_global': (anim[8] != user_id), # Flag if it belongs to admin
+            'min_plan': anim[9] or 'basic'
         }
         if anim[1] in animations_dict:
             animations_dict[anim[1]].append(anim_data)
@@ -4790,7 +4791,9 @@ def customization():
     conn.close()
     return render_template("customization.html", 
                          all_animations=animations_dict,
-                         active_animations=active_animations)
+                         active_animations=active_animations,
+                         user_plan=user_plan,
+                         user_role=user_role)
 
 @app.route("/customization/upload")
 @admin_required
