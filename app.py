@@ -11,7 +11,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from werkzeug.utils import secure_filename
 UPLOAD_FOLDER = os.path.join("static", "uploads", "avatars")
-ALLOWED_EXTS = {"png", "jpg", "jpeg", "webp"}
+ALLOWED_EXTS = {"png", "jpg", "jpeg", "webp", "jfif"}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Import AI error handling
@@ -816,9 +816,20 @@ def init_db():
     # Add category column to custom_animations if it doesn't exist
     try:
         c.execute("ALTER TABLE custom_animations ADD COLUMN category TEXT DEFAULT 'animation'")
-        conn.commit()
     except sqlite3.OperationalError:
         pass
+        
+    # Add name and access_tag columns
+    try:
+        c.execute("ALTER TABLE custom_animations ADD COLUMN name TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute("ALTER TABLE custom_animations ADD COLUMN access_tag TEXT DEFAULT 'basic'")
+    except sqlite3.OperationalError:
+        pass
+        
+    conn.commit()
 
     # animation settings table (for style preferences like 'glitch', 'warp', 'shutter')
     c.execute("""
@@ -2587,13 +2598,17 @@ def public_profile(username):
             'icon': activity_icons.get(activity_type, 'fa-circle')
         })
 
+    # Fetch avatar settings for the VIEWED user
+    profile_avatar_settings = fetch_user_avatar_settings(user_id)
+
     return render_template(
         "user_profile.html",
         user=user,
         read_count=read_count,
         watchlist_stats=watchlist_stats,
         fav_count=fav_count,
-        recent_activity=recent_activity
+        recent_activity=recent_activity,
+        profile_avatar_settings=profile_avatar_settings
     )
 
 
@@ -5380,8 +5395,8 @@ def save_avatar_settings():
     user_id = session["user_id"]
     data = request.json
     
-    # settings keys: 'avatar_frame', 'avatar_border', 'avatar_color', 'avatar_bg'
-    allowed_keys = ['avatar_frame', 'avatar_border', 'avatar_color', 'avatar_bg']
+    # settings keys: 'avatar_frame', 'avatar_border', 'avatar_color', 'avatar_bg', 'avatar_bg_class', 'avatar_bg_url', 'avatar_bg_filter', 'avatar_bg_brightness', 'avatar_bg_opacity', 'avatar_bg_blur', 'avatar_bg_match_color'
+    allowed_keys = ['avatar_frame', 'avatar_border', 'avatar_color', 'avatar_bg', 'avatar_bg_class', 'avatar_bg_url', 'avatar_bg_filter', 'avatar_bg_brightness', 'avatar_bg_opacity', 'avatar_bg_blur', 'avatar_bg_match_color']
     
     conn = get_conn()
     c = conn.cursor()
@@ -5400,23 +5415,202 @@ def save_avatar_settings():
     
     return jsonify({"success": True})
 
+@app.route("/api/avatar/upload-bg", methods=["POST"])
+def upload_avatar_bg():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    if file and allowed(file.filename, ALLOWED_EXTS):
+        filename = secure_filename(file.filename)
+        # Create user specific bg folder to keep it clean
+        user_bg_folder = os.path.join(APP_ROOT, "static", "uploads", "bg", str(session["user_id"]))
+        os.makedirs(user_bg_folder, exist_ok=True)
+        
+        # Save file with timestamp to avoid caching/collisions
+        import time
+        unique_filename = f"{int(time.time())}_{filename}"
+        file.save(os.path.join(user_bg_folder, unique_filename))
+        
+        # Return path relative to static
+        path = f"/static/uploads/bg/{session['user_id']}/{unique_filename}"
+        return jsonify({"success": True, "path": path})
+        
+    return jsonify({"error": "Invalid file type"}), 400
+
+@app.route("/api/admin/upload-avatar-bg", methods=["POST"])
+def upload_admin_avatar_bg():
+    if "user_id" not in session or session.get("role") != "admin":
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+        
+    file = request.files['file']
+    name = request.form.get('name')
+    access_tag = request.form.get('access_tag')
+    
+    if not name or not access_tag:
+        return jsonify({"error": "Missing metadata"}), 400
+
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    # Allow images and videos
+    ALLOWED_BG_EXTS = {"png", "jpg", "jpeg", "webp", "gif", "mp4", "webm", "jfif"}
+    if file and allowed(file.filename, ALLOWED_BG_EXTS):
+        filename = secure_filename(file.filename)
+        # Check video duration if video (skipped for now to avoid bulky deps, assuming admin compliance)
+        
+        # Save to shared backgrounds folder
+        bg_folder = os.path.join(APP_ROOT, "static", "uploads", "bg", "library")
+        os.makedirs(bg_folder, exist_ok=True)
+        
+        import time
+        unique_filename = f"{int(time.time())}_{filename}"
+        file.save(os.path.join(bg_folder, unique_filename))
+        path = f"/static/uploads/bg/library/{unique_filename}"
+        
+        # Save to DB
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO custom_animations (user_id, animation_type, file_path, name, access_tag, category)
+            VALUES (?, 'avatar_bg', ?, ?, ?, 'avatar_bg')
+        """, (session['user_id'], path, name, access_tag))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True, "path": path})
+
+    return jsonify({"error": "Invalid file type"}), 400
+
+@app.route("/api/avatar/backgrounds", methods=["GET"])
+def get_avatar_backgrounds():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    user_plan = session.get("plan", "basic").lower() # basic, pro, ultimate
+    user_role = session.get("role", "user")
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT id, name, file_path, access_tag FROM custom_animations WHERE category='avatar_bg'")
+    rows = c.fetchall()
+    conn.close()
+    
+    # Filter based on plan
+    # Logic: basic sees basic. pro sees basic+pro. ultimate sees basic+pro+ultimate. admin sees all.
+    allowed = []
+    
+    plan_levels = {'basic': 1, 'pro': 2, 'ultimate': 3}
+    user_level = plan_levels.get(user_plan, 1)
+    
+    for r in rows:
+        bg_id, bg_name, bg_path, bg_tag = r
+        bg_tag = bg_tag.lower()
+        
+        is_allowed = False
+        
+        if user_role == 'admin':
+            is_allowed = True
+        elif bg_tag == 'admin_only':
+            is_allowed = False
+        else:
+            bg_level = plan_levels.get(bg_tag, 99) # Default to high if unknown
+            if user_level >= bg_level:
+                is_allowed = True
+                
+        if is_allowed:
+            allowed.append({
+                "id": bg_id,
+                "name": bg_name,
+                "path": bg_path,
+                "tag": bg_tag
+            })
+            
+    return jsonify({"backgrounds": allowed})
+
+@app.route("/api/admin/background/<int:bg_id>", methods=["DELETE"])
+def delete_admin_bg(bg_id):
+    if "user_id" not in session or session.get("role") != "admin":
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get file path
+    c.execute("SELECT file_path FROM custom_animations WHERE id = ? AND category='avatar_bg'", (bg_id,))
+    row = c.fetchone()
+    
+    if row:
+        path = row[0]
+        # Remove from DB
+        c.execute("DELETE FROM custom_animations WHERE id = ?", (bg_id,))
+        conn.commit()
+        
+        # Remove file
+        full_path = os.path.join(APP_ROOT, path.lstrip('/'))
+        if os.path.exists(full_path):
+            try:
+                os.remove(full_path)
+            except:
+                pass
+                
+        conn.close()
+        return jsonify({"success": True})
+    
+    conn.close()
+    return jsonify({"error": "Not found"}), 404
+
+@app.route("/api/admin/background/<int:bg_id>", methods=["PUT"])
+def edit_admin_bg(bg_id):
+    if "user_id" not in session or session.get("role") != "admin":
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    data = request.json
+    name = data.get('name')
+    access_tag = data.get('access_tag')
+    
+    if not name or not access_tag:
+        return jsonify({"error": "Missing data"}), 400
+        
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE custom_animations SET name = ?, access_tag = ? WHERE id = ? AND category='avatar_bg'", (name, access_tag, bg_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+
+    return jsonify({"backgrounds": allowed})
+
+def fetch_user_avatar_settings(user_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT setting_key, setting_value FROM animation_settings WHERE user_id = ?", (user_id,))
+    rows = c.fetchall()
+    conn.close()
+    
+    settings = {}
+    for key, val in rows:
+        if key.startswith('avatar_'):
+            settings[key] = val
+    return settings
+
 @app.context_processor
 def inject_avatar_settings():
     if "user_id" not in session:
         return {}
     
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("SELECT setting_key, setting_value FROM animation_settings WHERE user_id = ?", (session["user_id"],))
-    rows = c.fetchall()
-    conn.close()
-    
-    avatar_settings = {}
-    for key, val in rows:
-        if key.startswith('avatar_'):
-            avatar_settings[key] = val
-            
-    return {'avatar_settings': avatar_settings}
+    return {'avatar_settings': fetch_user_avatar_settings(session["user_id"])}
 
 
 # -------------------- FAQ ROUTE --------------------

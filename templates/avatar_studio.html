@@ -7,7 +7,11 @@
     
     <!-- LEFT COLUMN: Profile Card Preview -->
     <div class="studio-col studio-left">
-        <div class="studio-card profile-preview-card">
+        <div class="studio-card profile-preview-card {{ session.get('plan', 'basic') }}" style="position: relative; overflow: hidden;">
+            <!-- Background Layers -->
+            <div class="studio-bg-layer" id="profileBgLayer"></div>
+            <div class="studio-overlay-layer" id="profileOverlayLayer"></div>
+
             <div class="studio-avatar-container" id="profileCardAvatar">
                 <div class="studio-avatar-frame {{ avatar_settings.avatar_frame|default('none') }}">
                     <div class="studio-avatar-img-wrapper" style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
@@ -189,13 +193,115 @@
                 </div>
             </div>
             
-            <div class="studio-tab-content" id="tab-backgrounds">
-                 <div class="settings-section">
-                    <h4>Avatar Background</h4>
+            <div class="studio-tab-content active" id="tab-backgrounds">
+                
+                <!-- Advanced Controls (Top) -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h4>Adjustments</h4>
+                        <label class="switch-label-small">
+                            <input type="checkbox" id="matchColorToggle" onchange="toggleMatchColor()">
+                            <span class="label-text">Match Border Color</span>
+                        </label>
+                    </div>
+                    <div class="control-group">
+                        <label>Brightness <span id="val-bright">100%</span></label>
+                        <input type="range" class="studio-range" min="0" max="200" value="100" id="rng-bright" oninput="setBgAdjust('brightness', this.value)">
+                    </div>
+                    <div class="control-group">
+                        <label>Overlay Opacity <span id="val-opac">0%</span></label>
+                        <input type="range" class="studio-range" min="0" max="100" value="0" id="rng-opac" oninput="setBgAdjust('opacity', this.value)">
+                    </div>
+                    <div class="control-group">
+                        <label>Blur <span id="val-blur">0px</span></label>
+                        <input type="range" class="studio-range" min="0" max="20" value="0" id="rng-blur" oninput="setBgAdjust('blur', this.value)">
+                    </div>
+                </div>
+
+                <!-- Admin Actions & Custom Upload (Restricted) -->
+                {% if session.get('role') == 'admin' %}
+                <div class="settings-section">
+                     <h4>Admin Actions</h4>
+                      <button class="studio-btn-outline" onclick="openAdminUploadModal()" style="width:100%"><i class="fas fa-plus-circle"></i> Add New Background</button>
+                </div>
+                {% endif %}
+
+                <!-- Dynamic Library -->
+                <div class="settings-section" id="librarySection" style="display:none">
+                    <h4>Unlockable Library</h4>
+                    <div class="bg-grid" id="libraryGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Admin Upload Modal -->
+                <div id="adminBgModal" class="studio-modal" style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center;">
+                    <div class="studio-modal-content" style="background: #1e1e1e; padding: 20px; border-radius: 12px; width: 400px; max-width: 90%;">
+                        <h3 style="margin-top:0; color:#fff;">Upload Background</h3>
+                        <form id="adminBgForm" onsubmit="handleAdminBgSubmit(event)">
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label style="display:block; color:#ccc; margin-bottom: 5px;">Name</label>
+                                <input type="text" name="name" required style="width: 100%; padding: 8px; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label style="display:block; color:#ccc; margin-bottom: 5px;">Access Tag</label>
+                                <select name="access_tag" style="width: 100%; padding: 8px; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px;">
+                                    <option value="basic">Basic</option>
+                                    <option value="pro">Pro</option>
+                                    <option value="ultimate">Ultimate</option>
+                                    <option value="admin_only">Admin Only</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="display:block; color:#ccc; margin-bottom: 5px;">File (Img/Vid/Gif)</label>
+                                <input type="file" name="file" accept="image/*,video/mp4,video/webm,.jfif" required style="width: 100%; color: #ccc;">
+                            </div>
+                            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                <button type="button" class="studio-btn-outline" onclick="closeAdminUploadModal()">Cancel</button>
+                                <button type="submit" class="studio-btn-solid" style="background: #00d4ff; color: #000; border: none; padding: 8px 16px; border-radius: 4px;">Upload</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Starter Pack: Clean -->
+                <div class="settings-section">
+                    <h4>Clean Defaults</h4>
                     <div class="bg-grid">
-                        <div class="bg-option" onclick="setBg('none')" style="background: #222;">None</div>
-                        <div class="bg-option" onclick="setBg('circuit')" style="background: url('/static/img/bg_circuit.png');">Circuit</div>
-                        <div class="bg-option" onclick="setBg('stars')" style="background: url('/static/img/stars.png');">Stars</div>
+                        <div class="bg-option" onclick="setBgClass('none')" style="background: #222;">None</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-midnight-grain')" title="Midnight Grain">Mid</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-charcoal-vig')" title="Charcoal Vignette">Char</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-navy-spot')" title="Navy Spotlight">Navy</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-steel-diag')" title="Steel Diagonal">Steel</div>
+                    </div>
+                </div>
+
+                 <!-- Starter Pack: Library -->
+                <div class="settings-section">
+                    <h4>Library & Reading</h4>
+                    <div class="bg-grid">
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-book-pattern')" title="Book Pattern">Book</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-bookshelf')" title="Bookshelf">Shelf</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-parchment-dark')" title="Parchment">Old</div>
+                    </div>
+                </div>
+
+                 <!-- Starter Pack: Premium -->
+                <div class="settings-section">
+                    <h4>Premium & Status</h4>
+                    <div class="bg-grid">
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-gold-aura')" title="Gold Aura">Gold</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-laurel')" title="Laurel">Laurel</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-neon-match')" title="Neon Match">Match</div>
+                    </div>
+                </div>
+
+                 <!-- Starter Pack: Fun -->
+                <div class="settings-section">
+                    <h4>Fun & Modern</h4>
+                    <div class="bg-grid">
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-aurora-blobs')" title="Aurora">Aurora</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-galaxy-reader')" title="Galaxy">Galax</div>
                     </div>
                 </div>
             </div>
@@ -226,8 +332,18 @@
         frame: "{{ avatar_settings.avatar_frame|default('none') }}",
         borderType: "{{ avatar_settings.avatar_border|default('solid') }}",
         color: "{{ avatar_settings.avatar_color|default('#00d4ff') }}",
-        bg: "{{ avatar_settings.avatar_bg|default('none') }}"
+        bgClass: "{{ avatar_settings.avatar_bg_class|default('none') }}",
+        bgUrl: "{{ avatar_settings.avatar_bg_url|default('') }}",
+        filter: "{{ avatar_settings.avatar_bg_filter|default('none') }}",
+        // New Controls
+        brightness: "{{ avatar_settings.avatar_bg_brightness|default('100') }}",
+        opacity: "{{ avatar_settings.avatar_bg_opacity|default('0') }}", // 0 opacity means NO overlay (transparent). wait, user likely wants BG opacity? No, "Overlay opacity" implies adding a dark/light layer? Or opacity of the image itself? 
+        // Request says "Overlay opacity (0-80)". Usually means dark overlay.
+        blur: "{{ avatar_settings.avatar_bg_blur|default('0') }}",
+        matchColor: "{{ avatar_settings.avatar_bg_match_color|default('false') }}" === 'true'
     };
+
+    const IS_ADMIN = {{ 'true' if session.get('role') == 'admin' else 'false' }};
 
     function setFrame(frameName) {
         currentSettings.frame = frameName;
@@ -236,10 +352,9 @@
     
     function setBorderType(type) {
         currentSettings.borderType = type;
-        
         document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(`btn-border-${type}`).classList.add('active');
-        
+        const btn = document.getElementById(`btn-border-${type}`);
+        if(btn) btn.classList.add('active');
         updatePreview();
     }
     
@@ -248,32 +363,191 @@
         updatePreview();
     }
     
-    function setBg(bg) {
-        currentSettings.bg = bg;
+    // Background Class
+    function setBgClass(cls) {
+        currentSettings.bgClass = cls;
+        currentSettings.bgUrl = ''; 
+        currentSettings.filter = 'none';
         updatePreview();
+    }
+    
+    // Custom Upload Filter (Legacy function, keeping for compatibility if utilized)
+    function setBgFilter(filter) {
+        currentSettings.filter = filter; 
+        updatePreview();
+    }
+
+    // New Adjustments
+    function setBgAdjust(type, value) {
+        currentSettings[type] = value;
+        // Update Label
+        if(type === 'brightness') document.getElementById('val-bright').innerText = value + '%';
+        if(type === 'opacity') document.getElementById('val-opac').innerText = value + '%';
+        if(type === 'blur') document.getElementById('val-blur').innerText = value + 'px';
+        updatePreview();
+    }
+
+    function toggleMatchColor() {
+        currentSettings.matchColor = document.getElementById('matchColorToggle').checked;
+        updatePreview();
+    }
+
+    // Handle Custom Upload
+    function handleBgUpload(input) {
+        if (!input.files || !input.files[0]) return;
+        const formData = new FormData();
+        formData.append('file', input.files[0]);
+        const btn = input.previousElementSibling;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Uploading...';
+        btn.disabled = true;
+
+        fetch('/api/avatar/upload-bg', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                currentSettings.bgUrl = data.path;
+                currentSettings.bgClass = 'custom';
+                updatePreview();
+            } else {
+                alert('Upload failed: ' + data.error);
+            }
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
     }
     
     function updatePreview() {
         // Update both previews (left and center)
         const frames = document.querySelectorAll('.studio-avatar-frame');
         const wrappers = document.querySelectorAll('.studio-avatar-img-wrapper');
+        const largeContainer = document.querySelector('.studio-avatar-large-container');
         
+        // Left Profile Card Elements
+        const profileCard = document.querySelector('.studio-card.profile-preview-card');
+        const profileBgLayer = document.getElementById('profileBgLayer');
+        const profileOverlayLayer = document.getElementById('profileOverlayLayer');
+
         frames.forEach(el => {
             el.className = `studio-avatar-frame ${el.classList.contains('large') ? 'large' : ''} ${currentSettings.frame}`;
         });
         
         wrappers.forEach(el => {
             el.style.setProperty('--border-color', currentSettings.color);
-            // Apply border type logic via classes or styles
             el.classList.remove('border-solid', 'border-gradient', 'border-none');
             el.classList.add(`border-${currentSettings.borderType}`);
         });
+
+        // Background Logic
+        // Center Container
+        largeContainer.className = 'studio-avatar-large-container';
+        largeContainer.style.background = ''; // reset
+        largeContainer.style.backgroundImage = ''; 
+        largeContainer.style.filter = ''; // reset filters
+        
+        // Left Card Layer Reset
+        if(profileBgLayer) {
+            profileBgLayer.className = 'studio-bg-layer';
+            profileBgLayer.style.background = '';
+            profileBgLayer.style.backgroundImage = '';
+            profileBgLayer.style.filter = '';
+        }
+        if(profileOverlayLayer) {
+             profileOverlayLayer.style.opacity = '0';
+        }
+
+        // 1. Base Background (Image vs Class)
+        let bgStyle = '';
+        if (currentSettings.bgUrl) {
+            bgStyle = `url('${currentSettings.bgUrl}') center/cover no-repeat`;
+            // largeContainer.style.background = bgStyle; // This will be applied to centerBgLayer
+            if(profileBgLayer) profileBgLayer.style.background = bgStyle;
+        } else if (currentSettings.bgClass && currentSettings.bgClass !== 'none') {
+            // largeContainer.classList.add(currentSettings.bgClass); // This will be applied to centerBgLayer
+            if(profileBgLayer) profileBgLayer.classList.add(currentSettings.bgClass);
+        }
+
+        // 2. Adjustments (Brightness, Blur)
+        // Center Container adjustments (applied to container directly for now as it lacks layer structure in HTML)
+        // Ideally center preview should also have layers, but for now we apply to container (blur acts on container content? no, blur filter blurs everything).
+        // Actually, if we apply filter to container, it blurs the avatar.
+        // We implemented layers for CENTER preview via JS check in previous turn! 
+        // Let's re-run that check or ensure consistency.
+        // Step 174 added JS to create layers in largeContainer if missing!
+        
+        let centerBgLayer = largeContainer.querySelector('.studio-bg-layer');
+        if(!centerBgLayer) {
+             // Create if missing (ensures Center preview works like Left preview)
+             centerBgLayer = document.createElement('div');
+             centerBgLayer.className = 'studio-bg-layer';
+             largeContainer.insertBefore(centerBgLayer, largeContainer.firstChild);
+             largeContainer.style.position = 'relative';
+             centerBgLayer.style.position = 'absolute';
+             centerBgLayer.style.inset = '0';
+             centerBgLayer.style.zIndex = '0';
+             
+             const fr = largeContainer.querySelector('.studio-avatar-frame');
+             if(fr) fr.style.zIndex = '2';
+        }
+        // Also overlay
+        let centerOverlay = largeContainer.querySelector('.studio-overlay-layer');
+        if(!centerOverlay) {
+             centerOverlay = document.createElement('div');
+             centerOverlay.className = 'studio-overlay-layer';
+             centerOverlay.style.position = 'absolute';
+             centerOverlay.style.inset = '0';
+             centerOverlay.style.zIndex = '1';
+             centerOverlay.style.background = '#000';
+             centerOverlay.style.pointerEvents = 'none';
+             largeContainer.insertBefore(centerOverlay, centerBgLayer.nextSibling);
+        }
+
+        // Reset Center Layers
+        centerBgLayer.className = 'studio-bg-layer';
+        centerBgLayer.style.background = '';
+        centerOverlay.style.opacity = '0';
+        // Reset container specific overrides
+        largeContainer.style.background = ''; 
+
+        // Apply to Center Layers
+        if (currentSettings.bgUrl) {
+            centerBgLayer.style.background = bgStyle;
+        } else if (currentSettings.bgClass && currentSettings.bgClass !== 'none') {
+            centerBgLayer.classList.add(currentSettings.bgClass);
+        }
+
+        // Filters
+        let filters = [];
+        if(currentSettings.brightness !== '100') filters.push(`brightness(${currentSettings.brightness}%)`);
+        if(currentSettings.blur !== '0') filters.push(`blur(${currentSettings.blur}px`);
+        const filterStr = filters.join(' ');
+        
+        if(centerBgLayer) centerBgLayer.style.filter = filterStr;
+        if(profileBgLayer) profileBgLayer.style.filter = filterStr;
+
+        // Opacity Overlay
+        const opac = parseInt(currentSettings.opacity) / 100;
+        if(centerOverlay) centerOverlay.style.opacity = opac;
+        if(profileOverlayLayer) profileOverlayLayer.style.opacity = opac;
+
+        // Match Color Override
+        if (currentSettings.matchColor) {
+            largeContainer.style.setProperty('--border-color', currentSettings.color);
+            if(profileCard) profileCard.style.setProperty('--border-color', currentSettings.color);
+            
+            // For CSS vars to work in BG layer, they must inherit or be set on layer
+            // Usually they inherit from parent if defined
+        }
     }
     
     function switchTab(tabName) {
         document.querySelectorAll('.studio-tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.studio-tab-content').forEach(c => c.classList.remove('active'));
-        
         document.querySelector(`.studio-tab[data-tab="${tabName}"]`).classList.add('active');
         document.getElementById(`tab-${tabName}`).classList.add('active');
     }
@@ -291,7 +565,13 @@
                 avatar_frame: currentSettings.frame,
                 avatar_border: currentSettings.borderType,
                 avatar_color: currentSettings.color,
-                avatar_bg: currentSettings.bg
+                avatar_bg_class: currentSettings.bgClass,
+                avatar_bg_url: currentSettings.bgUrl,
+                // avatar_bg_filter: currentSettings.filter, // Legacy
+                avatar_bg_brightness: currentSettings.brightness,
+                avatar_bg_opacity: currentSettings.opacity,
+                avatar_bg_blur: currentSettings.blur,
+                avatar_bg_match_color: String(currentSettings.matchColor)
             })
         })
         .then(res => res.json())
@@ -310,9 +590,148 @@
         });
     }
     
+    // Admin & Library Functions
+    function openAdminUploadModal() {
+        // Use flex instead of block for centering if using flex in style
+        const modal = document.getElementById('adminBgModal');
+        modal.style.display = 'flex';
+    }
+
+    function closeAdminUploadModal() {
+        document.getElementById('adminBgModal').style.display = 'none';
+        document.getElementById('adminBgForm').reset();
+    }
+
+    function handleAdminBgSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const btn = form.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        
+        btn.innerHTML = 'Uploading...';
+        btn.disabled = true;
+
+        fetch('/api/admin/upload-avatar-bg', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('Upload successful!');
+                closeAdminUploadModal();
+                loadLibrary(); // Refresh library
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(err => alert('Upload failed'))
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+
+    function deleteBg(e, id) {
+        e.stopPropagation();
+        if(!confirm('Delete this background?')) return;
+        
+        fetch(`/api/admin/background/${id}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) loadLibrary();
+            else alert('Error deleting');
+        });
+    }
+
+    function editBg(e, id, currentName, currentTag) {
+        e.stopPropagation();
+        const newName = prompt("New Name:", currentName);
+        if(!newName) return;
+        
+        const newTag = prompt("New Access Tag (basic/pro/ultimate/admin_only):", currentTag);
+        if(!newTag) return;
+        
+        fetch(`/api/admin/background/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name: newName, access_tag: newTag })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) loadLibrary();
+            else alert('Error updating');
+        });
+    }
+
+    function loadLibrary() {
+        fetch('/api/avatar/backgrounds')
+        .then(res => res.json())
+        .then(data => {
+            const grid = document.getElementById('libraryGrid');
+            const section = document.getElementById('librarySection');
+            
+            if (data.backgrounds && data.backgrounds.length > 0) {
+                section.style.display = 'block';
+                grid.innerHTML = '';
+                data.backgrounds.forEach(bg => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-option';
+                    div.style.position = 'relative'; // For absolute buttons
+                    div.title = `${bg.name} (${bg.tag})`; // Tooltip
+                    div.innerText = bg.name.substring(0, 4); // Short name
+                    
+                    // If image/gif, show preview
+                    if(bg.path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                        div.style.background = `url('${bg.path}') center/cover`;
+                        div.innerText = ''; // Clear text if image
+                    } else if (bg.path.match(/\.(mp4|webm)$/i)) {
+                         div.innerText = 'VID';
+                    }
+                    
+                    div.onclick = () => {
+                        currentSettings.bgUrl = bg.path;
+                        currentSettings.bgClass = 'custom';
+                        updatePreview();
+                    };
+                    
+                    // Admin Controls
+                    if (typeof IS_ADMIN !== 'undefined' && IS_ADMIN) {
+                        const controls = document.createElement('div');
+                        controls.className = 'admin-controls';
+                        controls.innerHTML = `
+                            <i class="fas fa-edit" onclick="editBg(event, ${bg.id}, '${bg.name}', '${bg.tag}')"></i>
+                            <i class="fas fa-trash" onclick="deleteBg(event, ${bg.id})"></i>
+                        `;
+                        div.appendChild(controls);
+                    }
+                    
+                    grid.appendChild(div);
+                });
+            } else {
+                section.style.display = 'none';
+            }
+        });
+    }
+
     // Init state
     window.addEventListener('DOMContentLoaded', () => {
+        // Restore controls
+        document.getElementById('rng-bright').value = currentSettings.brightness;
+        document.getElementById('val-bright').innerText = currentSettings.brightness + '%';
+        
+        document.getElementById('rng-opac').value = currentSettings.opacity;
+        document.getElementById('val-opac').innerText = currentSettings.opacity + '%';
+        
+        document.getElementById('rng-blur').value = currentSettings.blur;
+        document.getElementById('val-blur').innerText = currentSettings.blur + 'px';
+        
+        document.getElementById('matchColorToggle').checked = currentSettings.matchColor;
+
         setBorderType(currentSettings.borderType);
+        updatePreview();
+        loadLibrary(); // Load dynamic backgrounds
     });
 </script>
 {% endblock %}

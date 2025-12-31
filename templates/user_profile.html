@@ -6,43 +6,47 @@
     <div class="row">
         <!-- Sidebar / User Info -->
         <div class="col-md-4 mb-4">
-            <div class="card bg-dark text-white border-secondary p-4 text-center h-100">
-                <div class="mb-3 position-relative d-inline-block">
-                    {% if user[3] %}
-                        <img src="{{ user[3] }}" class="rounded-circle border border-info p-1" style="width: 120px; height: 120px; object-fit: cover;">
-                    {% else %}
-                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto border border-info p-1" style="width: 120px; height: 120px; font-size: 40px;">
-                            {{ user[1][0]|upper }}
-                        </div>
-                    {% endif %}
-                    
-                    {% if user[2] == 'admin' %}
-                    <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-danger border border-dark">
-                        ADMIN
-                    </span>
-                    {% elif user[2] == 'publisher' %}
-                    <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-warning text-dark border border-dark">
-                        PUB
-                    </span>
-                    {% endif %}
+            <!-- Studio Profile Card -->
+            <div class="studio-card profile-preview-card {{ user[4]|default('basic') }}" style="position: relative; overflow: hidden; height: auto; min-height: 450px;">
+                <!-- Background Layers -->
+                <div class="studio-bg-layer {{ profile_avatar_settings.avatar_bg_class|default('') }}" 
+                     style="{% if profile_avatar_settings.avatar_bg_url %}background-image: url('{{ profile_avatar_settings.avatar_bg_url }}'); background-size: cover; background-position: center;{% endif %}
+                            {% if profile_avatar_settings.avatar_bg_match_color and profile_avatar_settings.avatar_bg_match_color == 'true' %}--border-color: {{ profile_avatar_settings.avatar_color|default('#00d4ff') }};{% endif %}
+                            filter: brightness({{ profile_avatar_settings.avatar_bg_brightness|default('100') }}%) blur({{ profile_avatar_settings.avatar_bg_blur|default('0') }}px);">
                 </div>
+                <div class="studio-overlay-layer" style="opacity: {{ (profile_avatar_settings.avatar_bg_opacity|default('0')|int) / 100 }};"></div>
 
-                <h3 class="mb-1">{{ user[1] }}</h3>
-                <p class="text-muted mb-3">{{ user[2]|title }}</p>
-
-                {% if user[4] == 'ultimate' %}
-                <div class="badge bg-warning text-dark mb-4 px-3 py-2">
-                    <i class="fas fa-crown me-1"></i> Ultimate Member
+                <!-- Content -->
+                <div class="studio-avatar-container">
+                     <div class="studio-avatar-frame {{ profile_avatar_settings.avatar_frame|default('none') }}">
+                         <div class="studio-avatar-img-wrapper border-{{ profile_avatar_settings.avatar_border|default('solid') }}" style="--border-color: {{ profile_avatar_settings.avatar_color|default('#00d4ff') }}">
+                             {% if user[3] %}
+                             <img src="{{ user[3] }}" alt="{{ user[1] }}" class="studio-avatar-img">
+                             {% else %}
+                             <div class="studio-avatar-placeholder" style="background:#333; display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:40px; color:#ccc;">
+                                 {{ user[1][0]|upper }}
+                             </div>
+                             {% endif %}
+                         </div>
+                     </div>
+                </div>
+                
+                <h2 class="studio-username">{{ user[1] }}</h2>
+                <div class="studio-role">{{ user[2]|default('Member')|title }}</div>
+                
+                {% if user[4] and user[4] != 'basic' %}
+                <div class="studio-plan-badge {{ user[4] }}">
+                    <i class="fas fa-crown"></i> {{ user[4]|capitalize }} Member
                 </div>
                 {% endif %}
-
-                <div class="d-grid gap-2">
+                
+                <div class="mt-4 d-grid gap-2">
                     {% if session.get('user_id') != user[0] %}
-                        <button class="btn btn-outline-danger btn-sm" onclick="reportUser({{ user[0] }}, '{{ user[1] }}')">
+                        <button class="btn btn-outline-danger btn-sm" onclick="reportUser({{ user[0] }}, '{{ user[1] }}')" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); border: 1px solid rgba(255,100,100,0.5);">
                             <i class="fas fa-flag me-2"></i>Report User
                         </button>
                     {% else %}
-                        <a href="{{ url_for('profile') }}" class="btn btn-outline-light btn-sm">
+                        <a href="{{ url_for('profile') }}" class="studio-edit-link btn btn-outline-light btn-sm" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);">
                             <i class="fas fa-edit me-2"></i>Edit Profile
                         </a>
                     {% endif %}

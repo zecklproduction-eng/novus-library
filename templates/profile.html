@@ -49,31 +49,45 @@
 </style>
 <div class="container py-3 profile-page">
   <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div class="d-flex align-items-center gap-3">
-        <div class="studio-avatar-frame {{ avatar_settings.avatar_frame|default('none') }}" style="width: 80px; height: 80px; padding: 3px; flex-shrink: 0;">
-             <div class="studio-avatar-img-wrapper border-{{ avatar_settings.avatar_border|default('solid') }}" style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
-              {% if avatar_url %}
-                <img src="{{ avatar_url }}" alt="{{ username }}" class="studio-avatar-img">
-              {% else %}
-                <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Default Avatar" class="studio-avatar-img">
-              {% endif %}
-            </div>
-        </div>
-      <div>
-        <h2 class="mb-0">{{ username or 'ReaderOne' }}</h2>
-        <p class="text-muted mb-0">Welcome back 👋</p>
-      </div>
-    </div>
+  <!-- New Profile Card Header -->
+  <div class="row justify-content-center mb-5">
+      <div class="col-md-6 col-lg-5">
+          <div class="studio-card profile-preview-card {{ plan|default('basic') }}">
+               <!-- Background Layers -->
+               <div class="studio-bg-layer {{ avatar_settings.avatar_bg_class|default('') }}" 
+                    style="{% if avatar_settings.avatar_bg_url %}background-image: url('{{ avatar_settings.avatar_bg_url }}'); background-size: cover; background-position: center;{% endif %}
+                           {% if avatar_settings.avatar_bg_match_color and avatar_settings.avatar_bg_match_color == 'true' %}--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }};{% endif %}
+                           filter: brightness({{ avatar_settings.avatar_bg_brightness|default('100') }}%) blur({{ avatar_settings.avatar_bg_blur|default('0') }}px);">
+               </div>
+               <div class="studio-overlay-layer" style="opacity: {{ (avatar_settings.avatar_bg_opacity|default('0')|int) / 100 }};"></div>
 
-    <button
-      type="button"
-      class="btn btn-neon d-flex align-items-center"
-      data-bs-toggle="modal"
-      data-bs-target="#editProfileModal"
-    >
-      <i class="fas fa-pen-to-square me-2"></i> Edit Profile
-    </button>
+               <!-- Content -->
+               <div class="studio-avatar-container">
+                    <div class="studio-avatar-frame {{ avatar_settings.avatar_frame|default('none') }}">
+                        <div class="studio-avatar-img-wrapper border-{{ avatar_settings.avatar_border|default('solid') }}" style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
+                            {% if avatar_url %}
+                            <img src="{{ avatar_url }}" alt="{{ username }}" class="studio-avatar-img">
+                            {% else %}
+                            <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Default Avatar" class="studio-avatar-img">
+                            {% endif %}
+                        </div>
+                    </div>
+               </div>
+               
+               <h2 class="studio-username">{{ username or 'ReaderOne' }}</h2>
+               <div class="studio-role">{{ role|default('Member')|capitalize }}</div>
+               
+               <div class="studio-plan-badge {{ plan|default('basic') }}">
+                   <i class="fas fa-crown"></i> {{ plan|default('Basic')|capitalize }} Member
+               </div>
+               
+               <div class="mt-4">
+                   <a href="#" data-bs-toggle="modal" data-bs-target="#editProfileModal" class="studio-edit-link">
+                       <i class="fas fa-pen"></i> Edit Profile
+                   </a>
+               </div>
+          </div>
+      </div>
   </div>
 
   <div class="row g-4">
