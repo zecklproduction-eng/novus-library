@@ -4795,6 +4795,87 @@ def customization():
                          user_plan=user_plan,
                          user_role=user_role)
 
+@app.route("/customization/library")
+def customization_library():
+    """New Animation Library Page"""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    user_id = session.get("user_id")
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get User Plan
+    c.execute("SELECT plan, role FROM users WHERE id = ?", (user_id,))
+    user_row = c.fetchone()
+    user_plan = user_row[0] if user_row else 'basic'
+    user_role = user_row[1] if user_row else 'user'
+
+    # Get ALL Global Animations (Admin) + User Animations
+    # We want to display everything for the library view
+    
+    # 1. User's own
+    c.execute("""
+        SELECT id, animation_type, file_path, is_active, created_at, COALESCE(has_animated, 0), name, category, user_id, min_plan
+        FROM custom_animations
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+    """, (user_id,))
+    user_anims = c.fetchall()
+
+    # 2. Global (Admin)
+    c.execute("""
+        SELECT ca.id, ca.animation_type, ca.file_path, ca.is_active, ca.created_at, COALESCE(ca.has_animated, 0), ca.name, ca.category, ca.user_id, ca.min_plan
+        FROM custom_animations ca
+        JOIN users u ON ca.user_id = u.id
+        WHERE u.role = 'admin'
+        ORDER BY ca.created_at DESC
+    """)
+    global_anims = c.fetchall()
+
+    conn.close()
+
+    animations_dict = {
+        'login': [], 'banner': [], 'manga_enter': [], 'logout': []
+    }
+
+    def to_dict(row, is_owned):
+        return {
+            'id': row[0],
+            'type': row[1],
+            'path': row[2],
+            'is_active': row[3],
+            'name': row[6],
+            'category': row[7],
+            'min_plan': row[9] or 'basic',
+            'is_owned': is_owned
+        }
+
+    # Add Global
+    for row in global_anims:
+        d = to_dict(row, False)
+        # Mark active? We need to know if it's active for THIS user.
+        # But 'is_active' in global row refers to Admin's active state? No, is_active is per row.
+        # Admin's row is_active=1 means Admin has it active. Irrelevant for user.
+        # We need to check if user has THIS animation active. 
+        # But user activates a COPY usually? Or references it?
+        # Our system clones on activation. So the global animation itself is never "active" for the user directly?
+        # Wait, previous logic was: Activate -> Clone.
+        # So in the library, Global items are "Templates".
+        if d['type'] in animations_dict:
+            animations_dict[d['type']].append(d)
+
+    # Add User's (which might be clones or originals)
+    for row in user_anims:
+        d = to_dict(row, True)
+        if d['type'] in animations_dict:
+            animations_dict[d['type']].append(d)
+
+    return render_template("customization_library.html",
+                         all_animations=animations_dict,
+                         user_plan=user_plan,
+                         user_role=user_role)
+
 @app.route("/customization/upload")
 @admin_required
 def customization_upload():

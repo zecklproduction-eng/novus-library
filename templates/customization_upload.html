@@ -339,7 +339,53 @@
             <i class="fas fa-cloud-upload-alt"></i>
             Upload Studio
         </a>
+        <a href="{{ url_for('customization_library') }}" class="tab-link">
+            <i class="fas fa-layer-group"></i>
+            Library
+        </a>
+        
+        <div style="width:1px; height:24px; background:rgba(255,255,255,0.1); margin:0 4px;"></div>
+        
+        <div class="tab-link" style="cursor: default; padding-right: 10px; background: transparent !important;">
+            <span style="font-size:0.8rem; margin-right:8px; color:rgba(255,255,255,0.5);">Preview:</span>
+            <label class="switch-toggle">
+                <input type="checkbox" id="autoplayToggle" checked onchange="toggleAutoplay(this.checked)">
+                <span class="slider-round"></span>
+            </label>
+        </div>
     </div>
+
+    <style>
+    /* Toggle Switch Styles (Local) */
+    .switch-toggle {
+        position: relative;
+        display: inline-block;
+        width: 34px;
+        height: 18px;
+    }
+    .switch-toggle input { opacity: 0; width: 0; height: 0; }
+    .slider-round {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 34px;
+    }
+    .slider-round:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    input:checked + .slider-round { background-color: #22d3ee; }
+    input:checked + .slider-round:before { transform: translateX(16px); }
+    </style>
 
     <div class="config-grid">
         <!-- Banner -->
@@ -439,45 +485,7 @@
         </div>
     </div>
 
-    <div class="library-title">My Animations Library</div>
-    <div class="library-grid">
-        <div class="lib-item add-new" onclick="togglePopup(true)">
-            <span style="font-size: 22px;">☁️</span>
-            <span style="font-size: 11px; font-weight: bold; margin-top: 5px;">UPLOAD NEW</span>
-        </div>
-
-        {% set all_items = [] %}
-        {% for anim in all_animations.banner %}{% set _ = anim.update({'typeName': 'Banner'}) %}{% set _ = all_items.append(anim) %}{% endfor %}
-        {% for anim in all_animations.manga_enter %}{% set _ = anim.update({'typeName': 'Manga'}) %}{% set _ = all_items.append(anim) %}{% endfor %}
-        {% for anim in all_animations.login %}{% set _ = anim.update({'typeName': 'Login'}) %}{% set _ = all_items.append(anim) %}{% endfor %}
-        {% for anim in all_animations.logout %}{% set _ = anim.update({'typeName': 'Logout'}) %}{% set _ = all_items.append(anim) %}{% endfor %}
-
-        {% for anim in all_items if 'preset' not in anim.id|string %}
-        <div class="lib-item" title="{{ anim.name }} ({{ anim.typeName }})">
-            {% set ext = anim.path.split('.')[-1].lower() %}
-            {% if ext in ['mp4', 'webm'] %}<video src="{{ url_for('static', filename=anim.path) }}" muted></video>
-            {% else %}<img src="{{ url_for('static', filename=anim.path) }}" />{% endif %}
-            
-            <div class="lib-item-overlay">
-                <button class="lib-action-btn btn-edit" title="Edit" onclick="openEditModal('{{ anim.id }}', '{{ anim.name }}', '{{ anim.category }}', '{{ anim.min_plan }}')">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="lib-action-btn btn-delete" title="Delete" onclick="deleteAnimation('{{ anim.id }}')">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </div>
-            
-            <div style="position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 9px; color: #aaa; display: flex; gap: 4px;">
-                <span>{{ anim.category|upper }}</span>
-                {% if anim.min_plan and anim.min_plan != 'basic' %}
-                <span style="color: {% if anim.min_plan=='admin' %}#ff3366{% elif anim.min_plan=='ultimate' %}#bd00ff{% else %}#00f2ff{% endif %}; font-weight: bold;">
-                    {{ anim.min_plan|upper }}
-                </span>
-                {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
+    <!-- Library grid removed to improve performance. Use the new Library page. -->
 </div>
 
 <div class="bottom-action-container">
@@ -793,7 +801,8 @@
         } else if (path) {
             const ext = path.split('.').pop().toLowerCase();
             if (['mp4', 'webm'].includes(ext)) {
-                preview.innerHTML = `<video src="/static/${path}" autoplay loop muted></video>`;
+                const isAutoplay = localStorage.getItem('autoplay_previews') !== 'false';
+                preview.innerHTML = `<video src="/static/${path}" ${isAutoplay ? 'autoplay' : ''} loop muted></video>`;
             } else {
                 preview.innerHTML = `<img src="/static/${path}" />`;
             }
@@ -810,6 +819,51 @@
         } catch (err) {
             console.error('Error activating animation:', err);
         }
+    }
+    // Auto-Edit Logic from Library Redirect
+    const animLookup = {};
+    {% for cat, anims in all_animations.items() %}
+        {% for anim in anims %}
+        animLookup['{{ anim.id }}'] = {
+            id: '{{ anim.id }}',
+            name: '{{ (anim.name or "")|replace("'", "\\'") }}',
+            cat: '{{ anim.category }}',
+            plan: '{{ anim.min_plan or "basic" }}'
+        };
+        {% endfor %}
+    {% endfor %}
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const editId = urlParams.get('edit_id');
+        if (editId && animLookup[editId]) {
+            const data = animLookup[editId];
+            if (window.openEditModal) {
+                openEditModal(data.id, data.name, data.cat, data.plan);
+                // Clean query params so refresh doesn't re-trigger
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+        
+        // Autoplay toggle init
+        const toggle = document.getElementById('autoplayToggle');
+        const isEnabled = localStorage.getItem('autoplay_previews') !== 'false';
+        if (toggle) toggle.checked = isEnabled;
+    });
+
+    // Autoplay Logic
+    function toggleAutoplay(enabled) {
+        localStorage.setItem('autoplay_previews', enabled);
+        const videos = document.querySelectorAll('video');
+        videos.forEach(v => {
+            if(enabled) {
+                v.muted = true;
+                v.play().catch(e => console.log('Autoplay blocked', e));
+            } else {
+                v.pause();
+                v.currentTime = 0;
+            }
+        });
     }
 </script>
 {% endblock %}

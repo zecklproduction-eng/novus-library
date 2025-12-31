@@ -723,6 +723,20 @@
             Upload Studio
         </a>
         {% endif %}
+        <a href="{{ url_for('customization_library') }}" class="tab-link">
+            <i class="fas fa-layer-group"></i>
+            Library
+        </a>
+        
+        <div style="width:1px; height:24px; background:rgba(255,255,255,0.1); margin:0 4px;"></div>
+        
+        <div class="tab-link" style="cursor: default; padding-right: 10px; background: transparent !important;">
+            <span style="font-size:0.8rem; margin-right:8px; color:rgba(255,255,255,0.5);">Preview:</span>
+            <label class="switch-toggle">
+                <input type="checkbox" id="autoplayToggle" checked onchange="toggleAutoplay(this.checked)">
+                <span class="slider-round"></span>
+            </label>
+        </div>
     </div>
 
     <div class="panels-grid">
@@ -1141,7 +1155,8 @@
         if (path) {
             const ext = path.split('.').pop().toLowerCase();
             if (['mp4', 'webm'].includes(ext)) {
-                preview.innerHTML = `<video src="/static/${path}" autoplay loop muted></video>`;
+                const isAutoplay = localStorage.getItem('autoplay_previews') !== 'false';
+                preview.innerHTML = `<video src="/static/${path}" ${isAutoplay ? 'autoplay' : ''} loop muted style="width:100%; height:100%; object-fit:cover;"></video>`;
             } else {
                 preview.innerHTML = `<img src="/static/${path}" />`;
             }
@@ -1344,5 +1359,32 @@
             localStorage.setItem('ultimate_glow', 'false');
         }
     }
+
+    /* AUTOPLAY TOGGLE LOGIC */
+    function toggleAutoplay(enabled) {
+        localStorage.setItem('autoplay_previews', enabled);
+        const videos = document.querySelectorAll('video');
+        videos.forEach(v => {
+            if(enabled) {
+                v.muted = true;
+                v.play().catch(e => console.log('Autoplay blocked', e));
+            } else {
+                v.pause();
+                v.currentTime = 0;
+            }
+        });
+    }
+
+    // Initialize Autoplay on Load
+    // We hook into DOMContentLoaded above, but can add here or merge.
+    // I'll add a separate listener to be safe.
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggle = document.getElementById('autoplayToggle');
+        const isEnabled = localStorage.getItem('autoplay_previews') !== 'false';
+        if (toggle) toggle.checked = isEnabled;
+
+        // Apply to existing videos (if any on load? customization.html loads text previews initially?)
+        // If updatePreview is called later, it needs to know.
+    });
 </script>
 {% endblock %}
