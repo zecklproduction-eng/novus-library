@@ -1,6 +1,7 @@
 """
 Image-to-Summary AI Module
-Uses GPT-4 Vision to read images and generate summaries for manga pages and book covers
+Uses Google Gemini 1.5 Flash to read images and generate summaries for manga pages and book covers.
+Now Powered by Gemini API via REST.
 """
 
 import os
@@ -14,26 +15,22 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-OPENAI_KEY = os.environ.get('OPENAI_API_KEY')
-OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4-turbo')
+# Use Gemini API Key
+GEMINI_KEY = os.environ.get('GEMINI_API_KEY')
+GEMINI_MODEL = 'gemini-3-flash-preview'  # Standard multimodal model
 
 class ImageSummaryAI:
-    """Handle image reading and summary generation using GPT-4 Vision"""
+    """Handle image reading and summary generation using Google Gemini API"""
     
     def __init__(self, api_key=None):
-        self.api_key = api_key or OPENAI_KEY
-        self.model = OPENAI_MODEL
+        self.api_key = api_key or GEMINI_KEY
+        self.model = GEMINI_MODEL
+        self.base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
         self.error_count = 0
         self.last_error = None
         
-        if self.api_key:
-            self.headers = {
-                'Authorization': f'Bearer {self.api_key}',
-                'Content-Type': 'application/json'
-            }
-        else:
-            self.headers = None
-            logger.warning("No OpenAI API key found")
+        if not self.api_key:
+            logger.warning("No Gemini API key found")
     
     def encode_image_to_base64(self, image_path):
         """Convert image file to base64"""
@@ -43,245 +40,172 @@ class ImageSummaryAI:
         except Exception as e:
             raise Exception(f"Failed to encode image: {e}")
     
-    def get_image_media_type(self, image_path):
-        """Determine media type from file extension"""
+    def get_image_mime_type(self, image_path):
+        """Determine mime type from file extension"""
         ext = Path(image_path).suffix.lower()
-        media_types = {
+        mime_types = {
             '.jpg': 'image/jpeg',
             '.jpeg': 'image/jpeg',
             '.png': 'image/png',
             '.gif': 'image/gif',
             '.webp': 'image/webp'
         }
-        return media_types.get(ext, 'image/jpeg')
+        return mime_types.get(ext, 'image/jpeg')
     
+    def _call_gemini(self, contents):
+        """Helper to call Gemini API"""
+        if not self.api_key:
+            raise Exception("Gemini API key not configured")
+            
+        url = f"{self.base_url}?key={self.api_key}"
+        
+        payload = {
+            "contents": contents,
+            "generationConfig": {
+                "temperature": 0.4,
+                "topK": 32,
+                "topP": 1,
+                "maxOutputTokens": 4096,
+                "stopSequences": []
+            }
+        }
+        
+        headers = {'Content-Type': 'application/json'}
+        
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        
+        if response.status_code != 200:
+            logger.error(f"Gemini API Error {response.status_code}: {response.text}")
+            response.raise_for_status()
+            
+        return response.json()
+
     def summarize_manga_page(self, image_path, max_sentences=5):
-        """
-        Summarize a manga page image
-        Extracts story content and key events
-        """
+        """Summarize a manga page image"""
         if not os.path.exists(image_path):
             raise Exception(f"Image not found: {image_path}")
         
-        if not self.api_key:
-            raise Exception("OpenAI API key not configured")
-        
         try:
-            base64_image = self.encode_image_to_base64(image_path)
-            media_type = self.get_image_media_type(image_path)
+            base64_img = self.encode_image_to_base64(image_path)
+            mime_type = self.get_image_mime_type(image_path)
             
-            payload = {
-                'model': self.model,
-                'messages': [
+            prompt = f"""Analyze this manga page and provide a concise summary in {max_sentences} sentences or less. 
+            Focus on: 1. Main events happening, 2. Character interactions, 3. Plot progression. Keep it brief."""
+            
+            contents = [{
+                "parts": [
+                    {"text": prompt},
                     {
-                        'role': 'user',
-                        'content': [
-                            {
-                                'type': 'image_url',
-                                'image_url': {
-                                    'url': f'data:{media_type};base64,{base64_image}'
-                                }
-                            },
-                            {
-                                'type': 'text',
-                                'text': f"""Analyze this manga page and provide a concise summary in {max_sentences} sentences or less. 
-                                Focus on:
-                                1. Main events happening
-                                2. Character interactions
-                                3. Plot progression
-                                Keep it brief and clear."""
-                            }
-                        ]
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": base64_img
+                        }
                     }
-                ],
-                'max_tokens': 300
-            }
+                ]
+            }]
             
-            response = requests.post(
-                'https://api.openai.com/v1/chat/completions',
-                json=payload,
-                headers=self.headers,
-                timeout=30
-            )
-            response.raise_for_status()
-            
-            result = response.json()
-            if 'choices' in result and result['choices']:
-                self.error_count = 0  # Reset error count on success
-                return result['choices'][0]['message']['content'].strip()
-            return None
+            result = self._call_gemini(contents)
+            return result['candidates'][0]['content']['parts'][0]['text'].strip()
             
         except Exception as e:
             self.error_count += 1
-            self.last_error = str(e)
             logger.error(f"Failed to summarize manga page: {e}")
             raise Exception(f"Failed to summarize manga page: {e}")
-    
+
     def summarize_book_cover(self, image_path):
-        """
-        Analyze a book cover image
-        Extracts title, author, genre hints from cover design
-        """
+        """Analyze a book cover image"""
         if not os.path.exists(image_path):
             raise Exception(f"Image not found: {image_path}")
         
-        if not self.api_key:
-            raise Exception("OpenAI API key not configured")
-        
         try:
-            base64_image = self.encode_image_to_base64(image_path)
-            media_type = self.get_image_media_type(image_path)
+            base64_img = self.encode_image_to_base64(image_path)
+            mime_type = self.get_image_mime_type(image_path)
             
-            payload = {
-                'model': self.model,
-                'messages': [
+            prompt = """Analyze this book/manga cover and provide:
+            1. Visible title or main text
+            2. Main visual elements and themes
+            3. Apparent genre based on design
+            4. Brief description of what the cover conveys
+            Keep it concise (3-4 sentences)."""
+            
+            contents = [{
+                "parts": [
+                    {"text": prompt},
                     {
-                        'role': 'user',
-                        'content': [
-                            {
-                                'type': 'image_url',
-                                'image_url': {
-                                    'url': f'data:{media_type};base64,{base64_image}'
-                                }
-                            },
-                            {
-                                'type': 'text',
-                                'text': """Analyze this book/manga cover and provide:
-                                1. Visible title or main text
-                                2. Main visual elements and themes
-                                3. Apparent genre based on design
-                                4. Brief description of what the cover conveys
-                                Keep it concise (3-4 sentences)."""
-                            }
-                        ]
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": base64_img
+                        }
                     }
-                ],
-                'max_tokens': 250
-            }
+                ]
+            }]
             
-            response = requests.post(
-                'https://api.openai.com/v1/chat/completions',
-                json=payload,
-                headers=self.headers,
-                timeout=30
-            )
-            response.raise_for_status()
-            
-            result = response.json()
-            if 'choices' in result and result['choices']:
-                self.error_count = 0  # Reset error count on success
-                return result['choices'][0]['message']['content'].strip()
-            return None
+            result = self._call_gemini(contents)
+            return result['candidates'][0]['content']['parts'][0]['text'].strip()
             
         except Exception as e:
             self.error_count += 1
-            self.last_error = str(e)
-            logger.error(f"Failed to summarize book cover: {e}")
-            raise Exception(f"Failed to summarize book cover: {e}")
-    
+            logger.error(f"Failed to summarize cover: {e}")
+            raise Exception(f"Failed to summarize cover: {e}")
+
     def extract_text_from_image(self, image_path):
-        """
-        Extract all visible text from an image
-        Useful for manga dialogue and text boxes
-        """
+        """Extract all visible text from an image"""
         if not os.path.exists(image_path):
             raise Exception(f"Image not found: {image_path}")
         
-        if not self.api_key:
-            raise Exception("OpenAI API key not configured")
-        
         try:
-            base64_image = self.encode_image_to_base64(image_path)
-            media_type = self.get_image_media_type(image_path)
+            base64_img = self.encode_image_to_base64(image_path)
+            mime_type = self.get_image_mime_type(image_path)
             
-            payload = {
-                'model': self.model,
-                'messages': [
+            prompt = """Extract ALL visible text from this image in order.
+            Include dialogue, captions, and text boxes.
+            Preserve the reading order as much as possible.
+            Format as a clean list."""
+            
+            contents = [{
+                "parts": [
+                    {"text": prompt},
                     {
-                        'role': 'user',
-                        'content': [
-                            {
-                                'type': 'image_url',
-                                'image_url': {
-                                    'url': f'data:{media_type};base64,{base64_image}'
-                                }
-                            },
-                            {
-                                'type': 'text',
-                                'text': """Extract ALL visible text from this image in order.
-                                Include dialogue, captions, and text boxes.
-                                Preserve the reading order as much as possible.
-                                Format as a clean list."""
-                            }
-                        ]
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": base64_img
+                        }
                     }
-                ],
-                'max_tokens': 1000
-            }
+                ]
+            }]
             
-            response = requests.post(
-                'https://api.openai.com/v1/chat/completions',
-                json=payload,
-                headers=self.headers,
-                timeout=30
-            )
-            response.raise_for_status()
+            result = self._call_gemini(contents)
+            return result['candidates'][0]['content']['parts'][0]['text'].strip()
             
-            result = response.json()
-            if 'choices' in result and result['choices']:
-                return result['choices'][0]['message']['content'].strip()
-            return None
-            
+        except Exception as e:
+            logger.error(f"Failed to extract text: {e}")
+            raise Exception(f"Failed to extract text: {e}")
 
     def chat_with_context(self, user_message, context_text=""):
-        """
-        Chat with the AI using provided context (e.g., manga title, summary)
-        """
-        if not self.api_key:
-            raise Exception("OpenAI API key not configured")
-        
+        """Chat with the AI using provided context"""
         try:
-            payload = {
-                'model': self.model, # Uses the same model (gpt-4-turbo or configured)
-                'messages': [
-                    {
-                        'role': 'system',
-                        'content': f"""You are a helpful manga reading assistant. 
-                        Context about the current reading session:
-                        {context_text}
-                        
-                        Answer the user's questions based on this context or general knowledge about anime/manga.
-                        Keep answers concise and spoiler-free unless asked."""
-                    },
-                    {
-                        'role': 'user',
-                        'content': user_message
-                    }
-                ],
-                'max_tokens': 500
-            }
+            system_prompt = f"""You are a helpful manga reading assistant. 
+            Context about the current reading session:
+            {context_text}
             
-            response = requests.post(
-                'https://api.openai.com/v1/chat/completions',
-                json=payload,
-                headers=self.headers,
-                timeout=30
-            )
-            response.raise_for_status()
+            Answer the user's questions based on this context or general knowledge about anime/manga.
+            Keep answers concise and spoiler-free unless asked."""
             
-            result = response.json()
-            if 'choices' in result and result['choices']:
-                return result['choices'][0]['message']['content'].strip()
-            return "I couldn't generate a response."
+            contents = [{
+                "parts": [
+                    {"text": system_prompt + "\n\nUser Question: " + user_message}
+                ]
+            }]
+            
+            result = self._call_gemini(contents)
+            return result['candidates'][0]['content']['parts'][0]['text'].strip()
             
         except Exception as e:
             logger.error(f"Chat failed: {e}")
             raise Exception(f"Chat failed: {e}")
 
-
-# Test the module
 if __name__ == "__main__":
     ai = ImageSummaryAI()
-    print("✓ ImageSummaryAI module loaded successfully")
+    print("✓ ImageSummaryAI module loaded (GEMINI EDITION)")
     print(f"  Model: {ai.model}")
     print(f"  API Key configured: {'Yes' if ai.api_key else 'No'}")

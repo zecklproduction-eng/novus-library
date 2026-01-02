@@ -1,26 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
 <div style="max-width: 1200px; margin: 30px auto; padding: 0 20px;">
-  <h2 class="mb-4" style="color: var(--text-primary)">
     <i class="fas fa-cloud-upload-alt me-2" style="color: var(--neon-blue)"></i>
     Add New Content
   </h2>
 
+  {% if request_data %}
+  <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 15px;">
+          <div style="background: rgba(16, 185, 129, 0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-magic" style="color: #34d399;"></i>
+          </div>
+          <div>
+              <h5 style="margin: 0; color: #fff; font-size: 1rem;">Fulfilling Request</h5>
+              <p style="margin: 2px 0 0 0; color: #a7f3d0; font-size: 0.85rem;">You are adding specific content for a user request.</p>
+          </div>
+      </div>
+      <div style="text-align: right;">
+          <span style="display: block; color: #fff; font-weight: 600;">{{ request_data.title }}</span>
+          <span style="color: #6ee7b7; font-size: 0.8rem;">Req ID: #{{ request_data.id }}</span>
+      </div>
+  </div>
+  {% endif %}
+
   <!-- TYPE SELECTOR TABS -->
   <div style="display: flex; gap: 10px; border-bottom: 2px solid rgba(102, 126, 234, 0.2); margin-bottom: 30px;">
-    <button class="type-tab active" onclick="switchTab('book')" style="background: none; border: none; color: #999; padding: 15px 20px; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 3px solid transparent; transition: all 0.3s; font-weight: 500;">
+    <button class="type-tab {% if not request_data or request_data.type != 'manga' %}active{% endif %}" onclick="switchTab('book')" style="background: none; border: none; color: #999; padding: 15px 20px; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 3px solid transparent; transition: all 0.3s; font-weight: 500;">
       <i class="fas fa-book"></i>
       <span>Book</span>
     </button>
-    <button class="type-tab" onclick="switchTab('manga')" style="background: none; border: none; color: #999; padding: 15px 20px; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 3px solid transparent; transition: all 0.3s; font-weight: 500;">
+    <button class="type-tab {% if request_data and request_data.type == 'manga' %}active{% endif %}" onclick="switchTab('manga')" style="background: none; border: none; color: #999; padding: 15px 20px; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 3px solid transparent; transition: all 0.3s; font-weight: 500;">
       <i class="fas fa-images"></i>
       <span>Manga</span>
     </button>
   </div>
 
   <!-- ===== BOOK UPLOAD FORM ===== -->
-  <div id="bookTab" class="tab-content" style="display: block;">
+  <div id="bookTab" class="tab-content" style="display: {% if request_data and request_data.type == 'manga' %}none{% else %}block{% endif %};">
     <form method="POST" action="{{ url_for('add_book') }}" enctype="multipart/form-data" id="addBookForm" onsubmit="return simulatePublish(event)">
+      {% if request_data %}<input type="hidden" name="request_id" value="{{ request_data.id }}">{% endif %}
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
         <!-- LEFT COLUMN -->
         <div style="grid-column: span 2;">
@@ -29,12 +47,12 @@
 
             <div style="margin-bottom: 20px;">
               <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Title</label>
-              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="title" required>
+              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="title" value="{% if request_data %}{{ request_data.title }}{% endif %}" required>
             </div>
 
             <div style="margin-bottom: 20px;">
               <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Author</label>
-              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="author" required>
+              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="author" value="{% if request_data %}{{ request_data.author }}{% endif %}" required>
             </div>
 
             <label class="form-label mt-2" style="color: #ddd; font-weight:600;">Type</label>
@@ -181,8 +199,9 @@
   </div>
 
   <!-- ===== MANGA UPLOAD FORM ===== -->
-  <div id="mangaTab" class="tab-content" style="display: none;">
+  <div id="mangaTab" class="tab-content" style="display: {% if request_data and request_data.type == 'manga' %}block{% else %}none{% endif %};">
     <form method="POST" action="{{ url_for('add_book') }}" enctype="multipart/form-data" id="mangaForm">
+      {% if request_data %}<input type="hidden" name="request_id" value="{{ request_data.id }}">{% endif %}
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
         <!-- LEFT COLUMN -->
         <div style="grid-column: span 2;">
@@ -191,12 +210,12 @@
 
             <div style="margin-bottom: 20px;">
               <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Manga Title</label>
-              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="title" required>
+              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="title" value="{% if request_data %}{{ request_data.title }}{% endif %}" required>
             </div>
 
             <div style="margin-bottom: 20px;">
               <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Author/Artist</label>
-              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="author" required>
+              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="author" value="{% if request_data %}{{ request_data.author }}{% endif %}" required>
             </div>
 
             <div style="margin-bottom: 20px;">

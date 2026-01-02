@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}Support / Request - NOVUS{% endblock %}
+
+{% block content %}
+<div class="support-container">
+    <!-- Header -->
+    <div class="support-header">
+        <h1>Support / Request</h1>
+        <p>Request new books or manga, vote on ideas, and track status.</p>
+    </div>
+
+    <div class="support-grid">
+        <!-- LEFT: New Request Form -->
+        <div class="support-card form-card">
+            <div class="card-header">
+                <h2>New Request</h2>
+            </div>
+            <form method="POST" action="{{ url_for('support_requests') }}">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" name="title" placeholder="e.g. Solo Leveling, Dune..." required class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label>Type</label>
+                    <select name="item_type" class="form-select" required>
+                        <option value="manga">Manga / Manhwa</option>
+                        <option value="book">Book / Novel</option>
+                        <option value="feature">Feature Request</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Author / Creator (Optional)</label>
+                    <input type="text" name="author" placeholder="Original creator..." class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label>Reason / Notes</label>
+                    <textarea name="notes" placeholder="Why should we add this? Links allowed." class="form-textarea" rows="4"></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    Submit Request <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- RIGHT: Requests List -->
+        <div class="support-card list-card">
+            <div class="list-controls">
+                <div class="tabs">
+                    <a href="?tab=trending&type={{ active_filter }}" class="tab-btn {% if active_tab == 'trending' %}active{% endif %}">Trending</a>
+                    <a href="?tab=newest&type={{ active_filter }}" class="tab-btn {% if active_tab == 'newest' %}active{% endif %}">Newest</a>
+                    <a href="?tab=my_requests&type={{ active_filter }}" class="tab-btn {% if active_tab == 'my_requests' %}active{% endif %}">My Requests</a>
+                    <a href="?tab=answered&type={{ active_filter }}" class="tab-btn {% if active_tab == 'answered' %}active{% endif %}">Answered</a>
+                </div>
+                <div class="filters">
+                    <select onchange="window.location.href='?tab={{ active_tab }}&type=' + this.value" class="filter-select">
+                        <option value="all" {% if active_filter == 'all' %}selected{% endif %}>All Types</option>
+                        <option value="manga" {% if active_filter == 'manga' %}selected{% endif %}>Manga</option>
+                        <option value="book" {% if active_filter == 'book' %}selected{% endif %}>Books</option>
+                        <option value="feature" {% if active_filter == 'feature' %}selected{% endif %}>Features</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="requests-list">
+                {% for req in requests %}
+                <div class="request-item">
+                    <!-- Vote Widget -->
+                    <div class="vote-widget">
+                        <button class="vote-btn {% if req[7] == 1 %}active{% endif %}" onclick="vote('{{ req[0] }}', 1, this)">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
+                        <span class="vote-count">{{ req[5] }}</span>
+                        <!-- Downvote optional, simple upvote mostly used for requests -->
+                    </div>
+
+                    <!-- Content -->
+                    <div class="request-content">
+                        <div class="req-top">
+                            <h3 class="req-title">{{ req[1] }}</h3>
+                            <span class="status-pill {{ req[4] | lower }}">{{ req[4] }}</span>
+                        </div>
+                        
+                        <!-- Admin/Publisher Actions -->
+                        {% if session['role'] in ['admin', 'publisher'] and req[4] != 'Added' %}
+                        <div class="admin-actions" style="margin-bottom: 8px;">
+                            <a href="{{ url_for('add_book', request_id=req[0]) }}" class="fulfill-btn" style="text-decoration: none; display: inline-block;">
+                                <i class="fas fa-cloud-upload-alt"></i> Fulfill Request
+                            </a>
+                        </div>
+                        {% endif %}
+                        <div class="req-meta">
+                            <span class="req-type"><i class="fas {% if req[2] == 'manga' %}fa-book-open{% elif req[2] == 'book' %}fa-book{% else %}fa-star{% endif %}"></i> {{ req[2]|capitalize }}</span>
+                            <span class="req-author">{% if req[3] %}by {{ req[3] }}{% endif %}</span>
+                            <span class="req-user">Required by @{{ req[6] }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No requests found in this category.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if session['role'] in ['admin', 'publisher'] %}
+            <div class="admin-panel-mini">
+                <small><i class="fas fa-shield-alt"></i> Admin: Click requests to manage status (Impl. Pending)</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Support Page Scoped CSS */
+    .support-container {
+        padding: 20px 40px;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding-top: 100px; /* Navbar space */
+    }
+
+    .support-header {
+        margin-bottom: 30px;
+    }
+    .support-header h1 {
+        font-size: 2.5rem;
+        background: linear-gradient(90deg, #fff, #a5b4fc);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+    }
+    .support-header p {
+        color: #94a3b8;
+    }
+
+    .support-grid {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        gap: 30px;
+    }
+
+    /* Cards */
+    .support-card {
+        background: rgba(16, 20, 28, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        backdrop-filter: blur(12px);
+        overflow: hidden;
+    }
+
+    .form-card {
+        height: fit-content;
+        position: sticky;
+        top: 100px;
+    }
+    
+    .card-header {
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.02);
+    }
+    .card-header h2 {
+        font-size: 1.1rem;
+        color: #fff;
+        margin: 0;
+    }
+
+    form { padding: 20px; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+        display: block;
+        color: #94a3b8;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+    }
+    
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+        padding: 12px;
+        border-radius: 8px;
+        font-family: inherit;
+        transition: border 0.3s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        border-color: #6366f1;
+        outline: none;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    /* List Area */
+    .list-controls {
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 20px;
+    }
+    .tab-btn {
+        color: #64748b;
+        text-decoration: none;
+        font-weight: 500;
+        padding-bottom: 5px;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s;
+    }
+    .tab-btn:hover { color: #cbd5e1; }
+    .tab-btn.active {
+        color: #6366f1;
+        border-color: #6366f1;
+    }
+
+    .filter-select {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+    .filter-select option { background: #1e293b; }
+
+    /* Request Item */
+    .request-item {
+        display: flex;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        transition: background 0.2s;
+    }
+    .request-item:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .vote-widget {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-right: 20px;
+        min-width: 40px;
+    }
+    .vote-btn {
+        background: none;
+        border: none;
+        color: #475569;
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: 2px;
+        transition: color 0.2s;
+    }
+    .vote-btn:hover { color: #94a3b8; }
+    .vote-btn.active { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+    
+    .vote-count {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #fff;
+        margin: 2px 0;
+    }
+
+    .request-content { flex: 1; }
+    
+    .req-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 5px;
+    }
+    .req-title {
+        font-size: 1.1rem;
+        color: #fff;
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .status-pill {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    .status-pill.requested { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+    .status-pill.planned { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-pill.added { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); } /* Golden/Complete */
+    .status-pill.rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .req-meta {
+        font-size: 0.85rem;
+        color: #64748b;
+        display: flex;
+        gap: 15px;
+    }
+    .req-meta i { margin-right: 5px; }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #475569;
+    }
+    .empty-state i { font-size: 3rem; margin-bottom: 15px; opacity: 0.5; }
+
+    .admin-panel-mini {
+        padding: 10px 20px;
+        background: rgba(0,0,0,0.2);
+        color: #64748b;
+        border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* Mobile */
+    @media (max-width: 900px) {
+        .support-grid { grid-template-columns: 1fr; }
+        .form-card { display: none; } /* Hide form on mobile initially (use FAB logic usually, but here simplified) */
+        
+        /* Mobile Request FAB logic would go here, for now just stacking */
+        .form-card { display: block; position: static; margin-bottom: 20px; }
+        .support-container { padding: 80px 20px; }
+        .list-controls { flex-direction: column; align-items: flex-start; gap: 10px; }
+        .tabs { width: 100%; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { flex-shrink: 0; }
+    }
+    /* Admin/Publisher Button */
+    .fulfill-btn {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #34d399;
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .fulfill-btn:hover {
+        background: rgba(16, 185, 129, 0.2);
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+</style>
+
+<script>
+async function vote(reqId, val, btn) {
+    // Optimistic UI update
+    if (btn.classList.contains('active')) return; // Already voted
+
+    try {
+        const res = await fetch('/api/requests/vote', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ request_id: reqId, vote_value: val })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            // Update number
+            const countSpan = btn.parentElement.querySelector('.vote-count');
+            countSpan.textContent = data.new_count;
+            
+            // Toggle active state
+            if (data.user_vote === 1) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    } catch (e) {
+        console.error("Vote failed", e);
+        alert("Failed to cast vote.");
+    }
+}
+
+async function updateStatus(reqId, status, btn) {
+    if (!confirm('Mark this request as "' + status + '"?')) return;
+
+    try {
+        const res = await fetch('/api/requests/status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ request_id: reqId, status: status })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            // Update UI - refresh page or update DOM
+            window.location.reload(); 
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (e) {
+        console.error("Status update failed", e);
+        alert("Failed to update status.");
+    }
+}
+</script>
+{% endblock %}

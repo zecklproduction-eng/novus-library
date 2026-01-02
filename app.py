@@ -16,6 +16,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Import AI error handling
 import ai_error_fixes
+from image_summary_ai import ImageSummaryAI
 
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTS
@@ -881,6 +882,35 @@ def init_db():
             setting_value TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id),
             UNIQUE(user_id, setting_key)
+        )
+    """)
+
+    # support/requests table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS requests (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            item_type TEXT NOT NULL,
+            author TEXT,
+            notes TEXT,
+            status TEXT DEFAULT 'Requested',
+            vote_count INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    """)
+
+    # request votes tracking (to prevent double voting)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS request_votes (
+            id INTEGER PRIMARY KEY,
+            request_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            vote_value INTEGER DEFAULT 1,
+            FOREIGN KEY (request_id) REFERENCES requests(id),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            UNIQUE(request_id, user_id)
         )
     """)
 
@@ -2188,7 +2218,26 @@ def delete_chapter_review(review_id):
 @admin_required
 def add_book():
     if request.method == "GET":
-        return render_template("add_book.html")
+    if request.method == "GET":
+        request_id = request.args.get('request_id')
+        request_data = None
+        if request_id:
+            try:
+                conn = get_conn()
+                c = conn.cursor()
+                c.execute("SELECT id, title, author, item_type FROM requests WHERE id = ?", (request_id,))
+                row = c.fetchone()
+                if row:
+                    request_data = {
+                        'id': row[0],
+                        'title': row[1],
+                        'author': row[2],
+                        'type': row[3]
+                    }
+                conn.close()
+            except Exception:
+                pass
+        return render_template("add_book.html", request_data=request_data)
 
     title    = (request.form.get("title") or "").strip()
     author   = (request.form.get("author") or "").strip()
@@ -2267,6 +2316,17 @@ def add_book():
         # Log book upload
         uploader_id = session.get("user_id")
         log_system_event('INFO', 'upload', f'User uploaded book: {title}', uploader_id, {'book_id': c.lastrowid, 'book_type': 'book'})
+        
+        # Fulfill Request if exists
+        request_id = request.form.get("request_id")
+        if request_id:
+             try:
+                 conn = get_conn()
+                 conn.execute("UPDATE requests SET status='Added' WHERE id=?", (request_id,))
+                 conn.commit()
+                 conn.close()
+             except:
+                 pass
 
         flash("Book published successfully.", "success")
         return redirect(url_for("home"))
@@ -2366,6 +2426,17 @@ def add_book():
         # Log manga upload
         uploader_id = session.get("user_id")
         log_system_event('INFO', 'upload', f'User uploaded manga: {title} with {page_count} pages in Chapter 1', uploader_id, {'manga_id': manga_id, 'book_type': 'manga', 'chapters': 1, 'pages': page_count})
+
+        # Fulfill Request if exists
+        request_id = request.form.get("request_id")
+        if request_id:
+             try:
+                 conn = get_conn()
+                 conn.execute("UPDATE requests SET status='Added' WHERE id=?", (request_id,))
+                 conn.commit()
+                 conn.close()
+             except:
+                 pass
 
         flash(f"Manga series created successfully with {page_count} pages in Chapter 1. You can add more chapters anytime.", "success")
         return redirect(url_for("manga"))
@@ -3594,6 +3665,45 @@ def manga_reader_v2(id):
         chapters=chapters,
         chapter=chapters[0] if chapters else None
     )
+
+
+@app.route("/api/manga/chat", methods=["POST"])
+def manga_chat_api():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    user_msg = data.get('message')
+    manga_id = data.get('manga_id')
+    chapter_num = data.get('chapter_num')
+    
+    if not user_msg:
+        return jsonify({"error": "No message provided"}), 400
+
+    # Fetch context
+    context_text = f"User is reading Manga ID {manga_id}, Chapter {chapter_num}."
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT title, author, description FROM books WHERE id=?", (manga_id,))
+        m_row = c.fetchone()
+        if m_row:
+            context_text += f" Manga Title: {m_row[0]}. Author: {m_row[1]}. Description: {m_row[2]}."
+        
+        c.execute("SELECT title FROM chapters WHERE manga_id=? AND chapter_num=?", (manga_id, chapter_num))
+        c_row = c.fetchone()
+        if c_row:
+            context_text += f" Chapter Title: {c_row[0]}."
+        conn.close()
+    except:
+        pass
+
+    try:
+        ai = ImageSummaryAI()
+        response_text = ai.chat_with_context(user_msg, context_text)
+        return jsonify({"success": True, "reply": response_text})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ---------- Upload Chapter (For Existing Manga) ----------
@@ -6213,12 +6323,7 @@ def api_bundles():
 
 
 # -------------------- MAIN --------------------
-if __name__ == "__main__":
-    init_db()
-    # Bind to all interfaces and run without the reloader so external tests can connect reliably
-    debug_env = os.environ.get('FLASK_DEBUG', os.environ.get('FLASK_ENV', '0'))
-    debug_mode = str(debug_env).lower() in ('1', 'true', 'yes', 'debug')
-    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=True)
+
 
 # Ensure DB is initialized exactly once when the app receives requests
 _db_init_done = False
@@ -6534,3 +6639,147 @@ def extract_image_text():
     except Exception as e:
         return jsonify({'error': f'Text extraction failed: {str(e)}'}), 500
 
+
+# ---------- Support / Requests System ----------
+
+@app.route("/support", methods=["GET", "POST"])
+def support_requests():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    if request.method == "POST":
+        # Handle New Request Submission
+        title = request.form.get("title")
+        item_type = request.form.get("item_type")
+        author = request.form.get("author")
+        notes = request.form.get("notes")
+
+        if title and item_type:
+            c.execute("""
+                INSERT INTO requests (user_id, title, item_type, author, notes)
+                VALUES (?, ?, ?, ?, ?)
+            """, (session["user_id"], title, item_type, author, notes))
+            conn.commit()
+            flash("Request submitted successfully!", "success")
+        else:
+            flash("Title and Type are required.", "error")
+        
+        conn.close()
+        return redirect(url_for("support_requests"))
+
+    # GET: Fetch Requests
+    filter_type = request.args.get("type", "all") # all, book, manga
+    tab = request.args.get("tab", "trending") # trending, newest, my_requests, answered
+
+    query = """
+        SELECT r.id, r.title, r.item_type, r.author, r.status, r.vote_count, u.username,
+               (SELECT vote_value FROM request_votes WHERE request_id = r.id AND user_id = ?) as user_vote
+        FROM requests r
+        JOIN users u ON r.user_id = u.id
+        WHERE 1=1
+    """
+    params = [session["user_id"]]
+
+    if filter_type != "all":
+        query += " AND r.item_type = ?"
+        params.append(filter_type)
+
+    if tab == "my_requests":
+        query += " AND r.user_id = ?"
+        params.append(session["user_id"])
+    elif tab == "answered":
+        query += " AND r.status IN ('Added', 'Rejected', 'Planned')"
+    
+    # Ordering
+    if tab == "newest":
+        query += " ORDER BY r.created_at DESC"
+    else: # Trending (default)
+        query += " ORDER BY r.vote_count DESC, r.created_at DESC"
+
+    c.execute(query, tuple(params))
+    requests_list = c.fetchall()
+    conn.close()
+
+    return render_template("support_requests.html", requests=requests_list, active_tab=tab, active_filter=filter_type)
+
+
+@app.route("/api/requests/vote", methods=["POST"])
+def vote_request():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.json
+    request_id = data.get("request_id")
+    vote_val = int(data.get("vote_value", 0)) # 1 for upvote, -1 for downvote (or 0 to remove?)
+
+    if not request_id or vote_val not in [1, -1]:
+         return jsonify({"error": "Invalid data"}), 400
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    try:
+        # check existing vote
+        c.execute("SELECT vote_value FROM request_votes WHERE request_id=? AND user_id=?", (request_id, session["user_id"]))
+        existing = c.fetchone()
+        
+        current_vote = existing[0] if existing else 0
+        
+        # logic: if clicking same vote -> remove it (toggle). If different -> update.
+        new_vote = vote_val
+        if current_vote == vote_val:
+            # Toggle off
+            c.execute("DELETE FROM request_votes WHERE request_id=? AND user_id=?", (request_id, session["user_id"]))
+            new_vote = 0
+        else:
+            # Insert or Replace
+            c.execute("""
+                INSERT OR REPLACE INTO request_votes (request_id, user_id, vote_value)
+                VALUES (?, ?, ?)
+            """, (request_id, session["user_id"], vote_val))
+        
+        # Recalculate total votes
+        c.execute("SELECT SUM(vote_value) FROM request_votes WHERE request_id=?", (request_id,))
+        total_votes = c.fetchone()[0] or 0
+        
+        # Update cache column
+        c.execute("UPDATE requests SET vote_count = ? WHERE id = ?", (total_votes, request_id))
+        conn.commit()
+        
+        return jsonify({"success": True, "new_count": total_votes, "user_vote": new_vote})
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route("/api/requests/status", methods=["POST"])
+def update_request_status():
+    if "user_id" not in session or session.get("role") not in ["admin", "publisher"]:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.json
+    request_id = data.get("request_id")
+    new_status = data.get("status")
+
+    if not request_id or not new_status:
+         return jsonify({"error": "Invalid data"}), 400
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    try:
+        c.execute("UPDATE requests SET status = ? WHERE id = ?", (new_status, request_id))
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+if __name__ == "__main__":
+    init_db()
+    app.run(debug=True, host="0.0.0.0", port=5000)
