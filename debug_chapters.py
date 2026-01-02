@@ -2,7 +2,7 @@
 import sqlite3
 import os
 
-DB_PATH = 'd:\\nist project\\computer\\library\\novus-library\\instance\\library.db'
+DB_PATH = 'd:\\nist project\\computer\\library\\novus-library\\library.db'
 
 def check_chapters():
     if not os.path.exists(DB_PATH):
@@ -12,8 +12,13 @@ def check_chapters():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    print("--- Chapters ---")
-    c.execute("SELECT id, manga_id, chapter_num, title, page_count FROM chapters ORDER BY created_at DESC LIMIT 10")
+    print("--- Recent Chapters (All Manga) ---")
+    c.execute("""
+        SELECT c.id, b.title as manga_title, c.chapter_num, c.title as ch_title, c.page_count, c.pdf_filename, c.created_at 
+        FROM chapters c
+        JOIN books b ON c.manga_id = b.id
+        ORDER BY c.id DESC LIMIT 20
+    """)
     rows = c.fetchall()
     for row in rows:
         print(row)

@@ -1041,6 +1041,7 @@
           
           if (tabName === 'chatbot') {
               // Show summary/chatbot view
+              sidebarContent.innerHTML = `
                   <div style="font-weight: 600; margin-bottom: 5px;">Manga Copilot</div>
                   <div id="chatHistory" style="height: 300px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;">
                       <!-- Chat messages go here -->
@@ -1362,7 +1363,8 @@
   function toggleChapterList() {
     const container = document.getElementById('chapterListContainer');
     if (container) {
-      container.style.display = container.style.display === 'none' ? 'block' : 'none';
+      const current = window.getComputedStyle(container).display;
+      container.style.display = current === 'none' ? 'block' : 'none';
     }
   }
 

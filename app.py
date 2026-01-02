@@ -70,7 +70,7 @@ os.makedirs(UPLOAD_FOLDER_MANGA, exist_ok=True)
 
 ALLOWED_PDF   = {"pdf"}
 ALLOWED_AUDIO = {"mp3"}
-ALLOWED_IMG   = {"jpg", "jpeg", "png"}
+ALLOWED_IMG   = {"jpg", "jpeg", "png", "webp", "jfif"}
 ALLOWED_ANIMATION = {"mp4", "webm", "gif", "png", "jpg", "jpeg"}
 
 app = Flask(__name__)
@@ -3586,7 +3586,6 @@ def manga_reader_v2(id):
         ORDER BY chapter_num ASC
     """, (id,))
     chapters = c.fetchall()
-
     conn.close()
 
     return render_template(
