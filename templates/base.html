@@ -698,95 +698,95 @@
     </button>
 
     <div class="billing-header">
-      <h2>UNLOCK PREMIUM AI FEATURES</h2>
-      <p>Upgrade for an enhanced reading experience.</p>
+      <div class="billing-badge-container">
+        <span class="billing-premium-badge"><i class="fas fa-sparkles"></i> PREMIMUM</span>
+      </div>
+      <h2>Unlock the Full Power of AI</h2>
+      <p>Elevate your experience with advanced AI tools, exclusive content, and premium features.</p>
     </div>
 
     <div class="billing-grid">
       <!-- Basic -->
-      <body class="{{ 'no-scroll' if 'login' in request.endpoint or 'register' in request.endpoint else '' }}">
-    <!-- CRITICAL: Apply Theme Immediately to Prevent Flash -->
-    <script>
-      (function() {
-        try {
-          const saved = localStorage.getItem('novus-appearance-settings');
-          if (saved) {
-            const settings = JSON.parse(saved);
-            if (settings && settings.theme) {
-              document.body.classList.add('theme-' + settings.theme);
-            }
-          }
-        } catch (e) {
-          console.warn('Failed to load theme immediately:', e);
-        }
-      })();
-    </script>
+      <div class="plan-card {% if session.get('plan') == 'basic' %}plan-current{% endif %}">
         <div class="plan-card-header">
-          <div class="plan-title">Basic</div>
+          <div class="plan-title-wrapper">
+            <i class="fas fa-leaf plan-icon"></i>
+            <div class="plan-title">Basic</div>
+          </div>
           {% if session.get('plan') == 'basic' %}
             <div class="plan-current-badge">
-              <i class="fas fa-check-circle"></i> Your Plan
+              <i class="fas fa-check-circle"></i> Active
             </div>
           {% endif %}
         </div>
         <div class="plan-details">
-          <div class="plan-badge">Free</div>
+          <div class="plan-price-large">Free</div>
           <ul class="plan-features">
-            <li>✓ Ad-Free Reading</li>
-            <li>✓ Basic AI Summary</li>
-            <li>✓ AI Character Lore</li>
+            <li><i class="fas fa-check"></i> Ad-Free Reading</li>
+            <li><i class="fas fa-check"></i> Basic AI Summary</li>
+            <li><i class="fas fa-check"></i> AI Character Lore</li>
+            <li><i class="fas fa-check"></i> Standard Library</li>
           </ul>
-          <div class="plan-price">Free</div>
         </div>
       </div>
 
       <!-- Pro (Most Popular) -->
       <div class="plan-card plan-featured {% if session.get('plan') == 'pro' %}plan-current{% endif %}">
         <div class="plan-card-header">
-          <div class="plan-title">Pro</div>
+          <div class="plan-title-wrapper">
+            <i class="fas fa-bolt plan-icon"></i>
+            <div class="plan-title">Pro</div>
+          </div>
           <div class="plan-badge-right">
-            <div class="plan-ribbon">Most Popular</div>
+            <div class="plan-ribbon">RECOMMENDED</div>
             {% if session.get('plan') == 'pro' %}
               <div class="plan-current-badge">
-                <i class="fas fa-check-circle"></i> Your Plan
+                <i class="fas fa-check-circle"></i> Active
               </div>
             {% endif %}
           </div>
         </div>
         <div class="plan-details">
+          <div class="plan-price-large">$4.99<span>/mo</span></div>
           <ul class="plan-features">
-            <li>✓ Basic AI Summary</li>
-            <li>✓ Unlimited AI Chapter Analysis</li>
-            <li>✓ AI Character Lore</li>
+            <li><i class="fas fa-check"></i> Full Customization Studio</li>
+            <li><i class="fas fa-check"></i> Pro Bundles Access</li>
+            <li><i class="fas fa-check"></i> Advanced AI Analysis</li>
+            <li><i class="fas fa-check"></i> Advanced AI Summary</li>
+            <li><i class="fas fa-check"></i> Pro Avatar Frames & BGs</li>
           </ul>
-          <div class="plan-price">$4.99<span>/month</span></div>
         </div>
       </div>
 
       <!-- Ultimate -->
       <div class="plan-card plan-ultimate {% if session.get('plan') == 'ultimate' %}plan-current{% endif %}">
         <div class="plan-card-header">
-          <div class="plan-title">Ultimate</div>
+          <div class="plan-title-wrapper">
+            <i class="fas fa-crown plan-icon"></i>
+            <div class="plan-title">Ultimate</div>
+          </div>
           <div class="plan-badge-right">
             {% if session.get('plan') == 'ultimate' %}
               <div class="plan-current-badge">
-                <i class="fas fa-check-circle"></i> Your Plan
+                <i class="fas fa-check-circle"></i> Active
               </div>
             {% elif session.get('role') == 'admin' %}
               <div class="plan-current-badge plan-admin-badge">
-                <i class="fas fa-crown"></i> Admin Access
+                <i class="fas fa-crown"></i> Admin
               </div>
             {% endif %}
           </div>
         </div>
         <div class="plan-details">
+          <div class="plan-price-large">$9.99<span>/mo</span></div>
           <ul class="plan-features">
-            <li>✓ Basic AI Summary</li>
-            <li>✓ Unlimited Chapter Analysis</li>
-            <li>✓ AI Character Lore</li>
-            <li>✓ Offline Access</li>
+            <li><i class="fas fa-check"></i> All Pro Features</li>
+            <li><i class="fas fa-check"></i> Unlimited AI Analysis</li>
+            <li><i class="fas fa-check"></i> Deep AI Insights</li>
+            <li><i class="fas fa-check"></i> Exclusive Ultimate Bundles</li>
+            <li><i class="fas fa-check"></i> Video Profile Backgrounds</li>
+            <li><i class="fas fa-check"></i> Offline Reading</li>
           </ul>
-          <div class="plan-price">$9.99<span>/month</span></div>
         </div>
       </div>
     </div>
@@ -1141,6 +1141,21 @@
       overlay.classList.add("show");
       document.body.classList.add("manga-warp");
 
+      // Check for bundle-specific manga animation in localStorage
+      const activeBundleTheme = JSON.parse(localStorage.getItem('appThemeSettings') || '{}');
+      if (activeBundleTheme.manga_path) {
+          const customMediaContainer = overlay.querySelector('.custom-anim-media');
+          if (customMediaContainer) {
+              const path = activeBundleTheme.manga_path;
+              const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
+              if (isVideo) {
+                  customMediaContainer.innerHTML = `<video src="/static/${path}" autoplay muted playsinline preload="auto"></video>`;
+              } else {
+                  customMediaContainer.innerHTML = `<img src="/static/${path}" />`;
+              }
+          }
+      }
+
       // 3. Play video if exists
       const video = overlay.querySelector('video');
       if (video) {
@@ -1476,6 +1491,36 @@
 
         // Show overlay
         overlay.classList.add('show');
+
+        // Check for bundle-specific logout animation in localStorage
+        const activeBundleTheme = JSON.parse(localStorage.getItem('appThemeSettings') || '{}');
+        if (activeBundleTheme.logout_animation) {
+            const customMediaContainer = overlay.querySelector('.custom-anim-media');
+            if (customMediaContainer) {
+                const path = activeBundleTheme.logout_animation;
+                const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
+                if (isVideo) {
+                    customMediaContainer.innerHTML = `<video src="/static/${path}" autoplay muted playsinline preload="auto"></video>`;
+                } else {
+                    customMediaContainer.innerHTML = `<img src="/static/${path}" />`;
+                }
+            } else {
+                // If there was no .custom-anim-media (e.g. using default styles), we can create it
+                const container = document.createElement('div');
+                container.className = 'custom-anim-media';
+                const path = activeBundleTheme.logout_animation;
+                const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
+                if (isVideo) {
+                    container.innerHTML = `<video src="/static/${path}" autoplay muted playsinline preload="auto"></video>`;
+                } else {
+                    container.innerHTML = `<img src="/static/${path}" />`;
+                }
+                overlay.prepend(container);
+                // Hide default animation content
+                const logoutAnimContent = overlay.querySelector('.logout-animation');
+                if (logoutAnimContent) logoutAnimContent.style.display = 'none';
+            }
+        }
 
         // Redirect to logout after animation
         const video = overlay.querySelector('video');

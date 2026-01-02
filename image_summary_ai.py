@@ -232,8 +232,51 @@ class ImageSummaryAI:
                 return result['choices'][0]['message']['content'].strip()
             return None
             
+
+    def chat_with_context(self, user_message, context_text=""):
+        """
+        Chat with the AI using provided context (e.g., manga title, summary)
+        """
+        if not self.api_key:
+            raise Exception("OpenAI API key not configured")
+        
+        try:
+            payload = {
+                'model': self.model, # Uses the same model (gpt-4-turbo or configured)
+                'messages': [
+                    {
+                        'role': 'system',
+                        'content': f"""You are a helpful manga reading assistant. 
+                        Context about the current reading session:
+                        {context_text}
+                        
+                        Answer the user's questions based on this context or general knowledge about anime/manga.
+                        Keep answers concise and spoiler-free unless asked."""
+                    },
+                    {
+                        'role': 'user',
+                        'content': user_message
+                    }
+                ],
+                'max_tokens': 500
+            }
+            
+            response = requests.post(
+                'https://api.openai.com/v1/chat/completions',
+                json=payload,
+                headers=self.headers,
+                timeout=30
+            )
+            response.raise_for_status()
+            
+            result = response.json()
+            if 'choices' in result and result['choices']:
+                return result['choices'][0]['message']['content'].strip()
+            return "I couldn't generate a response."
+            
         except Exception as e:
-            raise Exception(f"Failed to extract text from image: {e}")
+            logger.error(f"Chat failed: {e}")
+            raise Exception(f"Chat failed: {e}")
 
 
 # Test the module

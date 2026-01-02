@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Bundles | NOVUS{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bundles.css') }}">
+
+<div class="bundles-page">
+    <div class="bundles-header">
+        <div class="header-main">
+            <h1 class="gradient-text"><span>Bundle</span> Presets</h1>
+            <div class="badge-new">NEW</div>
+        </div>
+        <p class="bundles-subtitle">Apply a full look & feel in one click — banner, theme, animations, and UI styling.</p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+        <a href="{{ url_for('customization') }}" class="tab-link">
+            <i class="fas fa-sliders-h"></i>
+            Animation Settings
+        </a>
+        <a href="{{ url_for('customization_upload') }}" class="tab-link">
+            <i class="fas fa-cloud-upload-alt"></i>
+            Upload Studio
+        </a>
+        <a href="{{ url_for('customization_library') }}" class="tab-link">
+            <i class="fas fa-layer-group"></i>
+            Library
+        </a>
+        <a href="{{ url_for('bundles') }}" class="tab-link active">
+            <i class="fas fa-box-open"></i>
+            Bundles
+        </a>
+    </div>
+
+    <div class="bundles-layout">
+        <!-- Left Sidebar: Bundle List -->
+        <div class="bundles-sidebar">
+            {% if session.get('role') == 'admin' %}
+            <div class="admin-sidebar-actions">
+                <form action="{{ url_for('admin_bundle_create') }}" method="POST">
+                    <button type="submit" class="btn-sidebar-create">
+                        <i class="fas fa-plus"></i> Create New Bundle
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="bundleSearch" placeholder="Search bundles..." onkeyup="filterBundles(this.value)">
+            </div>
+
+            <div class="bundles-list" id="bundlesList">
+                {% for bundle in bundles %}
+                <div class="bundle-card" 
+                     data-bundle-id="{{ bundle.id }}"
+                     data-bundle='{{ bundle | tojson | safe }}'
+                     onclick="selectBundle(this)">
+                    <div class="bundle-card-preview" style="background: {{ bundle.theme.colors[0] if bundle.theme.colors else '#0d1117' }}"></div>
+                    <div class="bundle-card-info">
+                        <div class="bundle-card-name">
+                            {{ bundle.name }}
+                            {% if bundle.min_plan and bundle.min_plan != 'basic' %}
+                            <i class="fas fa-lock bundle-lock-icon" title="{{ bundle.min_plan | upper }} Required"></i>
+                            {% endif %}
+                        </div>
+                        <div class="bundle-card-desc">{{ bundle.description[:30] }}{% if bundle.description|length > 30 %}...{% endif %}</div>
+                    </div>
+                    <span class="bundle-applied-badge" style="display: none;">Applied</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Right Panel: Bundle Details -->
+        <div class="bundles-details" id="bundleDetails">
+            <div class="bundle-empty-state">
+                <i class="fas fa-box-open"></i>
+                <p>Select a bundle to see details</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bundle Details Template (hidden) -->
+<template id="bundleDetailsTemplate">
+    <div class="bundle-detail-content">
+        <div class="bundle-detail-header">
+            <h2 class="bundle-detail-name"></h2>
+            <p class="bundle-detail-description"></p>
+        </div>
+
+        <div class="bundle-preview-section">
+            <div class="bundle-preview-label">Visual Identity Preview</div>
+            
+            <div class="visual-stack-grid">
+                <!-- Banner Preview -->
+                <div class="visual-item banner-v">
+                    <div class="visual-card" id="detail-banner-slot">
+                        <div class="bundle-preview-banner"></div>
+                    </div>
+                    <span>Hero Banner</span>
+                </div>
+
+                <!-- Manga Preview -->
+                <div class="visual-item manga-v">
+                    <div class="visual-card" id="detail-manga-slot">
+                        <div class="manga-mock">
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                    </div>
+                    <span>Manga Entering</span>
+                </div>
+
+                <!-- Login Preview -->
+                <div class="visual-item login-v">
+                    <div class="visual-card" id="detail-login-slot">
+                        <div class="session-mock">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </div>
+                    </div>
+                    <span>Login Intro</span>
+                </div>
+
+                <!-- Logout Preview -->
+                <div class="visual-item logout-v">
+                    <div class="visual-card" id="detail-logout-slot">
+                        <div class="session-mock">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </div>
+                    </div>
+                    <span>Logout Outro</span>
+                </div>
+
+                <!-- UI Styling Preview -->
+                <div class="visual-item ui-v">
+                    <div class="visual-card">
+                        <div class="bundle-preview-colors"></div>
+                        <div class="bundle-preview-typography">Aa</div>
+                    </div>
+                    <span>Accent Theme</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bundle-includes-section">
+            <h3>Includes</h3>
+            <ul class="bundle-includes-list"></ul>
+        </div>
+
+        <div class="bundle-actions">
+            {% if session.get('role') == 'admin' %}
+            <span class="admin-label">Admin</span>
+            <a href="#" class="btn-bundle btn-edit" id="editBundleBtn">Edit</a>
+            {% endif %}
+            <button class="btn-bundle btn-apply" onclick="applyCurrentBundle()">Apply</button>
+            <button class="btn-bundle btn-close" onclick="clearBundleSelection()">Close</button>
+        </div>
+    </div>
+</template>
+
+<!-- Toast Notification -->
+<div id="bundleToast" class="bundle-toast">
+    <i class="fas fa-check-circle"></i>
+    <span>Bundle applied successfully!</span>
+</div>
+
+<script>
+    const USER_PLAN = "{{ user_plan }}";
+</script>
+<script src="{{ url_for('static', filename='js/bundles.js') }}"></script>
+<script>
+    // Check if a bundle is already applied and highlight it
+    document.addEventListener('DOMContentLoaded', function() {
+        const appliedBundle = localStorage.getItem('selectedBundle');
+        if (appliedBundle) {
+            const card = document.querySelector(`[data-bundle-id]`);
+            document.querySelectorAll('.bundle-card').forEach(c => {
+                const data = JSON.parse(c.dataset.bundle);
+                if (data.slug === appliedBundle) {
+                    c.classList.add('applied');
+                    c.querySelector('.bundle-applied-badge').style.display = 'inline-block';
+                }
+            });
+        }
+        
+        // Auto-select first bundle
+        const firstCard = document.querySelector('.bundle-card');
+        if (firstCard) {
+            selectBundle(firstCard);
+        }
+    });
+</script>
+{% endblock %}

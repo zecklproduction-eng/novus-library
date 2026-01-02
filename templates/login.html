@@ -795,6 +795,14 @@
     }
 
     function playLoginSuccessAnimation(redirectUrl, loginStyle, customAnim) {
+      // Prioritize bundle-specific animation from localStorage if it exists
+      const activeBundleTheme = JSON.parse(localStorage.getItem('appThemeSettings') || '{}');
+      if (activeBundleTheme.login_animation) {
+          customAnim = activeBundleTheme.login_animation;
+          // If the path starts with /static/ uploads, we might need to strip it or handle it
+          if (customAnim.startsWith('static/')) customAnim = customAnim.replace('static/', '');
+      }
+
       // Step 2: Morph button
       setTimeout(() => {
         spinner.style.display = 'none';

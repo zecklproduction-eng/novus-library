@@ -286,6 +286,27 @@
         font-size: 1rem;
     }
     .name-input-group input:focus { outline: none; border-color: #00f2ff; }
+    
+    .accent-select-group { margin-bottom: 25px; }
+    .accent-select-group label { display: block; color: #888; margin-bottom: 12px; font-size: 0.9rem; }
+    .accent-mini-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+    }
+    .accent-btn {
+        aspect-ratio: 1;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: 0.2s;
+        position: relative;
+    }
+    .accent-btn:hover { transform: scale(1.1); }
+    .accent-btn.selected {
+        border-color: #fff;
+        box-shadow: 0 0 10px currentColor;
+    }
 
     /* Tab Navigation */
     .tab-nav {
@@ -342,6 +363,10 @@
         <a href="{{ url_for('customization_library') }}" class="tab-link">
             <i class="fas fa-layer-group"></i>
             Library
+        </a>
+        <a href="{{ url_for('bundles') }}" class="tab-link">
+            <i class="fas fa-box-open"></i>
+            Bundles
         </a>
         
         <div style="width:1px; height:24px; background:rgba(255,255,255,0.1); margin:0 4px;"></div>
@@ -562,6 +587,19 @@
                 </div>
             </div>
 
+            <!-- Accent Selection (New) -->
+            <div class="accent-select-group">
+                <label>Set Theme Accent (Optional)</label>
+                <input type="hidden" name="accent_color" id="uploadAccent" value="">
+                <div class="accent-mini-grid">
+                    <div class="accent-btn" style="background: #00d4ff; color: #00d4ff;" onclick="selectUploadAccent('cyan', this)" title="Cyan"></div>
+                    <div class="accent-btn" style="background: #667eea; color: #667eea;" onclick="selectUploadAccent('purple', this)" title="Purple"></div>
+                    <div class="accent-btn" style="background: #ef4444; color: #ef4444;" onclick="selectUploadAccent('ruby', this)" title="Ruby"></div>
+                    <div class="accent-btn" style="background: #10b981; color: #10b981;" onclick="selectUploadAccent('emerald', this)" title="Emerald"></div>
+                    <div class="accent-btn" style="background: #f59e0b; color: #f59e0b;" onclick="selectUploadAccent('amber', this)" title="Amber"></div>
+                </div>
+            </div>
+
             <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
                 <input type="file" id="fileInput" hidden accept=".mp4,.webm,.gif,.png,.jpg,.jpeg">
                 <div class="upload-icon">☁️</div>
@@ -608,6 +646,20 @@
             executeBtn.innerText = 'Execute Upload';
             executeBtn.style.background = '';
             dropZone.style.display = 'flex';
+            document.getElementById('uploadAccent').value = '';
+            document.querySelectorAll('.accent-btn').forEach(b => b.classList.remove('selected'));
+        }
+    }
+
+    function selectUploadAccent(color, el) {
+        const input = document.getElementById('uploadAccent');
+        if (input.value === color) {
+            input.value = '';
+            el.classList.remove('selected');
+        } else {
+            input.value = color;
+            document.querySelectorAll('.accent-btn').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
         }
     }
 
@@ -692,6 +744,9 @@
         let selectedPlan = 'basic';
         for(let radio of planRadios) { if(radio.checked) selectedPlan = radio.value; }
         formData.append('min_plan', selectedPlan);
+
+        const accentColor = document.getElementById('uploadAccent').value;
+        if (accentColor) formData.append('accent_color', accentColor);
 
         executeBtn.innerText = 'PROCESSING...';
         executeBtn.style.opacity = '0.7';

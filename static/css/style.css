@@ -2395,8 +2395,6 @@ body.manga-transition::before {
    MANGA WARP OVERLAY (VORTEX)
    ========================================= */
 
-}
-
 /* --- ANIMATIONS --- */
 @keyframes warpPulse {
   0% { transform: scale(0.2); opacity: 0; }
@@ -4410,269 +4408,417 @@ body.manga-transition::before {
   overflow: hidden;
 }
 
+/* ================================================= */
+/* 21. PREMIUM BILLING & SUBSCRIPTION MODAL          */
+/* ================================================= */
+.no-scroll {
+  overflow: hidden;
+}
+
 .billing-modal {
   position: fixed;
   inset: 0;
   display: none;
   z-index: 5000;
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .billing-modal.show {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
 }
 
 .billing-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .billing-dialog {
   position: relative;
-  width: min(980px, calc(100% - 40px));
-  margin: 60px auto;
-  padding: 28px 28px 20px;
-  border-radius: 18px;
+  width: min(1000px, calc(100% - 32px));
+  max-height: 90vh;
+  margin: auto;
+  padding: 40px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(20, 25, 30, 0.95), rgba(10, 15, 20, 0.98));
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(0, 212, 255, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  overflow-y: auto;
+  scrollbar-width: none;
+  transform: scale(0.95) translateY(20px);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
-  background: rgba(25, 30, 34, 0.55);
-  backdrop-filter: blur(14px);
-  border: 2px solid rgba(0, 212, 255, 0.35);
-  box-shadow: 0 0 40px rgba(0, 212, 255, 0.08);
+.billing-modal.show .billing-dialog {
+  transform: scale(1) translateY(0);
+}
+
+.billing-dialog::-webkit-scrollbar {
+  display: none;
 }
 
 .billing-close {
   position: absolute;
-  top: 14px;
-  right: 16px;
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  border: 0;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 30px;
-  line-height: 1;
+  top: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
   cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
 }
 
 .billing-close:hover {
-  color: #fff;
+  background: rgba(255, 0, 0, 0.2);
+  border-color: rgba(255, 0, 0, 0.3);
+  transform: rotate(90deg);
+}
+
+.billing-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.billing-badge-container {
+  margin-bottom: 16px;
+}
+
+.billing-premium-badge {
+  background: linear-gradient(90deg, #00d4ff, #0090ff);
+  color: #000;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
 }
 
 .billing-header h2 {
-  margin: 0;
-  color: #fff;
+  font-size: 2.5rem;
   font-weight: 900;
-  letter-spacing: 0.5px;
+  margin: 0;
+  background: linear-gradient(to right, #fff, #7ddcff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -1px;
 }
 
 .billing-header p {
-  margin: 6px 0 0;
-  opacity: 0.75;
+  color: #aaa;
+  font-size: 1.1rem;
+  margin-top: 12px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .billing-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 18px;
+  gap: 24px;
+  margin-bottom: 40px;
 }
 
 .plan-card {
   position: relative;
-  border-radius: 16px;
-  padding: 18px 18px 16px;
-  background: rgba(10, 10, 10, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 32px;
   display: flex;
   flex-direction: column;
+  transition: all 0.4s ease;
+  overflow: hidden;
+}
+
+.plan-card:hover {
+  transform: translateY(-8px);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(0, 212, 255, 0.4);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.plan-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  transition: all 0.4s ease;
 }
 
 .plan-card-header {
+  margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
 }
 
-.plan-badge-right {
+.plan-title-wrapper {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.plan-icon {
+  font-size: 1.5rem;
+  color: #00d4ff;
 }
 
 .plan-title {
+  font-size: 1.25rem;
   font-weight: 800;
-  color: rgba(125, 220, 255, 0.95);
-  margin-bottom: 12px;
-  font-size: 1.1rem;
-  padding-top: 4px;
+  color: #fff;
 }
 
-.plan-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.plan-badge {
-  display: inline-block;
-  padding: 6px 12px;
+.plan-current-badge {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: #00d4ff;
+  padding: 4px 12px;
   border-radius: 999px;
-  background: rgba(0, 212, 255, 0.18);
-  border: 1px solid rgba(0, 212, 255, 0.35);
-  color: rgba(125, 220, 255, 0.95);
+  font-size: 11px;
   font-weight: 700;
-  font-size: 0.85rem;
-  margin-bottom: 12px;
-  width: fit-content;
+  text-transform: uppercase;
+}
+
+.plan-price-large {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: baseline;
+}
+
+.plan-price-large span {
+  font-size: 1rem;
+  color: #666;
+  font-weight: 600;
+  margin-left: 4px;
 }
 
 .plan-features {
   list-style: none;
   padding: 0;
-  margin: 0 0 12px 0;
-  color: rgba(255, 255, 255, 0.78);
-  flex: 1;
+  margin: 0;
+  flex-grow: 1;
 }
 
 .plan-features li {
-  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ccc;
   font-size: 0.95rem;
+  margin-bottom: 14px;
 }
 
-.plan-price {
-  margin-top: auto;
-  font-weight: 900;
-  color: #fff;
-  font-size: 1.1rem;
+.plan-features li i {
+  font-size: 12px;
+  color: #00d4ff;
 }
 
-.plan-price span {
-  opacity: 0.75;
-  font-weight: 700;
-  font-size: 0.9rem;
+.plan-features li.locked {
+  color: #555;
 }
 
-/* Rainbow text effect for Ultimate tier */
-@keyframes rainbow-text {
-  0% {
-    background-position: 0% center;
-  }
-
-  50% {
-    background-position: 100% center;
-  }
-
-  100% {
-    background-position: 0% center;
-  }
+.plan-features li.locked i {
+  color: #444;
 }
 
-.plan-ultimate .plan-title {
-  background: linear-gradient(90deg,
-      #ff0000,
-      #ff7700,
-      #ffff00,
-      #00ff00,
-      #0000ff,
-      #4b0082,
-      #9400d3);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: rainbow-text 3s linear infinite;
-  font-weight: 900;
-  font-size: 1.1rem;
-}
-
+/* Featured (Pro) Card */
 .plan-featured {
-  border: 2px solid rgba(0, 212, 255, 0.55);
-  box-shadow: 0 0 26px rgba(0, 212, 255, 0.1);
-  transform: translateY(-4px);
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  transform: scale(1.05);
+  z-index: 1;
+}
+
+.plan-featured:hover {
+  transform: scale(1.05) translateY(-8px);
+  background: rgba(0, 212, 255, 0.08);
+  border-color: rgba(0, 212, 255, 0.5);
+}
+
+.plan-featured::before {
+  background: linear-gradient(90deg, #00d4ff, #0090ff);
 }
 
 .plan-ribbon {
-  position: static;
-  padding: 6px 14px;
+  background: linear-gradient(90deg, #00d4ff, #0090ff);
+  color: #000;
+  padding: 4px 12px;
   border-radius: 999px;
-  background: rgba(0, 212, 255, 0.18);
-  border: 1px solid rgba(0, 212, 255, 0.55);
-  color: rgba(125, 220, 255, 0.98);
+  font-size: 10px;
   font-weight: 900;
-  font-size: 0.85rem;
-  white-space: nowrap;
+  letter-spacing: 1px;
+}
+
+/* Ultimate Card */
+.plan-ultimate {
+  background: rgba(255, 215, 0, 0.03);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.plan-ultimate:hover {
+  border-color: rgba(255, 215, 0, 0.4);
+  background: rgba(255, 215, 0, 0.05);
+  box-shadow: 0 20px 40px rgba(255, 215, 0, 0.1);
+}
+
+.plan-ultimate::before {
+  background: linear-gradient(90deg, #ffd700, #ffcc33);
+}
+
+.plan-ultimate .plan-icon,
+.plan-ultimate .plan-features li i {
+  color: #ffd700;
+}
+
+.plan-ultimate .plan-title {
+  background: linear-gradient(135deg, #fff, #ffd700);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Animations */
+@keyframes plan-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.4); }
+}
+
+.plan-current {
+  border: 2px solid #00d4ff !important;
+  animation: plan-glow 3s ease-in-out infinite;
+}
+
+.plan-ultimate.plan-current {
+  border-color: #ffd700 !important;
+  animation: plan-glow-gold 3s ease-in-out infinite;
+}
+
+@keyframes plan-glow-gold {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.4); }
 }
 
 .billing-actions {
   display: flex;
   justify-content: center;
-  gap: 14px;
-  margin-top: 20px;
-  flex-wrap: wrap;
-}
-
-.ultimate-countdown {
-  flex: 1;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 14px 20px;
-  border-radius: 10px;
-  background: linear-gradient(135deg,
-      rgba(0, 212, 255, 0.25),
-      rgba(0, 212, 255, 0.15));
-  border: 2px solid rgba(0, 212, 255, 0.55);
-  color: rgba(125, 220, 255, 0.98);
-  font-weight: 900;
-  font-size: 1rem;
-  min-width: 200px;
-}
-
-.ultimate-countdown i {
-  font-size: 1.3rem;
-  color: rgba(255, 215, 0, 0.95);
+  gap: 20px;
 }
 
 .billing-primary {
-  padding: 10px 18px;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 212, 255, 0.55);
-  background: rgba(0, 212, 255, 0.25);
-  color: #dff8ff;
-  font-weight: 900;
+  background: linear-gradient(90deg, #00d4ff, #0090ff);
+  color: #000;
+  border: none;
+  padding: 16px 40px;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: 800;
   cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px rgba(0, 212, 255, 0.3);
 }
 
 .billing-primary:hover {
-  background: rgba(0, 212, 255, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(0, 212, 255, 0.4);
+  filter: brightness(1.1);
 }
 
 .billing-secondary {
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: #aaa;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px 32px;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .billing-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
   color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-@media (max-width: 900px) {
+.ultimate-countdown {
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  color: #ffd700;
+  padding: 16px 32px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+}
+
+.ultimate-countdown i {
+  font-size: 1.2rem;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .billing-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .plan-featured {
+    grid-column: span 2;
+    transform: none;
+  }
+  .plan-featured:hover {
+    transform: translateY(-8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .billing-dialog {
+    padding: 24px;
+  }
   .billing-grid {
     grid-template-columns: 1fr;
   }
-
   .plan-featured {
-    transform: none;
+    grid-column: span 1;
+  }
+  .billing-header h2 {
+    font-size: 1.75rem;
+  }
+  .billing-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .billing-primary, .billing-secondary, .ultimate-countdown {
+    width: 100%;
   }
 }
 
@@ -4713,65 +4859,12 @@ body.manga-transition::before {
   vertical-align: middle;
 }
 
-/* Plan current badge + neon highlight */
-.plan-card {
-  position: relative;
-  padding-top: 8px;
-}
-
-/* Plan card glow animation */
-@keyframes plan-glow {
-
-  0%,
-  100% {
-    box-shadow: 0 0 20px 2px rgba(0, 212, 255, 0.4);
-  }
-
-  50% {
-    box-shadow: 0 0 40px 6px rgba(0, 212, 255, 0.6);
-  }
-}
-
-.plan-current {
-  border: 2px solid rgba(0, 212, 255, 0.75) !important;
-  animation: plan-glow 2s ease-in-out infinite;
-}
-
-/* Ultimate tier always highlighted for admins */
-.plan-card.plan-ultimate {
-  border: 2px solid rgba(255, 165, 0, 0.65);
-  box-shadow: 0 0 25px rgba(255, 165, 0, 0.12);
-}
-
-.plan-current-badge {
-  position: static;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-weight: 900;
-  font-size: 0.75rem;
-  color: rgba(125, 220, 255, 0.98);
-  border: 1px solid rgba(0, 212, 255, 0.55);
-  background: rgba(0, 212, 255, 0.15);
-  white-space: nowrap;
-}
-
-.plan-current-badge i {
-  color: rgba(125, 220, 255, 0.98);
-  font-size: 0.7rem;
-}
-
 .plan-current-badge.plan-admin-badge {
   color: rgba(255, 200, 124, 0.98);
   border-color: rgba(255, 165, 0, 0.55);
   background: rgba(255, 165, 0, 0.15);
 }
 
-.plan-current-badge.plan-admin-badge i {
-  color: rgba(255, 200, 124, 0.98);
-}
 
 /* ========== NOTIFICATION SYSTEM ========== */
 .notification-container {

@@ -30,6 +30,51 @@
       <p class="catalog-subtitle">A New Way to Read.</p>
     </div>
 
+    <!-- CRITICAL: Apply Bundle Banner Immediately to Prevent Flash -->
+    <script>
+      (function() {
+        try {
+          const saved = localStorage.getItem('appThemeSettings');
+          if (saved) {
+            const theme = JSON.parse(saved);
+            if (theme && theme.banner_path) {
+                const hero = document.querySelector('.catalog-hero');
+                const path = theme.banner_path;
+                const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
+                if (hero) {
+                    if (isVideo) {
+                        hero.style.backgroundImage = 'none';
+                        // Check if video background exists
+                        let video = hero.querySelector('video.hero-video-bg');
+                        if (video) {
+                            const source = video.querySelector('source');
+                            if (source) source.src = '/static/' + path;
+                            video.load();
+                        } else {
+                            // Prepend video background
+                            const v = document.createElement('video');
+                            v.className = 'hero-video-bg';
+                            v.autoplay = true;
+                            v.loop = true;
+                            v.muted = true;
+                            v.playsInline = true;
+                            v.innerHTML = `<source src="/static/${path}">`;
+                            hero.prepend(v);
+                        }
+                    } else {
+                        hero.style.backgroundImage = `url('/static/${path}')`;
+                        const video = hero.querySelector('video.hero-video-bg');
+                        if (video) video.remove();
+                    }
+                }
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to load bundle banner immediately:', e);
+        }
+      })();
+    </script>
+
     <!-- Animated Icon Indicator (shown if banner has animations) -->
     {% if animations.banner and animations.banner.has_animated %}
     <div class="banner-animated-indicator">

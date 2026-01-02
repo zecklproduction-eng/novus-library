@@ -799,6 +799,22 @@ def init_db():
         )
     """)
 
+    # manga reading progress
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS manga_progress (
+            id         INTEGER PRIMARY KEY,
+            user_id    INTEGER NOT NULL,
+            manga_id   INTEGER NOT NULL,
+            chapter_id INTEGER NOT NULL,
+            page_index INTEGER DEFAULT 0,
+            updated_at TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (manga_id) REFERENCES books(id),
+            FOREIGN KEY (chapter_id) REFERENCES chapters(id),
+            UNIQUE(user_id, manga_id)
+        )
+    """)
+
     # custom animations table
     c.execute("""
         CREATE TABLE IF NOT EXISTS custom_animations (
@@ -807,8 +823,12 @@ def init_db():
             animation_type TEXT NOT NULL,
             file_path TEXT NOT NULL,
             is_active INTEGER DEFAULT 0,
-            created_at TEXT DEFAULT (DATETIME('now')),
+            has_animated INTEGER DEFAULT 0,
+            name TEXT,
             category TEXT DEFAULT 'animation',
+            min_plan TEXT DEFAULT 'basic',
+            accent_color TEXT,
+            created_at TEXT DEFAULT (DATETIME('now')),
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
@@ -816,16 +836,37 @@ def init_db():
     # Add category column to custom_animations if it doesn't exist
     try:
         c.execute("ALTER TABLE custom_animations ADD COLUMN category TEXT DEFAULT 'animation'")
+        conn.commit()
     except sqlite3.OperationalError:
         pass
         
     # Add name and access_tag columns
     try:
         c.execute("ALTER TABLE custom_animations ADD COLUMN name TEXT")
+        conn.commit()
     except sqlite3.OperationalError:
         pass
     try:
         c.execute("ALTER TABLE custom_animations ADD COLUMN access_tag TEXT DEFAULT 'basic'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE custom_animations ADD COLUMN has_animated INTEGER DEFAULT 0")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE custom_animations ADD COLUMN min_plan TEXT DEFAULT 'basic'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE custom_animations ADD COLUMN accent_color TEXT")
+        conn.commit()
     except sqlite3.OperationalError:
         pass
         
@@ -842,6 +883,170 @@ def init_db():
             UNIQUE(user_id, setting_key)
         )
     """)
+
+    # bundles table (preset configurations)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS bundles (
+            id INTEGER PRIMARY KEY,
+            slug TEXT UNIQUE,
+            name TEXT NOT NULL,
+            description TEXT,
+            min_plan TEXT DEFAULT 'basic',
+            includes_json TEXT,
+            theme_json TEXT,
+            banner_preset TEXT,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT (DATETIME('now'))
+        )
+    """)
+
+    # Migration for bundles table
+    try:
+        c.execute("ALTER TABLE bundles ADD COLUMN min_plan TEXT DEFAULT 'basic'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    # Seed default bundles if table is empty
+    c.execute("SELECT COUNT(*) FROM bundles")
+    if c.fetchone()[0] == 0:
+        import json
+        default_bundles = [
+            {
+                "slug": "manga-starter",
+                "name": "Manga Starter",
+                "description": "Warp + neon vibes. Great default preset with animated transitions.",
+                "includes": [
+                    "Banner preset: Glow strip",
+                    "Theme preset: Dark + cyan accent",
+                    "Animations: ON • Transitions: ON",
+                    "Login/Logout: Styled buttons + overlay"
+                ],
+                "theme": {
+                    "theme": "dark",
+                    "accentColor": "cyan",
+                    "fontSize": "medium",
+                    "density": "comfortable",
+                    "smoothScroll": True,
+                    "pageTransitions": True,
+                    "animations": True,
+                    "uiEffects": True,
+                    "specialEffects": True
+                },
+                "banner_preset": "glow-strip",
+                "colors": ["#0d1117", "#161b22", "#21262d", "#00d4ff", "#58a6ff", "#c9a0dc"]
+            },
+            {
+                "slug": "minimal-reader",
+                "name": "Minimal Reader",
+                "description": "No animations, clean interface. Perfect for distraction-free reading.",
+                "includes": [
+                    "Banner preset: None (clean)",
+                    "Theme preset: Dark minimal",
+                    "Animations: OFF • Transitions: OFF",
+                    "Login/Logout: Standard buttons"
+                ],
+                "theme": {
+                    "theme": "dark",
+                    "accentColor": "cyan",
+                    "fontSize": "medium",
+                    "density": "comfortable",
+                    "smoothScroll": False,
+                    "pageTransitions": False,
+                    "animations": False,
+                    "uiEffects": False,
+                    "specialEffects": False
+                },
+                "banner_preset": "none",
+                "colors": ["#0d1117", "#161b22", "#21262d", "#6e7681", "#8b949e", "#c9d1d9"]
+            },
+            {
+                "slug": "neon-night",
+                "name": "Neon Night",
+                "description": "Animated with high contrast and purple neon accents. Bold and vibrant.",
+                "includes": [
+                    "Banner preset: Neon pulse",
+                    "Theme preset: Dark + purple accent",
+                    "Animations: ON • Transitions: ON",
+                    "Login/Logout: Glow buttons + overlay"
+                ],
+                "theme": {
+                    "theme": "purple",
+                    "accentColor": "purple",
+                    "fontSize": "medium",
+                    "density": "comfortable",
+                    "smoothScroll": True,
+                    "pageTransitions": True,
+                    "animations": True,
+                    "uiEffects": True,
+                    "specialEffects": True
+                },
+                "banner_preset": "neon-pulse",
+                "colors": ["#0d0d1a", "#1a1a2e", "#16213e", "#667eea", "#764ba2", "#c9a0dc"]
+            },
+            {
+                "slug": "cozy-sepia",
+                "name": "Cozy Sepia",
+                "description": "Warm paper tones for long reading sessions. Soft and easy on the eyes.",
+                "includes": [
+                    "Banner preset: Warm gradient",
+                    "Theme preset: Warm sepia tones",
+                    "Animations: Soft • Transitions: ON",
+                    "Login/Logout: Warm styled buttons"
+                ],
+                "theme": {
+                    "theme": "sunset",
+                    "accentColor": "orange",
+                    "fontSize": "medium",
+                    "density": "comfortable",
+                    "smoothScroll": True,
+                    "pageTransitions": True,
+                    "animations": True,
+                    "uiEffects": True,
+                    "specialEffects": False
+                },
+                "banner_preset": "warm-gradient",
+                "colors": ["#1a0a0a", "#2d1810", "#3d2817", "#d4a373", "#e9c46a", "#f4d58d"]
+            },
+            {
+                "slug": "classic-dark",
+                "name": "Classic Dark",
+                "description": "Standard dark theme with subtle accents. Transitions enabled, solid design.",
+                "includes": [
+                    "Banner preset: Subtle shadow",
+                    "Theme preset: Classic dark",
+                    "Animations: OFF • Transitions: ON",
+                    "Login/Logout: Standard styling"
+                ],
+                "theme": {
+                    "theme": "dark",
+                    "accentColor": "indigo",
+                    "fontSize": "medium",
+                    "density": "comfortable",
+                    "smoothScroll": True,
+                    "pageTransitions": True,
+                    "animations": False,
+                    "uiEffects": True,
+                    "specialEffects": False
+                },
+                "banner_preset": "subtle-shadow",
+                "colors": ["#0d1117", "#161b22", "#21262d", "#6366f1", "#4338ca", "#818cf8"]
+            }
+        ]
+        
+        for bundle in default_bundles:
+            c.execute("""
+                INSERT INTO bundles (slug, name, description, includes_json, theme_json, banner_preset)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                bundle["slug"],
+                bundle["name"],
+                bundle["description"],
+                json.dumps(bundle["includes"]),
+                json.dumps({**bundle["theme"], "colors": bundle["colors"]}),
+                bundle["banner_preset"]
+            ))
+        conn.commit()
 
     # default users
     try:
@@ -4134,7 +4339,75 @@ def user_profile(user_id):
                          review_count=review_count)
 
 
+
+# ---------- Manga Progress Tracking ----------
+@app.route('/api/manga/progress', methods=['GET'])
+def get_manga_progress():
+    """Get the user's reading progress for a specific manga."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    manga_id = request.args.get('manga_id', type=int)
+    if not manga_id:
+        return jsonify({'error': 'manga_id required'}), 400
+        
+    conn = get_conn()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT chapter_id, page_index
+        FROM manga_progress
+        WHERE user_id = ? AND manga_id = ?
+    """, (session['user_id'], manga_id))
+    
+    row = c.fetchone()
+    conn.close()
+    
+    if row:
+        return jsonify({
+            'success': True,
+            'chapter_id': row[0],
+            'page_index': row[1]
+        })
+    else:
+        return jsonify({'success': True, 'chapter_id': None, 'page_index': 0})
+
+@app.route('/api/manga/progress', methods=['POST'])
+def save_manga_progress():
+    """Save the user's reading progress."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'login required'}), 401
+    
+    data = request.get_json(silent=True) or {}
+    manga_id = data.get('manga_id')
+    chapter_id = data.get('chapter_id')
+    page_index = data.get('page_index', 0)
+    
+    if not manga_id or not chapter_id:
+        return jsonify({'error': 'manga_id and chapter_id required'}), 400
+        
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        c.execute("""
+            INSERT INTO manga_progress (user_id, manga_id, chapter_id, page_index, updated_at)
+            VALUES (?, ?, ?, ?, DATETIME('now'))
+            ON CONFLICT(user_id, manga_id) DO UPDATE SET
+                chapter_id = excluded.chapter_id,
+                page_index = excluded.page_index,
+                updated_at = excluded.updated_at
+        """, (session['user_id'], manga_id, chapter_id, page_index))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.close()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ---------- Manga Character Management ----------
+
 @app.route('/api/manga/<int:manga_id>/characters', methods=['GET'])
 def get_manga_characters(manga_id):
     """Get all characters for a manga."""
@@ -5044,12 +5317,14 @@ def upload_animation():
     
     category = request.form.get("category", "animation")
     
+    accent_color = request.form.get("accent_color")
+    
     conn = get_conn()
     c = conn.cursor()
     c.execute("""
-        INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, has_animated, name, category, min_plan)
-        VALUES (?, ?, ?, 0, ?, ?, ?, ?)
-    """, (user_id, animation_type, relative_path, has_animated, name, category, min_plan))
+        INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, has_animated, name, category, min_plan, accent_color)
+        VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)
+    """, (user_id, animation_type, relative_path, has_animated, name, category, min_plan, accent_color))
     animation_id = c.lastrowid
     conn.commit()
     conn.close()
@@ -5076,7 +5351,8 @@ def update_animation_api(anim_id):
     data = request.json
     name = data.get('name')
     category = data.get('category')
-    min_plan = data.get('min_plan', 'basic') # New update
+    min_plan = data.get('min_plan', 'basic') 
+    accent_color = data.get('accent_color')
     
     if not name or not category:
         return jsonify({"error": "Missing required fields"}), 400
@@ -5085,7 +5361,7 @@ def update_animation_api(anim_id):
     c = conn.cursor()
     
     # Verify ownership or admin
-    c.execute("UPDATE custom_animations SET name = ?, category = ?, min_plan = ? WHERE id = ?", (name, category, min_plan, anim_id))
+    c.execute("UPDATE custom_animations SET name = ?, category = ?, min_plan = ?, accent_color = ? WHERE id = ?", (name, category, min_plan, accent_color, anim_id))
     conn.commit()
     conn.close()
     
@@ -5649,6 +5925,294 @@ def request_entity_too_large(error):
     flash("File upload failed: The uploaded file is too large. Please check file size limits.", "danger")
     return redirect(request.url)
 
+# -------------------- BUNDLES ROUTES --------------------
+@app.route("/bundles")
+def bundles():
+    """Main bundles page - login required"""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT id, slug, name, description, includes_json, theme_json, banner_preset, is_active, min_plan
+        FROM bundles
+        WHERE is_active = 1
+        ORDER BY id
+    """)
+    bundles_raw = c.fetchall()
+    
+    import json
+    bundles_list = []
+    for b in bundles_raw:
+        bundles_list.append({
+            "id": b[0],
+            "slug": b[1],
+            "name": b[2],
+            "description": b[3],
+            "includes": json.loads(b[4]) if b[4] else [],
+            "theme": json.loads(b[5]) if b[5] else {},
+            "banner_preset": b[6],
+            "is_active": b[7],
+            "min_plan": b[8]
+        })
+    
+    # Get user plan
+    user_plan = "basic"
+    if "user_id" in session:
+        c.execute("SELECT plan FROM users WHERE id = ?", (session["user_id"],))
+        up = c.fetchone()
+        if up:
+            user_plan = up[0] or "basic"
+
+    conn.close()
+    return render_template("bundles.html", bundles=bundles_list, user_plan=user_plan)
+
+
+@app.route("/admin/bundles")
+@admin_required
+def admin_bundles():
+    """Admin bundles management page"""
+    conn = get_conn()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT id, slug, name, description, includes_json, theme_json, banner_preset, is_active, created_at, min_plan
+        FROM bundles
+        ORDER BY id
+    """)
+    bundles_raw = c.fetchall()
+    conn.close()
+    
+    import json
+    bundles_list = []
+    for b in bundles_raw:
+        bundles_list.append({
+            "id": b[0],
+            "slug": b[1],
+            "name": b[2],
+            "description": b[3],
+            "includes": json.loads(b[4]) if b[4] else [],
+            "theme": json.loads(b[5]) if b[5] else {},
+            "banner_preset": b[6],
+            "is_active": b[7],
+            "created_at": b[8],
+            "min_plan": b[9]
+        })
+    
+    return render_template("admin_bundles.html", bundles=bundles_list)
+
+
+@app.route("/admin/bundles/<int:id>/edit", methods=["GET", "POST"])
+@admin_required
+def admin_bundle_edit(id):
+    """Admin bundle edit page"""
+    import json
+    conn = get_conn()
+    c = conn.cursor()
+    
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        slug = request.form.get("slug", "").strip()
+        description = request.form.get("description", "").strip()
+        includes_text = request.form.get("includes", "").strip()
+        theme_json_text = request.form.get("theme_json", "{}").strip()
+        banner_preset = request.form.get("banner_preset", "").strip()
+        is_active = 1 if request.form.get("is_active") else 0
+        min_plan = request.form.get("min_plan", "basic")
+        
+        # Parse includes (one per line)
+        includes = [line.strip() for line in includes_text.split("\n") if line.strip()]
+        
+        # Validate theme JSON
+        try:
+            theme = json.loads(theme_json_text)
+        except json.JSONDecodeError:
+            flash("Invalid theme JSON format.", "danger")
+            return redirect(url_for("admin_bundle_edit", id=id))
+        
+        c.execute("""
+            UPDATE bundles
+            SET name=?, slug=?, description=?, includes_json=?, theme_json=?, banner_preset=?, is_active=?, min_plan=?
+            WHERE id=?
+        """, (name, slug, description, json.dumps(includes), json.dumps(theme), banner_preset, is_active, min_plan, id))
+        conn.commit()
+        conn.close()
+        
+        flash("Bundle updated successfully.", "success")
+        return redirect(url_for("admin_bundles"))
+    
+    # GET request
+    c.execute("""
+        SELECT id, slug, name, description, includes_json, theme_json, banner_preset, is_active, min_plan
+        FROM bundles
+        WHERE id = ?
+    """, (id,))
+    b = c.fetchone()
+    
+    # Fetch all custom animations for the asset library
+    c.execute("SELECT id, animation_type, file_path, name, category, access_tag FROM custom_animations ORDER BY name ASC")
+    animations_raw = c.fetchall()
+    conn.close()
+    
+    asset_library = {
+        "banner": [],
+        "manga_enter": [],
+        "login": [],
+        "logout": [],
+        "avatar_bg": []
+    }
+    
+    for anim in animations_raw:
+        a_type = anim[1]
+        if a_type in asset_library:
+            asset_library[a_type].append({
+                "id": anim[0],
+                "path": anim[2].replace("\\", "/"), # Normalize for web
+                "name": anim[3] or f"Untitled {anim[1]}",
+                "category": anim[4],
+                "tag": anim[5]
+            })
+    
+    if not b:
+        flash("Bundle not found.", "danger")
+        return redirect(url_for("admin_bundles"))
+    
+    bundle = {
+        "id": b[0],
+        "slug": b[1],
+        "name": b[2],
+        "description": b[3],
+        "includes": json.loads(b[4]) if b[4] else [],
+        "theme": json.loads(b[5]) if b[5] else {},
+        "banner_preset": b[6],
+        "is_active": b[7],
+        "min_plan": b[8]
+    }
+    
+    return render_template("admin_bundle_edit.html", bundle=bundle, assets=asset_library)
+
+
+@app.route("/admin/bundles/create", methods=["POST"])
+@admin_required
+def admin_bundle_create():
+    """Create a new bundle"""
+    import json
+    
+    name = request.form.get("name", "New Bundle").strip()
+    slug = request.form.get("slug", "").strip() or name.lower().replace(" ", "-")
+    description = request.form.get("description", "New bundle description").strip()
+    accent_choice = request.form.get("accentColor", "cyan")
+    theme_mode = request.form.get("themeMode", "dark")
+    min_plan = request.form.get("minPlan", "basic")
+    
+    # Accent color mapping
+    accent_map = {
+        "cyan": ["#0d1117", "#161b22", "#21262d", "#00d4ff", "#58a6ff", "#c9a0dc"],
+        "purple": ["#0d1117", "#161b22", "#21262d", "#667eea", "#764ba2", "#c9a0dc"],
+        "ruby": ["#0d1117", "#161b22", "#21262d", "#ef4444", "#b91c1c", "#ff9a9e"],
+        "emerald": ["#0d1117", "#161b22", "#21262d", "#10b981", "#059669", "#a8e6cf"],
+        "amber": ["#0d1117", "#161b22", "#21262d", "#f59e0b", "#d97706", "#ff6b35"]
+    }
+    
+    selected_colors = accent_map.get(accent_choice, accent_map["cyan"])
+    
+    # Default theme
+    default_theme = {
+        "theme": theme_mode,
+        "accentColor": accent_choice,
+        "fontSize": "medium",
+        "density": "comfortable",
+        "smoothScroll": True,
+        "pageTransitions": True,
+        "animations": True,
+        "uiEffects": True,
+        "specialEffects": True,
+        "colors": selected_colors
+    }
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        c.execute("""
+            INSERT INTO bundles (slug, name, description, includes_json, theme_json, banner_preset, min_plan)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (slug, name, description, json.dumps([]), json.dumps(default_theme), "none", min_plan))
+        conn.commit()
+        new_id = c.lastrowid
+    except sqlite3.IntegrityError:
+        conn.close()
+        flash("A bundle with this slug already exists.", "danger")
+        return redirect(url_for("admin_bundles"))
+    
+    conn.close()
+    flash("Bundle created successfully.", "success")
+    return redirect(url_for("admin_bundle_edit", id=new_id))
+
+
+@app.route("/admin/bundles/<int:id>/delete", methods=["POST"])
+@admin_required
+def admin_bundle_delete(id):
+    """Delete a bundle"""
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("DELETE FROM bundles WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    
+    flash("Bundle deleted.", "success")
+    return redirect(url_for("admin_bundles"))
+
+
+@app.route("/admin/bundles/<int:id>/toggle", methods=["POST"])
+@admin_required
+def admin_bundle_toggle(id):
+    """Toggle bundle active status"""
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE bundles SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    
+    return redirect(url_for("admin_bundles"))
+
+
+@app.route("/api/bundles")
+def api_bundles():
+    """API endpoint to get all active bundles as JSON"""
+    if "user_id" not in session:
+        return jsonify({"error": "login required"}), 401
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT id, slug, name, description, includes_json, theme_json, banner_preset
+        FROM bundles
+        WHERE is_active = 1
+        ORDER BY id
+    """)
+    bundles_raw = c.fetchall()
+    conn.close()
+    
+    import json
+    bundles_list = []
+    for b in bundles_raw:
+        bundles_list.append({
+            "id": b[0],
+            "slug": b[1],
+            "name": b[2],
+            "description": b[3],
+            "includes": json.loads(b[4]) if b[4] else [],
+            "theme": json.loads(b[5]) if b[5] else {},
+            "banner_preset": b[6]
+        })
+    
+    return jsonify({"bundles": bundles_list})
+
+
 # -------------------- MAIN --------------------
 if __name__ == "__main__":
     init_db()
@@ -5832,8 +6396,63 @@ def summarize_manga_page(chapter_id, page_num):
                 'extracted_text': text
             })
         
+
         except Exception as e:
             return jsonify({'error': f'Text extraction failed: {str(e)}'}), 500
+            
+    
+    @app.route('/api/manga/chat', methods=['POST'])
+    def chat_manga():
+        """
+        Chat with AI about a specific manga/chapter
+        Body: { manga_id, chapter_id, message, (optional) history }
+        """
+        if 'user_id' not in session:
+            return jsonify({'error': 'login required'}), 401
+        
+        if not IMAGE_AI_AVAILABLE:
+            return jsonify({'error': 'AI chat not available'}), 503
+            
+        data = request.json
+        manga_id = data.get('manga_id')
+        chapter_id = data.get('chapter_id')
+        message = data.get('message')
+        
+        if not message:
+            return jsonify({'error': 'Message required'}), 400
+            
+        try:
+            conn = get_conn()
+            c = conn.cursor()
+            
+            # Fetch context info (Manga Title, Chapter Name)
+            context_text = ""
+            if manga_id:
+                c.execute("SELECT title, description FROM books WHERE id = ?", (manga_id,))
+                book = c.fetchone()
+                if book:
+                    context_text += f"Manga: {book[0]}\nDescription: {book[1] or 'N/A'}\n"
+            
+            if chapter_id:
+                c.execute("SELECT title, chapter_num FROM chapters WHERE id = ?", (chapter_id,))
+                chap = c.fetchone()
+                if chap:
+                    context_text += f"Current Chapter: {chap[1]} - {chap[0] or ''}\n"
+            
+            conn.close()
+            
+            # Call AI
+            ai = ImageSummaryAI()
+            reply = ai.chat_with_context(message, context_text)
+            
+            return jsonify({
+                'success': True,
+                'reply': reply
+            })
+            
+        except Exception as e:
+            return jsonify({'error': f'Chat failed: {str(e)}'}), 500
+
     
     
 @app.route('/api/book/<int:book_id>/cover/analyze', methods=['POST'])
@@ -5915,3 +6534,4 @@ def extract_image_text():
     
     except Exception as e:
         return jsonify({'error': f'Text extraction failed: {str(e)}'}), 500
+

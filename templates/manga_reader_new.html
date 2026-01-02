@@ -763,6 +763,31 @@
     </div>
 
     <div class="setting-item">
+      <label class="setting-label">Reading Direction</label>
+      <div class="setting-options">
+        <button class="setting-option active" data-setting="direction" data-value="ltr">LTR (Left to Right)</button>
+        <button class="setting-option" data-setting="direction" data-value="rtl">RTL (Right to Left)</button>
+      </div>
+    </div>
+
+    <div class="setting-item">
+      <label class="setting-label">Fit Mode</label>
+      <div class="setting-options">
+        <button class="setting-option active" data-setting="fit" data-value="width">Fit Width</button>
+        <button class="setting-option" data-setting="fit" data-value="height">Fit Height</button>
+        <button class="setting-option" data-setting="fit" data-value="original">Original</button>
+      </div>
+    </div>
+
+    <div class="setting-item">
+      <label class="setting-label">Page Gap</label>
+      <div class="setting-options">
+        <button class="setting-option active" data-setting="gap" data-value="true">On</button>
+        <button class="setting-option" data-setting="gap" data-value="false">Off</button>
+      </div>
+    </div>
+
+    <div class="setting-item">
       <label class="setting-label">Font Size</label>
       <div class="setting-options">
         <button class="setting-option" data-setting="fontSize" data-value="small">Small</button>
@@ -787,9 +812,12 @@
   // Settings
   const defaultSettings = {
     readingMode: 'single',
-    backgroundColor: 'light',
+    background: 'light',
     brightness: 100,
     fontSize: 'medium',
+    direction: 'ltr',
+    fit: 'height', // Default to Fit Height as requested
+    gap: true,
     aiAssistantEnabled: true
   };
 
@@ -800,6 +828,10 @@
     const saved = localStorage.getItem('mangaReaderSettings');
     if (saved) {
       readerSettings = { ...readerSettings, ...JSON.parse(saved) };
+      // Ensure fit is valid if old setting exists
+      if (!['width', 'height', 'original'].includes(readerSettings.fit)) {
+        readerSettings.fit = 'height';
+      }
     }
   }
 
@@ -808,53 +840,148 @@
     localStorage.setItem('mangaReaderSettings', JSON.stringify(readerSettings));
   }
 
-  // Display current page
+  // Display current page(s) based on reading mode
   function displayPage() {
     const container = document.getElementById('mangaPages');
     container.innerHTML = '';
-
+    
+    // Apply container settings
+    container.style.backgroundColor = getBackgroundColor(readerSettings.background);
+    
+    // Check for PDF or empty
     if (allPageFiles.length === 0) {
       container.innerHTML = '<p style="color: #888;">No pages available</p>';
       return;
     }
 
-    if (currentPageIndex >= allPageFiles.length) {
-      currentPageIndex = allPageFiles.length - 1;
+    // Ensure index range
+    if (currentPageIndex >= allPageFiles.length) currentPageIndex = allPageFiles.length - 1;
+    if (currentPageIndex < 0) currentPageIndex = 0;
+
+    const currentFile = allPageFiles[currentPageIndex];
+    if (currentFile.toLowerCase().endsWith('.pdf')) {
+      renderPdf(container, currentFile);
+      return;
     }
 
-    const filename = allPageFiles[currentPageIndex];
+    // Settings
+    const mode = readerSettings.readingMode || 'single';
+    const brightnessFilter = `brightness(${readerSettings.brightness}%)`;
+    const fit = readerSettings.fit || 'height';
+    const gap = readerSettings.gap === 'true' || readerSettings.gap === true;
+    const dir = readerSettings.direction || 'ltr';
+
+    // CSS scaling based on Fit Mode
+    let imgStyle = '';
+    // Fix: Ensure Fit Height forces image to stay within viewport minus UI elements
+    const maxHeight = 'calc(100vh - 140px)'; // Account for top bar and nav bar approx height
     
-    // Check if this is a PDF file
-    if (filename.toLowerCase().endsWith('.pdf')) {
-      // Display PDF using embed
-      const embed = document.createElement('embed');
-      embed.style.cssText = 'width: 100%; height: 600px; border-radius: 8px; background: #000;';
-      embed.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${filename}`;
-      embed.type = 'application/pdf';
-      console.log('Loading PDF:', embed.src);
-      container.appendChild(embed);
+    if (fit === 'width') imgStyle = 'max-width: 98%; max-height: none;';
+    else if (fit === 'height') imgStyle = `max-width: none; max-height: ${maxHeight};`;
+    else if (fit === 'original') imgStyle = 'max-width: none; max-height: none;';
+
+    // Margin based on Gap
+    const margin = gap ? '20px' : '0px';
+
+    if (mode === 'vertical') {
+      // Vertical / Webtoon mode
+      container.style.flexDirection = 'column';
+      container.style.alignItems = 'center';
+      container.style.height = 'auto';
+      container.style.overflowY = 'visible';
       
-      // Add text below PDF
-      const info = document.createElement('p');
-      info.style.cssText = 'color: #999; text-align: center; margin-top: 10px; font-size: 12px;';
-      info.textContent = 'PDF document - Use next/previous buttons to navigate to other chapters';
-      container.appendChild(info);
+      allPageFiles.forEach((file, idx) => {
+        if (file.toLowerCase().endsWith('.pdf')) return;
+        const img = document.createElement('img');
+        img.className = 'manga-page';
+        img.style.cssText = `${imgStyle} display: block; margin-bottom: ${margin}; filter: ${brightnessFilter};`;
+        if (fit === 'width') img.style.width = '100%'; 
+
+        img.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${file}`;
+        img.id = `page-${idx}`;
+        container.appendChild(img);
+      });
+      
+      // Scroll to current page check (debounced/logic needed to avoid jumpiness?)
+      // For now, simple scroll
+      setTimeout(() => {
+        const target = document.getElementById(`page-${currentPageIndex}`);
+        if (target) target.scrollIntoView({ block: 'start' });
+      }, 50);
+      
+    } else if (mode === 'double') {
+      // Double Page Mode
+      container.style.flexDirection = 'row'; // Always row, order handled by DOM order
+      container.style.justifyContent = 'center';
+      container.style.alignItems = 'flex-start';
+      container.style.overflowY = '';
+
+      const createImg = (idx) => {
+         const img = document.createElement('img');
+         img.className = 'manga-page';
+         // Double mode usually implies fit height or contain
+         const doubleStyle = fit === 'height' ? `max-height: ${maxHeight}; max-width: none;` : `max-width: 48%; max-height: ${maxHeight};`; 
+         img.style.cssText = `${doubleStyle} object-fit: contain; margin: 0 ${gap ? '10px' : '0'}; filter: ${brightnessFilter};`;
+         img.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${allPageFiles[idx]}`;
+         return img;
+      };
+
+      const img1 = createImg(currentPageIndex);
+      let img2 = null;
+      if (currentPageIndex + 1 < allPageFiles.length) {
+        img2 = createImg(currentPageIndex + 1);
+      }
+
+      // RTL Logic: [Page N+1] [Page N]
+      // LTR Logic: [Page N] [Page N+1]
+      if (dir === 'rtl') {
+         if (img2) container.appendChild(img2);
+         container.appendChild(img1);
+      } else {
+         container.appendChild(img1);
+         if (img2) container.appendChild(img2);
+      }
+      
     } else {
-      // Display image page (default reading mode)
+      // Single Mode
+      container.style.flexDirection = 'row';
+      container.style.justifyContent = 'center';
+      container.style.alignItems = 'center'; // Center vertically
+      
       const img = document.createElement('img');
       img.className = 'manga-page manga-page-single';
-      img.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${filename}`;
-      img.alt = `Page ${currentPageIndex + 1}`;
-      console.log('Loading image:', img.src);
-      img.onerror = function() {
-        console.log('Image failed to load:', img.src);
-      };
+      img.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${currentFile}`;
+      // In single mode with fit-height, ensure it really fits
+      img.style.cssText = `${imgStyle} filter: ${brightnessFilter}; object-fit: contain;`;
       container.appendChild(img);
     }
   }
 
+  function renderPdf(container, filename) {
+     const embed = document.createElement('embed');
+     embed.style.cssText = 'width: 100%; height: 80vh; border: none;';
+     embed.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${filename}`;
+     embed.type = 'application/pdf';
+     container.appendChild(embed);
+  }
+
+  function getBackgroundColor(setting) {
+    switch(setting) {
+      case 'light': return '#f5f5f5';
+      case 'sepia': return '#f4ecd8';
+      case 'dark': default: return '#1a1a1a';
+    }
+  }
+
+  function applyFontSize() {
+    const size = readerSettings.fontSize || 'medium';
+    document.body.classList.remove('font-small', 'font-medium', 'font-large');
+    document.body.classList.add(`font-${size}`);
+  }
+
   // Initialize
   loadSettings();
+  applyFontSize();
 
   // Settings Button
   document.getElementById('settingsBtn')?.addEventListener('click', () => {
@@ -876,8 +1003,16 @@
       });
       this.classList.add('active');
       
-      readerSettings[setting] = value;
+      let key = setting;
+      if (setting === 'reading') key = 'readingMode';
+      // background implies 'background' key, which matches our settings object
+      
+      readerSettings[key] = value;
       saveSettings();
+      displayPage();
+      
+      // If changing fit/zoom related settings, re-apply fit
+      if (typeof applyFitMode === 'function') applyFitMode();
     });
   });
 
@@ -885,6 +1020,7 @@
   document.getElementById('brightnessSlider')?.addEventListener('input', function() {
     readerSettings.brightness = this.value;
     saveSettings();
+    displayPage();
   });
 
   // AI Toggle
@@ -893,10 +1029,177 @@
     readerSettings.aiAssistantEnabled = this.classList.contains('active');
     saveSettings();
   });
+  
+  // AI Tab Switching
+  document.querySelectorAll('.ai-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+          document.querySelectorAll('.ai-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          
+          const tabName = tab.dataset.tab;
+          const sidebarContent = document.querySelector('.ai-content'); // Re-using the card content area
+          
+          if (tabName === 'chatbot') {
+              // Show summary/chatbot view
+                  <div style="font-weight: 600; margin-bottom: 5px;">Manga Copilot</div>
+                  <div id="chatHistory" style="height: 300px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;">
+                      <!-- Chat messages go here -->
+                      <div class="ai-msg" style="padding: 8px; background: rgba(0, 212, 255, 0.1); border-radius: 4px; font-size: 13px; color: #e0e0e0;">
+                          Hello! Ask me anything about this chapter.
+                      </div>
+                  </div>
+                  <div style="display: flex; gap: 5px;">
+                      <input type="text" id="chatInput" placeholder="Ask a question..." style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #2a2a4e; background: #16213e; color: white;">
+                      <button id="sendChatBtn" class="btn-cyan" style="padding: 8px 12px;"><i class="fas fa-paper-plane"></i></button>
+                  </div>
+              `;
+              
+              // Bind Chat Events
+              const chatHistory = document.getElementById('chatHistory');
+              const chatInput = document.getElementById('chatInput');
+              const sendBtn = document.getElementById('sendChatBtn');
+
+              async function sendChat() {
+                  const txt = chatInput.value.trim();
+                  if (!txt) return;
+                  
+                  // User Msg
+                  const userMsgDiv = document.createElement('div');
+                  userMsgDiv.style.cssText = 'align-self: flex-end; padding: 8px; background: #2a2a4e; border-radius: 4px; font-size: 13px; color: #fff; max-width: 85%;';
+                  userMsgDiv.textContent = txt;
+                  chatHistory.appendChild(userMsgDiv);
+                  chatInput.value = '';
+                  chatHistory.scrollTop = chatHistory.scrollHeight;
+
+                  // AI Loading
+                  const aiMsgDiv = document.createElement('div');
+                  aiMsgDiv.style.cssText = 'padding: 8px; background: rgba(0, 212, 255, 0.1); border-radius: 4px; font-size: 13px; color: #e0e0e0; max-width: 85%;';
+                  aiMsgDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Thinking...';
+                  chatHistory.appendChild(aiMsgDiv);
+                  chatHistory.scrollTop = chatHistory.scrollHeight;
+
+                  try {
+                      const res = await fetch('/api/manga/chat', {
+                          method: 'POST',
+                          headers: {'Content-Type': 'application/json'},
+                          body: JSON.stringify({
+                              manga_id: mangaId,
+                              chapter_id: currentChapterId,
+                              message: txt
+                          })
+                      });
+                      const data = await res.json();
+                      
+                      if (data.success) {
+                          aiMsgDiv.textContent = data.reply;
+                      } else {
+                          aiMsgDiv.textContent = "Error: " + (data.error || "Failed to get response.");
+                          aiMsgDiv.style.color = "#ff6b6b";
+                      }
+                  } catch (e) {
+                      aiMsgDiv.textContent = "Network error.";
+                      aiMsgDiv.style.color = "#ff6b6b";
+                  }
+                  chatHistory.scrollTop = chatHistory.scrollHeight;
+              }
+
+              sendBtn.addEventListener('click', sendChat);
+              chatInput.addEventListener('keypress', (e) => {
+                  if (e.key === 'Enter') sendChat();
+              });
+          } else if (tabName === 'translate') {
+              // Show translate view
+              sidebarContent.innerHTML = `
+                  <div style="font-weight: 600; margin-bottom: 10px;">Page Text Translation</div>
+                  <div id="translationResult" style="font-size: 13px; color: #b0b0b0; min-height: 100px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                      Select a page and click Translate to extract text.
+                  </div>
+                  <button class="view-analysis-btn" id="translateBtn">TRANSLATE PAGE TEXT</button>
+              `;
+              
+              // Bind translate button
+              document.getElementById('translateBtn').addEventListener('click', async function() {
+                  if (!readerSettings.aiAssistantEnabled) {
+                      alert('Please enable AI Assistant toggl first.');
+                      return;
+                  }
+                  
+                  const btn = this;
+                  const originalText = btn.innerText;
+                  btn.innerText = 'EXTRACTING TEXT...';
+                  btn.disabled = true;
+                  const box = document.getElementById('translationResult');
+                  box.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing image...';
+                  
+                  try {
+                      const pageNum = currentPageIndex + 1;
+                      const resp = await fetch(`/api/manga/page/${currentChapterId}/${pageNum}/extract-text`, { method: 'POST' });
+                      const data = await resp.json();
+                      
+                      if (data.success) {
+                          box.innerText = data.extracted_text || "No text found on this page.";
+                      } else {
+                          box.innerText = "Error: " + (data.error || "Failed to extract text.");
+                      }
+                  } catch (e) {
+                      box.innerText = "Error connecting to translation service.";
+                  } finally {
+                      btn.innerText = originalText;
+                      btn.disabled = false;
+                  }
+              });
+          }
+      });
+  });
 
   // AI Insights Button
-  document.getElementById('aiInsightsBtn')?.addEventListener('click', () => {
-    alert('Opening AI Insights for this chapter...');
+  document.getElementById('aiInsightsBtn')?.addEventListener('click', async () => {
+    if (!readerSettings.aiAssistantEnabled) {
+      alert('Please enable AI Assistant first via the sidebar toggle.');
+      return;
+    }
+    
+    if (!currentChapterId) return;
+    
+    const pageNum = currentPageIndex + 1;
+    const btn = document.getElementById('aiInsightsBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    btn.disabled = true;
+
+    try {
+      const resp = await fetch(`/api/manga/page/${currentChapterId}/${pageNum}/summarize`, {
+        method: 'POST'
+      });
+      const data = await resp.json();
+      
+      if (data.success) {
+        // Switch to chatbot tab to show result
+        const chatbotTab = document.querySelector('.ai-tab[data-tab="chatbot"]');
+        if (chatbotTab && !chatbotTab.classList.contains('active')) chatbotTab.click();
+        
+        // Update summary area
+        setTimeout(() => {
+             const summaryContainer = document.querySelector('.ai-summary');
+             if (summaryContainer) {
+                summaryContainer.innerHTML = `
+                    <div class="ai-summary-point" style="background: rgba(0,212,255,0.1); padding: 10px; border-radius: 4px; border-left: 3px solid #00d4ff; animation: fadeIn 0.5s;">
+                        <div style="font-weight:bold; margin-bottom:5px; color:#00d4ff; font-size: 11px; text-transform: uppercase;">Page ${pageNum} Insight</div>
+                        ${escapeHtml(data.summary)}
+                    </div>
+                `;
+             }
+        }, 100); // Slight delay to allow tab switch render
+      } else {
+        alert(`Analysis failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to connect to AI service.');
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
   });
 
   // Report Button
@@ -983,28 +1286,34 @@
   }
 
   function previousPage() {
+    const mode = readerSettings.readingMode || 'single';
+    let step = 1;
+    if (mode === 'double') step = 2;
+
     if (currentPageIndex > 0) {
-      currentPageIndex--;
+      currentPageIndex = Math.max(0, currentPageIndex - step);
       document.getElementById('progressSlider').value = (currentPageIndex / Math.max(totalPages - 1, 1)) * 100;
       displayPage();
       updatePageCounter();
+    } else {
+      previousChapter();
     }
   }
 
   function nextPage() {
+    const mode = readerSettings.readingMode || 'single';
+    let step = 1;
+    if (mode === 'double') step = 2;
+
     if (currentPageIndex < totalPages - 1) {
-      // Go to next page in current chapter
-      currentPageIndex++;
+      // Go to next page(s) in current chapter
+      currentPageIndex = Math.min(totalPages - 1, currentPageIndex + step);
       document.getElementById('progressSlider').value = (currentPageIndex / Math.max(totalPages - 1, 1)) * 100;
       displayPage();
       updatePageCounter();
-    } else if (currentPageIndex === totalPages - 1) {
+    } else if (currentPageIndex >= totalPages - 1) {
       // At last page, try to go to next chapter
-      const currentChapterIndex = chapters.findIndex(ch => ch[0] === currentChapterId);
-      if (currentChapterIndex !== -1 && currentChapterIndex < chapters.length - 1) {
-        // Load next chapter
-        loadChapter(chapters[currentChapterIndex + 1][0]);
-      }
+      nextChapter();
     }
   }
 
@@ -1159,77 +1468,35 @@
     return div.innerHTML;
   }
 
+  // Navigation Input Handling (Direction Aware)
+  function handleLeftInput() {
+    if (readerSettings.direction === 'rtl') nextPage();
+    else previousPage();
+  }
+
+  function handleRightInput() {
+    if (readerSettings.direction === 'rtl') previousPage();
+    else nextPage();
+  }
+
   // Buttons
-  document.getElementById('prevBtn')?.addEventListener('click', previousPage);
-  document.getElementById('nextBtn')?.addEventListener('click', nextPage);
+  document.getElementById('prevBtn')?.addEventListener('click', handleLeftInput);
+  document.getElementById('nextBtn')?.addEventListener('click', handleRightInput);
 
   // Initial load
-  loadCharacterProfiles(); // Load characters when page loads
-  loadChapterList(); // Load chapter list when page loads
+  loadCharacterProfiles();
+  loadChapterList();
   
   if (chapters.length > 0) {
-    // If currentChapterId was set from template, use it; otherwise use first chapter
     const chapterToLoad = currentChapterId || chapters[0][0];
     loadChapter(chapterToLoad);
   }
 </script>
 
-<!-- Enhanced Reader Controls: keyboard, zoom, fit, fullscreen, swipe, progress -->
+<!-- Enhanced Reader Controls -->
 <script>
   (function(){
-    const pagesEl = document.getElementById('mangaPages');
-    let zoom = 1;
-    let fitMode = localStorage.getItem('readerFitMode') || 'width'; // 'width' | 'height' | 'original' | 'manual'
-
-    function applyFitMode() {
-      const img = pagesEl.querySelector('img.manga-page');
-      if (!img) return;
-      img.style.transform = '';
-      img.style.maxWidth = '';
-      img.style.maxHeight = '';
-      zoom = 1;
-      switch (fitMode) {
-        case 'width':
-          img.classList.add('manga-page-single');
-          img.style.maxWidth = '95%';
-          img.style.maxHeight = '';
-          break;
-        case 'height':
-          img.classList.remove('manga-page-single');
-          img.style.maxWidth = '';
-          img.style.maxHeight = '86vh';
-          break;
-        case 'original':
-          img.classList.remove('manga-page-single');
-          img.style.maxWidth = 'none';
-          img.style.maxHeight = 'none';
-          break;
-        case 'manual':
-          // manual zoom takes over
-          break;
-      }
-    }
-
-    function setFitMode(mode) {
-      fitMode = mode;
-      localStorage.setItem('readerFitMode', fitMode);
-      applyFitMode();
-    }
-
-    function setZoom(newZoom) {
-      const img = pagesEl.querySelector('img.manga-page');
-      if (!img) return;
-      zoom = Math.max(0.5, Math.min(newZoom, 4));
-      fitMode = 'manual';
-      localStorage.setItem('readerFitMode', fitMode);
-      img.style.transformOrigin = 'center center';
-      img.style.transform = `scale(${zoom})`;
-    }
-
-    function zoomIn() { setZoom(zoom + 0.2); }
-    function zoomOut() { setZoom(zoom - 0.2); }
-    function resetZoom() { zoom = 1; setFitMode('width'); }
-
+    // Fullscreen
     function toggleFullscreen() {
       const el = document.documentElement;
       if (!document.fullscreenElement) {
@@ -1238,89 +1505,82 @@
         document.exitFullscreen?.();
       }
     }
+    // Expose if needed or attach to a button (not currently in UI)
 
     // Keyboard controls
     window.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+      
       switch (e.key) {
-        case 'ArrowLeft': e.shiftKey ? previousChapter() : previousPage(); e.preventDefault(); break;
-        case 'ArrowRight': e.shiftKey ? nextChapter() : nextPage(); e.preventDefault(); break;
-        case ' ': case 'Enter': nextPage(); e.preventDefault(); break;
-        case 'Home': currentPageIndex = 0; displayPage(); updatePageCounter(); e.preventDefault(); break;
-        case 'End': currentPageIndex = Math.max(totalPages-1,0); displayPage(); updatePageCounter(); e.preventDefault(); break;
-        case '+': case '=': zoomIn(); break;
-        case '-': zoomOut(); break;
-        case '0': resetZoom(); break;
-        case 'f': case 'F': toggleFullscreen(); break;
-        case '1': setFitMode('width'); break;
-        case '2': setFitMode('height'); break;
-        case '3': setFitMode('original'); break;
+        case 'ArrowLeft': 
+          handleLeftInput(); 
+          e.preventDefault(); 
+          break;
+        case 'ArrowRight': 
+          handleRightInput(); 
+          e.preventDefault(); 
+          break;
+        case 'f': 
+        case 'F':
+          toggleFullscreen();
+          break;
       }
     });
 
-    // Mouse wheel zoom with Ctrl/Cmd
-    pagesEl.addEventListener('wheel', (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        if (e.deltaY < 0) zoomIn(); else zoomOut();
+    // Touch Swipe
+    let touchStartX = 0;
+    const swipeContainer = document.getElementById('mangaPages');
+    
+    swipeContainer?.addEventListener('touchstart', e => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, {passive: true});
+
+    swipeContainer?.addEventListener('touchend', e => {
+      const touchEndX = e.changedTouches[0].screenX;
+      handleSwipe(touchStartX, touchEndX);
+    }, {passive: true});
+
+    function handleSwipe(start, end) {
+      if (Math.abs(start - end) < 50) return; // Ignore small swipes
+      if (start > end) {
+        // Swiped Left (Finger moves Right to Left)
+        // Visual: Content moves Left. 
+        // User wants to see *Right* content (Next in LTR)
+        handleRightInput(); 
+      } else {
+        // Swiped Right (Finger moves Left to Right)
+        handleLeftInput();
       }
-    }, { passive: false });
-
-    // Double-click to toggle zoom 1↔2
-    pagesEl.addEventListener('dblclick', () => {
-      const img = pagesEl.querySelector('img.manga-page');
-      if (!img) return;
-      if (fitMode !== 'manual' || zoom === 1) setZoom(2); else resetZoom();
-    });
-
-    // Swipe navigation for touch
-    let touchStartX = 0, touchStartY = 0;
-    pagesEl.addEventListener('touchstart', (e) => {
-      const t = e.touches[0];
-      touchStartX = t.clientX; touchStartY = t.clientY;
-    }, { passive: true });
-    pagesEl.addEventListener('touchend', (e) => {
-      const t = e.changedTouches[0];
-      const dx = t.clientX - touchStartX; const dy = t.clientY - touchStartY;
-      if (Math.abs(dx) > 40 && Math.abs(dy) < 60) {
-        if (dx < 0) nextPage(); else previousPage();
-      }
-    });
-
-    // Preload adjacent pages for smoother nav
-    function preloadAround(index) {
-      const files = allPageFiles || [];
-      const pathFor = (i) => `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${files[i]}`;
+    }
+  })();
+  // Preload adjacent pages
+  function preloadAround(index) {
+      if (allPageFiles.length === 0) return;
+      const pathFor = (i) => `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${allPageFiles[i]}`;
       [index+1, index+2, index-1].forEach(i => {
-        if (i >=0 && i < files.length && files[i] && !files[i].toLowerCase().endsWith('.pdf')) {
+        if (i >=0 && i < allPageFiles.length && allPageFiles[i] && !allPageFiles[i].toLowerCase().endsWith('.pdf')) {
           const img = new Image(); img.src = pathFor(i);
         }
       });
-    }
-    // Hook into existing displayPage
-    const origDisplayPage = displayPage;
-    displayPage = function(){
-      origDisplayPage();
-      applyFitMode();
-      preloadAround(currentPageIndex);
-      saveProgressDebounced();
-    }
+  }
 
-    // Reading progress persistence
-    let saveTimer = null;
-    function saveProgressDebounced(){
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(saveProgress, 400);
-    }
-    async function saveProgress(){
-      try {
-        await fetch('/api/manga/progress', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ manga_id: mangaId, chapter_id: currentChapterId, page_index: currentPageIndex })
-        });
-      } catch(_) {}
-    }
-    async function loadProgress(){
+  // Reading progress persistence
+  let saveTimer = null;
+  function saveProgressDebounced(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveProgress, 1000);
+  }
+
+  async function saveProgress(){
+    try {
+      await fetch('/api/manga/progress', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manga_id: mangaId, chapter_id: currentChapterId, page_index: currentPageIndex })
+      });
+    } catch(_) {}
+  }
+
+  async function loadProgress(){
       try {
         const r = await fetch(`/api/manga/progress?manga_id=${mangaId}`);
         if (!r.ok) return;
@@ -1328,25 +1588,30 @@
         if (data && data.chapter_id) {
           const found = chapters.find(ch => ch[0] === data.chapter_id);
           if (found) {
-            loadChapter(data.chapter_id);
+            if (currentChapterId !== data.chapter_id) {
+                 loadChapter(data.chapter_id);
+            }
             currentPageIndex = Math.min(Math.max(0, data.page_index||0), Math.max(totalPages-1,0));
+            // displayPage called by loadChapter? No.
+            // But displayPage hook calls saveProgress, so calling it here might loop?
+            // Set flag? Or just call origDisplayPage?
+            // Simple call is fine.
             displayPage();
             updatePageCounter();
           }
         }
       } catch(_) {}
-    }
-    window.addEventListener('beforeunload', saveProgress);
+  }
 
-    // Initial fit apply after first render
-    const mo = new MutationObserver(() => { applyFitMode(); });
-    mo.observe(pagesEl, { childList: true });
+  // Hook into displayPage to trigger extras
+  const origDisplayPage = displayPage;
+  displayPage = function(){
+      origDisplayPage(); // calls the main display logic
+      preloadAround(currentPageIndex);
+      saveProgressDebounced();
+  }
 
-    // Expose simple toolbar API if you add buttons later
-    window.ReaderControls = { setFitMode, zoomIn, zoomOut, resetZoom, toggleFullscreen };
-
-    // Try load progress on start (non-blocking)
-    loadProgress();
-  })();
+  window.addEventListener('beforeunload', saveProgress);
+  loadProgress();
 </script>
 {% endblock %}
