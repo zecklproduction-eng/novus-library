@@ -5941,6 +5941,7 @@ body.no-special-effects.manga-warping {
   height: 32px;
   border-radius: 50%;
   color: rgba(255, 255, 255, 0.7);
+  z-index: 10;
   font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -5959,6 +5960,7 @@ body.no-special-effects.manga-warping {
 .appearance-content {
   padding: 28px;
   overflow-y: auto;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 30px;
@@ -6004,8 +6006,8 @@ body.no-special-effects.manga-warping {
 /* Theme Options */
 .theme-options {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
 }
 
 .theme-option {
@@ -6015,7 +6017,7 @@ body.no-special-effects.manga-warping {
   border-radius: 14px;
   padding: 14px;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: flex;
   align-items: center;
   gap: 14px;
@@ -6024,15 +6026,28 @@ body.no-special-effects.manga-warping {
 }
 
 .theme-option:hover {
-  background: rgba(255, 255, 255, 0.08);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .theme-option.active {
   border-color: var(--neon-blue);
-  background: rgba(0, 212, 255, 0.1);
-  box-shadow: 0 0 0 1px var(--neon-blue), 0 4px 15px rgba(0, 212, 255, 0.2);
+  background: rgba(0, 212, 255, 0.15);
+  box-shadow: 0 0 0 1px var(--neon-blue), 0 8px 30px rgba(0, 212, 255, 0.25);
+}
+
+.appearance-footer {
+  padding: 20px 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(20, 20, 20, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  z-index: 5;
 }
 
 .theme-preview {
@@ -6398,6 +6413,127 @@ body.theme-purple {
 body.theme-purple .sidebar {
   background-color: #2a224f;
   border-color: #4c1d95;
+}
+
+/* Midnight Theme */
+body.theme-midnight {
+  --bg-main: #02040a;
+  --bg-card: #0d1117;
+  --bg-input: #161b22;
+  --text-primary: #c9d1d9;
+  --text-muted: #8b949e;
+  --border-subtle: #30363d;
+  --neon-blue: #58a6ff;
+}
+
+body.theme-midnight .sidebar {
+  background-color: #0d1117;
+  border-color: #30363d;
+}
+
+/* Forest Theme */
+body.theme-forest {
+  --bg-main: #0a1a0a;
+  --bg-card: #142914;
+  --bg-input: #1f3d1f;
+  --text-primary: #e0fae0;
+  --text-muted: #8bc38b;
+  --border-subtle: #2d5a2d;
+  --neon-blue: #4caf50;
+}
+
+body.theme-forest .sidebar {
+  background-color: #142914;
+  border-color: #2d5a2d;
+}
+
+/* Sunset Theme */
+body.theme-sunset {
+  --bg-main: #1a0a0a;
+  --bg-card: #2e1212;
+  --bg-input: #451b1b;
+  --text-primary: #fce8e8;
+  --text-muted: #e59e9e;
+  --border-subtle: #6e2a2a;
+  --neon-blue: #ff7e5f;
+}
+
+body.theme-sunset .sidebar {
+  background-color: #2e1212;
+  border-color: #6e2a2a;
+}
+
+/* Nebula Theme */
+body.theme-nebula {
+  --bg-main: #1a0a2a;
+  --bg-card: #2d1245;
+  --bg-input: #451b66;
+  --text-primary: #fce8fc;
+  --text-muted: #d69ed6;
+  --border-subtle: #792a9e;
+  --neon-blue: #bd00ff;
+}
+
+body.theme-nebula .sidebar {
+  background-color: #2d1245;
+  border-color: #792a9e;
+}
+
+/* Angelic Theme */
+body.theme-angelic {
+  --bg-main: #fffbf0; /* Soft Cream/Ivory */
+  --bg-card: #ffffff;
+  --bg-input: #fdf6e3;
+  --text-primary: #5d5a50; /* Warm Gray/Goldish */
+  --text-muted: #a8a495;
+  --border-subtle: #e6e2d3;
+  --neon-blue: #ffd700; /* Gold */
+}
+
+body.theme-angelic .sidebar {
+  background-color: #ffffff;
+  border-color: #e6e2d3;
+  box-shadow: 2px 0 15px rgba(255, 215, 0, 0.1);
+}
+
+body.theme-angelic .nav-item {
+    background-color: #fdf6e3;
+    color: #5d5a50;
+}
+body.theme-angelic .studio-card,
+body.theme-angelic .section-container {
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.15); /* Ethereal Glow */
+    border-color: #e6e2d3;
+    background: #ffffff;
+}
+body.theme-angelic .appearance-dialog {
+    background: rgba(255, 251, 240, 0.9);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+body.theme-angelic .appearance-header h2 {
+    color: #5d5a50;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* Demonic Theme */
+body.theme-demonic {
+  --bg-main: #050000;
+  --bg-card: #1a0505;
+  --bg-input: #2a0a0a;
+  --text-primary: #ffcece;
+  --text-muted: #b55c5c;
+  --border-subtle: #4d0f0f;
+  --neon-blue: #ff0000; /* Blood Red */
+}
+
+body.theme-demonic .sidebar {
+  background-color: #1a0505;
+  border-color: #4d0f0f;
+}
+body.theme-demonic .section-container,
+body.theme-demonic .studio-card {
+    box-shadow: 0 0 15px rgba(139, 0, 0, 0.2);
+    border-color: #4d0f0f;
 }
 
 /* ================================================= */

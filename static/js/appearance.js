@@ -60,6 +60,9 @@ class AppearanceSettings {
         case 'saveAppearanceSettings':
           this.saveSettings();
           break;
+        case 'applyAppearanceSettings':
+          this.applySettings();
+          break;
       }
     });
     
@@ -188,6 +191,17 @@ class AppearanceSettings {
     this.applyAllSettings();
   }
 
+  applySettings() {
+    this.saveToLocalStorage();
+    this.showToast('Settings applied successfully', 'success');
+  }
+
+  saveSettings() {
+    this.saveToLocalStorage();
+    this.closeModal();
+    this.showToast('Settings saved successfully', 'success');
+  }
+
   saveToLocalStorage() {
     try {
       localStorage.setItem('novus-appearance-settings', JSON.stringify(this.settings));
@@ -263,7 +277,7 @@ class AppearanceSettings {
 
   updateTheme() {
     // Remove existing theme classes
-    document.body.classList.remove('theme-dark', 'theme-light', 'theme-blue', 'theme-purple');
+    document.body.classList.remove('theme-dark', 'theme-light', 'theme-blue', 'theme-purple', 'theme-midnight', 'theme-forest', 'theme-sunset', 'theme-nebula', 'theme-angelic', 'theme-demonic');
     // Add new theme class
     document.body.classList.add(`theme-${this.settings.theme}`);
     // Set data attribute

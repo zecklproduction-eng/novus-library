@@ -54,11 +54,16 @@
       <div class="col-md-6 col-lg-5">
           <div class="studio-card profile-preview-card {{ plan|default('basic') }}">
                <!-- Background Layers -->
-               <div class="studio-bg-layer {{ avatar_settings.avatar_bg_class|default('') }}" 
-                    style="{% if avatar_settings.avatar_bg_url %}background-image: url('{{ avatar_settings.avatar_bg_url }}'); background-size: cover; background-position: center;{% endif %}
-                           {% if avatar_settings.avatar_bg_match_color and avatar_settings.avatar_bg_match_color == 'true' %}--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }};{% endif %}
-                           filter: brightness({{ avatar_settings.avatar_bg_brightness|default('100') }}%) blur({{ avatar_settings.avatar_bg_blur|default('0') }}px);">
-               </div>
+                {% set bg_url = avatar_settings.avatar_bg_url %}
+                {% set is_video = bg_url and (bg_url.endswith('.mp4') or bg_url.endswith('.webm')) %}
+                <div class="studio-bg-layer {{ avatar_settings.avatar_bg_class|default('') }}" 
+                     style="{% if bg_url and not is_video %}background-image: url('{{ bg_url }}'); background-size: cover; background-position: center;{% endif %}
+                            {% if avatar_settings.avatar_bg_match_color and avatar_settings.avatar_bg_match_color == 'true' %}--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }};{% endif %}
+                            filter: brightness({{ avatar_settings.avatar_bg_brightness|default('100') }}%) blur({{ avatar_settings.avatar_bg_blur|default('0') }}px);">
+                    {% if is_video %}
+                        <video src="{{ bg_url }}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                    {% endif %}
+                </div>
                <div class="studio-overlay-layer" style="opacity: {{ (avatar_settings.avatar_bg_opacity|default('0')|int) / 100 }};"></div>
 
                <!-- Content -->

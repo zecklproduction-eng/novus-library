@@ -576,7 +576,7 @@
     gap: 10px;
 }
 .bg-option {
-    aspect-ratio: 16/9;
+    aspect-ratio: 3/2;
     background: #333;
     border-radius: 8px;
     cursor: pointer;
@@ -587,7 +587,21 @@
     color: #aaa;
     border: 2px solid transparent;
 }
-.bg-option:hover { border-color: #00d4ff; }
+.bg-option:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+.bg-option.basic { border-color: transparent; }
+.bg-option.basic:hover { border-color: #00d4ff; box-shadow: 0 0 10px rgba(0, 212, 255, 0.4); }
+
+.bg-option.pro { border-color: transparent; }
+.bg-option.pro:hover { border-color: #ffd700; box-shadow: 0 0 12px rgba(255, 215, 0, 0.5); }
+
+.bg-option.ultimate { border-color: transparent; }
+.bg-option.ultimate:hover { border-color: #bd00ff; box-shadow: 0 0 15px rgba(189, 0, 255, 0.6); }
+
+.bg-option.admin_only { border-color: transparent; opacity: 0.8; }
+.bg-option.admin_only:hover { border-color: #ff4444; opacity: 1; box-shadow: 0 0 10px rgba(255, 68, 68, 0.4); }
 
 
 /* Bottom Footer */

@@ -41,7 +41,7 @@
     <div class="studio-col studio-center">
         <div class="studio-main-preview">
             <div class="studio-preview-header">
-                <div class="preview-tab active"><i class="fas fa-eye"></i> Preview</div>
+                <div class="preview-tab active" onclick="openPublicPreview()" style="cursor: pointer;"><i class="fas fa-eye"></i> Preview</div>
                 <div class="preview-actions">
                     <label class="switch-label">
                         <input type="checkbox" id="slipToggle">
@@ -310,8 +310,7 @@
             <!-- Bottom Actions -->
             <div class="studio-actions-footer">
                 <div class="action-row">
-                    <button class="action-btn"><i class="fas fa-undo"></i> Undo</button>
-                    <button class="action-btn"><i class="fas fa-redo"></i> Redo</button>
+
                     <button class="version-link"><i class="fas fa-history"></i> Version History ></button>
                 </div>
                 <div class="action-row main">
@@ -325,6 +324,19 @@
         </div>
     </div>
     
+</div>
+
+<!-- Public Preview Modal -->
+<div id="previewModal" class="studio-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="studio-modal-content" style="background: #1a1a1a; width: 90%; height: 90%; max-width: 1200px; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 0 30px rgba(0,0,0,0.5); border: 1px solid #333;">
+        <div class="modal-header" style="padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; background: #222; border-radius: 12px 12px 0 0;">
+            <h3 style="margin: 0; font-size: 1.1rem; color: #fff;"><i class="fas fa-globe"></i> Public View</h3>
+            <button onclick="closePublicPreview()" style="background:none; border:none; color:#888; font-size:1.5rem; cursor:pointer; padding: 0 5px;">&times;</button>
+        </div>
+        <div style="flex: 1; position: relative; background: #0f0f0f;">
+            <iframe id="previewFrame" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -507,19 +519,52 @@
              largeContainer.insertBefore(centerOverlay, centerBgLayer.nextSibling);
         }
 
-        // Reset Center Layers
-        centerBgLayer.className = 'studio-bg-layer';
-        centerBgLayer.style.background = '';
-        centerOverlay.style.opacity = '0';
-        // Reset container specific overrides
-        largeContainer.style.background = ''; 
-
-        // Apply to Center Layers
-        if (currentSettings.bgUrl) {
-            centerBgLayer.style.background = bgStyle;
-        } else if (currentSettings.bgClass && currentSettings.bgClass !== 'none') {
-            centerBgLayer.classList.add(currentSettings.bgClass);
+        // Helper to update layer content
+        function updateLayerContent(layer) {
+            if (!layer) return;
+            layer.className = 'studio-bg-layer'; // reset class
+            layer.style.background = '';
+            layer.style.backgroundImage = '';
+            layer.innerHTML = ''; // clear previous video
+            
+            if (currentSettings.bgUrl) {
+                if (currentSettings.bgUrl.match(/\.(mp4|webm)$/i)) {
+                     const v = document.createElement('video');
+                     v.src = currentSettings.bgUrl;
+                     
+                     // Attributes for strict autoplay
+                     v.setAttribute('autoplay', '');
+                     v.setAttribute('muted', '');
+                     v.setAttribute('loop', '');
+                     v.setAttribute('playsinline', '');
+                     
+                     v.muted = true;
+                     v.autoplay = true;
+                     v.loop = true;
+                     v.playsInline = true;
+                     
+                     v.style.width = '100%';
+                     v.style.height = '100%';
+                     v.style.objectFit = 'cover';
+                     
+                     layer.appendChild(v);
+                     
+                     // Force play
+                     v.play().catch(e => console.log('Preview Play Error:', e));
+                } else {
+                     layer.style.background = `url('${currentSettings.bgUrl}') center/cover no-repeat`;
+                }
+            } else if (currentSettings.bgClass && currentSettings.bgClass !== 'none') {
+                layer.classList.add(currentSettings.bgClass);
+            }
         }
+
+        // Apply to Both Layers
+        updateLayerContent(profileBgLayer);
+        updateLayerContent(centerBgLayer);
+        
+        // Reset container overrides just in case
+        largeContainer.style.background = '';
 
         // Filters
         let filters = [];
@@ -588,6 +633,58 @@
                 btn.disabled = false;
             }
         });
+    }
+    
+    // Video Thumbnail Generator (Canvas)
+    function generateVideoThumbnail(src, container) {
+        const video = document.createElement('video');
+        video.src = src;
+        video.muted = true;
+        video.currentTime = 0.5; // Seek to frame
+        video.preload = 'metadata';
+        
+        video.onloadeddata = () => {
+            if(video.readyState >= 2) {
+                video.currentTime = 0.5;
+            }
+        };
+
+        video.onseeked = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 300; // Resolution
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.objectFit = 'cover';
+            canvas.style.borderRadius = '6px';
+            
+            // Overlay Play Icon
+            const icon = document.createElement('div');
+            icon.innerHTML = '<i class="fas fa-play"></i>';
+            icon.style.position = 'absolute';
+            icon.style.top = '50%';
+            icon.style.left = '50%';
+            icon.style.transform = 'translate(-50%, -50%)';
+            icon.style.color = 'rgba(255,255,255,0.8)';
+            icon.style.fontSize = '2rem';
+            icon.style.pointerEvents = 'none';
+            icon.style.textShadow = '0 2px 4px rgba(0,0,0,0.5)';
+            
+            container.innerHTML = '';
+            container.appendChild(canvas);
+            container.appendChild(icon);
+        };
+        
+        // Handle error/timeout
+        setTimeout(() => {
+             if(container.innerHTML === '' || container.innerText === 'VID') {
+                 // Fallback if seek fails
+                 container.innerHTML = '<i class="fas fa-video" style="color:#555; font-size:2rem;"></i>';
+             }
+        }, 3000);
     }
     
     // Admin & Library Functions
@@ -677,17 +774,19 @@
                 grid.innerHTML = '';
                 data.backgrounds.forEach(bg => {
                     const div = document.createElement('div');
-                    div.className = 'bg-option';
+                    div.className = 'bg-option ' + (bg.tag || 'basic');
                     div.style.position = 'relative'; // For absolute buttons
                     div.title = `${bg.name} (${bg.tag})`; // Tooltip
                     div.innerText = bg.name.substring(0, 4); // Short name
                     
-                    // If image/gif, show preview
-                    if(bg.path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                    if(bg.path.match(/\.(mp4|webm)$/i)) {
+                         // Use Canvas Thumbnail generator
+                         div.innerText = ''; // Clear text
+                         generateVideoThumbnail(bg.path, div);
+                    } else {
+                        // Image fallback (inc. jfif)
                         div.style.background = `url('${bg.path}') center/cover`;
-                        div.innerText = ''; // Clear text if image
-                    } else if (bg.path.match(/\.(mp4|webm)$/i)) {
-                         div.innerText = 'VID';
+                        div.innerText = ''; 
                     }
                     
                     div.onclick = () => {
@@ -713,6 +812,24 @@
                 section.style.display = 'none';
             }
         });
+    }
+
+    // Public Preview Modal Functions
+    function openPublicPreview() {
+        const modal = document.getElementById('previewModal');
+        const iframe = document.getElementById('previewFrame');
+        if(iframe) {
+            // Reload to capture latest published changes
+            iframe.src = "/u/{{ session.username }}";
+        }
+        modal.style.display = 'flex';
+    }
+
+    function closePublicPreview() {
+        const modal = document.getElementById('previewModal');
+        const iframe = document.getElementById('previewFrame');
+        if(modal) modal.style.display = 'none';
+        if(iframe) iframe.src = ''; // Stop content
     }
 
     // Init state

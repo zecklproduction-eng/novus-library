@@ -399,7 +399,7 @@ def admin_required(f):
     def wrapper(*args, **kwargs):
         if session.get("role") != "admin":
             flash("Admin access required.", "danger")
-            return redirect(url_for("home"))
+            return redirect(url_for("logout"))
         return f(*args, **kwargs)
     return wrapper
 
@@ -1331,6 +1331,7 @@ def logout():
 
 # ---------- Book Detail ----------
 @app.route("/book/<int:id>")
+@admin_required
 def view_book(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -1463,6 +1464,7 @@ def view_book(id):
 
 # ---------- AI Summary Endpoint ----------
 @app.route('/ai_summary', methods=['POST'])
+@admin_required
 def ai_summary():
     """Return a short AI-style summary for provided text.
     POST JSON: { text: string, max_sentences: int (optional) }
@@ -1822,6 +1824,7 @@ def admin_ai_summaries_clear():
 
 
 @app.post("/book/<int:id>/review")
+@admin_required
 def add_review(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -1852,6 +1855,7 @@ def add_review(id):
     return redirect(url_for("view_book", id=id))
 
 @app.post("/review/<int:review_id>/delete")
+@admin_required
 def delete_review(review_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -1884,6 +1888,7 @@ def delete_review(review_id):
 
 
 @app.post("/chapter/<int:chapter_id>/review")
+@admin_required
 def add_chapter_review(chapter_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -1937,6 +1942,7 @@ def add_chapter_review(chapter_id):
 
 
 @app.post("/chapter_review/<int:review_id>/delete")
+@admin_required
 def delete_chapter_review(review_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -1974,7 +1980,7 @@ def delete_chapter_review(review_id):
 
 # ---------- Add Book (Admin + Publisher) ----------
 @app.route("/add", methods=["GET", "POST"])
-@role_required("admin", "publisher")
+@admin_required
 def add_book():
     if request.method == "GET":
         return render_template("add_book.html")
@@ -2162,7 +2168,7 @@ def add_book():
 
 # ---------- Edit / Delete Book ----------
 @app.route("/book/<int:id>/edit", methods=["GET", "POST"])
-@role_required("admin", "publisher")
+@admin_required
 def edit_book(id):
     try:
         if "user_id" not in session:
@@ -2294,7 +2300,7 @@ def edit_book(id):
 
 
 @app.post("/book/<int:id>/delete")
-@role_required("admin", "publisher")
+@admin_required
 def delete_book(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -2809,6 +2815,7 @@ def log_activity():
 
 # ---------- Watchlist ----------
 @app.route("/watchlist")
+@admin_required
 def watchlist():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -2866,6 +2873,7 @@ def watchlist():
 
 
 @app.post("/watchlist/add")
+@admin_required
 def watchlist_add():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -2910,6 +2918,7 @@ def watchlist_add():
 
 
 @app.post("/watchlist/update")
+@admin_required
 def watchlist_update():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -2955,6 +2964,7 @@ def watchlist_update():
 
 
 @app.post("/watchlist/remove")
+@admin_required
 def watchlist_remove():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -2974,6 +2984,7 @@ def watchlist_remove():
     return redirect(url_for("watchlist"))
 
 @app.post("/watchlist/book/<int:book_id>")
+@admin_required
 def watchlist_book(book_id):
     """Add, update, or remove a single book in the user's watchlist
     from the book detail page.
@@ -3045,6 +3056,7 @@ def watchlist_book(book_id):
 
 # ---------- Favorites ----------
 @app.route("/favorites")
+@admin_required
 def favorites():
     """Display user's favorite books"""
     if "user_id" not in session:
@@ -3106,6 +3118,7 @@ def favorites():
 
 
 @app.post("/favorites/add")
+@admin_required
 def favorites_add():
     """Add a book to favorites"""
     if "user_id" not in session:
@@ -3158,6 +3171,7 @@ def favorites_add():
 
 
 @app.post("/favorites/remove")
+@admin_required
 def favorites_remove():
     """Remove a book from favorites"""
     if "user_id" not in session:
@@ -3182,6 +3196,7 @@ def favorites_remove():
 
 
 @app.post("/favorites/book/<int:book_id>")
+@admin_required
 def favorites_book(book_id):
     """Toggle favorite status for a book from the book detail page"""
     if "user_id" not in session:
@@ -3228,6 +3243,7 @@ def favorites_book(book_id):
     return redirect(url_for("view_book", id=book_id))
 
 @app.route("/manga")
+@admin_required
 def manga():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -3282,6 +3298,7 @@ def manga():
 
 
 @app.route("/manga/read/<int:id>")
+@admin_required
 def read_manga(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -3334,6 +3351,7 @@ def read_manga(id):
 
 # ---------- Modern Manga Reader (v2) ----------
 @app.route("/manga/<int:id>")
+@admin_required
 def manga_reader_v2(id):
     """Modern manga reader with AI features."""
     if "user_id" not in session:
@@ -3779,6 +3797,7 @@ def delete_chapter_by_num(manga_id, chapter_num):
 
 # ---------- View Chapter ----------
 @app.route("/manga/<int:manga_id>/chapter/<int:chapter_id>")
+@admin_required
 def view_chapter(manga_id, chapter_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -3833,6 +3852,7 @@ def view_chapter(manga_id, chapter_id):
 
 # API endpoint to fetch chapter pages
 @app.route('/api/chapter/<int:chapter_id>/pages', methods=['GET'])
+@admin_required
 def get_chapter_pages(chapter_id):
     """Fetch list of pages for a chapter."""
     if 'user_id' not in session:
@@ -3877,6 +3897,7 @@ def get_chapter_pages(chapter_id):
 
 # API endpoint to get chapters for a manga
 @app.route('/api/manga/<int:manga_id>/chapters', methods=['GET'])
+@admin_required
 def get_manga_chapters(manga_id):
     """Get all chapters for a manga."""
     if 'user_id' not in session:
@@ -4362,7 +4383,7 @@ def about():
 
 # ---------- My Uploads ----------
 @app.route("/my_uploads")
-@role_required("admin", "publisher")
+@admin_required
 def my_uploads():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -4811,6 +4832,7 @@ def customization():
                          user_role=user_role)
 
 @app.route("/customization/library")
+@admin_required
 def customization_library():
     """New Animation Library Page"""
     if "user_id" not in session:

@@ -723,10 +723,12 @@
             Upload Studio
         </a>
         {% endif %}
+        {% if session.get('role') == 'admin' %}
         <a href="{{ url_for('customization_library') }}" class="tab-link">
             <i class="fas fa-layer-group"></i>
             Library
         </a>
+        {% endif %}
         
         <div style="width:1px; height:24px; background:rgba(255,255,255,0.1); margin:0 4px;"></div>
         
