@@ -2,14 +2,24 @@
 import sqlite3
 import os
 
-DB_PATH = "novus.db"
+# Use dynamic path matching app.py logic
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_DB_PATH = os.path.join(APP_ROOT, "library.db")
 
 def fix_db():
-    print(f"Connecting to {DB_PATH}...")
-    conn = sqlite3.connect(DB_PATH)
+    target_db_path = DEFAULT_DB_PATH
+    print(f"Connecting to {target_db_path}...")
+    
+    if not os.path.exists(target_db_path):
+        print("WARNING: DB file not found at expected path!")
+        if os.path.exists("library.db"):
+            print("Found library.db in current directory, using that.")
+            target_db_path = "library.db"
+    
+    conn = sqlite3.connect(target_db_path)
     c = conn.cursor()
     
-    print("Creating transactions table if not exists...")
+    print(f"Creating transactions table in {target_db_path}...")
     c.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
             id TEXT PRIMARY KEY,
@@ -27,7 +37,7 @@ def fix_db():
     
     conn.commit()
     conn.close()
-    print("Done.")
+    print("Done. Transactions table created successfully.")
 
 if __name__ == "__main__":
     fix_db()

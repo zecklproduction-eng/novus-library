@@ -914,6 +914,20 @@ def init_db():
         )
     """)
 
+    # publisher earnings from requests
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS publisher_earnings (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            request_id INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            reason TEXT,
+            created_at TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (request_id) REFERENCES requests(id)
+        )
+    """)
+
     # bundles table (preset configurations)
     c.execute("""
         CREATE TABLE IF NOT EXISTS bundles (
@@ -2218,7 +2232,7 @@ def delete_chapter_review(review_id):
 @admin_required
 def add_book():
     if request.method == "GET":
-    if request.method == "GET":
+
         request_id = request.args.get('request_id')
         request_data = None
         if request_id:
@@ -2319,17 +2333,38 @@ def add_book():
         
         # Fulfill Request if exists
         request_id = request.form.get("request_id")
+        earned_amount = 0.0
         if request_id:
              try:
                  conn = get_conn()
+                 # Get vote count logic
+                 cur = conn.cursor()
+                 cur.execute("SELECT vote_count FROM requests WHERE id=?", (request_id,))
+                 row = cur.fetchone()
+                 votes = row[0] if row else 0
+                 
+                 # Calc reward: $0.5 base + $0.2 per 2 votes
+                 base_reward = 0.50
+                 bonus = (votes // 2) * 0.20
+                 earned_amount = base_reward + bonus
+                 
+                 # Update status
                  conn.execute("UPDATE requests SET status='Added' WHERE id=?", (request_id,))
+                 
+                 # Record earning
+                 conn.execute("INSERT INTO publisher_earnings (user_id, request_id, amount, reason) VALUES (?, ?, ?, ?)", 
+                              (session['user_id'], request_id, earned_amount, f"Filled request {request_id} (Votes: {votes})"))
+                 
                  conn.commit()
                  conn.close()
              except:
                  pass
-
-        flash("Book published successfully.", "success")
-        return redirect(url_for("home"))
+ 
+        if earned_amount > 0:
+            flash(f"Book published! You earned ${earned_amount:.2f} for fulfilling this request.", "success")
+        else:
+            flash("Book published successfully.", "success")
+        return redirect(url_for("home", earned=earned_amount if earned_amount > 0 else None))
 
     # Handle MANGA type upload
     elif book_type == "manga":
@@ -2429,17 +2464,38 @@ def add_book():
 
         # Fulfill Request if exists
         request_id = request.form.get("request_id")
+        earned_amount = 0.0
         if request_id:
              try:
                  conn = get_conn()
+                 # Get vote count
+                 cur = conn.cursor()
+                 cur.execute("SELECT vote_count FROM requests WHERE id=?", (request_id,))
+                 row = cur.fetchone()
+                 votes = row[0] if row else 0
+                 
+                 # Calc reward
+                 base_reward = 0.50
+                 bonus = (votes // 2) * 0.20
+                 earned_amount = base_reward + bonus
+                 
                  conn.execute("UPDATE requests SET status='Added' WHERE id=?", (request_id,))
+                 
+                 # Record earning
+                 conn.execute("INSERT INTO publisher_earnings (user_id, request_id, amount, reason) VALUES (?, ?, ?, ?)", 
+                              (session['user_id'], request_id, earned_amount, f"Filled request {request_id} (Votes: {votes})"))
+                 
                  conn.commit()
                  conn.close()
              except:
                  pass
 
-        flash(f"Manga series created successfully with {page_count} pages in Chapter 1. You can add more chapters anytime.", "success")
-        return redirect(url_for("manga"))
+        if earned_amount > 0:
+            flash(f"Manga created! You earned ${earned_amount:.2f} for fulfilling this request.", "success")
+        else:
+            flash(f"Manga series created successfully with {page_count} pages in Chapter 1. You can add more chapters anytime.", "success")
+            
+        return redirect(url_for("manga", earned=earned_amount if earned_amount > 0 else None))
 
 
 # ---------- Edit / Delete Book ----------
@@ -6779,6 +6835,143 @@ def update_request_status():
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
+
+
+@app.route("/admin/revenue")
+@admin_required
+def admin_revenue():
+    import datetime
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # --- KPI CALCULATIONS ---
+    
+    # 1. MRR: Sum of monthly value of active subscriptions
+    # Assuming 'pro' = $4.99 and 'ultimate' = $9.99
+    # We count users by plan who are NOT banned and account status is active (simplification)
+    c.execute("SELECT plan, COUNT(*) FROM users WHERE is_banned=0 GROUP BY plan")
+    plan_counts = dict(c.fetchall())
+    
+    pro_users = plan_counts.get('pro', 0)
+    ultimate_users = plan_counts.get('ultimate', 0)
+    
+    mrr_val = (pro_users * 4.99) + (ultimate_users * 9.99)
+    # Formatting
+    mrr_display = f"${mrr_val:,.2f}"
+    
+    # 2. Total Revenue: Sum of all completed transactions
+    c.execute("SELECT SUM(amount) FROM transactions WHERE status='Completed'")
+    total_rev = c.fetchone()[0] or 0.0
+    total_rev_display = f"${total_rev:,.2f}"
+    
+    # 3. ARPU: MRR / Total Active Users (Basic + Pro + Ultimate)
+    total_users = plan_counts.get('basic', 0) + pro_users + ultimate_users
+    arpu_val = (mrr_val / total_users) if total_users > 0 else 0
+    arpu_display = f"${arpu_val:,.2f}"
+    
+    # 4. Refund Rate: Refunded / Total Transactions
+    c.execute("SELECT COUNT(*) FROM transactions")
+    total_tx = c.fetchone()[0] or 0
+    c.execute("SELECT COUNT(*) FROM transactions WHERE status='Refunded'")
+    refunded_tx = c.fetchone()[0] or 0
+    
+    refund_rate_val = (refunded_tx / total_tx * 100) if total_tx > 0 else 0.0
+    refund_rate_display = f"{refund_rate_val:.1f}%"
+
+    # 5. Publisher Earnings (New)
+    c.execute("SELECT SUM(amount) FROM publisher_earnings")
+    total_pub_earnings = c.fetchone()[0] or 0.0
+    pub_earnings_display = f"${total_pub_earnings:,.2f}"
+
+    # KPI Object
+    kpi_data = {
+        "total_revenue": {"value": total_rev_display, "delta": "+0.0%", "trend": "neutral"}, # Delta requires historical data, keeping neutral for now
+        "mrr": {"value": mrr_display, "delta": "+0.0%", "trend": "neutral"},
+        "arpu": {"value": arpu_display, "delta": "+0.0%", "trend": "neutral"},
+        "refund_rate": {"value": refund_rate_display, "delta": "0.0%", "trend": "neutral"},
+        "publisher_earnings": {"value": pub_earnings_display, "delta": "+0.0%", "trend": "positive" if total_pub_earnings > 0 else "neutral"}
+    }
+    
+    # --- TRANSACTIONS ---
+    c.execute("""
+        SELECT t.created_at, u.username, t.type, t.item, t.amount, t.status, t.invoice_id
+        FROM transactions t
+        LEFT JOIN users u ON t.user_id = u.id
+        ORDER BY t.created_at DESC
+        LIMIT 10
+    """)
+    rows = c.fetchall()
+    
+    transactions = []
+    for r in rows:
+        # Format date nicely
+        try:
+            dt = datetime.datetime.strptime(r[0], "%Y-%m-%d %H:%M:%S")
+            date_str = dt.strftime("%b %d, %Y")
+        except:
+            date_str = r[0]
+            
+        transactions.append({
+            "date": date_str,
+            "user": r[1] or "Unknown",
+            "type": r[2],
+            "item": r[3],
+            "amount": f"${r[4]:.2f}",
+            "status": r[5],
+            "invoice": r[6]
+        })
+
+    # --- EARNINGS LOG ---
+    c.execute("""
+        SELECT pe.created_at, r.title, pe.amount, pe.reason
+        FROM publisher_earnings pe
+        JOIN requests r ON pe.request_id = r.id
+        ORDER BY pe.created_at DESC
+        LIMIT 5
+    """)
+    earnings_rows = c.fetchall()
+    earnings = []
+    for er in earnings_rows:
+        earnings.append({
+            "date": er[0],
+            "title": er[1],
+            "amount": f"${er[2]:.2f}",
+            "reason": er[3]
+        })
+        
+    conn.close()
+
+    return render_template("admin_revenue.html", kpi=kpi_data, transactions=transactions, earnings=earnings)
+
+@app.route("/admin/revenue/export")
+@admin_required
+def admin_revenue_export():
+    import csv
+    import io
+    from flask import make_response
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT t.id, t.created_at, u.username, u.email, t.type, t.item, t.amount, t.status, t.invoice_id
+        FROM transactions t
+        LEFT JOIN users u ON t.user_id = u.id
+        ORDER BY t.created_at DESC
+    """)
+    rows = c.fetchall()
+    conn.close()
+    
+    si = io.StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['Transaction ID', 'Date', 'Username', 'Email', 'Type', 'Item', 'Amount', 'Status', 'Invoice ID'])
+    cw.writerows(rows)
+    
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=revenue_export.csv"
+    output.headers["Content-type"] = "text/csv"
+    return output
 
 if __name__ == "__main__":
     init_db()
