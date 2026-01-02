@@ -2749,6 +2749,11 @@ body.manga-transition::before {
   box-shadow: 0 0 18px rgba(255, 100, 255, 0.5);
 }
 
+.btn-manga-primary:hover {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
 .btn-manga-ghost {
   padding: 10px 22px;
   border-radius: 999px;
@@ -2872,6 +2877,7 @@ body.manga-transition::before {
 /* Tabs */
 .mv-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 14px;
 }
 
@@ -3571,7 +3577,6 @@ body.manga-transition::before {
 }
 
 .wishlist-title {
-  font-size: 0.9rem;
   font-weight: 600;
   color: #fbfbfb;
 }
@@ -4090,6 +4095,10 @@ body.manga-transition::before {
   background: rgba(64, 220, 255, 0.16);
   color: #cfefff;
   font-weight: 800;
+}
+
+.cd-rec-btn:hover {
+  background: rgba(64, 220, 255, 0.12);
 }
 
 .cd-empty {
@@ -5311,6 +5320,7 @@ body.manga-transition::before {
   backdrop-filter: blur(14px);
   border: 2px solid rgba(0, 212, 255, 0.35);
   box-shadow: 0 0 40px rgba(0, 212, 255, 0.08);
+  display: block; /* Reverted to block */
 }
 
 .appearance-dialog::-webkit-scrollbar {
@@ -5365,6 +5375,7 @@ body.manga-transition::before {
   flex-direction: column;
   gap: 24px;
   margin-bottom: 24px;
+  overflow-y: visible; /* Reverted to visible */
 }
 
 .appearance-section {
@@ -5702,7 +5713,7 @@ body.manga-transition::before {
 .appearance-btn.primary:hover {
   background: linear-gradient(135deg,
       rgba(0, 212, 255, 0.9),
-      rgba(0, 212, 255, 0.8));
+      rgba(0, 212, 255, 0.7));
   box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
   color: #fff;
 }
@@ -5880,18 +5891,20 @@ body.no-special-effects.manga-warping {
 .appearance-dialog {
   position: relative;
   background: rgba(30, 30, 30, 0.45);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  width: 700px;
-  max-width: 90vw;
-  max-height: 85vh;
+  /* Removed glassmorphism background */
+  backdrop-filter: none; /* Removed glassmorphism backdrop-filter */
+  -webkit-backdrop-filter: none; /* Removed glassmorphism backdrop-filter */
+  width: 900px; /* Increased width */
+  max-width: 95vw;
+  height: 90vh; /* Fixed height to ensure flex works */
+  min-height: 500px;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(255, 255, 255, 0.05);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  display: block !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
   transform: scale(0.95);
   transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
   z-index: 2;
@@ -5959,8 +5972,8 @@ body.no-special-effects.manga-warping {
 /* Content */
 .appearance-content {
   padding: 28px;
-  overflow-y: auto;
-  flex: 1;
+  overflow: visible !important;
+  height: auto !important;
   display: flex;
   flex-direction: column;
   gap: 30px;
@@ -6006,8 +6019,9 @@ body.no-special-effects.manga-warping {
 /* Theme Options */
 .theme-options {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr); /* 4 columns */
+  gap: 16px;
+  padding-bottom: 20px;
 }
 
 .theme-option {
@@ -6038,24 +6052,44 @@ body.no-special-effects.manga-warping {
   box-shadow: 0 0 0 1px var(--neon-blue), 0 8px 30px rgba(0, 212, 255, 0.25);
 }
 
+.theme-option:hover .theme-preview {
+  border-color: var(--neon-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.theme-option.active .theme-preview {
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2), 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.theme-option.active span {
+  color: var(--neon-blue);
+  font-weight: 600;
+}
+
 .appearance-footer {
   padding: 20px 28px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(20, 20, 20, 0.8);
-  backdrop-filter: blur(10px);
+  background: #1e1e1e !important; /* Opaque background matching modal approx */
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex-shrink: 0;
-  z-index: 5;
+  gap: 12px;
+  position: sticky !important;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
 }
 
 .theme-preview {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 60px; /* Increased size */
+  height: 60px; /* Increased size */
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .dark-theme-preview {
@@ -6418,12 +6452,11 @@ body.theme-purple .sidebar {
 /* Midnight Theme */
 body.theme-midnight {
   --bg-main: #02040a;
-  --bg-card: #0d1117;
-  --bg-input: #161b22;
-  --text-primary: #c9d1d9;
+  --bg-card: #0a0c10;
+  --bg-input: #12141a;
+  --text-primary: #ffffff;
   --text-muted: #8b949e;
-  --border-subtle: #30363d;
-  --neon-blue: #58a6ff;
+  --border-subtle: #1f2937;
 }
 
 body.theme-midnight .sidebar {
@@ -6433,13 +6466,12 @@ body.theme-midnight .sidebar {
 
 /* Forest Theme */
 body.theme-forest {
-  --bg-main: #0a1a0a;
-  --bg-card: #142914;
-  --bg-input: #1f3d1f;
-  --text-primary: #e0fae0;
-  --text-muted: #8bc38b;
-  --border-subtle: #2d5a2d;
-  --neon-blue: #4caf50;
+  --bg-main: #0a100a;
+  --bg-card: #121c12;
+  --bg-input: #1a261a;
+  --text-primary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border-subtle: #2d3748;
 }
 
 body.theme-forest .sidebar {
@@ -6450,12 +6482,11 @@ body.theme-forest .sidebar {
 /* Sunset Theme */
 body.theme-sunset {
   --bg-main: #1a0a0a;
-  --bg-card: #2e1212;
-  --bg-input: #451b1b;
-  --text-primary: #fce8e8;
-  --text-muted: #e59e9e;
-  --border-subtle: #6e2a2a;
-  --neon-blue: #ff7e5f;
+  --bg-card: #261010;
+  --bg-input: #331515;
+  --text-primary: #ffe4e6;
+  --text-muted: #fca5a5;
+  --border-subtle: #451a1a;
 }
 
 body.theme-sunset .sidebar {
@@ -6465,13 +6496,12 @@ body.theme-sunset .sidebar {
 
 /* Nebula Theme */
 body.theme-nebula {
-  --bg-main: #1a0a2a;
-  --bg-card: #2d1245;
-  --bg-input: #451b66;
-  --text-primary: #fce8fc;
-  --text-muted: #d69ed6;
-  --border-subtle: #792a9e;
-  --neon-blue: #bd00ff;
+  --bg-main: #0f0a1a;
+  --bg-card: #1a102e;
+  --bg-input: #251640;
+  --text-primary: #e9d5ff;
+  --text-muted: #c4b5fd;
+  --border-subtle: #4c1d95;
 }
 
 body.theme-nebula .sidebar {
@@ -6479,15 +6509,37 @@ body.theme-nebula .sidebar {
   border-color: #792a9e;
 }
 
-/* Angelic Theme */
+/* Orange Accent */
+body.accent-orange {
+  --neon-blue: #ff6b35;
+}
+
+/* Emerald Accent */
+body.accent-emerald {
+  --neon-blue: #10b981;
+}
+
+/* Ruby Accent */
+body.accent-ruby {
+  --neon-blue: #ef4444;
+}
+
+/* Amber Accent */
+body.accent-amber {
+  --neon-blue: #f59e0b;
+}
+
+/* Indigo Accent */
+body.accent-indigo {
+  --neon-blue: #6366f1;
+} /* Soft Cream/Ivory */
 body.theme-angelic {
   --bg-main: #fffbf0; /* Soft Cream/Ivory */
   --bg-card: #ffffff;
   --bg-input: #fdf6e3;
-  --text-primary: #5d5a50; /* Warm Gray/Goldish */
-  --text-muted: #a8a495;
-  --border-subtle: #e6e2d3;
-  --neon-blue: #ffd700; /* Gold */
+  --text-primary: #5c4b37; /* Warm dark brown */
+  --text-muted: #8d7b68;
+  --border-subtle: #e6dbb9;
 }
 
 body.theme-angelic .sidebar {
@@ -6523,7 +6575,6 @@ body.theme-demonic {
   --text-primary: #ffcece;
   --text-muted: #b55c5c;
   --border-subtle: #4d0f0f;
-  --neon-blue: #ff0000; /* Blood Red */
 }
 
 body.theme-demonic .sidebar {

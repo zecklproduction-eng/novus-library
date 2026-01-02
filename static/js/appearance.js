@@ -20,9 +20,8 @@ class AppearanceSettings {
   }
 
   init() {
-    this.loadSettings();
     this.bindEvents();
-    this.updateUI();
+    this.loadSettings(); // Load and apply settings immediately
   }
 
   bindEvents() {
@@ -114,9 +113,31 @@ class AppearanceSettings {
 
   selectTheme(theme) {
     this.settings.theme = theme;
+    
+    // Auto-select accent color based on theme
+    const themeDefaults = {
+      'dark': 'cyan',
+      'light': 'cyan',
+      'blue': 'cyan',
+      'purple': 'purple',
+      'midnight': 'cyan',
+      'forest': 'emerald',
+      'sunset': 'orange',
+      'nebula': 'purple',
+      'angelic': 'amber',
+      'demonic': 'ruby'
+    };
+    
+    if (themeDefaults[theme]) {
+      this.settings.accentColor = themeDefaults[theme];
+      this.showToast(`Theme changed to ${theme} (Accent: ${themeDefaults[theme]})`);
+    } else {
+      this.showToast(`Theme changed to ${theme}`);
+    }
+
     this.updateTheme();
+    this.updateAccentColor(); // Apply the new accent
     this.updateUI();
-    this.showToast(`Theme changed to ${theme}`);
   }
 
   selectFontSize(size) {
@@ -299,16 +320,26 @@ class AppearanceSettings {
   }
 
   updateAccentColor() {
+    // Remove all accent classes
+    const accents = ['cyan', 'purple', 'pink', 'green', 'orange', 'emerald', 'ruby', 'amber', 'indigo'];
+    accents.forEach(a => document.body.classList.remove(`accent-${a}`));
+    
+    // Add new accent class
+    document.body.classList.add(`accent-${this.settings.accentColor}`);
     document.body.dataset.accentColor = this.settings.accentColor;
     
-    // Update CSS variable for neon blue based on selection
+    // Also set the variable directly for immediate effect without waiting for CSS class
     let colorValue = '#00d4ff'; // Default cyan
     
     switch(this.settings.accentColor) {
       case 'purple': colorValue = '#9d4edd'; break;
-      case 'pink': colorValue = '#ff6baff'; break; // Fixed hex
+      case 'pink': colorValue = '#ff6baf'; break;
       case 'green': colorValue = '#2ecc71'; break;
-      case 'orange': colorValue = '#e67e22'; break;
+      case 'orange': colorValue = '#ff6b35'; break;
+      case 'emerald': colorValue = '#10b981'; break;
+      case 'ruby': colorValue = '#ef4444'; break;
+      case 'amber': colorValue = '#f59e0b'; break;
+      case 'indigo': colorValue = '#6366f1'; break;
       case 'cyan': 
       default: colorValue = '#00d4ff'; break;
     }
