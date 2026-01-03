@@ -1729,6 +1729,109 @@ a.cta-button {
   background: transparent;
 }
 
+/* ===========================
+   MANGAVERSE BAR (New Layout)
+   =========================== */
+.mangaverse-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  gap: 20px;
+  padding-top: 20px;
+}
+
+.mv-left {
+  display: flex;
+  align-items: center;
+  gap: 40px; /* Space between logo and tabs */
+}
+
+.mv-logo {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.mv-logo-main {
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #fff;
+}
+
+.mv-logo-accent {
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--neon-blue);
+}
+
+.mv-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mv-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 20px;
+  border-radius: 999px;
+  transition: all 0.3s ease;
+}
+
+.mv-tab:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.05);
+}
+
+.mv-tab-active {
+  background: var(--neon-blue);
+  color: #000 !important;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+}
+
+.mv-search {
+  display: flex;
+  align-items: center;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 999px;
+  padding: 10px 20px;
+  width: 320px;
+  transition: all 0.3s ease;
+}
+
+.mv-search:focus-within {
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+}
+
+.mv-search input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  width: 100%;
+  outline: none;
+}
+
+.mv-search button {
+  background: transparent;
+  border: none;
+  color: #777;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.mv-search button:hover {
+  color: var(--neon-blue);
+}
+
 /* Hero section */
 .manga-hero {
   display: grid;
