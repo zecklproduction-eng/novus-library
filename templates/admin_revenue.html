@@ -144,7 +144,112 @@
     </div>
     {% endif %}
 
+    <!-- MONETIZATION SECTION -->
+    <div class="card bg-dark border-secondary mt-4">
+        <div class="card-header border-secondary bg-transparent">
+            <h5 class="card-title mb-0 text-white">Monetization Status</h5>
+        </div>
+        <div class="card-body">
+            {% if (monetization_status == 'approved' and user_plan in ['pro', 'ultimate']) or user_role == 'admin' %}
+                <!-- APPROVED / ACTIVE -->
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-success mb-1"><i class="fas fa-check-circle me-2"></i>Active Publisher</h6>
+                        <p class="text-muted small mb-0">You are earning revenue from your content.</p>
+                    </div>
+                     <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#paymentModal">
+                        <i class="fas fa-file-invoice-dollar me-2"></i> Import Payment
+                    </button>
+                </div>
+
+            {% elif monetization_status == 'pending' %}
+                <!-- PENDING -->
+                <div class="alert alert-warning mb-0 border-0 bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-clock me-2"></i> <strong>Request Pending</strong>
+                    <span class="ms-2 opacity-75">Your monetization request is under review by admins.</span>
+                </div>
+
+            {% else %}
+                <!-- NOT MONETIZED / ELIGIBILITY CHECK -->
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        {% if user_plan in ['pro', 'ultimate'] %}
+                            <h6 class="text-white mb-1">Eligible for Monetization</h6>
+                            <p class="text-muted small mb-0">Join our publisher program to earn from reading time and bundle sales.</p>
+                        {% else %}
+                            <h6 class="text-danger mb-1"><i class="fas fa-lock me-2"></i>Not Eligible / Monitorization Paused</h6>
+                            <p class="text-muted small mb-0">You must be on a <strong>Pro</strong> or <strong>Ultimate</strong> plan to allow monitorization.</p>
+                        {% endif %}
+                    </div>
+                    
+                    {% if user_plan in ['pro', 'ultimate'] %}
+                    <button onclick="requestMonetization()" class="btn btn-success fw-bold">
+                        Request Monetization
+                    </button>
+                    {% else %}
+                     <a href="/billing" class="btn btn-secondary disabled">Upgrade to Request/Resume</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
+
+<!-- Payment Import Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Import Payment</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Configure your payout settings to import earnings.</p>
+                <form>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Payment Method</label>
+                        <select class="form-select bg-dark text-light border-secondary">
+                            <option>PayPal</option>
+                            <option>Bank Transfer (Wire)</option>
+                            <option>Stripe Connect</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Account Email / ID</label>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" placeholder="e.g. user@example.com">
+                    </div>
+                    <div class="alert alert-info bg-opacity-10 border-info text-info small">
+                        <i class="fas fa-info-circle me-1"></i> Balance available for import: <strong>{{ kpi['total_revenue'].value }}</strong>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary">Process Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function requestMonetization() {
+    if(!confirm("Submit request to become a publisher?")) return;
+    
+    try {
+        const res = await fetch("/api/monetization/request", { method: "POST" });
+        const data = await res.json();
+        
+        if(data.success) {
+            alert("Request submitted!");
+            location.reload();
+        } else {
+            alert("Error: " + data.error);
+        }
+    } catch(e) {
+        alert("Request failed");
+    }
+}
+</script>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

@@ -599,6 +599,20 @@ def init_db():
             UNIQUE(item_type, item_id)
         )
     """)
+
+    # reading_history
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS reading_history (
+            user_id INTEGER,
+            manga_id INTEGER,
+            chapter_id INTEGER,
+            page_index INTEGER,
+            updated_at TIMESTAMP,
+            PRIMARY KEY (user_id, manga_id),
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(manga_id) REFERENCES books(id)
+        )
+    """)
     
     # image summaries cache table
     c.execute("""
@@ -1121,8 +1135,15 @@ def home():
     c = conn.cursor()
 
     # Categories
-    c.execute("SELECT DISTINCT COALESCE(category,'General') FROM books ORDER BY 1")
-    db_categories = [row[0] for row in c.fetchall()]
+    c.execute("SELECT DISTINCT COALESCE(category,'General') FROM books")
+    db_raw_categories = [row[0] for row in c.fetchall()]
+    
+    db_categories = set()
+    for cat_str in db_raw_categories:
+        for cat in cat_str.split(','):
+            cleaned = cat.strip()
+            if cleaned:
+                db_categories.add(cleaned)
 
     extra_categories = [
         "Action", "Adventure", "Biography", "Business", "Children", "Comedy", 
@@ -1135,7 +1156,7 @@ def home():
         "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western", 
         "Young Adult"
     ]
-    categories = sorted(set(db_categories + extra_categories + ["General"]))
+    categories = sorted(set(list(db_categories) + extra_categories + ["General"]))
 
     # ✅ Actual books query (this is what your cards need) - EXCLUDE MANGA
     base_sql = """
@@ -2415,9 +2436,42 @@ def add_book():
                 ext = chapter_pdf.filename.rsplit(".", 1)[-1].lower()
                 if ext in ALLOWED_PDF:
                     pdf_filename = secure_filename(chapter_pdf.filename)
-                    chapter_pdf.save(os.path.join(UPLOAD_FOLDER_PDF, pdf_filename))
-                    pages_data = pdf_filename
-                    page_count = 1
+                    # Create directory to save PDF and Images
+                    chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch1")
+                    os.makedirs(chapter_dir, exist_ok=True)
+                    
+                    pdf_path = os.path.join(chapter_dir, pdf_filename)
+                    chapter_pdf.save(pdf_path)
+                    
+                    # Convert PDF to Images
+                    try:
+                        from pdf2image import convert_from_path
+                        # Poppler path for Windows if standalone, or assume in PATH
+                        # If on Windows and poppler not in PATH, this might fail unless configured.
+                        # Assuming environment is set up as 'pdf2image' import exists.
+                        images = convert_from_path(pdf_path)
+                        
+                        page_files = []
+                        for i, image in enumerate(images):
+                            page_filename = f"page_{i+1:03d}.jpg"
+                            page_path = os.path.join(chapter_dir, page_filename)
+                            image.save(page_path, "JPEG")
+                            page_files.append(page_filename)
+                            
+                        if page_files:
+                            pages_data = ",".join(page_files)
+                            page_count = len(page_files)
+                        else:
+                            # Fallback if no images extracted (empty PDF?)
+                             pages_data = pdf_filename
+                             page_count = 1
+                             
+                    except Exception as e:
+                        print(f"PDF Conversion Error: {e}")
+                        # Fallback to just storing PDF (though reader might fail)
+                        pages_data = pdf_filename
+                        page_count = 1
+                        flash(f"Warning: PDF saved but image conversion failed: {str(e)}", "warning")
         else:
             # Handle image uploads (multiple pages)
             chapter_pages = request.files.getlist("chapter_pages")
@@ -3591,32 +3645,56 @@ def manga():
         SELECT DISTINCT COALESCE(category,'General')
         FROM books
         WHERE COALESCE(book_type,'book')='manga'
-        ORDER BY 1
     """)
-    categories = [row[0] for row in c.fetchall()]
+    raw_cats = [row[0] for row in c.fetchall()]
+    categories_set = set()
+    for rc in raw_cats:
+        for cat in rc.split(','):
+             cleaned = cat.strip()
+             if cleaned:
+                 categories_set.add(cleaned)
+    categories = sorted(list(categories_set))
 
-    # Build query for manga
+    # Updated query with chapter count
     base_sql = """
-        SELECT id, title, author, COALESCE(category,'General') AS category,
-               pdf_filename, audio_filename, cover_path
-        FROM books
-        WHERE COALESCE(book_type,'book')='manga'
+        SELECT b.id, b.title, b.author, COALESCE(b.category,'General') AS category,
+               b.pdf_filename, b.audio_filename, b.cover_path,
+               COUNT(ch.id) as chapter_count
+        FROM books b
+        LEFT JOIN chapters ch ON b.id = ch.manga_id
+        WHERE COALESCE(b.book_type,'book')='manga'
     """
     params = []
 
     if selected:
-        base_sql += " AND COALESCE(category,'General') = ?"
-        params.append(selected)
+        base_sql += " AND ',' || REPLACE(COALESCE(b.category,'General'), ' ', '') || ',' LIKE ?"
+        params.append(f"%,{selected.replace(' ', '')},%")
 
     if q:
-        base_sql += " AND (title LIKE ? OR author LIKE ?)"
+        base_sql += " AND (b.title LIKE ? OR b.author LIKE ?)"
         search_term = f"%{q}%"
         params.extend([search_term, search_term])
 
-    base_sql += " ORDER BY datetime(created_at) DESC"
+    base_sql += " GROUP BY b.id ORDER BY datetime(b.created_at) DESC"
 
     c.execute(base_sql, params)
     mangas = c.fetchall()
+
+    # Fetch Continue Reading for logged-in user
+    continue_reading = []
+    if session.get("user_id"):
+        uid = session["user_id"]
+        c.execute("""
+            SELECT b.id, b.title, b.cover_path, rh.chapter_id, rh.page_index, c.chapter_num
+            FROM reading_history rh
+            JOIN books b ON rh.manga_id = b.id
+            JOIN chapters c ON rh.chapter_id = c.id
+            WHERE rh.user_id = ?
+            ORDER BY rh.updated_at DESC
+            LIMIT 5
+        """, (uid,))
+        continue_reading = c.fetchall()
+
     conn.close()
 
     return render_template(
@@ -3625,8 +3703,42 @@ def manga():
         categories=categories,
         selected_category=selected,
         q=q,
-        body_class="manga-theme"
+        body_class="manga-theme",
+        continue_reading=continue_reading
     )
+
+
+@app.route("/api/save_progress", methods=["POST"])
+def save_reading_progress():
+    if not session.get("user_id"):
+        return jsonify({"success": False, "error": "Login required"}), 401
+    
+    data = request.json
+    uid = session["user_id"]
+    manga_id = data.get("manga_id")
+    chapter_id = data.get("chapter_id")
+    page_index = data.get("page_index")
+
+    if not all([manga_id, chapter_id, page_index is not None]):
+         return jsonify({"success": False, "error": "Missing data"}), 400
+
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("""
+            INSERT INTO reading_history (user_id, manga_id, chapter_id, page_index, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(user_id, manga_id) DO UPDATE SET
+                chapter_id = excluded.chapter_id,
+                page_index = excluded.page_index,
+                updated_at = excluded.updated_at
+        """, (uid, manga_id, chapter_id, page_index))
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        conn.close()
 
 
 @app.route("/manga/read/<int:id>")
@@ -3852,46 +3964,41 @@ def upload_chapter(manga_id):
             flash("Only PDF files are allowed.", "danger")
             return redirect(url_for("upload_chapter", manga_id=manga_id))
         
-        # Save PDF temporarily
-        pdf_filename = secure_filename(chapter_pdf.filename)
-        pdf_path = os.path.join(UPLOAD_FOLDER_PDF, pdf_filename)
-        chapter_pdf.save(pdf_path)
-        
         # Create chapter directory for images
         chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch{chapter_num}")
         os.makedirs(chapter_dir, exist_ok=True)
         
-        # Try to extract PDF pages as images
-        if PDF_EXTRACTION_AVAILABLE:
-            try:
-                from PIL import Image
-                images = convert_from_path(pdf_path, dpi=150)
-                page_count = len(images)
+        pdf_filename = secure_filename(chapter_pdf.filename)
+        pdf_path = os.path.join(chapter_dir, pdf_filename)
+        chapter_pdf.save(pdf_path)
+        
+        # Convert PDF to Images
+        try:
+            from pdf2image import convert_from_path
+            images = convert_from_path(pdf_path)
+            
+            page_files = []
+            for i, image in enumerate(images):
+                page_filename = f"page_{i+1:03d}.jpg"
+                page_path = os.path.join(chapter_dir, page_filename)
+                image.save(page_path, "JPEG")
+                page_files.append(page_filename)
                 
-                for idx, img in enumerate(images, 1):
-                    page_filename = f"page_{idx:03d}.png"
-                    img_path = os.path.join(chapter_dir, page_filename)
-                    img.save(img_path, 'PNG')
-                
-                pages_data = ",".join([f"page_{i:03d}.png" for i in range(1, page_count + 1)])
+            if page_files:
+                pages_data = ",".join(page_files)
+                page_count = len(page_files)
                 flash(f"PDF extracted successfully! {page_count} pages found.", "info")
-            except Exception as e:
-                # Fallback: store PDF filename if extraction fails
-                # Copy PDF to chapter directory so it can be displayed
-                import shutil
-                pdf_dest = os.path.join(chapter_dir, pdf_filename)
-                shutil.copy(pdf_path, pdf_dest)
-                pages_data = pdf_filename
-                page_count = 1
-                flash(f"PDF uploaded (extraction failed, will display PDF in reader): {str(e)}", "warning")
-        else:
-            # If pdf2image not available, copy PDF to chapter directory
-            import shutil
-            pdf_dest = os.path.join(chapter_dir, pdf_filename)
-            shutil.copy(pdf_path, pdf_dest)
+            else:
+                # Fallback if no images extracted
+                 pages_data = pdf_filename
+                 page_count = 1
+                 
+        except Exception as e:
+            print(f"PDF Conversion Error: {e}")
+            # Fallback to just storing PDF
             pages_data = pdf_filename
             page_count = 1
-            flash("PDF uploaded (install pdf2image for page extraction: pip install pdf2image). PDF will display in reader.", "info")
+            flash(f"Warning: PDF saved but image conversion failed: {str(e)}", "warning")
     else:
         # Handle image uploads (multiple pages)
         chapter_pages = request.files.getlist("chapter_pages")
@@ -6217,7 +6324,7 @@ def admin_bundle_edit(id):
     b = c.fetchone()
     
     # Fetch all custom animations for the asset library
-    c.execute("SELECT id, animation_type, file_path, name, category, access_tag FROM custom_animations ORDER BY name ASC")
+    c.execute("SELECT id, animation_type, file_path, name, category, min_plan FROM custom_animations ORDER BY name ASC")
     animations_raw = c.fetchall()
     conn.close()
     
@@ -6838,18 +6945,37 @@ def update_request_status():
 
 
 @app.route("/admin/revenue")
-@admin_required
 def admin_revenue():
+    if "user_id" not in session:
+        return redirect(url_for('login'))
+        
     import datetime
     
     conn = get_conn()
     c = conn.cursor()
     
+    user_id = session["user_id"]
+    
+    # Fetch current user details
+    c.execute("SELECT plan, role FROM users WHERE id = ?", (user_id,))
+    u_row = c.fetchone()
+    user_plan = u_row[0] if u_row else 'basic'
+    user_role = u_row[1] if u_row else 'user'
+    
+    # Access Control: Admin, Publisher, or Pro/Ultimate
+    if user_role not in ['admin', 'publisher'] and user_plan not in ['pro', 'ultimate']:
+         conn.close()
+         flash("Access restricted to Pro/Ultimate members or Publishers.", "warning")
+         return redirect(url_for('index'))
+    
+    # Fetch Monetization Request Status
+    c.execute("SELECT status FROM role_requests WHERE user_id = ? AND requested_role IN ('monetization', 'publisher') ORDER BY created_at DESC LIMIT 1", (user_id,))
+    req_row = c.fetchone()
+    monetization_status = req_row[0] if req_row else 'none' # none, pending, approved, rejected
+    
     # --- KPI CALCULATIONS ---
     
     # 1. MRR: Sum of monthly value of active subscriptions
-    # Assuming 'pro' = $4.99 and 'ultimate' = $9.99
-    # We count users by plan who are NOT banned and account status is active (simplification)
     c.execute("SELECT plan, COUNT(*) FROM users WHERE is_banned=0 GROUP BY plan")
     plan_counts = dict(c.fetchall())
     
@@ -6880,13 +7006,17 @@ def admin_revenue():
     refund_rate_display = f"{refund_rate_val:.1f}%"
 
     # 5. Publisher Earnings (New)
-    c.execute("SELECT SUM(amount) FROM publisher_earnings")
-    total_pub_earnings = c.fetchone()[0] or 0.0
+    try:
+        c.execute("SELECT SUM(amount) FROM publisher_earnings")
+        total_pub_earnings = c.fetchone()[0] or 0.0
+    except:
+        total_pub_earnings = 0.0
+        
     pub_earnings_display = f"${total_pub_earnings:,.2f}"
 
     # KPI Object
     kpi_data = {
-        "total_revenue": {"value": total_rev_display, "delta": "+0.0%", "trend": "neutral"}, # Delta requires historical data, keeping neutral for now
+        "total_revenue": {"value": total_rev_display, "delta": "+0.0%", "trend": "neutral"},
         "mrr": {"value": mrr_display, "delta": "+0.0%", "trend": "neutral"},
         "arpu": {"value": arpu_display, "delta": "+0.0%", "trend": "neutral"},
         "refund_rate": {"value": refund_rate_display, "delta": "0.0%", "trend": "neutral"},
@@ -6923,26 +7053,91 @@ def admin_revenue():
         })
 
     # --- EARNINGS LOG ---
-    c.execute("""
-        SELECT pe.created_at, r.title, pe.amount, pe.reason
-        FROM publisher_earnings pe
-        JOIN requests r ON pe.request_id = r.id
-        ORDER BY pe.created_at DESC
-        LIMIT 5
-    """)
-    earnings_rows = c.fetchall()
     earnings = []
-    for er in earnings_rows:
-        earnings.append({
-            "date": er[0],
-            "title": er[1],
-            "amount": f"${er[2]:.2f}",
-            "reason": er[3]
-        })
+    try:
+        c.execute("""
+            SELECT pe.created_at, r.title, pe.amount, pe.reason
+            FROM publisher_earnings pe
+            JOIN requests r ON pe.request_id = r.id
+            ORDER BY pe.created_at DESC
+            LIMIT 5
+        """)
+        earnings_rows = c.fetchall()
+        for er in earnings_rows:
+            earnings.append({
+                "date": er[0],
+                "title": er[1],
+                "amount": f"${er[2]:.2f}",
+                "reason": er[3]
+            })
+    except:
+        pass
         
     conn.close()
 
-    return render_template("admin_revenue.html", kpi=kpi_data, transactions=transactions, earnings=earnings)
+    return render_template(
+        "admin_revenue.html", 
+        kpi=kpi_data, 
+        transactions=transactions, 
+        earnings=earnings,
+        user_plan=user_plan,
+        user_role=user_role,
+        monetization_status=monetization_status
+    )
+
+@app.route("/api/monetization/request", methods=["POST"])
+def request_monetization():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Check if already has pending
+    print(f"DEBUG: Processing monetization request for user {session.get('user_id')}")
+    c.execute("SELECT id FROM role_requests WHERE user_id=? AND requested_role='monetization' AND status='pending'", (session["user_id"],))
+    if c.fetchone():
+        conn.close()
+        return jsonify({"error": "Request already pending"}), 400
+        
+    c.execute("INSERT INTO role_requests (user_id, requested_role, status) VALUES (?, 'monetization', 'pending')", (session["user_id"],))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+@app.route("/admin/users/approve_role", methods=["POST"])
+@admin_required
+def approve_role_request():
+    request_id = request.form.get("request_id")
+    action = request.form.get("action") # approve / reject
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    c.execute("SELECT user_id, requested_role FROM role_requests WHERE id = ?", (request_id,))
+    req = c.fetchone()
+    
+    if not req:
+        conn.close()
+        flash("Request not found", "error")
+        return redirect(url_for("user_management"))
+        
+    user_id, role = req
+    
+    if action == "approve":
+        c.execute("UPDATE role_requests SET status='approved' WHERE id=?", (request_id,))
+        # If request is publisher OR monetization, grant publisher role
+        if role in ['publisher', 'monetization']:
+            c.execute("UPDATE users SET role='publisher' WHERE id=?", (user_id,))
+        flash(f"User promoted to publisher via {role} request!", "success")
+    else:
+        c.execute("UPDATE role_requests SET status='rejected' WHERE id=?", (request_id,))
+        flash("Request rejected.", "info")
+        
+    conn.commit()
+    conn.close()
+    return redirect(url_for("user_management"))
 
 @app.route("/admin/revenue/export")
 @admin_required
@@ -6972,6 +7167,70 @@ def admin_revenue_export():
     output.headers["Content-Disposition"] = "attachment; filename=revenue_export.csv"
     output.headers["Content-type"] = "text/csv"
     return output
+
+@app.route("/api/bundles/apply", methods=["POST"])
+def apply_bundle():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    bundle = data.get("bundle")
+    if not bundle:
+        return jsonify({"error": "No bundle provided"}), 400
+        
+    theme = bundle.get("theme", {})
+    user_id = session["user_id"]
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Define the mapping of bundle keys to animation types
+        # key in bundle.theme -> (animation_type in DB, fallback_style_key)
+        mappings = {
+            "banner_path": "banner",
+            "manga_path": "manga_enter",
+            "login_animation": "login",
+            "logout_animation": "logout"
+        }
+        
+        for json_key, anim_type in mappings.items():
+            path_value = theme.get(json_key)
+            
+            # Deactivate current active animation for this user/type
+            # logic: set all of this type to inactive first
+            c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = ?", (user_id, anim_type))
+            
+            if path_value:
+                # It's a file path. Activate or Insert.
+                
+                # First, verify if the path refers to a "system" file or user file.
+                # Actually, we just need a record in custom_animations pointing to it.
+                
+                # Check if this exact path exists for this user as a record
+                c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path = ? AND animation_type = ?", (user_id, path_value, anim_type))
+                existing = c.fetchone()
+                
+                if existing:
+                    c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (existing[0],))
+                else:
+                    # check if it exists as a "preset" (user_id IS NULL or special flag?)
+                    # If not, just insert a new record for this user.
+                    # Name can be from bundle name or generic.
+                    name = f"Bundle: {bundle.get('name', 'Unknown')}"
+                    c.execute("""
+                        INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name, category)
+                        VALUES (?, ?, ?, 1, ?, 'animation')
+                    """, (user_id, anim_type, path_value, name))
+                
+        conn.commit()
+        return jsonify({"success": True})
+        
+    except Exception as e:
+        # print(f"Bundle apply error: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     init_db()

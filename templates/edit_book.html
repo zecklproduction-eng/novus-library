@@ -179,12 +179,16 @@
 
             <div class="mb-3">
               <label class="form-label form-label-sm">Role</label>
-              <input
-                type="text"
-                id="charRole"
-                class="form-control form-control-sm"
-                placeholder="e.g., Protagonist, Antagonist"
-              />
+              <select id="charRole" class="form-select form-select-sm">
+                <option value="" disabled selected>Select Role...</option>
+                <option value="Main Character">Main Character</option>
+                <option value="Supporting Character">Supporting Character</option>
+                <option value="Protagonist">Protagonist</option>
+                <option value="Antagonist">Antagonist</option>
+                <option value="Villain">Villain</option>
+                <option value="Side Character">Side Character</option>
+                <option value="Extra">Extra</option>
+              </select>
             </div>
 
             <div class="mb-3">
@@ -364,7 +368,17 @@
         return;
       }
 
-      let html = '<div style="margin-bottom: 15px;"><h6 class="mb-3">Characters (' + characters.length + ')</h6>';
+      // Collapsible Header
+      let html = `
+        <div style="margin-bottom: 5px;">
+          <div onclick="toggleCharactersList()" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #f1f3f5; padding: 10px 15px; border-radius: 4px; border: 1px solid #dee2e6;">
+            <h6 class="mb-0" style="color: #495057;">Characters (${characters.length})</h6>
+            <i id="charListIcon" class="fas fa-chevron-down" style="transition: transform 0.2s;"></i>
+          </div>
+        </div>
+        <div id="charactersListContent" style="display: none; margin-top: 10px;">
+      `;
+
       characters.forEach(char => {
         html += `
           <div style="background: white; padding: 12px; border-radius: 4px; border-left: 3px solid #00d4ff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: start;">
@@ -373,7 +387,18 @@
               <div style="flex: 1;">
                 <strong style="color: #00d4ff;">${escapeHtml(char.name)}</strong>
                 <div class="small text-muted">${escapeHtml(char.role || 'Supporting Role')}</div>
-                ${char.description ? `<div class="small mt-1" style="color: #666;">${escapeHtml(char.description)}</div>` : ''}
+                
+                ${char.description ? `
+                  <div style="margin-top: 5px;">
+                    <button type="button" class="btn btn-sm btn-outline-info" style="font-size: 11px; padding: 2px 8px; border-radius: 12px;" onclick="toggleDescription(${char.id})">
+                      Description <i id="descIcon-${char.id}" class="fas fa-chevron-down"></i>
+                    </button>
+                    <div id="desc-${char.id}" style="display: none; margin-top: 8px; font-size: 0.85rem; color: #555; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e9ecef;">
+                      ${escapeHtml(char.description)}
+                    </div>
+                  </div>
+                ` : ''}
+
               </div>
             </div>
             <div style="display: flex; gap: 5px;">
@@ -383,8 +408,35 @@
           </div>
         `;
       });
-      html += '</div>';
+      html += '</div>'; // Close content container
       container.innerHTML = html;
+    }
+
+    // Toggle character list visibility
+    function toggleCharactersList() {
+      const content = document.getElementById('charactersListContent');
+      const icon = document.getElementById('charListIcon');
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+      } else {
+        content.style.display = 'none';
+        icon.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    // Toggle description visibility
+    function toggleDescription(charId) {
+      const descDiv = document.getElementById(`desc-${charId}`);
+      const icon = document.getElementById(`descIcon-${charId}`);
+      
+      if (descDiv.style.display === 'none') {
+        descDiv.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+      } else {
+        descDiv.style.display = 'none';
+        icon.style.transform = 'rotate(0deg)';
+      }
     }
 
     // Edit character - show modal
@@ -411,7 +463,16 @@
 
           <div class="mb-3">
             <label class="form-label form-label-sm">Role</label>
-            <input type="text" id="editCharRole" class="form-control form-control-sm" value="${escapeHtml(char.role || '')}" />
+            <select id="editCharRole" class="form-select form-select-sm">
+              <option value="Main Character" ${char.role === 'Main Character' ? 'selected' : ''}>Main Character</option>
+              <option value="Supporting Character" ${char.role === 'Supporting Character' ? 'selected' : ''}>Supporting Character</option>
+              <option value="Protagonist" ${char.role === 'Protagonist' ? 'selected' : ''}>Protagonist</option>
+              <option value="Antagonist" ${char.role === 'Antagonist' ? 'selected' : ''}>Antagonist</option>
+              <option value="Villain" ${char.role === 'Villain' ? 'selected' : ''}>Villain</option>
+              <option value="Side Character" ${char.role === 'Side Character' ? 'selected' : ''}>Side Character</option>
+              <option value="Extra" ${char.role === 'Extra' ? 'selected' : ''}>Extra</option>
+               ${!['Main Character', 'Supporting Character', 'Protagonist', 'Antagonist', 'Villain', 'Side Character', 'Extra'].includes(char.role) && char.role ? `<option value="${escapeHtml(char.role)}" selected>${escapeHtml(char.role)}</option>` : ''}
+            </select>
           </div>
 
           <div class="mb-3">

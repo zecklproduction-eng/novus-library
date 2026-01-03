@@ -25,45 +25,81 @@
     User Management
   </h2>
 
-  <!-- Pending publisher requests -->
-  <div class="section-container mb-4">
-    <h5 class="section-title">Publisher Requests</h5>
+    <!-- Section 1: Publisher Role Requests -->
+    <div class="section-container mb-4">
+        <h5 class="section-title text-info">Publisher Requests</h5>
+        <table class="table table-dark table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Username</th>
+                    <th>Requested Role</th>
+                    <th>Requested At</th>
+                    <th style="width: 140px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set ns = namespace(found=false) %}
+                {% for r in pending if r.2 == 'publisher' %}
+                    {% set ns.found = true %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ r[1] }}</td>
+                        <td class="text-capitalize">{{ r[2] }}</td>
+                        <td>{{ r[3] }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('approve_role_request') }}" class="d-inline">
+                                <input type="hidden" name="request_id" value="{{ r[0] }}">
+                                <button type="submit" name="action" value="approve" class="btn btn-sm btn-info me-1" onclick="return confirm('Approve publisher request for {{ r[1] }}?');">Approve</button>
+                                <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger" onclick="return confirm('Reject for {{ r[1] }}?');">Reject</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% if not ns.found %}
+                    <tr><td colspan="5" class="text-muted text-center py-3">No pending publisher role requests.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
 
-    {% if pending %}
-      <table class="table table-dark table-sm align-middle mb-0">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Username</th>
-            <th>Requested Role</th>
-            <th>Requested At</th>
-            <th style="width: 140px;">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in pending %}
-          <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ r[1] }}</td>
-            <td class="text-capitalize">{{ r[2] }}</td>
-            <td>{{ r[3] }}</td>
-            <td>
-              <form
-                method="post"
-                action="{{ url_for('approve_publisher', req_id=r[0]) }}"
-                onsubmit="return confirm('Approve publisher role for {{ r[1] }}?');"
-              >
-                <button class="btn btn-sm btn-neon">Approve</button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p class="text-muted mb-0">No pending publisher requests.</p>
-    {% endif %}
-  </div>
+    <!-- Section 2: Monetization Requests -->
+    <div class="section-container mb-4">
+        <h5 class="section-title text-success">Monetization Requests</h5>
+        <table class="table table-dark table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Username</th>
+                    <th>Type</th>
+                    <th>Requested At</th>
+                    <th style="width: 140px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set ns_mon = namespace(found=false) %}
+                {% for r in pending if r.2 == 'monetization' %}
+                    {% set ns_mon.found = true %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ r[1] }}</td>
+                        <td class="text-capitalize"><span class="badge bg-success bg-opacity-25 text-success border border-success">Monetization</span></td>
+                        <td>{{ r[3] }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('approve_role_request') }}" class="d-inline">
+                                <input type="hidden" name="request_id" value="{{ r[0] }}">
+                                <button type="submit" name="action" value="approve" class="btn btn-sm btn-success me-1" onclick="return confirm('Approve monetization for {{ r[1] }}?');">Approve</button>
+                                <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger" onclick="return confirm('Reject for {{ r[1] }}?');">Reject</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% if not ns_mon.found %}
+                    <tr><td colspan="5" class="text-muted text-center py-3">No pending monetization requests.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
 
 </div>
 

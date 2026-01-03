@@ -1260,15 +1260,53 @@
         btn.textContent = 'SAVING...';
         btn.disabled = true;
 
+        // Sync with localStorage bundle settings to ensure client-side overrides don't block new changes
+        const currentLocalSettings = JSON.parse(localStorage.getItem('appThemeSettings') || '{}');
+        let localSettingsUpdated = false;
+
         // Apply each selection
         for (const [panel, value] of Object.entries(selections)) {
             const animType = panelToType[panel];
             let targetId;
+            let targetPath = null;
             
+            // Find the button to get the path for localStorage sync
+            const selectedBtn = document.querySelector(`.option-btn.selected[data-panel="${panel}"]`);
+            if (selectedBtn) {
+                 targetPath = selectedBtn.dataset.path;
+            }
+
             if (value.startsWith('custom_')) {
                 targetId = value.replace('custom_', '');
             } else {
                 targetId = value;
+            }
+
+            // Sync to localStorage if we have a path (for custom/uploaded anims) or if it's a standard style
+            // Note: Startard styles might not have a path in dataset, so we might need to rely on logic or just clear the override.
+            // If the user selects "standard" or "glitch", we should probably CLEAR the bundle override for that slot 
+            // so the CSS fallback works, OR set it to the specific value if the system supports it.
+            
+            // Key mapping matches bundles.js: login_animation, manga_path, banner_path, logout_animation
+            let localKey = '';
+            if (panel === 'login') localKey = 'login_animation';
+            else if (panel === 'manga') localKey = 'manga_path';
+            else if (panel === 'dashboard') localKey = 'banner_path';
+            else if (panel === 'logout') localKey = 'logout_animation';
+
+            if (localKey) {
+                if (targetPath) {
+                    currentLocalSettings[localKey] = targetPath;
+                    localSettingsUpdated = true;
+                } else if (!value.startsWith('custom_')) {
+                    // It's a CSS style (glitch, warp, etc) or None. 
+                    // Bundles usually store file paths. If we switch to a CSS style, we should probably remove the file path 
+                    // from localStorage so the CSS style (handled by server rendering or other logic) takes over?
+                    // Actually, base.html checks if(activeBundleTheme.logout_animation). 
+                    // If we set it to null/undefined, the override stops and it falls back to default behavior.
+                    delete currentLocalSettings[localKey];
+                    localSettingsUpdated = true;
+                }
             }
 
             try {
@@ -1280,6 +1318,10 @@
             } catch (err) {
                 console.error('Error saving:', err);
             }
+        }
+
+        if (localSettingsUpdated) {
+            localStorage.setItem('appThemeSettings', JSON.stringify(currentLocalSettings));
         }
 
         btn.textContent = 'APPLY CHANGES';

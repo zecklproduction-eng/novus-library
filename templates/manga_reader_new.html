@@ -618,6 +618,64 @@
     position: absolute;
     border: 1px solid rgba(0, 212, 255, 0.1);
   }
+
+  /* Ambient Mode Transition */
+  .manga-page {
+      transition: box-shadow 0.5s ease;
+  }
+
+  /* Zen Mode */
+  body.zen-mode .sidebar,
+  body.zen-mode .top-nav,
+  body.zen-mode .reader-nav-bar,
+  body.zen-mode .reader-controls {
+      display: none !important;
+  }
+  
+  body.zen-mode .manga-reader-container {
+      padding: 0;
+      height: 100vh;
+      max-width: 100vw;
+  }
+  
+  body.zen-mode .manga-page-container {
+      height: 100vh;
+      padding: 0;
+  }
+  
+  .zen-toggle-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+  }
+  
+  .zen-toggle-btn:hover {
+      background: rgba(0, 212, 255, 0.3);
+      border-color: #00d4ff;
+      transform: scale(1.1);
+  }
+  
+  /* Hide Zen button in Zen mode unless hovered near bottom right */
+  body.zen-mode .zen-toggle-btn {
+      opacity: 0;
+  }
+  
+  body.zen-mode .zen-toggle-btn:hover {
+      opacity: 1;
+  }
 </style>
 
 <div class="manga-reader-container">
@@ -632,6 +690,9 @@
     <div class="top-bar-right">
       <button class="btn-cyan" id="aiInsightsBtn">
         <i class="fas fa-lightbulb"></i> AI INSIGHTS
+      </button>
+      <button class="btn-icon" id="zenModeBtn" title="Zen Mode">
+        <i class="fas fa-expand"></i>
       </button>
       <button class="btn-icon" id="settingsBtn" title="Settings">
         <i class="fas fa-cog"></i>
@@ -749,6 +810,30 @@
     </div>
 
     <div class="setting-item">
+      <label class="setting-label">Wide Pages</label>
+      <div class="setting-options">
+        <button class="setting-option active" data-setting="splitSpreads" data-value="true">Split</button>
+        <button class="setting-option" data-setting="splitSpreads" data-value="false">Full</button>
+      </div>
+    </div>
+
+    <div class="setting-item">
+      <label class="setting-label">Long Pages</label>
+      <div class="setting-options">
+        <button class="setting-option active" data-setting="splitTallPages" data-value="true">Split</button>
+        <button class="setting-option" data-setting="splitTallPages" data-value="false">Full</button>
+      </div>
+    </div>
+
+    <div class="setting-item">
+      <label class="setting-label">Ambient Mode</label>
+      <div class="setting-options">
+        <button class="setting-option active" data-setting="ambientMode" data-value="true">On</button>
+        <button class="setting-option" data-setting="ambientMode" data-value="false">Off</button>
+      </div>
+    </div>
+
+    <div class="setting-item">
       <label class="setting-label">Background</label>
       <div class="setting-options">
         <button class="setting-option active" data-setting="background" data-value="light">Light</button>
@@ -803,11 +888,13 @@
 <script>
   let currentChapterId = {{ chapter[0] if chapter else 0 }};
   let currentChapterNum = {{ chapter[1] if chapter else 1 }};
-  let chapters = {{ chapters|tojson }};
+  // Ensure chapters is valid JSON or empty array
+  let chapters = {{ chapters|tojson|safe if chapters else '[]' }};
   let mangaId = {{ manga[0] }};
   let currentPageIndex = 0;
   let totalPages = 1;
   let allPageFiles = []; // Store page files for current chapter
+  let currentPageCount = 1;
 
   // Settings
   const defaultSettings = {
@@ -818,7 +905,10 @@
     direction: 'ltr',
     fit: 'height', // Default to Fit Height as requested
     gap: true,
-    aiAssistantEnabled: true
+    splitSpreads: 'true',
+    splitTallPages: 'true',
+    aiAssistantEnabled: true,
+    ambientMode: 'true'
   };
 
   let readerSettings = { ...defaultSettings };
@@ -853,6 +943,17 @@
       container.innerHTML = '<p style="color: #888;">No pages available</p>';
       return;
     }
+    
+    // Hide/Show Nav Bar based on mode
+    const navBar = document.querySelector('.reader-nav-bar');
+    if (readerSettings.readingMode === 'vertical') {
+        if (navBar) navBar.style.display = 'none';
+        // Add padding bottom to container so last page isn't cut off if sticky
+        container.style.paddingBottom = '50px';
+    } else {
+        if (navBar) navBar.style.display = 'flex';
+        container.style.paddingBottom = '0';
+    }
 
     // Ensure index range
     if (currentPageIndex >= allPageFiles.length) currentPageIndex = allPageFiles.length - 1;
@@ -860,6 +961,10 @@
 
     const currentFile = allPageFiles[currentPageIndex];
     if (currentFile.toLowerCase().endsWith('.pdf')) {
+      // PDF Fix: Force top alignment so it starts at the top, not centered
+      container.style.alignItems = 'flex-start';
+      container.style.justifyContent = 'center';
+      container.style.overflowY = 'auto'; // Ensure vertical scrolling
       renderPdf(container, currentFile);
       return;
     }
@@ -899,6 +1004,55 @@
 
         img.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${file}`;
         img.id = `page-${idx}`;
+        
+        img.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${file}`;
+        img.id = `page-${idx}`;
+        
+        img.onload = function() {
+            // Apply Ambient Glow
+            if (readerSettings.ambientMode === 'true' || readerSettings.ambientMode === true) {
+                // Determine color (check if CORS issues prevent it, usually local static is fine)
+                img.crossOrigin = "Anonymous"; 
+                const color = getAverageColor(this);
+                applyAmbientGlow(this, color);
+            }
+
+            // Check for long strip splitting (Vertical Webtoon)
+            if (readerSettings.splitTallPages === 'true' && this.naturalHeight > this.naturalWidth * 2.5) {
+               try {
+                   const w = this.naturalWidth;
+                   const h = this.naturalHeight;
+                   const targetChunkHeight = Math.floor(w * 1.6); 
+                   const numChunks = Math.ceil(h / targetChunkHeight);
+                   
+                   if (numChunks > 1) {
+                       const newPages = [];
+                       for (let i = 0; i < numChunks; i++) {
+                           const canvas = document.createElement('canvas');
+                           const ctx = canvas.getContext('2d');
+                           const sourceY = i * targetChunkHeight;
+                           const chunkHeight = Math.min(targetChunkHeight, h - sourceY);
+                           
+                           canvas.width = w;
+                           canvas.height = chunkHeight;
+                           ctx.drawImage(this, 0, sourceY, w, chunkHeight, 0, 0, w, chunkHeight);
+                           
+                           const imgChunk = document.createElement('img');
+                           imgChunk.src = canvas.toDataURL('image/jpeg');
+                           imgChunk.className = 'manga-page';
+                           imgChunk.style.cssText = this.style.cssText; // Copy styles
+                           imgChunk.style.marginBottom = '0'; // Remove margin between chunks for seamless look
+                           newPages.push(imgChunk);
+                       }
+                       // Insert chunks
+                       newPages.forEach(p => this.parentNode.insertBefore(p, this));
+                       this.style.display = 'none'; // Hide original
+                       this.remove(); 
+                   }
+               } catch(e) { console.error(e); }
+            }
+        };
+        
         container.appendChild(img);
       });
       
@@ -923,6 +1077,13 @@
          const doubleStyle = fit === 'height' ? `max-height: ${maxHeight}; max-width: none;` : `max-width: 48%; max-height: ${maxHeight};`; 
          img.style.cssText = `${doubleStyle} object-fit: contain; margin: 0 ${gap ? '10px' : '0'}; filter: ${brightnessFilter};`;
          img.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${allPageFiles[idx]}`;
+         if (readerSettings.ambientMode === 'true' || readerSettings.ambientMode === true) {
+            img.crossOrigin = "Anonymous";
+            img.onload = function() {
+                const color = getAverageColor(this);
+                applyAmbientGlow(this, color);
+            };
+         }
          return img;
       };
 
@@ -951,18 +1112,69 @@
       const img = document.createElement('img');
       img.className = 'manga-page manga-page-single';
       img.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${currentFile}`;
+      if (readerSettings.ambientMode === 'true' || readerSettings.ambientMode === true) {
+          img.crossOrigin = "Anonymous";
+          img.onload = function() {
+              const color = getAverageColor(this);
+              applyAmbientGlow(this, color);
+          };
+      }
       // In single mode with fit-height, ensure it really fits
       img.style.cssText = `${imgStyle} filter: ${brightnessFilter}; object-fit: contain;`;
       container.appendChild(img);
     }
   }
 
+  // Helper to extract average color
+  function getAverageColor(imgEl) {
+      try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = 1;
+          canvas.height = 1;
+          // Draw image scaled to 1x1 to get average
+          ctx.drawImage(imgEl, 0, 0, 1, 1);
+          const i = ctx.getImageData(0, 0, 1, 1).data;
+          // Return rgba with opacity
+          return `rgba(${i[0]}, ${i[1]}, ${i[2]}, 0.5)`;
+      } catch(e) {
+          console.warn('Ambient mode color extraction failed', e);
+          return null;
+      }
+  }
+
+  // Apply Ambient Glow
+  function applyAmbientGlow(img, color) {
+      if (!img) return;
+      if (readerSettings.ambientMode === 'true' || readerSettings.ambientMode === true) {
+          if (color) {
+              img.style.boxShadow = `0 0 80px 10px ${color}`;
+          } else {
+              // Fallback if color extraction fails or not ready
+              img.style.boxShadow = 'none';
+          }
+      } else {
+          img.style.boxShadow = 'none';
+      }
+  }
+
   function renderPdf(container, filename) {
      const embed = document.createElement('embed');
-     embed.style.cssText = 'width: 100%; height: 80vh; border: none;';
-     embed.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${filename}`;
+     // Calculate height based on page count to avoid "black void"
+     // Estimate 1200px per page (approx A4 aspect ratio on screen)
+     // Default to 20 pages if count is missing or 0
+     const estimatedHeight = (currentPageCount || 20) * 1200;
+     
+     embed.style.cssText = `width: 100%; height: ${estimatedHeight}px; border: none;`;
+     // Add params to hide toolbar/sidebar and fit width
+     embed.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${filename}#toolbar=0&navpanes=0&view=FitH`;
      embed.type = 'application/pdf';
      container.appendChild(embed);
+     
+     // CRITICAL: Force scroll to top
+     setTimeout(() => {
+         container.scrollTop = 0;
+     }, 10);
   }
 
   function getBackgroundColor(setting) {
@@ -1241,9 +1453,12 @@
 
     // Chapter structure: [id, chapter_num, title, pdf_filename, created_at, page_count]
     const pdfFilenames = chapter[3] || ''; // pdf_filename field
-    const pageCount = chapter[5] || 1; // page_count field
+    const pageCount = chapter[5] || 0; // page_count field
     
-    if (!pdfFilenames || pageCount === 0) {
+    // Set global page count for PDF height estimation
+    currentPageCount = pageCount > 0 ? pageCount : 20;
+
+    if (!pdfFilenames || (pageCount === 0 && !pdfFilenames)) {
       container.innerHTML = '<p style="color: #888;">No pages available for this chapter yet.</p>';
       allPageFiles = [];
       totalPages = 1;
@@ -1288,6 +1503,21 @@
 
   function previousPage() {
     const mode = readerSettings.readingMode || 'single';
+    const container = document.getElementById('mangaPages');
+    const currentFile = allPageFiles[currentPageIndex];
+    const isPdf = currentFile && currentFile.toLowerCase().endsWith('.pdf');
+
+    if (isPdf) {
+        // PDF Scroll Logic (Prev)
+        if (container.scrollTop > 50) {
+            container.scrollBy({ top: -1034, behavior: 'smooth' }); // Scroll up by ~1 page height
+            return;
+        }
+        // If at top, go to prev chapter
+        previousChapter();
+        return;
+    }
+
     let step = 1;
     if (mode === 'double') step = 2;
 
@@ -1303,6 +1533,22 @@
 
   function nextPage() {
     const mode = readerSettings.readingMode || 'single';
+    const container = document.getElementById('mangaPages');
+    const currentFile = allPageFiles[currentPageIndex];
+    const isPdf = currentFile && currentFile.toLowerCase().endsWith('.pdf');
+
+    if (isPdf) {
+        // PDF Scroll Logic (Next) - Scroll down by 1034px as requested
+        // Check if we can scroll more (allow some error margin)
+        if (container.scrollTop + container.clientHeight < container.scrollHeight - 50) {
+            container.scrollBy({ top: 1034, behavior: 'smooth' });
+            return;
+        }
+        // If at bottom, go to next chapter
+        nextChapter();
+        return;
+    }
+
     let step = 1;
     if (mode === 'double') step = 2;
 
@@ -1394,21 +1640,7 @@
       const hasMore = characters.length > 3;
 
       for (let i = 0; i < displayCount; i++) {
-        const char = characters[i];
-        const avatarHtml = char.avatar_url 
-          ? `<div class="character-avatar" style="background-image: url('${char.avatar_url}'); background-size: cover; background-position: center;"></div>`
-          : `<div class="character-avatar" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea, #00d4ff); color: white; font-weight: bold; font-size: 18px; border: 2px solid #00d4ff;">${char.name.charAt(0).toUpperCase()}</div>`;
-        
-        html += `
-          <div class="character-item">
-            ${avatarHtml}
-            <div class="character-info">
-              <div class="character-name">${escapeHtml(char.name)}</div>
-              <div class="character-trait">${escapeHtml(char.role || 'Character')}</div>
-              ${char.description ? `<div class="character-desc" style="font-size: 11px; color: #999; margin-top: 4px; line-height: 1.3;">${escapeHtml(char.description.substring(0, 60))}${char.description.length > 60 ? '...' : ''}</div>` : ''}
-            </div>
-          </div>
-        `;
+        html += renderCharacterItem(characters[i], i);
       }
 
       // Add "show more" button if there are more characters
@@ -1421,21 +1653,7 @@
         `;
         
         for (let i = displayCount; i < characters.length; i++) {
-          const char = characters[i];
-          const avatarHtml = char.avatar_url 
-            ? `<div class="character-avatar" style="background-image: url('${char.avatar_url}'); background-size: cover; background-position: center;"></div>`
-            : `<div class="character-avatar" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea, #00d4ff); color: white; font-weight: bold; font-size: 18px; border: 2px solid #00d4ff;">${char.name.charAt(0).toUpperCase()}</div>`;
-          
-          html += `
-            <div class="character-item">
-              ${avatarHtml}
-              <div class="character-info">
-                <div class="character-name">${escapeHtml(char.name)}</div>
-                <div class="character-trait">${escapeHtml(char.role || 'Character')}</div>
-                ${char.description ? `<div class="character-desc" style="font-size: 11px; color: #999; margin-top: 4px; line-height: 1.3;">${escapeHtml(char.description.substring(0, 60))}${char.description.length > 60 ? '...' : ''}</div>` : ''}
-              </div>
-            </div>
-          `;
+          html += renderCharacterItem(characters[i], i);
         }
         
         html += `
@@ -1449,6 +1667,45 @@
       container.innerHTML = '<div class="text-muted text-center py-3" style="font-size: 13px;">Error loading characters</div>';
     }
   }
+
+  function renderCharacterItem(char, index) {
+      const avatarHtml = char.avatar_url 
+        ? `<div class="character-avatar" style="background-image: url('${char.avatar_url}'); background-size: cover; background-position: center;"></div>`
+        : `<div class="character-avatar" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea, #00d4ff); color: white; font-weight: bold; font-size: 18px; border: 2px solid #00d4ff;">${char.name.charAt(0).toUpperCase()}</div>`;
+      
+      const descHtml = char.description ? `
+        <div style="cursor: pointer; color: #00d4ff; font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px;" onclick="toggleCharDesc('desc-${index}', 'arrow-${index}')">
+            <span>Description</span> <span id="arrow-${index}" style="font-size: 10px;">▼</span>
+        </div>
+        <div id="desc-${index}" style="display: none; font-size: 11px; color: #bbb; margin-top: 4px; line-height: 1.3; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 4px;">
+            ${escapeHtml(char.description)}
+        </div>
+      ` : '';
+
+      return `
+        <div class="character-item">
+          ${avatarHtml}
+          <div class="character-info">
+            <div class="character-name">${escapeHtml(char.name)}</div>
+            <div class="character-trait">${escapeHtml(char.role || 'Character')}</div>
+            ${descHtml}
+          </div>
+        </div>
+      `;
+  }
+
+  // Toggle character description
+  window.toggleCharDesc = function(descId, arrowId) {
+    const desc = document.getElementById(descId);
+    const arrow = document.getElementById(arrowId);
+    if (desc) {
+        const isHidden = desc.style.display === 'none';
+        desc.style.display = isHidden ? 'block' : 'none';
+        if (arrow) {
+            arrow.textContent = isHidden ? '▲' : '▼';
+        }
+    }
+  };
 
   // Toggle extra characters display
   function toggleCharacterExpand() {
@@ -1470,6 +1727,104 @@
     return div.innerHTML;
   }
 
+  // --- Continue Reading Logic ---
+
+  // Auto-Save Progress (Debounced)
+  let saveTimeout;
+  function saveProgress() {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+          fetch('/api/save_progress', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                  manga_id: mangaId,
+                  chapter_id: currentChapterId,
+                  page_index: currentPageIndex
+              })
+          }).catch(console.error);
+      }, 3000);
+  }
+
+  // Restore Progress helper
+  function restoreProgress() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const jumpChapterId = urlParams.get('chapter_id');
+    const jumpPage = urlParams.get('page');
+
+    if (jumpChapterId) {
+        // If chapter from URL is different from current default (first chapter), load it
+        // Note: currentChapterId might be initialized to first chapter already
+        if (parseInt(jumpChapterId) !== currentChapterId) {
+             loadChapter(parseInt(jumpChapterId));
+        }
+        
+        if (jumpPage) {
+            currentPageIndex = parseInt(jumpPage);
+            // Clamp
+            // We need to wait for loadChapter/displayPage? 
+            // loadChapter is synchronous mostly, but sets currentPageIndex=0.
+            // So we override it here.
+            // However, totalPages might not be set if loadChapter parses files.
+            // But loadChapter parses files synchronously from `chapters` array.
+            // So it should be fine.
+            if (totalPages > 1) {
+                currentPageIndex = Math.min(Math.max(0, currentPageIndex), totalPages - 1);
+            }
+            updatePageCounter();
+            displayPage();
+            // Update slider
+             const slider = document.getElementById('progressSlider');
+             if(slider) slider.value = (currentPageIndex / Math.max(totalPages - 1, 1)) * 100;
+        }
+    }
+  }
+  
+  // Hook into navigation
+  const originalNextPage = nextPage;
+  nextPage = function() {
+      originalNextPage();
+      saveProgress();
+  };
+  
+  const originalPrevPage = previousPage;
+  previousPage = function() {
+       originalPrevPage();
+       saveProgress();
+  };
+
+  // Hook displayPage to preload
+  const originalDisplayPage = displayPage;
+  displayPage = function() {
+      originalDisplayPage();
+      preloadAround(currentPageIndex);
+  };
+  
+  // Initialize
+  window.addEventListener('DOMContentLoaded', restoreProgress);
+
+  // Track scroll for vertical mode
+  window.addEventListener('scroll', () => {
+      if (readerSettings.readingMode === 'vertical') {
+          // Debounce scroll save
+          saveProgress();
+      }
+  });
+
+  // Also save on page unload
+  window.addEventListener('beforeunload', () => {
+      clearTimeout(saveTimeout);
+      // Use beacon for reliability on unload
+      const data = JSON.stringify({
+          manga_id: mangaId,
+          chapter_id: currentChapterId,
+          page_index: currentPageIndex
+      });
+      navigator.sendBeacon('/api/save_progress', new Blob([data], {type: 'application/json'}));
+  });
+
+
+
   // Navigation Input Handling (Direction Aware)
   function handleLeftInput() {
     if (readerSettings.direction === 'rtl') nextPage();
@@ -1485,32 +1840,42 @@
   document.getElementById('prevBtn')?.addEventListener('click', handleLeftInput);
   document.getElementById('nextBtn')?.addEventListener('click', handleRightInput);
 
-  // Initial load
-  loadCharacterProfiles();
-  loadChapterList();
-  
-  if (chapters.length > 0) {
-    const chapterToLoad = currentChapterId || chapters[0][0];
-    loadChapter(chapterToLoad);
-  }
-</script>
+  // Initial load wrapper
+  window.addEventListener('DOMContentLoaded', () => {
+    console.log("Manga Reader Initializing...");
+    try {
+        loadCharacterProfiles();
+    } catch (e) { console.error("Error init profiles:", e); }
+    
+    try {
+        loadChapterList();
+    } catch (e) { console.error("Error init chapters:", e); }
+    
+    try {
+        if (chapters && chapters.length > 0) {
+            const chapterToLoad = currentChapterId || chapters[0][0];
+            loadChapter(chapterToLoad);
+        } else {
+             // Handle no chapters
+             document.getElementById('mangaPages').innerHTML = '<p style="color: #666; margin-top: 50px;">No chapters available.</p>';
+        }
+    } catch (e) { console.error("Error load chapter:", e); }
+  });
 
-<!-- Enhanced Reader Controls -->
-<script>
-  (function(){
-    // Fullscreen
-    function toggleFullscreen() {
+  // --- Enhanced Reader Controls & Extras ---
+  
+  // Fullscreen
+  function toggleFullscreen() {
       const el = document.documentElement;
       if (!document.fullscreenElement) {
         el.requestFullscreen?.();
       } else {
         document.exitFullscreen?.();
       }
-    }
-    // Expose if needed or attach to a button (not currently in UI)
+  }
 
-    // Keyboard controls
-    window.addEventListener('keydown', (e) => {
+  // Keyboard controls
+  window.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
       
       switch (e.key) {
@@ -1524,40 +1889,36 @@
           break;
         case 'f': 
         case 'F':
-          toggleFullscreen();
-          break;
+            toggleFullscreen();
+            break;
       }
-    });
+  });
 
-    // Touch Swipe
-    let touchStartX = 0;
-    const swipeContainer = document.getElementById('mangaPages');
-    
-    swipeContainer?.addEventListener('touchstart', e => {
+  // Touch Swipe
+  let touchStartX = 0;
+  const swipeContainer = document.getElementById('mangaPages');
+  
+  swipeContainer?.addEventListener('touchstart', e => {
       touchStartX = e.changedTouches[0].screenX;
-    }, {passive: true});
+  }, {passive: true});
 
-    swipeContainer?.addEventListener('touchend', e => {
+  swipeContainer?.addEventListener('touchend', e => {
       const touchEndX = e.changedTouches[0].screenX;
       handleSwipe(touchStartX, touchEndX);
-    }, {passive: true});
+  }, {passive: true});
 
-    function handleSwipe(start, end) {
+  function handleSwipe(start, end) {
       if (Math.abs(start - end) < 50) return; // Ignore small swipes
       if (start > end) {
-        // Swiped Left (Finger moves Right to Left)
-        // Visual: Content moves Left. 
-        // User wants to see *Right* content (Next in LTR)
         handleRightInput(); 
       } else {
-        // Swiped Right (Finger moves Left to Right)
         handleLeftInput();
       }
-    }
-  })();
+  }
+
   // Preload adjacent pages
   function preloadAround(index) {
-      if (allPageFiles.length === 0) return;
+      if (!allPageFiles || allPageFiles.length === 0) return;
       const pathFor = (i) => `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${allPageFiles[i]}`;
       [index+1, index+2, index-1].forEach(i => {
         if (i >=0 && i < allPageFiles.length && allPageFiles[i] && !allPageFiles[i].toLowerCase().endsWith('.pdf')) {
@@ -1566,54 +1927,39 @@
       });
   }
 
-  // Reading progress persistence
-  let saveTimer = null;
-  function saveProgressDebounced(){
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveProgress, 1000);
-  }
-
-  async function saveProgress(){
-    try {
-      await fetch('/api/manga/progress', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ manga_id: mangaId, chapter_id: currentChapterId, page_index: currentPageIndex })
-      });
-    } catch(_) {}
-  }
-
-  async function loadProgress(){
-      try {
-        const r = await fetch(`/api/manga/progress?manga_id=${mangaId}`);
-        if (!r.ok) return;
-        const data = await r.json();
-        if (data && data.chapter_id) {
-          const found = chapters.find(ch => ch[0] === data.chapter_id);
-          if (found) {
-            if (currentChapterId !== data.chapter_id) {
-                 loadChapter(data.chapter_id);
-            }
-            currentPageIndex = Math.min(Math.max(0, data.page_index||0), Math.max(totalPages-1,0));
-            // displayPage called by loadChapter? No.
-            // But displayPage hook calls saveProgress, so calling it here might loop?
-            // Set flag? Or just call origDisplayPage?
-            // Simple call is fine.
-            displayPage();
-            updatePageCounter();
-          }
-        }
-      } catch(_) {}
-  }
-
-  // Hook into displayPage to trigger extras
-  const origDisplayPage = displayPage;
-  displayPage = function(){
-      origDisplayPage(); // calls the main display logic
-      preloadAround(currentPageIndex);
-      saveProgressDebounced();
-  }
-
   window.addEventListener('beforeunload', saveProgress);
-  loadProgress();
+
+  // Zen Mode Logic
+  const zenBtn = document.getElementById('zenModeBtn');
+  const zenFloatBtn = document.createElement('button');
+  zenFloatBtn.className = 'zen-toggle-btn';
+  zenFloatBtn.innerHTML = '<i class="fas fa-compress"></i>';
+  zenFloatBtn.title = "Exit Zen Mode";
+  zenFloatBtn.style.display = 'none';
+  zenFloatBtn.onclick = toggleZenMode;
+  document.body.appendChild(zenFloatBtn);
+  
+  if (zenBtn) {
+      zenBtn.addEventListener('click', toggleZenMode);
+  }
+  
+  function toggleZenMode() {
+      document.body.classList.toggle('zen-mode');
+      const isZen = document.body.classList.contains('zen-mode');
+      
+      if (isZen) {
+          zenFloatBtn.style.display = 'flex';
+          if (document.documentElement.requestFullscreen) {
+              document.documentElement.requestFullscreen().catch(e => console.log(e));
+          }
+      } else {
+          zenFloatBtn.style.display = 'none';
+          if (document.exitFullscreen && document.fullscreenElement) {
+              document.exitFullscreen().catch(e => console.log(e));
+          }
+      }
+  }
+</script>
+
 </script>
 {% endblock %}

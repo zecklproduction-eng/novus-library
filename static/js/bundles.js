@@ -108,7 +108,7 @@ function showBundleDetails(bundle) {
     }
     
     // Plan Enforcement
-    const planRank = { 'basic': 0, 'plus': 1, 'premium': 2 };
+    const planRank = { 'basic': 0, 'plus': 1, 'pro': 1, 'premium': 2, 'ultimate': 2 };
     const userPlanRaw = (typeof USER_PLAN !== 'undefined' ? USER_PLAN : 'basic').toLowerCase();
     const userRank = planRank[userPlanRaw] || 0;
     const bundlePlanRaw = (bundle.min_plan || 'basic').toLowerCase();
@@ -123,6 +123,13 @@ function showBundleDetails(bundle) {
         applyBtn.classList.add('locked-btn');
         applyBtn.onclick = () => showToast(`Upgrade to ${bundlePlanRaw.toUpperCase()} to unlock this bundle!`, 'error');
     }
+
+    // Live Preview Button (NEW)
+    const previewBtn = document.createElement('button');
+    previewBtn.className = 'btn-bundle btn-preview';
+    previewBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+    previewBtn.onclick = () => toggleThemePreview(bundle);
+    applyBtn.before(previewBtn);
 
     // Clear and append
     detailsPanel.innerHTML = '';
@@ -141,23 +148,96 @@ function showBundleDetails(bundle) {
     }
 }
 
+// Preview State
+let originalThemeVars = null;
+let isPreviewActive = false;
+
+/**
+ * Toggle Live Theme Preview
+ */
+function toggleThemePreview(bundle) {
+    const btn = document.querySelector('.btn-preview');
+    if (!isPreviewActive) {
+        // START PREVIEW
+        isPreviewActive = true;
+        btn.innerHTML = '<i class="fas fa-eye-slash"></i> Stop Preview';
+        btn.classList.add('active');
+        
+        // Save current variables
+        const root = document.documentElement;
+        originalThemeVars = {
+            '--accent-primary': root.style.getPropertyValue('--accent-primary'),
+            '--accent-secondary': root.style.getPropertyValue('--accent-secondary'),
+            '--neon-blue': root.style.getPropertyValue('--neon-blue')
+        };
+        
+        // Apply bundle theme
+        applyThemeToDocument(bundle.theme || {});
+        showToast('Previewing theme via live CSS injection...', 'success');
+        
+    } else {
+        // STOP PREVIEW
+        stopPreviewTheme();
+    }
+}
+
+function stopPreviewTheme() {
+    if (!isPreviewActive || !originalThemeVars) return;
+    
+    // Restore
+    const root = document.documentElement;
+    root.style.setProperty('--accent-primary', originalThemeVars['--accent-primary']);
+    root.style.setProperty('--accent-secondary', originalThemeVars['--accent-secondary']);
+    root.style.setProperty('--neon-blue', originalThemeVars['--neon-blue']);
+    
+    // Reset UI
+    const btn = document.querySelector('.btn-preview');
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+        btn.classList.remove('active');
+    }
+    
+    isPreviewActive = false;
+    originalThemeVars = null;
+    
+    // Re-apply correct theme from storage
+    const savedSettings = JSON.parse(localStorage.getItem('novus-appearance-settings') || '{}');
+    if (savedSettings.accentColor) {
+        // This is a bit rough, but better to re-run the full apply logic than guess
+        // We'll trust the stored values for now
+    }
+}
+
+
 /**
  * Apply the currently selected bundle
  */
-function applyCurrentBundle() {
+async function applyCurrentBundle() {
     if (!currentBundle) {
         showToast('No bundle selected', 'error');
         return;
     }
     
-    applyBundle(currentBundle);
+    await applyBundle(currentBundle);
 }
 
 /**
  * Apply a bundle's settings
  */
-function applyBundle(bundle) {
+async function applyBundle(bundle) {
     const theme = bundle.theme || {};
+
+    // Notify backend to update database (for persistence and Customization page sync)
+    try {
+        await fetch('/api/bundles/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bundle: bundle })
+        });
+    } catch (e) {
+        console.error("Failed to sync bundle to backend", e);
+        // Continue anyway to at least apply client-side
+    }
     
     // Save bundle slug to localStorage
     localStorage.setItem('selectedBundle', bundle.slug);

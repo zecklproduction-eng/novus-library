@@ -1085,7 +1085,7 @@
                 </p>
                 
                 <div class="theme-grid" style="grid-template-columns: 1fr;">
-                    <div class="theme-mode-option {{ 'selected' if bundle.min_plan == 'basic' or not bundle.min_plan else '' }}" onclick="selectBundlePlan('basic', this)" style="padding: 20px; justify-content: flex-start; gap: 20px;">
+                    <div class="theme-mode-option {{ 'selected' if bundle.min_plan == 'basic' or not bundle.min_plan else '' }}" data-plan="basic" onclick="selectBundlePlan('basic', this)" style="padding: 20px; justify-content: flex-start; gap: 20px;">
                         <i class="fas fa-certificate" style="font-size: 1.5rem; width: 30px;"></i>
                         <div style="text-align: left;">
                             <div style="font-weight: 700; color: #fff;">BASIC</div>
@@ -1093,18 +1093,18 @@
                         </div>
                     </div>
                     
-                    <div class="theme-mode-option {{ 'selected' if bundle.min_plan == 'plus' else '' }}" onclick="selectBundlePlan('plus', this)" style="padding: 20px; justify-content: flex-start; gap: 20px;">
+                    <div class="theme-mode-option {{ 'selected' if bundle.min_plan == 'pro' else '' }}" data-plan="pro" onclick="selectBundlePlan('pro', this)" style="padding: 20px; justify-content: flex-start; gap: 20px;">
                         <i class="fas fa-star" style="font-size: 1.5rem; width: 30px; color: #00d4ff;"></i>
                         <div style="text-align: left;">
-                            <div style="font-weight: 700; color: #fff;">PLUS</div>
+                            <div style="font-weight: 700; color: #fff;">PRO</div>
                             <div style="font-size: 0.8rem; color: #8b9bb4;">Intermediate level. Includes animated banners and custom login effects.</div>
                         </div>
                     </div>
                     
-                    <div class="theme-mode-option {{ 'selected' if bundle.min_plan == 'premium' else '' }}" onclick="selectBundlePlan('premium', this)" style="padding: 20px; justify-content: flex-start; gap: 20px;">
+                    <div class="theme-mode-option {{ 'selected' if bundle.min_plan == 'ultimate' else '' }}" data-plan="ultimate" onclick="selectBundlePlan('ultimate', this)" style="padding: 20px; justify-content: flex-start; gap: 20px;">
                         <i class="fas fa-crown" style="font-size: 1.5rem; width: 30px; color: #a78bfa;"></i>
                         <div style="text-align: left;">
-                            <div style="font-weight: 700; color: #fff;">PREMIUM</div>
+                            <div style="font-weight: 700; color: #fff;">ULTIMATE</div>
                             <div style="font-size: 0.8rem; color: #8b9bb4;">Elite level. Full access to experimental animations and exclusive presets.</div>
                         </div>
                     </div>
@@ -1224,12 +1224,64 @@
                 
                 // Add to includes if not present
                 autoAddIncludeMapping(type);
+                
+                // Recalculate Plan Requirement
+                recalcBundlePlan();
             } catch (e) {
                 alert("JSON Error: Please fix the Theme JSON before selecting assets.");
             }
         }
 
-        function autoAddIncludeMapping(type) {
+        // Auto-Calc Plan based on assets
+        function recalcBundlePlan() {
+            try {
+                const data = JSON.parse(jsonArea.value);
+                const mapping = {
+                    'banner_path': 'banner',
+                    'manga_path': 'manga_enter',
+                    'login_animation': 'login',
+                    'logout_animation': 'logout'
+                };
+                
+                let highestLevel = 0; // 0=basic
+                const levels = { 'basic': 0, 'plus': 1, 'pro': 1, 'premium': 2, 'ultimate': 2, 'admin': 3 };
+                
+                // Check currently selected assets
+                for (const [jsonKey, libKey] of Object.entries(mapping)) {
+                    const path = data[jsonKey];
+                    if (path) {
+                        // Find this asset in our library to get its tag/min_plan
+                        const assets = assetLibrary[libKey] || [];
+                        const cleanPath = path.replace('/static/', '');
+                        const found = assets.find(a => a.path === cleanPath || '/static/' + a.path === path);
+                        
+                        if (found && found.tag) {
+                            const lvl = levels[found.tag.toLowerCase()] || 0;
+                            if (lvl > highestLevel) highestLevel = lvl;
+                        }
+                    }
+                }
+                
+                // Determine target plan
+                let newPlan = 'basic';
+                if (highestLevel === 1) newPlan = 'pro';
+                else if (highestLevel === 2) newPlan = 'ultimate';
+                else if (highestLevel >= 3) newPlan = 'ultimate';
+                
+                // Update UI if changed
+                const currentPlan = planInput.value;
+                if (currentPlan !== newPlan) {
+                     // Find the element to click to reuse logic
+                     // Using data-plan is more robust
+                     const el = document.querySelector(`.theme-mode-option[data-plan="${newPlan}"]`);
+                     if (el) {
+                         selectBundlePlan(newPlan, el);
+                     }
+                }
+            } catch(e) { console.error("Plan Calc Error", e); }
+        }
+
+        window.autoAddIncludeMapping = function(type) {
             const labels = {
                 'banner': 'Custom Banner Animation',
                 'manga': 'Premium Manga Entry',
@@ -1259,6 +1311,9 @@
                 
                 updatePreview();
                 updateCardUI(typeMap[key], null);
+                
+                // Recalculate Plan Requirement
+                recalcBundlePlan();
             } catch (e) {
                 alert("JSON Error");
             }
@@ -1482,6 +1537,9 @@
                 updatePreview();
             }
         });
+
+        // Initialize Plan Calculation on Load
+        setTimeout(recalcBundlePlan, 500);
     });
 </script>
 {% endblock %}
