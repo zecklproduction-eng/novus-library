@@ -1,0 +1,745 @@
+{% extends "base.html" %}
+
+{% block title %}Community Reviews | NOVUS{% endblock %}
+
+{% block content %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+    /* Prevent Tailwind from interfering too much with Base styles */
+    .main-content {
+        padding: 0 !important;
+    }
+    
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+    }
+    
+    /* Card-level blur for heavy spoilers */
+    .spoiler-blur-container {
+        filter: blur(16px);
+        user-select: none;
+        pointer-events: none;
+        transition: filter 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .spoilers-revealed .spoiler-blur-container {
+        filter: blur(0);
+        user-select: auto;
+        pointer-events: auto;
+    }
+
+    /* Inline spoiler spans identification - Premium Refinement */
+    .spoiler {
+        background-color: #f1f5f9; /* slate-100 */
+        color: transparent !important;
+        filter: blur(12px);
+        border-radius: 8px;
+        padding: 0 8px;
+        cursor: help;
+        user-select: none;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-block;
+        border: 1px dashed #cbd5e1;
+        position: relative;
+    }
+
+    .spoiler:hover {
+        filter: blur(8px);
+        background-color: #f8fafc;
+        border-color: #6366f1;
+        border-style: solid;
+    }
+
+    .spoiler:hover::before {
+        content: 'Click to reveal';
+        position: absolute;
+        bottom: -24px;
+        left: 50%;
+        transform: translate(-50%, 0);
+        background: #1e293b;
+        color: white;
+        font-size: 8px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 10;
+        opacity: 0.9;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .spoilers-revealed .spoiler,
+    .spoiler.revealed {
+        background-color: transparent;
+        color: inherit !important;
+        filter: blur(0);
+        user-select: auto;
+        cursor: text;
+        border: 1px solid transparent;
+        padding: 0;
+    }
+
+    /* Custom Scrollbar - Advanced Utility */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* World-Class Like Button Animations */
+    @keyframes like-heart-pop {
+        0% { transform: scale(1); }
+        15% { transform: scale(0.7); }
+        35% { transform: scale(1.6) rotate(-15deg); }
+        55% { transform: scale(0.9) rotate(10deg); }
+        75% { transform: scale(1.1) rotate(-5deg); }
+        100% { transform: scale(1) rotate(0deg); }
+    }
+
+    @keyframes count-number-jump {
+        0% { opacity: 0; transform: translateY(12px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes shockwave {
+        0% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(3); opacity: 0; }
+    }
+
+    .animate-like-pop {
+        animation: like-heart-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .animate-number-jump {
+        animation: count-number-jump 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    }
+
+    .animate-shockwave {
+        animation: shockwave 0.5s ease-out forwards;
+    }
+
+    .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-clamp: 3;
+    }
+</style>
+
+<div id="review-feed-root"></div>
+
+<script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    // --- Types & Constants ---
+    const MediaType = { MANGA: 'MANGA', ANIME: 'ANIME', BOOK: 'BOOK' };
+    const MediaStatus = { READING: 'Reading', COMPLETED: 'Completed', ON_HOLD: 'On-Hold' };
+    const SortOption = { NEWEST: 'Newest', OLDEST: 'Oldest', HIGHEST_RATED: 'Highest Rated', LOWEST_RATED: 'Lowest Rated' };
+
+    const CURRENT_USER = {
+        id: '{{ user_id or "guest" }}',
+        username: '{{ username or "Guest User" }}',
+        avatarUrl: '{{ user_avatar or "https://picsum.photos/seed/you/100/100" }}'
+    };
+
+    const POPULAR_MEDIA = [
+        { id: 'm1', type: MediaType.MANGA, title: 'Chainsaw Man', slug: 'chainsaw-man', coverUrl: 'https://picsum.photos/seed/cs/200/300', tags: ['Action', 'Supernatural', 'Dark'] },
+        { id: 'm2', type: MediaType.ANIME, title: 'Frieren: Beyond Journey\'s End', slug: 'frieren', coverUrl: 'https://picsum.photos/seed/frieren/200/300', tags: ['Adventure', 'Drama', 'Fantasy'] },
+        { id: 'm3', type: MediaType.BOOK, title: 'The Name of the Wind', slug: 'name-of-the-wind', coverUrl: 'https://picsum.photos/seed/notw/200/300', tags: ['Fantasy', 'Literary'] },
+        { id: 'm4', type: MediaType.ANIME, title: 'Cowboy Bebop', slug: 'cowboy-bebop', coverUrl: 'https://picsum.photos/seed/bebop/200/300', tags: ['Sci-Fi', 'Action', 'Space'] },
+        { id: 'm5', type: MediaType.MANGA, title: 'Berserk', slug: 'berserk', coverUrl: 'https://picsum.photos/seed/berserk/200/300', tags: ['Dark', 'Fantasy', 'Action'] },
+    ];
+
+    const INITIAL_REVIEWS = [
+        {
+            id: '1',
+            userId: 'u1',
+            user: { id: 'u1', username: 'MangaFan99', avatarUrl: 'https://picsum.photos/seed/user1/100/100' },
+            media: POPULAR_MEDIA[0],
+            rating: 4.5,
+            body: 'The pacing in the latest arc is absolutely insane. Fujimoto is a madman for that twist in chapter 90! <span class="spoiler">Aki deserved better, my heart is broken.</span> Highly recommend to anyone who likes dark shonen.',
+            hasSpoilers: true,
+            status: MediaStatus.READING,
+            likesCount: 156,
+            isLiked: false,
+            comments: [
+                { id: 'c1', userId: 'u2', user: { id: 'u2', username: 'AnimeWatcherX', avatarUrl: 'https://picsum.photos/seed/user2/100/100' }, body: 'Totally agree about chapter 90. I was staring at the wall for hours after reading it.', createdAt: new Date(Date.now() - 3600000).toISOString(), likesCount: 12, isLiked: false, replies: [] }
+            ],
+            createdAt: new Date(Date.now() - 7200000).toISOString()
+        },
+        {
+            id: '2',
+            userId: 'u2',
+            user: { id: 'u2', username: 'AnimeWatcherX', avatarUrl: 'https://picsum.photos/seed/user2/100/100' },
+            media: POPULAR_MEDIA[1],
+            rating: 5.0,
+            body: 'A masterpiece of storytelling and atmosphere. It’s rare to find an anime that handles the passage of time so gracefully. The animation by Madhouse is top-tier.',
+            hasSpoilers: false,
+            status: MediaStatus.COMPLETED,
+            likesCount: 842,
+            isLiked: true,
+            comments: [],
+            createdAt: new Date(Date.now() - 86400000).toISOString()
+        }
+    ];
+
+    // --- Shared Components ---
+
+    const StarRating = ({ rating, size = 'md', editable = false, onChange }) => {
+        const [hover, setHover] = useState(0);
+        return (
+            <div className="flex items-center space-x-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                        key={star}
+                        type="button"
+                        disabled={!editable}
+                        onClick={() => onChange && onChange(star)}
+                        onMouseEnter={() => editable && setHover(star)}
+                        onMouseLeave={() => editable && setHover(0)}
+                        className={`transition-transform duration-200 ${editable ? 'hover:scale-125 cursor-pointer' : 'cursor-default'}`}
+                    >
+                        <svg className={`${size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-8 h-8' : 'w-6 h-6'} ${star <= (hover || rating) ? 'text-amber-400 fill-current' : 'text-slate-200 fill-current'}`} viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                    </button>
+                ))}
+            </div>
+        );
+    };
+
+    const LoadingSpinner = () => (
+        <svg className="animate-spin h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+    );
+
+    // --- Modals ---
+
+    const PostReviewModal = ({ isOpen, onClose, onSubmit }) => {
+        const [title, setTitle] = useState('');
+        const [type, setType] = useState(MediaType.MANGA);
+        const [rating, setRating] = useState(0);
+        const [status, setStatus] = useState(MediaStatus.READING);
+        const [body, setBody] = useState('');
+        const [hasSpoilers, setHasSpoilers] = useState(false);
+        const [tags, setTags] = useState([]);
+        const [tagInput, setTagInput] = useState('');
+        const [showResults, setShowResults] = useState(false);
+        const resultsRef = useRef(null);
+
+        const filteredMedia = title.trim() === '' ? POPULAR_MEDIA.slice(0, 3) : POPULAR_MEDIA.filter(m => m.title.toLowerCase().includes(title.toLowerCase()));
+
+        if (!isOpen) return null;
+
+        return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
+                <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                    <div className="px-10 py-8 border-b border-slate-100 flex justify-between items-center">
+                        <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Share Your Review</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-all hover:rotate-90">
+                            <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                    <div className="p-10 overflow-y-auto custom-scrollbar space-y-8">
+                        <div className="relative">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Search Media</label>
+                            <input 
+                                type="text" value={title} onChange={(e) => { setTitle(e.target.value); setShowResults(true); }}
+                                onFocus={() => setShowResults(true)}
+                                placeholder="Search for a title..."
+                                className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-base font-bold focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all outline-none"
+                            />
+                            {showResults && (
+                                <div ref={resultsRef} className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden">
+                                    {filteredMedia.map(m => (
+                                        <button key={m.id} onClick={() => { setTitle(m.title); setType(m.type); setShowResults(false); }} className="w-full p-4 flex items-center gap-4 hover:bg-indigo-50 transition-colors text-left group">
+                                            <img src={m.coverUrl} className="w-10 h-14 object-cover rounded-lg" />
+                                            <div>
+                                                <div className="font-black text-slate-900">{m.title}</div>
+                                                <div className="text-[10px] font-bold text-indigo-600 uppercase">{m.type}</div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Rating</label>
+                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
+                                    <StarRating rating={rating} editable onChange={setRating} size="md" />
+                                    <span className="font-black text-indigo-600">{rating > 0 ? rating.toFixed(1) : '—'}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Status</label>
+                                <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none appearance-none">
+                                    {Object.values(MediaStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Review</label>
+                            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} placeholder="What did you think?" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none resize-none"></textarea>
+                        </div>
+                        <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+                            <button onClick={() => setHasSpoilers(!hasSpoilers)} className="flex items-center gap-3 group">
+                                <div className={`w-12 h-7 rounded-full transition-all flex items-center p-1 ${hasSpoilers ? 'bg-indigo-600' : 'bg-slate-200'}`}>
+                                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${hasSpoilers ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </div>
+                                <span className="text-xs font-black text-slate-600 uppercase">Contains Spoilers</span>
+                            </button>
+                            <div className="flex gap-4">
+                                <button onClick={onClose} className="px-6 py-3 text-xs font-black text-slate-400 uppercase">Discard</button>
+                                <button onClick={() => { onSubmit({ title, rating, status, body, hasSpoilers, type }); onClose(); }} className="px-10 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-100 hover:scale-105 active:scale-95 transition-all">Publish</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // --- UI Utilities ---
+
+    const Toast = ({ message, type = 'info', onClose }) => {
+        useEffect(() => {
+            const timer = setTimeout(onClose, 3000);
+            return () => clearTimeout(timer);
+        }, [onClose]);
+
+        const icons = {
+            success: <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>,
+            error: <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+            info: <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        };
+
+        return (
+            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-bottom-5 duration-300">
+                <div className="bg-white/90 backdrop-blur-xl border border-slate-200 px-8 py-4 rounded-[2rem] shadow-2xl flex items-center gap-4 min-w-[320px]">
+                    {icons[type]}
+                    <span className="text-sm font-black text-slate-900 tracking-tight">{message}</span>
+                </div>
+            </div>
+        );
+    };
+
+    const ReportModal = ({ isOpen, onClose, onSubmit, targetTitle }) => {
+        const [reason, setReason] = useState('Inappropriate Content');
+        const [details, setDetails] = useState('');
+
+        if (!isOpen) return null;
+
+        return (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+                <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-10 flex flex-col gap-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Report Review</h2>
+                        <button onClick={onClose}><svg className="w-6 h-6 text-slate-300 hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                    </div>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Reporting: <span className="text-indigo-600">{targetTitle}</span></p>
+                    <div className="space-y-6">
+                        <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Reason</label>
+                            <select value={reason} onChange={(e) => setReason(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black outline-none appearance-none">
+                                <option>Inappropriate Content</option>
+                                <option>Harassment or Bullying</option>
+                                <option>Spam or Irrelevant</option>
+                                <option>Misinformation</option>
+                                <option>Major Unmarked Spoilers</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Details (Optional)</label>
+                            <textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={3} placeholder="Tell us more..." className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none resize-none"></textarea>
+                        </div>
+                        <div className="flex gap-4">
+                            <button onClick={onClose} className="flex-1 py-3 text-xs font-black text-slate-400 uppercase">Cancel</button>
+                            <button onClick={() => { onSubmit(reason, details); onClose(); }} className="flex-1 py-3 bg-red-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-red-100 hover:scale-105 active:scale-95 transition-all">Submit Report</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // --- Feed Components ---
+
+    const CommentItem = ({ comment, onLike, onReply }) => {
+        const [isReplying, setIsReplying] = useState(false);
+        const [replyText, setReplyText] = useState('');
+
+        return (
+            <div className="group/comment space-y-4">
+                <div className="flex gap-3 animate-in fade-in slide-in-from-left-2 transition-all">
+                    <img src={comment.user.avatarUrl} className="w-8 h-8 rounded-full border border-slate-100 flex-shrink-0" />
+                    <div className="flex-grow">
+                        <div className="bg-slate-50 p-4 rounded-3xl text-left hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-slate-100">
+                            <div className="flex justify-between items-center mb-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black text-slate-900 group-hover/comment:text-indigo-600 transition-colors">{comment.user.username}</span>
+                                    <div className="w-3 h-3 bg-indigo-500 rounded-full flex items-center justify-center">
+                                        <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={5}><path d="M5 13l4 4L19 7" /></svg>
+                                    </div>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">1h ago</span>
+                            </div>
+                            <p className="text-xs text-slate-600 leading-relaxed font-medium">{comment.body}</p>
+                        </div>
+                        <div className="flex gap-6 ml-4 mt-2">
+                            <button onClick={() => onLike(comment.id)} className={`text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-1.5 ${comment.isLiked ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-900'}`}>
+                                <svg className={`w-3.5 h-3.5 ${comment.isLiked ? 'fill-current animate-like-pop' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                {comment.likesCount}
+                            </button>
+                            <button onClick={() => setIsReplying(!isReplying)} className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600">Reply</button>
+                        </div>
+                        
+                        {isReplying && (
+                            <div className="mt-4 flex gap-3 animate-in slide-in-from-top-2">
+                                <img src={CURRENT_USER.avatarUrl} className="w-6 h-6 rounded-full" />
+                                <div className="flex-grow flex gap-2">
+                                    <input value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type a reply..." className="flex-grow px-4 py-2 bg-slate-100/50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-indigo-100 focus:bg-white" />
+                                    <button onClick={() => { onReply(comment.id, replyText); setReplyText(''); setIsReplying(false); }} className="px-4 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase">Post</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Threaded Replies */}
+                        {comment.replies && comment.replies.length > 0 && (
+                            <div className="mt-6 border-l-2 border-slate-100 pl-6 space-y-6">
+                                {comment.replies.map(reply => (
+                                    <div key={reply.id} className="flex gap-2.5">
+                                        <img src={reply.user.avatarUrl} className="w-6 h-6 rounded-full" />
+                                        <div className="bg-white p-3 rounded-2xl border border-slate-100 flex-grow shadow-sm">
+                                            <div className="flex justify-between mb-1">
+                                                <span className="text-[10px] font-black text-slate-900">{reply.user.username}</span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">{reply.body}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const CommentSection = ({ comments, onAddComment, onAddReply }) => {
+        const [text, setText] = useState('');
+        return (
+            <div className="mt-8 pt-8 border-t border-slate-100 space-y-8 animate-in slide-in-from-top-4 duration-500">
+                <div className="flex items-center gap-3">
+                    <img src={CURRENT_USER.avatarUrl} className="w-10 h-10 rounded-full border-2 border-white shadow-md" />
+                    <div className="flex-grow relative group/input">
+                        <textarea 
+                            value={text} onChange={(e) => setText(e.target.value)}
+                            placeholder="What are your thoughts on this review?" 
+                            rows={1}
+                            className="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 rounded-[1.5rem] text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-200 transition-all resize-none outline-none pr-24 shadow-inner"
+                        />
+                        {text.trim() && (
+                            <button onClick={() => { onAddComment(text); setText(''); }} className="absolute right-4 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-indigo-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 animate-in fade-in zoom-in-75">Send</button>
+                        )}
+                    </div>
+                </div>
+                <div className="space-y-8">
+                    {comments.map(c => (
+                        <CommentItem key={c.id} comment={c} onLike={() => {}} onReply={onAddReply} />
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    const ReviewCard = ({ review, hideSpoilers, onLike, onAddComment, onAddReply, onReport }) => {
+        const [showLocalSpoiler, setShowLocalSpoiler] = useState(false);
+        const [isExpanded, setIsExpanded] = useState(false);
+        const [showComments, setShowComments] = useState(false);
+        const [likeWave, setLikeWave] = useState(false);
+
+        const isSafetyShieldActive = review.hasSpoilers && hideSpoilers && !showLocalSpoiler;
+
+        const sentiment = review.rating >= 4.5 ? {emoji: '🤩', label: 'Exceptional'} : review.rating >= 4.0 ? {emoji: '😊', label: 'Great'} : {emoji: '😐', label: 'Average'};
+
+        return (
+            <article className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden hover:border-indigo-400 hover:shadow-2xl transition-all duration-500 relative group/card">
+                {isSafetyShieldActive && (
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/40 backdrop-blur-2xl animate-in fade-in duration-500">
+                        <div className="bg-white/95 p-10 rounded-[3rem] shadow-2xl border border-white/50 text-center max-w-xs transform group-hover/card:scale-105 transition-transform">
+                            <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            </div>
+                            <h4 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Spoiler Alert</h4>
+                            <p className="text-xs text-slate-500 font-bold mb-8 mt-2 uppercase tracking-[0.15em] leading-relaxed">This review contains significant plot details.</p>
+                            <button onClick={() => setShowLocalSpoiler(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.25em] shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all hover:scale-105 active:scale-95">Reveal Post</button>
+                        </div>
+                    </div>
+                )}
+                <div className={`p-8 md:p-12 flex flex-col md:flex-row gap-12 ${isSafetyShieldActive ? 'spoiler-blur-container' : ''}`}>
+                    <div className="flex-shrink-0 w-36 md:w-44 lg:w-48 relative">
+                        <img src={review.media.coverUrl} className="w-full aspect-[2/3] object-cover rounded-[2.5rem] shadow-xl group-hover/card:scale-110 transition-transform duration-1000 border-4 border-white" />
+                        <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-2xl border border-white/20">
+                            {review.media.type}
+                        </div>
+                    </div>
+                    <div className="flex-grow flex flex-col min-w-0">
+                        <div className="flex justify-between items-start mb-8">
+                            <div className="flex items-center gap-5">
+                                <a href={`/profile/${review.user.username}`} className="relative block group/avatar">
+                                    <img src={review.user.avatarUrl} className="w-14 h-14 rounded-full border-2 border-white shadow-lg group-hover/avatar:ring-4 group-hover/avatar:ring-indigo-100 transition-all" />
+                                    <div className="absolute -bottom-1 -right-1 bg-indigo-600 text-white p-1 rounded-full border-2 border-white shadow-md z-10 animate-bounce group-hover:animate-none">
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path d="M5 13l4 4L19 7" /></svg>
+                                    </div>
+                                </a>
+                                <div className="text-left">
+                                    <h4 className="text-base font-black text-slate-900 group-hover/card:text-indigo-600 transition-colors uppercase tracking-tight">{review.user.username}</h4>
+                                    <span className="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5 inline-block">2 hours ago</span>
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-end">
+                                <div className="flex items-center gap-3 mb-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
+                                    <span className="text-2xl" id={`sentiment-${review.id}`} title={`Sentiment: ${sentiment.label}`}>{sentiment.emoji}</span>
+                                    <StarRating rating={review.rating} size="sm" />
+                                </div>
+                                <span className={`text-[10px] font-black px-5 py-2 rounded-full border border-opacity-30 uppercase tracking-[0.2em] shadow-sm ${review.status === MediaStatus.COMPLETED ? 'bg-emerald-50 text-emerald-600 border-emerald-400' : 'bg-blue-50 text-blue-600 border-blue-400'}`}>
+                                    {review.status}
+                                </span>
+                            </div>
+                        </div>
+                        <h3 className="text-4xl font-black text-slate-900 mb-5 tracking-tighter leading-none group-hover/card:translate-x-1 transition-transform">{review.media.title}</h3>
+                        <div className="flex flex-wrap gap-3 mb-8">
+                            {review.media.tags.map(tag => (
+                                <span key={tag} className="px-6 py-2 bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] rounded-full hover:bg-white hover:border-indigo-400 hover:text-indigo-600 hover:scale-110 hover:shadow-lg transition-all cursor-default">{tag}</span>
+                            ))}
+                        </div>
+                        <div className="relative mb-8">
+                            <p 
+                                className={`text-slate-600 text-lg leading-relaxed font-medium transition-all ${!isExpanded ? 'line-clamp-3' : 'animate-in fade-in slide-in-from-top-2'}`} 
+                                dangerouslySetInnerHTML={% raw %}{{ __html: review.body }}{% endraw %} 
+                            />
+                            {!isExpanded && (
+                                <button onClick={() => setIsExpanded(true)} className="text-indigo-600 text-[12px] font-black uppercase tracking-[0.25em] mt-6 hover:translate-x-2 transition-transform flex items-center group/more">
+                                    Continue Reading
+                                    <svg className="w-5 h-5 ml-2 group-hover/more:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                                </button>
+                            )}
+                        </div>
+                        <div className="mt-auto pt-8 border-t border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-10">
+                                <button 
+                                    onClick={() => { onLike(review.id); setLikeWave(true); setTimeout(() => setLikeWave(false), 500); }} 
+                                    className={`group/btn flex items-center gap-3 text-[12px] font-black uppercase tracking-[0.2em] transition-all ${review.isLiked ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-800'}`}
+                                >
+                                    <div className="relative p-2.5 rounded-full group-hover/btn:bg-slate-50 transition-colors">
+                                        {likeWave && <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-shockwave" />}
+                                        <svg className={`w-6 h-6 ${review.isLiked ? 'fill-current animate-like-pop' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                    </div>
+                                    <span key={review.likesCount} className="animate-number-jump">{review.likesCount} Found Helpful</span>
+                                </button>
+                                <button onClick={() => setShowComments(!showComments)} className={`group/btn flex items-center gap-3 text-[12px] font-black uppercase tracking-[0.2em] transition-all ${showComments ? 'text-indigo-600 font-black' : 'text-slate-400 hover:text-slate-800'}`}>
+                                    <div className={`p-2.5 rounded-full transition-colors ${showComments ? 'bg-indigo-50' : 'group-hover/btn:bg-slate-50'}`}>
+                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.827-1.213L3 20l1.391-3.997A10.659 10.659 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                    </div>
+                                    <span>{review.comments.length} <span className="hidden sm:inline">Comments</span></span>
+                                </button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button className="p-3 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all" title="Share link">
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                </button>
+                                <button onClick={() => onReport(review)} className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-full transition-all" title="Report">
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                        {showComments && <CommentSection comments={review.comments} onAddComment={(text) => onAddComment(review.id, text)} onAddReply={(commentId, text) => onAddReply(review.id, commentId, text)} />}
+                    </div>
+                </div>
+            </article>
+        );
+    };
+
+    // --- Main App ---
+
+    const App = () => {
+        const [filters, setFilters] = useState({ mode: MediaType.MANGA, search: '', sort: SortOption.NEWEST, ratingMin: 0, status: 'Any', hideSpoilers: true });
+        const [reviews, setReviews] = useState(INITIAL_REVIEWS);
+        const [isPosting, setIsPosting] = useState(false);
+        const [reportingReview, setReportingReview] = useState(null);
+        const [toast, setToast] = useState(null);
+
+        useEffect(() => {
+            const handleSpoilerClick = (e) => {
+                if (e.target.classList.contains('spoiler')) {
+                    e.target.classList.toggle('revealed');
+                }
+            };
+            document.addEventListener('click', handleSpoilerClick);
+            return () => document.removeEventListener('click', handleSpoilerClick);
+        }, []);
+
+        const showToast = (message, type = 'info') => setToast({ message, type });
+
+        const handleLike = (id) => {
+            setReviews(prev => prev.map(r => r.id === id ? { ...r, isLiked: !r.isLiked, likesCount: r.isLiked ? r.likesCount - 1 : r.likesCount + 1 } : r));
+            showToast('Helpful vote updated!', 'success');
+        };
+        
+        const handleAddComment = (reviewId, text) => {
+            const newComment = { id: Date.now().toString(), userId: CURRENT_USER.id, user: CURRENT_USER, body: text, createdAt: new Date().toISOString(), likesCount: 0, isLiked: false, replies: [] };
+            setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, comments: [...r.comments, newComment] } : r));
+            showToast('Comment posted!', 'success');
+        };
+
+        const handleAddReply = (reviewId, commentId, text) => {
+            const newReply = { id: Date.now().toString(), userId: CURRENT_USER.id, user: CURRENT_USER, body: text, createdAt: new Date().toISOString() };
+            setReviews(prev => prev.map(r => r.id === reviewId ? {
+                ...r,
+                comments: r.comments.map(c => c.id === commentId ? { ...c, replies: [...(c.replies || []), newReply] } : c)
+            } : r));
+            showToast('Reply posted!', 'success');
+        };
+
+        const handlePostReview = (data) => {
+            const newReview = { id: Date.now().toString(), userId: CURRENT_USER.id, user: CURRENT_USER, media: { id: Date.now().toString(), ...data, coverUrl: 'https://picsum.photos/seed/' + Math.random() + '/200/300', tags: ['New Release', 'Community'] }, rating: data.rating, body: data.body, hasSpoilers: data.hasSpoilers, status: data.status, likesCount: 0, isLiked: false, comments: [], createdAt: new Date().toISOString() };
+            setReviews([newReview, ...reviews]);
+            showToast('Review shared successfully!', 'success');
+        };
+
+        const handleReportSubmit = (reason, details) => {
+            console.log('Reporting', reportingReview.id, reason, details);
+            showToast('Report submitted. Thank you!', 'info');
+        };
+
+        const filteredReviews = reviews.filter(r => {
+            const modeMatch = r.media.type === filters.mode;
+            const searchMatch = r.media.title.toLowerCase().includes(filters.search.toLowerCase()) || r.user.username.toLowerCase().includes(filters.search.toLowerCase());
+            const ratingMatch = r.rating >= filters.ratingMin;
+            const statusMatch = filters.status === 'Any' || r.status === filters.status;
+            return modeMatch && searchMatch && ratingMatch && statusMatch;
+        }).sort((a, b) => {
+            if (filters.sort === SortOption.NEWEST) return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            if (filters.sort === SortOption.OLDEST) return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            if (filters.sort === SortOption.HIGHEST_RATED) return b.rating - a.rating;
+            if (filters.sort === SortOption.LOWEST_RATED) return a.rating - b.rating;
+            return 0;
+        });
+
+        return (
+            <div className="min-h-screen bg-[#f8fafc] pb-24 pt-10 px-6">
+                <PostReviewModal isOpen={isPosting} onClose={() => setIsPosting(false)} onSubmit={handlePostReview} />
+                <ReportModal isOpen={!!reportingReview} onClose={() => setReportingReview(null)} onSubmit={handleReportSubmit} targetTitle={reportingReview?.media.title} />
+                {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+                
+                <div className="max-w-5xl mx-auto">
+                    {/* Header Controls */}
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+                        <div className="text-left">
+                            <div className="flex items-center gap-6 mb-4">
+                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.MANGA}))} className={`text-sm font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.MANGA ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>MANGA</button>
+                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.ANIME}))} className={`text-sm font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.ANIME ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>ANIME</button>
+                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.BOOK}))} className={`text-sm font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.BOOK ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>BOOKS</button>
+                            </div>
+                            <h1 className="text-5xl font-black text-slate-900 tracking-tighter mb-3">Recent User Reviews</h1>
+                            <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.2em]">See what the community is saying about the latest releases.</p>
+                        </div>
+                        <button onClick={() => setIsPosting(true)} className="px-12 py-4 bg-indigo-600 text-white rounded-3xl text-sm font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-200 hover:scale-[1.05] active:scale-[0.95] transition-all">Post Review</button>
+                    </div>
+
+                    {/* Filter Bar */}
+                    <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-xl mb-12 flex flex-col lg:flex-row lg:items-center gap-8 animate-in slide-in-from-top-6 duration-700">
+                        <div className="relative flex-grow min-w-[300px]">
+                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            </span>
+                            <input 
+                                type="text" value={filters.search} onChange={(e) => setFilters(f => ({...f, search: e.target.value}))}
+                                placeholder="Search media or users..." 
+                                className="w-full pl-16 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all outline-none"
+                            />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-8">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sort By</label>
+                                <select value={filters.sort} onChange={(e) => setFilters(f => ({...f, sort: e.target.value}))} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-black text-slate-900 outline-none hover:bg-white transition-all appearance-none cursor-pointer">
+                                    {Object.values(SortOption).map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rating</label>
+                                <select value={filters.ratingMin} onChange={(e) => setFilters(f => ({...f, ratingMin: Number(e.target.value)}))} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-black text-slate-900 outline-none hover:bg-white transition-all cursor-pointer">
+                                    <option value={0}>Any Rating</option>
+                                    <option value={4.5}>4.5★ +</option>
+                                    <option value={4.0}>4.0★ +</option>
+                                    <option value={3.0}>3.0★ +</option>
+                                </select>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
+                                <select value={filters.status} onChange={(e) => setFilters(f => ({...f, status: e.target.value}))} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-black text-slate-900 outline-none hover:bg-white transition-all cursor-pointer">
+                                    <option value="Any">Any Status</option>
+                                    {Object.values(MediaStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+                            <div className="lg:border-l lg:border-slate-100 lg:pl-8 flex items-center gap-4 cursor-pointer group" onClick={() => setFilters(f => ({...f, hideSpoilers: !f.hideSpoilers}))}>
+                                <div className={`w-14 h-8 rounded-full transition-all flex items-center p-1 ${filters.hideSpoilers ? 'bg-indigo-600 shadow-xl shadow-indigo-100' : 'bg-slate-200'}`}>
+                                    <div className={`w-6 h-6 bg-white rounded-full transition-transform ${filters.hideSpoilers ? 'translate-x-6' : 'translate-x-0'}`} />
+                                </div>
+                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-900 transition-colors">Hide Spoilers</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Review Feed */}
+                    <div className="space-y-10">
+                        {filteredReviews.length > 0 ? (
+                            filteredReviews.map(r => (
+                                <ReviewCard 
+                                    key={r.id} review={r} 
+                                    hideSpoilers={filters.hideSpoilers} 
+                                    onLike={handleLike} 
+                                    onAddComment={handleAddComment}
+                                />
+                            ))
+                        ) : (
+                            <div className="bg-white border-2 border-dashed border-slate-200 rounded-[3rem] p-24 text-center">
+                                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <svg className="w-10 h-10 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                </div>
+                                <h3 className="text-2xl font-black text-slate-900 mb-2">No reviews found</h3>
+                                <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Try adjusting your filters or search query</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('review-feed-root'));
+    root.render(<App />);
+</script>
+{% endblock %}

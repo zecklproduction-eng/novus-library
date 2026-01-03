@@ -1909,6 +1909,23 @@ def admin_ai_summaries():
     return render_template('admin_ai_summaries.html', rows=rows, ttl_days=ttl_days)
 
 
+@app.route("/community/reviews")
+def community_reviews():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    # We'll pass some basic user info for the template
+    return render_template(
+        "community_reviews.html",
+        user_id=session.get("user_id"),
+        username=session.get("username"),
+        user_role=session.get("role"),
+        user_plan=session.get("plan", "basic"),
+        user_avatar=session.get("avatar_url"),
+        page_endpoint="community_reviews"
+    )
+
+
 @app.route('/admin/reports')
 @admin_required
 def admin_reports():

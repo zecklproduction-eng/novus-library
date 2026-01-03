@@ -11,29 +11,49 @@
 
   /* Global overrides for Reader Mode */
   html, body {
-    overflow: hidden !important; /* Kill outer scrollbar */
+    overflow: hidden !important; 
     height: 100vh;
   }
 
-  /* Reset base.html main-content constraints */
+  /* Reset base.html main-content constraints but respect sidebar */
   .main-content {
-    margin: 0 !important;
-    padding: 0 !important;
+    margin-left: 90px !important;    /* Respect Sidebar Width */
+    margin-top: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 0 !important;
+    
+    padding: 0 !important;           /* Remove internal padding */
+    
+    width: calc(100vw - 90px) !important; /* Adjust width */
     height: 100vh;
-    width: 100vw;
-    max-width: none !important;
+    
     overflow: hidden !important;
+    display: flex !important;        /* Use Flexbox Layout */
+    flex-direction: column !important;
   }
 
-  /* Hide base header if it exists */
+  /* Header adjustments */
   .top-header-minimal {
-    display: none !important;
+     flex-shrink: 0;                 /* Prevent shrinking */
+     margin-bottom: 0 !important;    /* Connect directly to reader */
+     position: relative;
+     z-index: 100;
   }
   
-  /* Ensure Sidebar (if present from base) is handled or potentially hidden? 
-     For now, let's assume we want full screen immersive. */
-  .sidebar { 
-     display: none !important; /* Optional: Hide global sidebar for immersion */
+  .sidebar {
+     display: flex !important;
+     z-index: 9999 !important; /* Ensure it's on top */
+     visibility: visible !important;
+  }
+
+  /* Reader Container fills remaining space */
+  .manga-reader-container {
+    flex: 1;                         /* Fill remaining height */
+    height: auto !important;         /* Override fixed calc */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   }
 
   body {
@@ -984,10 +1004,7 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-</script>
+
 
 <script>
   let currentChapterId = {{ chapter[0] if chapter else 0 }};
@@ -1093,16 +1110,21 @@
     const margin = gap ? '20px' : '0px';
 
       if (mode === 'vertical') {
-       // Vertical / Webtoon mode
-       container.style.flexDirection = 'column';
-       container.style.alignItems = 'center';
-       // Remove height: auto so flex: 1 works and container stays inside parent? 
-       // Or keep height: 100% to fill parent, and overflow handles content?
-       container.style.height = '100%'; 
-       container.style.overflowY = 'auto';
-       
-       allPageFiles.forEach((file, idx) => {
-        if (file.toLowerCase().endsWith('.pdf')) return;
+      // Vertical / Webtoon mode
+      container.style.flexDirection = 'column';
+      container.style.alignItems = 'center';
+      container.style.height = '100%'; 
+      container.style.overflowY = 'auto';
+      
+      allPageFiles.forEach((file, idx) => {
+        // Special Handling for PDF in Vertical Mode
+        if (file.toLowerCase().endsWith('.pdf')) {
+             // Use standard renderPdf with enhanced height logic
+             container.style.alignItems = 'flex-start'; // Ensure alignment for embed
+             renderPdf(container, file);
+             return; 
+        }
+        
         const img = document.createElement('img');
         img.className = 'manga-page';
         img.style.cssText = `${imgStyle} display: block; margin-bottom: ${margin}; filter: ${brightnessFilter};`;
@@ -1173,21 +1195,25 @@
       // Double Page Mode
       container.style.flexDirection = 'row'; // Always row, order handled by DOM order
       container.style.justifyContent = 'center';
-      container.style.alignItems = 'flex-start';
-      container.style.overflowY = '';
+      container.style.alignItems = 'center'; // Align center vertically
+      container.style.overflow = 'hidden';   // Prevent scroll
 
       const createImg = (idx) => {
          const img = document.createElement('img');
          img.className = 'manga-page';
-         // Double mode usually implies fit height or contain
-         const doubleStyle = fit === 'height' ? `max-height: ${maxHeight}; max-width: none;` : `max-width: 48%; max-height: ${maxHeight};`; 
+         // Strict fit height to prevent scrolling
+         const doubleStyle = fit === 'height' ? `max-height: 100%; max-width: none; width: auto;` : `max-width: 48%; max-height: 100%; width: auto;`; 
          img.style.cssText = `${doubleStyle} object-fit: contain; margin: 0 ${gap ? '10px' : '0'}; filter: ${brightnessFilter};`;
          img.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${allPageFiles[idx]}`;
          if (readerSettings.ambientMode === 'true' || readerSettings.ambientMode === true) {
             img.crossOrigin = "Anonymous";
             img.onload = function() {
                 const color = getAverageColor(this);
-                applyAmbientGlow(this, color);
+                // Reduced blur for performance and to prevent spill-over
+                if (color) {
+                    this.style.boxShadow = `0 0 15px 2px ${color}`; 
+                    this.style.willChange = 'box-shadow';
+                }
             };
          }
          return img;
@@ -1214,6 +1240,7 @@
       container.style.flexDirection = 'row';
       container.style.justifyContent = 'center';
       container.style.alignItems = 'center'; // Center vertically
+      container.style.overflow = 'hidden';   // Prevent scroll
       
       const img = document.createElement('img');
       img.className = 'manga-page manga-page-single';
@@ -1222,11 +1249,14 @@
           img.crossOrigin = "Anonymous";
           img.onload = function() {
               const color = getAverageColor(this);
-              applyAmbientGlow(this, color);
+              if (color) {
+                  this.style.boxShadow = `0 0 15px 2px ${color}`;
+                  this.style.willChange = 'box-shadow';
+              }
           };
       }
-      // In single mode with fit-height, ensure it really fits
-      img.style.cssText = `${imgStyle} filter: ${brightnessFilter}; object-fit: contain;`;
+      // Strict fit height to prevent scrolling
+      img.style.cssText = `max-height: 100%; max-width: 100%; width: auto; height: auto; filter: ${brightnessFilter}; object-fit: contain;`;
       container.appendChild(img);
     }
   }
@@ -1254,9 +1284,11 @@
       if (!img) return;
       if (readerSettings.ambientMode === 'true' || readerSettings.ambientMode === true) {
           if (color) {
-              img.style.boxShadow = `0 0 80px 10px ${color}`;
+              // OPTIMIZED: Reduced blur from 80px to 30px for performance
+              img.style.boxShadow = `0 0 30px 5px ${color}`;
+              // Add hardware acceleration hint
+              img.style.willChange = 'box-shadow'; 
           } else {
-              // Fallback if color extraction fails or not ready
               img.style.boxShadow = 'none';
           }
       } else {
@@ -1267,9 +1299,8 @@
   function renderPdf(container, filename) {
      const embed = document.createElement('embed');
      // Calculate height based on page count to avoid "black void"
-     // Estimate 1200px per page (approx A4 aspect ratio on screen)
-     // Default to 20 pages if count is missing or 0
-     const estimatedHeight = (currentPageCount || 20) * 1200;
+     // OPTIMIZED: Reduced max height to 10000px to prevent browser lag
+     const estimatedHeight = (!currentPageCount || currentPageCount <= 1) ? 10000 : (currentPageCount * 1200);
      
      embed.style.cssText = `width: 100%; height: ${estimatedHeight}px; border: none;`;
      // Add params to hide toolbar/sidebar and fit width
