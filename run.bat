@@ -27,3 +27,4 @@ python app.py
 echo.
 echo Application stopped.
 pause
+echo.

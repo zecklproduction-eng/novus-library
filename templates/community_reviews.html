@@ -14,10 +14,55 @@
         padding: 0 !important;
     }
     
+    :root {
+        --cr-bg: #f8fafc;
+        --cr-card-bg: #ffffff;
+        --cr-card-border: #e2e8f0; /* slate-200 */
+        --cr-text-main: #0f172a; /* slate-900 */
+        --cr-text-muted: #64748b; /* slate-500 */
+        --cr-input-bg: #f1f5f9; /* slate-100 */
+        --cr-accent: #4f46e5; /* indigo-600 */
+    }
+
+    body.theme-dark, body.theme-midnight, body.theme-blue, body.theme-purple, body.theme-nebula, body.theme-demonic {
+        --cr-bg: var(--bg-main);
+        --cr-card-bg: var(--bg-card);
+        --cr-card-border: var(--border-subtle);
+        --cr-text-main: var(--text-primary);
+        --cr-text-muted: var(--text-muted);
+        --cr-input-bg: var(--bg-input);
+        --cr-accent: var(--neon-blue);
+    }
+
+    body.theme-angelic {
+        --cr-bg: #fffbf0;
+        --cr-card-bg: #ffffff;
+        --cr-card-border: #e6dbb9;
+        --cr-text-main: #5c4b37;
+        --cr-text-muted: #8d7b68;
+        --cr-input-bg: #fdf6e3;
+        --cr-accent: #d4af37; /* Goldish */
+    }
+
     body {
         font-family: 'Inter', sans-serif;
-        background-color: #f8fafc;
+        background-color: var(--cr-bg);
+        color: var(--cr-text-main);
+        transition: background-color 0.3s ease, color 0.3s ease;
+        font-size: inherit;
     }
+    
+    /* Density overrides */
+    body.density-compact .community-reviews-container {
+        gap: 1.5rem !important;
+        padding-top: 1rem !important;
+    }
+    body.density-spacious .community-reviews-container {
+        gap: 4rem !important;
+        padding-top: 4rem !important;
+    }
+
+
     
     /* Card-level blur for heavy spoilers */
     .spoiler-blur-container {
@@ -159,46 +204,7 @@
         avatarUrl: '{{ user_avatar or "https://picsum.photos/seed/you/100/100" }}'
     };
 
-    const POPULAR_MEDIA = [
-        { id: 'm1', type: MediaType.MANGA, title: 'Chainsaw Man', slug: 'chainsaw-man', coverUrl: 'https://picsum.photos/seed/cs/200/300', tags: ['Action', 'Supernatural', 'Dark'] },
-        { id: 'm2', type: MediaType.ANIME, title: 'Frieren: Beyond Journey\'s End', slug: 'frieren', coverUrl: 'https://picsum.photos/seed/frieren/200/300', tags: ['Adventure', 'Drama', 'Fantasy'] },
-        { id: 'm3', type: MediaType.BOOK, title: 'The Name of the Wind', slug: 'name-of-the-wind', coverUrl: 'https://picsum.photos/seed/notw/200/300', tags: ['Fantasy', 'Literary'] },
-        { id: 'm4', type: MediaType.ANIME, title: 'Cowboy Bebop', slug: 'cowboy-bebop', coverUrl: 'https://picsum.photos/seed/bebop/200/300', tags: ['Sci-Fi', 'Action', 'Space'] },
-        { id: 'm5', type: MediaType.MANGA, title: 'Berserk', slug: 'berserk', coverUrl: 'https://picsum.photos/seed/berserk/200/300', tags: ['Dark', 'Fantasy', 'Action'] },
-    ];
-
-    const INITIAL_REVIEWS = [
-        {
-            id: '1',
-            userId: 'u1',
-            user: { id: 'u1', username: 'MangaFan99', avatarUrl: 'https://picsum.photos/seed/user1/100/100' },
-            media: POPULAR_MEDIA[0],
-            rating: 4.5,
-            body: 'The pacing in the latest arc is absolutely insane. Fujimoto is a madman for that twist in chapter 90! <span class="spoiler">Aki deserved better, my heart is broken.</span> Highly recommend to anyone who likes dark shonen.',
-            hasSpoilers: true,
-            status: MediaStatus.READING,
-            likesCount: 156,
-            isLiked: false,
-            comments: [
-                { id: 'c1', userId: 'u2', user: { id: 'u2', username: 'AnimeWatcherX', avatarUrl: 'https://picsum.photos/seed/user2/100/100' }, body: 'Totally agree about chapter 90. I was staring at the wall for hours after reading it.', createdAt: new Date(Date.now() - 3600000).toISOString(), likesCount: 12, isLiked: false, replies: [] }
-            ],
-            createdAt: new Date(Date.now() - 7200000).toISOString()
-        },
-        {
-            id: '2',
-            userId: 'u2',
-            user: { id: 'u2', username: 'AnimeWatcherX', avatarUrl: 'https://picsum.photos/seed/user2/100/100' },
-            media: POPULAR_MEDIA[1],
-            rating: 5.0,
-            body: 'A masterpiece of storytelling and atmosphere. It’s rare to find an anime that handles the passage of time so gracefully. The animation by Madhouse is top-tier.',
-            hasSpoilers: false,
-            status: MediaStatus.COMPLETED,
-            likesCount: 842,
-            isLiked: true,
-            comments: [],
-            createdAt: new Date(Date.now() - 86400000).toISOString()
-        }
-    ];
+    const INITIAL_REVIEWS = {{ initial_reviews | tojson | safe if initial_reviews else '[]' }};
 
     // --- Shared Components ---
 
@@ -216,7 +222,7 @@
                         onMouseLeave={() => editable && setHover(0)}
                         className={`transition-transform duration-200 ${editable ? 'hover:scale-125 cursor-pointer' : 'cursor-default'}`}
                     >
-                        <svg className={`${size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-8 h-8' : 'w-6 h-6'} ${star <= (hover || rating) ? 'text-amber-400 fill-current' : 'text-slate-200 fill-current'}`} viewBox="0 0 24 24">
+                        <svg className={`${size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-8 h-8' : 'w-6 h-6'} ${star <= (hover || rating) ? 'text-amber-400 fill-current' : 'text-[var(--cr-text-muted)]/20 fill-current'}`} viewBox="0 0 24 24">
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                         </svg>
                     </button>
@@ -226,7 +232,7 @@
     };
 
     const LoadingSpinner = () => (
-        <svg className="animate-spin h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24">
+        <svg className="animate-spin h-5 w-5 text-[var(--cr-accent)]" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
@@ -234,28 +240,73 @@
 
     // --- Modals ---
 
-    const PostReviewModal = ({ isOpen, onClose, onSubmit }) => {
+    const PostReviewModal = ({ isOpen, onClose, onSubmit, initialData = null }) => {
         const [title, setTitle] = useState('');
         const [type, setType] = useState(MediaType.MANGA);
         const [rating, setRating] = useState(0);
         const [status, setStatus] = useState(MediaStatus.READING);
         const [body, setBody] = useState('');
         const [hasSpoilers, setHasSpoilers] = useState(false);
-        const [tags, setTags] = useState([]);
-        const [tagInput, setTagInput] = useState('');
+        const [filteredMedia, setFilteredMedia] = useState([]);
+        const [isSearching, setIsSearching] = useState(false);
         const [showResults, setShowResults] = useState(false);
         const resultsRef = useRef(null);
+        const [tags, setTags] = useState([]);
+        const [tagInput, setTagInput] = useState('');
 
-        const filteredMedia = title.trim() === '' ? POPULAR_MEDIA.slice(0, 3) : POPULAR_MEDIA.filter(m => m.title.toLowerCase().includes(title.toLowerCase()));
+        useEffect(() => {
+            if (isOpen) {
+                if (initialData) {
+                    setTitle(initialData.media.title);
+                    setType(initialData.media.type);
+                    setRating(initialData.rating);
+                    setStatus(initialData.status);
+                    setBody(initialData.body);
+                    setHasSpoilers(initialData.hasSpoilers);
+                    setTags(initialData.media.tags || []);
+                } else {
+                    setTitle('');
+                    setType(MediaType.MANGA);
+                    setRating(0);
+                    setStatus(MediaStatus.READING);
+                    setBody('');
+                    setHasSpoilers(false);
+                    setTags([]);
+                    setFilteredMedia([]);
+                }
+            }
+        }, [isOpen, initialData]);
+
+        useEffect(() => {
+            if (!initialData && title.trim().length > 1) {
+                const delayDebounceFn = setTimeout(() => {
+                    setIsSearching(true);
+                    fetch(`/api/media/search?q=${encodeURIComponent(title)}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            setFilteredMedia(data);
+                            setIsSearching(false);
+                            setShowResults(true);
+                        })
+                        .catch(err => {
+                            console.error("Search error:", err);
+                            setIsSearching(false);
+                        });
+                }, 400);
+                return () => clearTimeout(delayDebounceFn);
+            } else {
+                setFilteredMedia([]);
+            }
+        }, [title, initialData]);
 
         if (!isOpen) return null;
 
         return (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
-                <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                <div className="relative bg-[var(--cr-card-bg)] w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
                     <div className="px-10 py-8 border-b border-slate-100 flex justify-between items-center">
-                        <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Share Your Review</h2>
+                        <h2 className="text-3xl font-black text-[var(--cr-text-main)] tracking-tighter">{initialData ? 'Edit Review' : 'Share Your Review'}</h2>
                         <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-all hover:rotate-90">
                             <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
@@ -264,54 +315,116 @@
                         <div className="relative">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Search Media</label>
                             <input 
-                                type="text" value={title} onChange={(e) => { setTitle(e.target.value); setShowResults(true); }}
-                                onFocus={() => setShowResults(true)}
+                                type="text" value={title} onChange={(e) => { setTitle(e.target.value); if(!initialData) setShowResults(true); }}
+                                onFocus={() => !initialData && setShowResults(true)}
                                 placeholder="Search for a title..."
-                                className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-base font-bold focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all outline-none"
+                                disabled={!!initialData}
+                                className={`w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-base font-bold focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all outline-none ${initialData ? 'opacity-50 cursor-not-allowed' : ''}`}
                             />
-                            {showResults && (
-                                <div ref={resultsRef} className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden">
+                            {showResults && !initialData && filteredMedia.length > 0 && (
+                                <div ref={resultsRef} className="absolute top-full left-0 right-0 mt-2 bg-[var(--cr-card-bg)] border border-[var(--cr-card-border)] rounded-2xl shadow-xl z-50 overflow-hidden">
                                     {filteredMedia.map(m => (
-                                        <button key={m.id} onClick={() => { setTitle(m.title); setType(m.type); setShowResults(false); }} className="w-full p-4 flex items-center gap-4 hover:bg-indigo-50 transition-colors text-left group">
+                                        <button key={m.id} onClick={() => { setTitle(m.title); setType(m.type); setTags(m.tags); setShowResults(false); }} className="w-full p-4 flex items-center gap-4 hover:bg-[var(--cr-accent)]/5 transition-colors text-left group">
                                             <img src={m.coverUrl} className="w-10 h-14 object-cover rounded-lg" />
                                             <div>
-                                                <div className="font-black text-slate-900">{m.title}</div>
-                                                <div className="text-[10px] font-bold text-indigo-600 uppercase">{m.type}</div>
+                                                <div className="font-black text-[var(--cr-text-main)]">{m.title}</div>
+                                                <div className="text-[10px] font-bold text-[var(--cr-accent)] uppercase">{m.type}</div>
                                             </div>
                                         </button>
                                     ))}
+                                </div>
+                            )}
+                            {isSearching && (
+                                <div className="absolute right-4 top-[3.7rem]">
+                                    <LoadingSpinner />
                                 </div>
                             )}
                         </div>
                         <div className="grid grid-cols-2 gap-6">
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Rating</label>
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
+                                <div className="bg-[var(--cr-input-bg)] p-4 rounded-2xl border border-[var(--cr-card-border)] flex items-center justify-between">
                                     <StarRating rating={rating} editable onChange={setRating} size="md" />
                                     <span className="font-black text-indigo-600">{rating > 0 ? rating.toFixed(1) : '—'}</span>
                                 </div>
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Status</label>
-                                <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none appearance-none">
+                                <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full p-4 bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-2xl text-sm font-black focus:ring-4 focus:ring-[var(--cr-accent)]/10 transition-all outline-none appearance-none text-[var(--cr-text-main)]">
                                     {Object.values(MediaStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Category</label>
+                                <select value={type} onChange={(e) => setType(e.target.value)} className="w-full p-4 bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-2xl text-sm font-black focus:ring-4 focus:ring-[var(--cr-accent)]/10 transition-all outline-none appearance-none text-[var(--cr-text-main)]">
+                                    {Object.values(MediaType).map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Community Tags</label>
+                                <input 
+                                    type="text" 
+                                    value={tagInput}
+                                    onChange={(e) => setTagInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && tagInput.trim()) {
+                                            if (!tags.includes(tagInput.trim())) setTags([...tags, tagInput.trim()]);
+                                            setTagInput('');
+                                        }
+                                    }}
+                                    placeholder="Add a tag..."
+                                    className="w-full p-4 bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-2xl text-sm font-bold focus:ring-4 focus:ring-[var(--cr-accent)]/10 transition-all outline-none text-[var(--cr-text-main)]"
+                                />
+                                {tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        {tags.map(tag => (
+                                            <span key={tag} className="px-3 py-1 bg-[var(--cr-accent)]/10 text-[var(--cr-accent)] rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-2">
+                                                {tag}
+                                                <button onClick={() => setTags(tags.filter(t => t !== tag))} className="hover:text-[var(--cr-text-main)]">×</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Review</label>
-                            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} placeholder="What did you think?" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none resize-none"></textarea>
+                            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} placeholder="What did you think?" className="w-full p-6 bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-2xl text-sm font-medium focus:ring-4 focus:ring-[var(--cr-accent)]/10 transition-all outline-none resize-none text-[var(--cr-text-main)]"></textarea>
                         </div>
                         <div className="flex items-center justify-between pt-6 border-t border-slate-100">
                             <button onClick={() => setHasSpoilers(!hasSpoilers)} className="flex items-center gap-3 group">
-                                <div className={`w-12 h-7 rounded-full transition-all flex items-center p-1 ${hasSpoilers ? 'bg-indigo-600' : 'bg-slate-200'}`}>
+                                <div className={`w-12 h-7 rounded-full transition-all flex items-center p-1 ${hasSpoilers ? 'bg-[var(--cr-accent)]' : 'bg-[var(--cr-input-bg)]'}`}>
                                     <div className={`w-5 h-5 bg-white rounded-full transition-transform ${hasSpoilers ? 'translate-x-5' : 'translate-x-0'}`} />
                                 </div>
                                 <span className="text-xs font-black text-slate-600 uppercase">Contains Spoilers</span>
                             </button>
                             <div className="flex gap-4">
                                 <button onClick={onClose} className="px-6 py-3 text-xs font-black text-slate-400 uppercase">Discard</button>
-                                <button onClick={() => { onSubmit({ title, rating, status, body, hasSpoilers, type }); onClose(); }} className="px-10 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-100 hover:scale-105 active:scale-95 transition-all">Publish</button>
+                                <button 
+                                    onClick={() => {
+                                        if (rating === 0) {
+                                            alert("Please add a rating!");
+                                            return;
+                                        }
+                                        if (body.trim().length < 10) {
+                                            alert("Review must be at least 10 characters long.");
+                                            return;
+                                        }
+                                        
+                                        const reviewData = { title, rating, status, body, hasSpoilers, type, tags };
+                                        if (initialData) {
+                                            reviewData.reviewId = initialData.id;
+                                        }
+                                        
+                                        onSubmit(reviewData, !!initialData);
+                                        onClose();
+                                    }} 
+                                    className="px-10 py-3 bg-[var(--cr-accent)] text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all"
+                                >
+                                    {initialData ? 'Save Changes' : 'Publish'}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -336,9 +449,9 @@
 
         return (
             <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-bottom-5 duration-300">
-                <div className="bg-white/90 backdrop-blur-xl border border-slate-200 px-8 py-4 rounded-[2rem] shadow-2xl flex items-center gap-4 min-w-[320px]">
+                <div className="bg-[var(--cr-card-bg)]/90 backdrop-blur-xl border border-[var(--cr-card-border)] px-8 py-4 rounded-[2rem] shadow-2xl flex items-center gap-4 min-w-[320px]">
                     {icons[type]}
-                    <span className="text-sm font-black text-slate-900 tracking-tight">{message}</span>
+                    <span className="text-sm font-black text-[var(--cr-text-main)] tracking-tight">{message}</span>
                 </div>
             </div>
         );
@@ -352,17 +465,17 @@
 
         return (
             <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-                <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-10 flex flex-col gap-6">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Report Review</h2>
-                        <button onClick={onClose}><svg className="w-6 h-6 text-slate-300 hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
+                <div className="relative bg-[var(--cr-card-bg)] w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                    <div className="px-10 py-8 border-b border-[var(--cr-card-border)] flex justify-between items-center">
+                        <h2 className="text-2xl font-black text-[var(--cr-text-main)] tracking-tighter uppercase">Report Content</h2>
+                        <button onClick={onClose}><svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></button>
                     </div>
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Reporting: <span className="text-indigo-600">{targetTitle}</span></p>
-                    <div className="space-y-6">
+                    <p className="text-xs text-[var(--cr-text-muted)] font-bold uppercase tracking-widest p-10 pb-0">Reporting: <span className="text-[var(--cr-accent)] font-black">{targetTitle}</span></p>
+                    <div className="p-10 pt-6 space-y-6">
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Reason</label>
-                            <select value={reason} onChange={(e) => setReason(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black outline-none appearance-none">
+                            <select value={reason} onChange={(e) => setReason(e.target.value)} className="w-full p-4 bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-2xl text-sm font-black outline-none appearance-none text-[var(--cr-text-main)]">
                                 <option>Inappropriate Content</option>
                                 <option>Harassment or Bullying</option>
                                 <option>Spam or Irrelevant</option>
@@ -372,7 +485,7 @@
                         </div>
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Details (Optional)</label>
-                            <textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={3} placeholder="Tell us more..." className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none resize-none"></textarea>
+                            <textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={3} placeholder="Tell us more..." className="w-full p-5 bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-2xl text-sm font-medium outline-none resize-none text-[var(--cr-text-main)]"></textarea>
                         </div>
                         <div className="flex gap-4">
                             <button onClick={onClose} className="flex-1 py-3 text-xs font-black text-slate-400 uppercase">Cancel</button>
@@ -395,31 +508,31 @@
                 <div className="flex gap-3 animate-in fade-in slide-in-from-left-2 transition-all">
                     <img src={comment.user.avatarUrl} className="w-8 h-8 rounded-full border border-slate-100 flex-shrink-0" />
                     <div className="flex-grow">
-                        <div className="bg-slate-50 p-4 rounded-3xl text-left hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-slate-100">
-                            <div className="flex justify-between items-center mb-1">
+                        <div className="bg-[var(--cr-input-bg)] p-4 rounded-2xl border border-[var(--cr-card-border)] flex-grow shadow-sm">
+                            <div className="flex justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs font-black text-slate-900 group-hover/comment:text-indigo-600 transition-colors">{comment.user.username}</span>
+                                    <span className="text-xs font-black text-[var(--cr-text-main)]">{comment.user.username}</span>
                                     <div className="w-3 h-3 bg-indigo-500 rounded-full flex items-center justify-center">
                                         <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={5}><path d="M5 13l4 4L19 7" /></svg>
                                     </div>
                                 </div>
                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">1h ago</span>
                             </div>
-                            <p className="text-xs text-slate-600 leading-relaxed font-medium">{comment.body}</p>
+                            <p className="text-xs text-[var(--cr-text-muted)] leading-relaxed font-medium">{comment.body}</p>
                         </div>
                         <div className="flex gap-6 ml-4 mt-2">
                             <button onClick={() => onLike(comment.id)} className={`text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-1.5 ${comment.isLiked ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-900'}`}>
                                 <svg className={`w-3.5 h-3.5 ${comment.isLiked ? 'fill-current animate-like-pop' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                                 {comment.likesCount}
                             </button>
-                            <button onClick={() => setIsReplying(!isReplying)} className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600">Reply</button>
+                            <button onClick={() => setIsReplying(!isReplying)} className="text-[10px] font-black text-[var(--cr-text-muted)] uppercase tracking-widest hover:text-[var(--cr-accent)]">Reply</button>
                         </div>
                         
                         {isReplying && (
                             <div className="mt-4 flex gap-3 animate-in slide-in-from-top-2">
                                 <img src={CURRENT_USER.avatarUrl} className="w-6 h-6 rounded-full" />
                                 <div className="flex-grow flex gap-2">
-                                    <input value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type a reply..." className="flex-grow px-4 py-2 bg-slate-100/50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-indigo-100 focus:bg-white" />
+                                    <input value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type a reply..." className="flex-grow px-4 py-2 bg-[var(--cr-input-bg)] rounded-xl text-xs font-bold outline-none border border-[var(--cr-card-border)] focus:border-[var(--cr-accent)]/30 focus:bg-[var(--cr-card-bg)] text-[var(--cr-text-main)]" />
                                     <button onClick={() => { onReply(comment.id, replyText); setReplyText(''); setIsReplying(false); }} className="px-4 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase">Post</button>
                                 </div>
                             </div>
@@ -431,11 +544,11 @@
                                 {comment.replies.map(reply => (
                                     <div key={reply.id} className="flex gap-2.5">
                                         <img src={reply.user.avatarUrl} className="w-6 h-6 rounded-full" />
-                                        <div className="bg-white p-3 rounded-2xl border border-slate-100 flex-grow shadow-sm">
+                                        <div className="bg-[var(--cr-card-bg)] p-3 rounded-2xl border border-[var(--cr-card-border)] flex-grow shadow-sm">
                                             <div className="flex justify-between mb-1">
-                                                <span className="text-[10px] font-black text-slate-900">{reply.user.username}</span>
+                                                <span className="text-[10px] font-black text-[var(--cr-text-main)]">{reply.user.username}</span>
                                             </div>
-                                            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">{reply.body}</p>
+                                            <p className="text-[11px] text-[var(--cr-text-muted)] font-medium leading-relaxed">{reply.body}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -447,10 +560,10 @@
         );
     };
 
-    const CommentSection = ({ comments, onAddComment, onAddReply }) => {
+    const CommentSection = ({ comments, onAddComment, onAddReply, onLikeComment }) => {
         const [text, setText] = useState('');
         return (
-            <div className="mt-8 pt-8 border-t border-slate-100 space-y-8 animate-in slide-in-from-top-4 duration-500">
+            <div className="mt-8 pt-8 border-t border-[var(--cr-card-border)] space-y-8 animate-in slide-in-from-top-4 duration-500">
                 <div className="flex items-center gap-3">
                     <img src={CURRENT_USER.avatarUrl} className="w-10 h-10 rounded-full border-2 border-white shadow-md" />
                     <div className="flex-grow relative group/input">
@@ -458,7 +571,7 @@
                             value={text} onChange={(e) => setText(e.target.value)}
                             placeholder="What are your thoughts on this review?" 
                             rows={1}
-                            className="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 rounded-[1.5rem] text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-200 transition-all resize-none outline-none pr-24 shadow-inner"
+                            className="w-full px-6 py-3.5 bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-[1.5rem] text-sm font-medium focus:ring-4 focus:ring-[var(--cr-accent)]/10 focus:bg-[var(--cr-card-bg)] focus:border-[var(--cr-accent)]/30 transition-all resize-none outline-none pr-24 shadow-inner text-[var(--cr-text-main)]"
                         />
                         {text.trim() && (
                             <button onClick={() => { onAddComment(text); setText(''); }} className="absolute right-4 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-indigo-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 animate-in fade-in zoom-in-75">Send</button>
@@ -467,14 +580,14 @@
                 </div>
                 <div className="space-y-8">
                     {comments.map(c => (
-                        <CommentItem key={c.id} comment={c} onLike={() => {}} onReply={onAddReply} />
+                        <CommentItem key={c.id} comment={c} onLike={onLikeComment} onReply={onAddReply} />
                     ))}
                 </div>
             </div>
         );
     };
 
-    const ReviewCard = ({ review, hideSpoilers, onLike, onAddComment, onAddReply, onReport }) => {
+    const ReviewCard = ({ review, hideSpoilers, onLike, onAddComment, onAddReply, onLikeComment, onReport, onEdit }) => {
         const [showLocalSpoiler, setShowLocalSpoiler] = useState(false);
         const [isExpanded, setIsExpanded] = useState(false);
         const [showComments, setShowComments] = useState(false);
@@ -482,100 +595,110 @@
 
         const isSafetyShieldActive = review.hasSpoilers && hideSpoilers && !showLocalSpoiler;
 
+        const createMarkup = (html) => ({ __html: html });
         const sentiment = review.rating >= 4.5 ? {emoji: '🤩', label: 'Exceptional'} : review.rating >= 4.0 ? {emoji: '😊', label: 'Great'} : {emoji: '😐', label: 'Average'};
 
         return (
-            <article className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden hover:border-indigo-400 hover:shadow-2xl transition-all duration-500 relative group/card">
+            <article className="bg-[var(--cr-card-bg)] rounded-[2.5rem] border border-[var(--cr-card-border)] shadow-sm overflow-hidden hover:border-[var(--cr-accent)] hover:shadow-2xl transition-all duration-500 relative group/card">
                 {isSafetyShieldActive && (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/40 backdrop-blur-2xl animate-in fade-in duration-500">
-                        <div className="bg-white/95 p-10 rounded-[3rem] shadow-2xl border border-white/50 text-center max-w-xs transform group-hover/card:scale-105 transition-transform">
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[var(--cr-card-bg)]/40 backdrop-blur-2xl animate-in fade-in duration-500">
+                        <div className="bg-[var(--cr-card-bg)]/95 p-10 rounded-[3rem] shadow-2xl border border-[var(--cr-card-border)] text-center max-w-xs transform group-hover/card:scale-105 transition-transform">
                             <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                                 <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                             </div>
-                            <h4 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Spoiler Alert</h4>
-                            <p className="text-xs text-slate-500 font-bold mb-8 mt-2 uppercase tracking-[0.15em] leading-relaxed">This review contains significant plot details.</p>
-                            <button onClick={() => setShowLocalSpoiler(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.25em] shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all hover:scale-105 active:scale-95">Reveal Post</button>
+                            <h4 className="text-xl font-black text-[var(--cr-text-main)] uppercase tracking-tighter">Spoiler Alert</h4>
+                            <p className="text-xs text-[var(--cr-text-muted)] font-bold mb-8 mt-2 uppercase tracking-[0.15em] leading-relaxed">This review contains significant plot details.</p>
+                            <button onClick={() => setShowLocalSpoiler(true)} className="w-full py-4 bg-[var(--cr-accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.25em] shadow-xl hover:bg-[var(--cr-accent)]/80 transition-all hover:scale-105 active:scale-95">Reveal Post</button>
                         </div>
                     </div>
                 )}
-                <div className={`p-8 md:p-12 flex flex-col md:flex-row gap-12 ${isSafetyShieldActive ? 'spoiler-blur-container' : ''}`}>
-                    <div className="flex-shrink-0 w-36 md:w-44 lg:w-48 relative">
-                        <img src={review.media.coverUrl} className="w-full aspect-[2/3] object-cover rounded-[2.5rem] shadow-xl group-hover/card:scale-110 transition-transform duration-1000 border-4 border-white" />
-                        <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-2xl border border-white/20">
+                <div className={`p-6 md:p-8 flex flex-col md:flex-row gap-8 ${isSafetyShieldActive ? 'spoiler-blur-container' : ''}`}>
+                    <div className="flex-shrink-0 w-24 md:w-32 lg:w-40 relative">
+                        <img src={review.media.coverUrl} className="w-full aspect-[2/3] object-cover rounded-[1.5rem] shadow-xl group-hover/card:scale-105 transition-transform duration-500 border-4 border-white" />
+                        <div className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-xl border border-white/20">
                             {review.media.type}
                         </div>
                     </div>
                     <div className="flex-grow flex flex-col min-w-0">
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="flex items-center gap-5">
+                        <div className="flex justify-between items-start mb-6">
+                            <div className="flex items-center gap-4">
                                 <a href={`/profile/${review.user.username}`} className="relative block group/avatar">
-                                    <img src={review.user.avatarUrl} className="w-14 h-14 rounded-full border-2 border-white shadow-lg group-hover/avatar:ring-4 group-hover/avatar:ring-indigo-100 transition-all" />
-                                    <div className="absolute -bottom-1 -right-1 bg-indigo-600 text-white p-1 rounded-full border-2 border-white shadow-md z-10 animate-bounce group-hover:animate-none">
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path d="M5 13l4 4L19 7" /></svg>
+                                    <img src={review.user.avatarUrl} className="w-10 h-10 rounded-full border-2 border-white shadow-md group-hover/avatar:ring-2 group-hover/avatar:ring-indigo-100 transition-all" />
+                                    <div className="absolute -bottom-1 -right-1 bg-[var(--cr-accent)] text-white p-0.5 rounded-full border-2 border-[var(--cr-card-bg)] shadow-sm z-10 animate-bounce group-hover:animate-none">
+                                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path d="M5 13l4 4L19 7" /></svg>
                                     </div>
                                 </a>
                                 <div className="text-left">
-                                    <h4 className="text-base font-black text-slate-900 group-hover/card:text-indigo-600 transition-colors uppercase tracking-tight">{review.user.username}</h4>
-                                    <span className="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5 inline-block">2 hours ago</span>
+                                    <h4 className="text-sm font-black text-[var(--cr-text-main)] group-hover/card:text-[var(--cr-accent)] transition-colors uppercase tracking-tight">{review.user.username}</h4>
+                                    <span className="text-[10px] text-[var(--cr-text-muted)] font-black uppercase tracking-[0.2em] mt-0.5 inline-block">2 hours ago</span>
                                 </div>
                             </div>
                             <div className="flex flex-col items-end">
-                                <div className="flex items-center gap-3 mb-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
-                                    <span className="text-2xl" id={`sentiment-${review.id}`} title={`Sentiment: ${sentiment.label}`}>{sentiment.emoji}</span>
+                                <div className="flex items-center gap-2 mb-2 bg-[var(--cr-input-bg)] px-3 py-1.5 rounded-full border border-[var(--cr-card-border)]">
+                                    <span className="text-lg" id={`sentiment-${review.id}`} title={`Sentiment: ${sentiment.label}`}>{sentiment.emoji}</span>
                                     <StarRating rating={review.rating} size="sm" />
                                 </div>
-                                <span className={`text-[10px] font-black px-5 py-2 rounded-full border border-opacity-30 uppercase tracking-[0.2em] shadow-sm ${review.status === MediaStatus.COMPLETED ? 'bg-emerald-50 text-emerald-600 border-emerald-400' : 'bg-blue-50 text-blue-600 border-blue-400'}`}>
+                                <span className={`text-[9px] font-black px-3 py-1 rounded-full border border-opacity-30 uppercase tracking-[0.2em] shadow-sm ${review.status === MediaStatus.COMPLETED ? 'bg-emerald-50 text-emerald-600 border-emerald-400' : 'bg-blue-50 text-blue-600 border-blue-400'}`}>
                                     {review.status}
                                 </span>
                             </div>
                         </div>
-                        <h3 className="text-4xl font-black text-slate-900 mb-5 tracking-tighter leading-none group-hover/card:translate-x-1 transition-transform">{review.media.title}</h3>
-                        <div className="flex flex-wrap gap-3 mb-8">
-                            {review.media.tags.map(tag => (
-                                <span key={tag} className="px-6 py-2 bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] rounded-full hover:bg-white hover:border-indigo-400 hover:text-indigo-600 hover:scale-110 hover:shadow-lg transition-all cursor-default">{tag}</span>
-                            ))}
-                        </div>
-                        <div className="relative mb-8">
-                            <p 
-                                className={`text-slate-600 text-lg leading-relaxed font-medium transition-all ${!isExpanded ? 'line-clamp-3' : 'animate-in fade-in slide-in-from-top-2'}`} 
-                                dangerouslySetInnerHTML={% raw %}{{ __html: review.body }}{% endraw %} 
-                            />
-                            {!isExpanded && (
-                                <button onClick={() => setIsExpanded(true)} className="text-indigo-600 text-[12px] font-black uppercase tracking-[0.25em] mt-6 hover:translate-x-2 transition-transform flex items-center group/more">
-                                    Continue Reading
-                                    <svg className="w-5 h-5 ml-2 group-hover/more:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                        <div className="flex justify-between items-center mb-3">
+                            <h3 className="text-2xl md:text-3xl font-black text-[var(--cr-text-main)] tracking-tighter leading-none group-hover/card:translate-x-1 transition-transform">{review.media.title}</h3>
+                            {onEdit && (
+                                <button onClick={() => onEdit(review)} className="shrink-0 ml-4 px-4 py-1.5 text-white bg-indigo-600 hover:bg-indigo-700 rounded-full transition-all text-[11px] font-black uppercase tracking-widest shadow-lg shadow-indigo-200 hover:shadow-indigo-300 flex items-center gap-2" title="Edit Review">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                    Edit
                                 </button>
                             )}
                         </div>
-                        <div className="mt-auto pt-8 border-t border-slate-100 flex items-center justify-between">
-                            <div className="flex items-center gap-10">
+                        <div className="flex flex-wrap gap-2 mb-6">
+                            {review.media.tags.map(tag => (
+                                <span key={tag} className="px-3 py-1 bg-slate-50 border border-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em] rounded-full hover:bg-white hover:border-indigo-400 hover:text-indigo-600 hover:scale-105 hover:shadow-md transition-all cursor-default">{tag}</span>
+                            ))}
+                        </div>
+                        <div className="relative mb-6">
+                            <p 
+                                className={`text-[var(--cr-text-muted)] text-sm leading-relaxed font-medium transition-all ${!isExpanded ? 'line-clamp-3' : 'animate-in fade-in slide-in-from-top-2'}`} 
+                                dangerouslySetInnerHTML={createMarkup(review.body)} 
+                            />
+                            {!isExpanded && (
+                                <button onClick={() => setIsExpanded(true)} className="text-indigo-600 text-[10px] font-black uppercase tracking-[0.25em] mt-3 hover:translate-x-2 transition-transform flex items-center group/more">
+                                    Continue Reading
+                                    <svg className="w-4 h-4 ml-1 group-hover/more:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                                </button>
+                            )}
+                        </div>
+                        <div className="mt-auto pt-6 border-t border-[var(--cr-card-border)] flex items-center justify-between">
+                            <div className="flex items-center gap-6">
                                 <button 
                                     onClick={() => { onLike(review.id); setLikeWave(true); setTimeout(() => setLikeWave(false), 500); }} 
-                                    className={`group/btn flex items-center gap-3 text-[12px] font-black uppercase tracking-[0.2em] transition-all ${review.isLiked ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-800'}`}
+                                    className={`group/btn flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${review.isLiked ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-800'}`}
                                 >
-                                    <div className="relative p-2.5 rounded-full group-hover/btn:bg-slate-50 transition-colors">
+                                    <div className="relative p-2 rounded-full group-hover/btn:bg-[var(--cr-input-bg)] transition-colors">
                                         {likeWave && <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-shockwave" />}
-                                        <svg className={`w-6 h-6 ${review.isLiked ? 'fill-current animate-like-pop' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                        <svg className={`w-5 h-5 ${review.isLiked ? 'fill-current animate-like-pop' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                                     </div>
                                     <span key={review.likesCount} className="animate-number-jump">{review.likesCount} Found Helpful</span>
                                 </button>
-                                <button onClick={() => setShowComments(!showComments)} className={`group/btn flex items-center gap-3 text-[12px] font-black uppercase tracking-[0.2em] transition-all ${showComments ? 'text-indigo-600 font-black' : 'text-slate-400 hover:text-slate-800'}`}>
-                                    <div className={`p-2.5 rounded-full transition-colors ${showComments ? 'bg-indigo-50' : 'group-hover/btn:bg-slate-50'}`}>
-                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.827-1.213L3 20l1.391-3.997A10.659 10.659 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                <button onClick={() => setShowComments(!showComments)} className={`group/btn flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${showComments ? 'text-indigo-600 font-black' : 'text-slate-400 hover:text-slate-800'}`}>
+                                    <div className={`p-2 rounded-full transition-colors ${showComments ? 'bg-[var(--cr-accent)]/10' : 'group-hover/btn:bg-[var(--cr-input-bg)]'}`}>
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.827-1.213L3 20l1.391-3.997A10.659 10.659 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                                     </div>
                                     <span>{review.comments.length} <span className="hidden sm:inline">Comments</span></span>
                                 </button>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <button className="p-3 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all" title="Share link">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                            <div className="flex items-center gap-1">
+
+                                <button className="p-2 text-[var(--cr-text-muted)] hover:text-[var(--cr-accent)] hover:bg-[var(--cr-accent)]/10 rounded-full transition-all" title="Share link">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                                 </button>
-                                <button onClick={() => onReport(review)} className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-full transition-all" title="Report">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                <button onClick={() => onReport(review)} className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-full transition-all" title="Report">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                                 </button>
                             </div>
                         </div>
-                        {showComments && <CommentSection comments={review.comments} onAddComment={(text) => onAddComment(review.id, text)} onAddReply={(commentId, text) => onAddReply(review.id, commentId, text)} />}
+                        {showComments && <CommentSection comments={review.comments} onAddComment={(text) => onAddComment(review.id, text)} onAddReply={(commentId, text) => onAddReply(review.id, commentId, text)} onLikeComment={onLikeComment} />}
                     </div>
                 </div>
             </article>
@@ -588,6 +711,7 @@
         const [filters, setFilters] = useState({ mode: MediaType.MANGA, search: '', sort: SortOption.NEWEST, ratingMin: 0, status: 'Any', hideSpoilers: true });
         const [reviews, setReviews] = useState(INITIAL_REVIEWS);
         const [isPosting, setIsPosting] = useState(false);
+        const [editingReview, setEditingReview] = useState(null);
         const [reportingReview, setReportingReview] = useState(null);
         const [toast, setToast] = useState(null);
 
@@ -603,30 +727,127 @@
 
         const showToast = (message, type = 'info') => setToast({ message, type });
 
-        const handleLike = (id) => {
-            setReviews(prev => prev.map(r => r.id === id ? { ...r, isLiked: !r.isLiked, likesCount: r.isLiked ? r.likesCount - 1 : r.likesCount + 1 } : r));
-            showToast('Helpful vote updated!', 'success');
+        const handleLike = async (id) => {
+            try {
+                const response = await fetch('/api/reviews/like', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reviewId: id })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    setReviews(prev => prev.map(r => r.id === id ? { 
+                        ...r, 
+                        isLiked: result.action === 'liked', 
+                        likesCount: result.action === 'liked' ? r.likesCount + 1 : r.likesCount - 1 
+                    } : r));
+                    showToast(result.action === 'liked' ? 'Marked as helpful!' : 'Rating removed', 'success');
+                }
+            } catch (err) {
+                showToast('Failed to update reaction', 'error');
+            }
         };
         
-        const handleAddComment = (reviewId, text) => {
-            const newComment = { id: Date.now().toString(), userId: CURRENT_USER.id, user: CURRENT_USER, body: text, createdAt: new Date().toISOString(), likesCount: 0, isLiked: false, replies: [] };
-            setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, comments: [...r.comments, newComment] } : r));
-            showToast('Comment posted!', 'success');
+        const handleAddComment = async (reviewId, text) => {
+            try {
+                const response = await fetch('/api/reviews/comment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reviewId, content: text })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Comment posted!', 'success');
+                    // For simplicity, reload to show new comments. 
+                    // Better: fetch comments for this review and update state.
+                    setTimeout(() => window.location.reload(), 500);
+                }
+            } catch (err) {
+                showToast('Failed to post comment', 'error');
+            }
         };
 
-        const handleAddReply = (reviewId, commentId, text) => {
-            const newReply = { id: Date.now().toString(), userId: CURRENT_USER.id, user: CURRENT_USER, body: text, createdAt: new Date().toISOString() };
-            setReviews(prev => prev.map(r => r.id === reviewId ? {
-                ...r,
-                comments: r.comments.map(c => c.id === commentId ? { ...c, replies: [...(c.replies || []), newReply] } : c)
-            } : r));
-            showToast('Reply posted!', 'success');
+        const handleAddReply = async (reviewId, commentId, text) => {
+            try {
+                const response = await fetch('/api/reviews/comment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reviewId, parentId: commentId, content: text })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Reply shared!', 'success');
+                    setTimeout(() => window.location.reload(), 500);
+                }
+            } catch (err) {
+                showToast('Failed to post reply', 'error');
+            }
         };
 
-        const handlePostReview = (data) => {
-            const newReview = { id: Date.now().toString(), userId: CURRENT_USER.id, user: CURRENT_USER, media: { id: Date.now().toString(), ...data, coverUrl: 'https://picsum.photos/seed/' + Math.random() + '/200/300', tags: ['New Release', 'Community'] }, rating: data.rating, body: data.body, hasSpoilers: data.hasSpoilers, status: data.status, likesCount: 0, isLiked: false, comments: [], createdAt: new Date().toISOString() };
-            setReviews([newReview, ...reviews]);
-            showToast('Review shared successfully!', 'success');
+        const handleLikeComment = async (commentId) => {
+            try {
+                const response = await fetch('/api/reviews/comments/like', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ commentId })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update state to reflect like toggle without reload
+                    setReviews(prev => prev.map(r => ({
+                        ...r,
+                        comments: r.comments.map(c => {
+                            if (c.id === commentId) {
+                                return {
+                                    ...c,
+                                    isLiked: result.action === 'liked',
+                                    likesCount: result.action === 'liked' ? c.likesCount + 1 : c.likesCount - 1
+                                };
+                            }
+                            // Check replies
+                            if (c.replies && c.replies.length > 0) {
+                                const updatedReplies = c.replies.map(reply => {
+                                    if (reply.id === commentId) {
+                                        return {
+                                            ...reply,
+                                            isLiked: result.action === 'liked',
+                                            likesCount: result.action === 'liked' ? reply.likesCount + 1 : reply.likesCount - 1
+                                        };
+                                    }
+                                    return reply;
+                                });
+                                return { ...c, replies: updatedReplies };
+                            }
+                            return c;
+                        })
+                    })));
+                }
+            } catch (err) {
+                showToast('Failed to update like', 'error');
+            }
+        };
+
+        const handlePostReview = async (data, isUpdate = false) => {
+            try {
+                const endpoint = isUpdate ? '/api/reviews/update' : '/api/reviews/post';
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    setIsPosting(false);
+                    setEditingReview(null);
+                    showToast(isUpdate ? 'Review updated!' : 'Review shared successfully!', 'success');
+                    setTimeout(() => window.location.reload(), 800);
+                } else {
+                    showToast(result.error || 'Failed to save review', 'error');
+                }
+            } catch (err) {
+                showToast('Network error', 'error');
+            }
         };
 
         const handleReportSubmit = (reason, details) => {
@@ -649,8 +870,14 @@
         });
 
         return (
-            <div className="min-h-screen bg-[#f8fafc] pb-24 pt-10 px-6">
-                <PostReviewModal isOpen={isPosting} onClose={() => setIsPosting(false)} onSubmit={handlePostReview} />
+            <div className="min-h-screen bg-[var(--cr-bg)] pb-24 pt-10 px-6 community-reviews-container">
+
+                <PostReviewModal 
+                    isOpen={isPosting || !!editingReview} 
+                    onClose={() => { setIsPosting(false); setEditingReview(null); }} 
+                    onSubmit={handlePostReview}
+                    initialData={editingReview}
+                />
                 <ReportModal isOpen={!!reportingReview} onClose={() => setReportingReview(null)} onSubmit={handleReportSubmit} targetTitle={reportingReview?.media.title} />
                 {toast && <Toast {...toast} onClose={() => setToast(null)} />}
                 
@@ -658,19 +885,19 @@
                     {/* Header Controls */}
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
                         <div className="text-left">
-                            <div className="flex items-center gap-6 mb-4">
-                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.MANGA}))} className={`text-sm font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.MANGA ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>MANGA</button>
-                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.ANIME}))} className={`text-sm font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.ANIME ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>ANIME</button>
-                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.BOOK}))} className={`text-sm font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.BOOK ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>BOOKS</button>
+                            <div className="flex items-center gap-6 mb-3">
+                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.MANGA}))} className={`text-xs font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.MANGA ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>MANGA</button>
+                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.ANIME}))} className={`text-xs font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.ANIME ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>ANIME</button>
+                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.BOOK}))} className={`text-xs font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.BOOK ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>BOOKS</button>
                             </div>
-                            <h1 className="text-5xl font-black text-slate-900 tracking-tighter mb-3">Recent User Reviews</h1>
-                            <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.2em]">See what the community is saying about the latest releases.</p>
+                            <h1 className="text-3xl md:text-4xl font-black text-[var(--cr-text-main)] tracking-tighter mb-2">Recent User Reviews</h1>
+                            <p className="text-[var(--cr-text-muted)] font-bold uppercase text-[10px] tracking-[0.2em]">See what the community is saying about the latest releases.</p>
                         </div>
-                        <button onClick={() => setIsPosting(true)} className="px-12 py-4 bg-indigo-600 text-white rounded-3xl text-sm font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-200 hover:scale-[1.05] active:scale-[0.95] transition-all">Post Review</button>
+                        <button onClick={() => setIsPosting(true)} className="px-8 py-3 bg-[var(--cr-accent)] text-white rounded-3xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.05] active:scale-[0.95] transition-all">Post Review</button>
                     </div>
 
                     {/* Filter Bar */}
-                    <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-xl mb-12 flex flex-col lg:flex-row lg:items-center gap-8 animate-in slide-in-from-top-6 duration-700">
+                    <div className="bg-[var(--cr-card-bg)] p-6 rounded-[2.5rem] border border-[var(--cr-card-border)] shadow-xl mb-12 flex flex-col lg:flex-row lg:items-center gap-8 animate-in slide-in-from-top-6 duration-700">
                         <div className="relative flex-grow min-w-[300px]">
                             <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -678,19 +905,19 @@
                             <input 
                                 type="text" value={filters.search} onChange={(e) => setFilters(f => ({...f, search: e.target.value}))}
                                 placeholder="Search media or users..." 
-                                className="w-full pl-16 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all outline-none"
+                                className="w-full pl-14 pr-6 py-3 bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-2xl text-sm font-bold focus:ring-4 focus:ring-[var(--cr-accent)]/10 focus:bg-[var(--cr-card-bg)] transition-all outline-none text-[var(--cr-text-main)]"
                             />
                         </div>
                         <div className="flex flex-wrap items-center gap-8">
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sort By</label>
-                                <select value={filters.sort} onChange={(e) => setFilters(f => ({...f, sort: e.target.value}))} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-black text-slate-900 outline-none hover:bg-white transition-all appearance-none cursor-pointer">
+                                <select value={filters.sort} onChange={(e) => setFilters(f => ({...f, sort: e.target.value}))} className="bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-xl px-4 py-2.5 text-xs font-black text-[var(--cr-text-main)] outline-none hover:bg-[var(--cr-card-bg)] transition-all appearance-none cursor-pointer">
                                     {Object.values(SortOption).map(o => <option key={o} value={o}>{o}</option>)}
                                 </select>
                             </div>
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rating</label>
-                                <select value={filters.ratingMin} onChange={(e) => setFilters(f => ({...f, ratingMin: Number(e.target.value)}))} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-black text-slate-900 outline-none hover:bg-white transition-all cursor-pointer">
+                                <select value={filters.ratingMin} onChange={(e) => setFilters(f => ({...f, ratingMin: Number(e.target.value)}))} className="bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-xl px-4 py-2.5 text-xs font-black text-[var(--cr-text-main)] outline-none hover:bg-[var(--cr-card-bg)] transition-all cursor-pointer">
                                     <option value={0}>Any Rating</option>
                                     <option value={4.5}>4.5★ +</option>
                                     <option value={4.0}>4.0★ +</option>
@@ -699,16 +926,16 @@
                             </div>
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                                <select value={filters.status} onChange={(e) => setFilters(f => ({...f, status: e.target.value}))} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-black text-slate-900 outline-none hover:bg-white transition-all cursor-pointer">
+                                <select value={filters.status} onChange={(e) => setFilters(f => ({...f, status: e.target.value}))} className="bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-xl px-4 py-2.5 text-xs font-black text-[var(--cr-text-main)] outline-none hover:bg-[var(--cr-card-bg)] transition-all cursor-pointer">
                                     <option value="Any">Any Status</option>
                                     {Object.values(MediaStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                             <div className="lg:border-l lg:border-slate-100 lg:pl-8 flex items-center gap-4 cursor-pointer group" onClick={() => setFilters(f => ({...f, hideSpoilers: !f.hideSpoilers}))}>
-                                <div className={`w-14 h-8 rounded-full transition-all flex items-center p-1 ${filters.hideSpoilers ? 'bg-indigo-600 shadow-xl shadow-indigo-100' : 'bg-slate-200'}`}>
+                                <div className={`w-14 h-8 rounded-full transition-all flex items-center p-1 ${filters.hideSpoilers ? 'bg-[var(--cr-accent)]' : 'bg-[var(--cr-input-bg)]'}`}>
                                     <div className={`w-6 h-6 bg-white rounded-full transition-transform ${filters.hideSpoilers ? 'translate-x-6' : 'translate-x-0'}`} />
                                 </div>
-                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-900 transition-colors">Hide Spoilers</span>
+                                <span className="text-[11px] font-black text-[var(--cr-text-muted)] uppercase tracking-widest group-hover:text-[var(--cr-text-main)] transition-colors">Hide Spoilers</span>
                             </div>
                         </div>
                     </div>
@@ -722,6 +949,10 @@
                                     hideSpoilers={filters.hideSpoilers} 
                                     onLike={handleLike} 
                                     onAddComment={handleAddComment}
+                                    onAddReply={handleAddReply}
+                                    onLikeComment={handleLikeComment}
+                                    onReport={handleReportSubmit}
+                                    onEdit={r.user.id == CURRENT_USER.id ? setEditingReview : null}
                                 />
                             ))
                         ) : (

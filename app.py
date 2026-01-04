@@ -710,6 +710,58 @@ def init_db():
         )
     """)
 
+    # Review migrations
+    try:
+        c.execute("ALTER TABLE reviews ADD COLUMN has_spoilers BOOLEAN DEFAULT 0")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute("ALTER TABLE reviews ADD COLUMN status TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    # review likes (helpful votes)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS review_likes (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            review_id INTEGER NOT NULL,
+            created_at TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (review_id) REFERENCES reviews(id),
+            UNIQUE(user_id, review_id)
+        )
+    """)
+
+    # review comments
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS review_comments (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            review_id INTEGER NOT NULL,
+            parent_id INTEGER, -- For nested replies
+            content TEXT,
+            created_at TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (review_id) REFERENCES reviews(id),
+            FOREIGN KEY (parent_id) REFERENCES review_comments(id)
+        )
+    """)
+
+    # Review comment likes
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS comment_likes (
+            user_id INTEGER NOT NULL,
+            comment_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, comment_id),
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(comment_id) REFERENCES review_comments(id)
+        )
+    """)
+    
     # chapter_reviews (chapter reviews)
     c.execute("""
         CREATE TABLE IF NOT EXISTS chapter_reviews (
@@ -1914,7 +1966,113 @@ def community_reviews():
     if "user_id" not in session:
         return redirect(url_for("login"))
     
-    # We'll pass some basic user info for the template
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # 1. Fetch all reviews with user and book info
+    c.execute("""
+        SELECT r.id, r.user_id, r.book_id, r.rating, r.content, r.created_at, r.has_spoilers, r.status,
+               u.username, u.avatar_url,
+               b.title, b.cover_path, b.book_type, b.category
+        FROM reviews r
+        JOIN users u ON u.id = r.user_id
+        JOIN books b ON b.id = r.book_id
+        ORDER BY r.created_at DESC
+    """)
+    reviews_raw = c.fetchall()
+    
+    reviews = []
+    for row in reviews_raw:
+        review_id = row[0]
+        
+        # 2. Fetch likes count and if current user liked it
+        c.execute("SELECT COUNT(*) FROM review_likes WHERE review_id = ?", (review_id,))
+        likes_count = c.fetchone()[0]
+        
+        c.execute("SELECT 1 FROM review_likes WHERE review_id = ? AND user_id = ?", (review_id, session['user_id']))
+        is_liked = c.fetchone() is not None
+        
+        # 3. Fetch comments
+        c.execute("""
+            SELECT rc.id, rc.user_id, rc.content, rc.created_at, rc.parent_id,
+                   u.username, u.avatar_url
+            FROM review_comments rc
+            JOIN users u ON u.id = rc.user_id
+            WHERE rc.review_id = ?
+            ORDER BY rc.created_at ASC
+        """, (review_id,))
+        comments_raw = c.fetchall()
+        
+        # Organize comments and replies
+        comments_map = {}
+        for c_row in comments_raw:
+            c_id = c_row[0]
+            comment_obj = {
+                'id': str(c_id),
+                'userId': str(c_row[1]),
+                'user': {
+                    'id': str(c_row[1]),
+                    'username': c_row[5],
+                    'avatarUrl': c_row[6] or 'https://picsum.photos/seed/you/100/100'
+                },
+                'body': c_row[2],
+                'createdAt': c_row[3],
+                'parent_id': c_row[4],
+                'likesCount': 0, # fetched inside loop now
+                'isLiked': False,
+                'replies': []
+            }
+            
+            # Fetch likes for comment
+            c.execute("SELECT COUNT(*) FROM comment_likes WHERE comment_id = ?", (c_id,))
+            comment_obj['likesCount'] = c.fetchone()[0]
+            
+            user_id = session.get('user_id')
+            if user_id:
+                c.execute("SELECT 1 FROM comment_likes WHERE comment_id = ? AND user_id = ?", (c_id, user_id))
+                comment_obj['isLiked'] = c.fetchone() is not None
+            else:
+                comment_obj['isLiked'] = False
+            
+            comments_map[c_id] = comment_obj
+            
+        final_comments = []
+        for c_id, c_obj in comments_map.items():
+            parent_id = c_obj['parent_id']
+            if parent_id and parent_id in comments_map:
+                comments_map[parent_id]['replies'].append(c_obj)
+            else:
+                final_comments.append(c_obj)
+        
+        tags = [tag.strip() for tag in row[13].split(',')] if row[13] else []
+        
+        reviews.append({
+            'id': str(review_id),
+            'userId': str(row[1]),
+            'user': {
+                'id': str(row[1]),
+                'username': row[8],
+                'avatarUrl': row[9] or 'https://picsum.photos/seed/you/100/100'
+            },
+            'media': {
+                'id': str(row[2]),
+                'title': row[10],
+                'coverUrl': (f"/static/{row[11]}" if row[11] and not row[11].startswith(('http', 'https')) else (row[11] or 'https://picsum.photos/seed/cs/200/300')),
+                'type': (row[12] or 'BOOK').upper(),
+                'tags': tags
+            },
+            'rating': float(row[3]) if row[3] else 0.0,
+            'body': row[4],
+            'createdAt': row[5],
+            'hasSpoilers': bool(row[6]),
+            'status': row[7] or 'Reading',
+            'likesCount': likes_count,
+            'isLiked': is_liked,
+            'comments': final_comments
+        })
+    
+    conn.close()
+    
     return render_template(
         "community_reviews.html",
         user_id=session.get("user_id"),
@@ -1922,6 +2080,7 @@ def community_reviews():
         user_role=session.get("role"),
         user_plan=session.get("plan", "basic"),
         user_avatar=session.get("avatar_url"),
+        initial_reviews=reviews,
         page_endpoint="community_reviews"
     )
 
@@ -7248,6 +7407,206 @@ def apply_bundle():
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
+
+
+# --- Community Reviews API ---
+
+@app.route("/api/reviews/post", methods=["POST"])
+def api_post_review():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    book_title = data.get("title")
+    rating = data.get("rating")
+    body = data.get("body")
+    has_spoilers = data.get("hasSpoilers")
+    status = data.get("status")
+    
+    if not book_title or not body:
+        return jsonify({"error": "Missing required fields"}), 400
+        
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Try to find book_id by title
+    c.execute("SELECT id FROM books WHERE title = ?", (book_title,))
+    book = c.fetchone()
+    if not book:
+        conn.close()
+        return jsonify({"error": "Book not found"}), 404
+    book_id = book[0]
+    
+    c.execute("""
+        INSERT INTO reviews (user_id, book_id, rating, content, has_spoilers, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (session["user_id"], book_id, rating, body, has_spoilers, status))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+@app.route("/api/reviews/update", methods=["POST"])
+def api_update_review():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    review_id = data.get("reviewId")
+    rating = data.get("rating")
+    body = data.get("body")
+    has_spoilers = data.get("hasSpoilers")
+    status = data.get("status")
+    
+    if not all([review_id, rating, body, status]):
+        return jsonify({"error": "Missing required fields"}), 400
+        
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Verify ownership
+    c.execute("SELECT user_id FROM reviews WHERE id = ?", (review_id,))
+    review = c.fetchone()
+    if not review:
+        conn.close()
+        return jsonify({"error": "Review not found"}), 404
+    if str(review[0]) != str(session["user_id"]):
+        conn.close()
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    c.execute("""
+        UPDATE reviews 
+        SET rating = ?, content = ?, has_spoilers = ?, status = ?
+        WHERE id = ?
+    """, (rating, body, has_spoilers, status, review_id))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+@app.route("/api/reviews/like", methods=["POST"])
+def api_like_review():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    review_id = data.get("reviewId")
+    
+    if not review_id:
+        return jsonify({"error": "Missing reviewId"}), 400
+        
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Check if already liked
+    c.execute("SELECT 1 FROM review_likes WHERE user_id = ? AND review_id = ?", (session["user_id"], review_id))
+    already_liked = c.fetchone()
+    
+    if already_liked:
+        # Toggle: unlike
+        c.execute("DELETE FROM review_likes WHERE user_id = ? AND review_id = ?", (session["user_id"], review_id))
+        action = "unliked"
+    else:
+        # Like
+        c.execute("INSERT INTO review_likes (user_id, review_id) VALUES (?, ?)", (session["user_id"], review_id))
+        action = "liked"
+        
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "action": action})
+
+@app.route("/api/reviews/comments/like", methods=["POST"])
+def api_like_comment():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    comment_id = data.get("commentId")
+    
+    if not comment_id:
+        return jsonify({"error": "Missing commentId"}), 400
+        
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Check if already liked
+    c.execute("SELECT 1 FROM comment_likes WHERE user_id = ? AND comment_id = ?", (session["user_id"], comment_id))
+    already_liked = c.fetchone()
+    
+    if already_liked:
+        # Toggle: unlike
+        c.execute("DELETE FROM comment_likes WHERE user_id = ? AND comment_id = ?", (session["user_id"], comment_id))
+        action = "unliked"
+    else:
+        # Like
+        c.execute("INSERT INTO comment_likes (user_id, comment_id) VALUES (?, ?)", (session["user_id"], comment_id))
+        action = "liked"
+        
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True, "action": action})
+
+@app.route("/api/reviews/comment", methods=["POST"])
+def api_post_comment():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    review_id = data.get("reviewId")
+    parent_id = data.get("parentId") # Can be NULL
+    content = data.get("content")
+    
+    if not review_id or not content:
+        return jsonify({"error": "Missing fields"}), 400
+        
+    conn = get_conn()
+    c = conn.cursor()
+    
+    c.execute("""
+        INSERT INTO review_comments (user_id, review_id, parent_id, content)
+        VALUES (?, ?, ?, ?)
+    """, (session["user_id"], review_id, parent_id, content))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+@app.route("/api/media/search")
+def api_media_search():
+    query = request.args.get("q", "").strip()
+    if not query:
+        return jsonify([])
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT id, title, cover_path, book_type, category
+        FROM books
+        WHERE title LIKE ?
+        LIMIT 10
+    """, (f"%{query}%",))
+    books_raw = c.fetchall()
+    conn.close()
+    
+    results = []
+    for b in books_raw:
+        cover_path = b[2]
+        if cover_path and not cover_path.startswith(('http://', 'https://')):
+            cover_url = f"/static/{cover_path}"
+        else:
+            cover_url = cover_path or 'https://picsum.photos/seed/cs/200/300'
+            
+        results.append({
+            "id": str(b[0]),
+            "title": b[1],
+            "coverUrl": cover_url,
+            "type": (b[3] or 'BOOK').upper(),
+            "tags": [t.strip() for t in b[4].split(',')] if b[4] else []
+        })
+    return jsonify(results)
 
 if __name__ == "__main__":
     init_db()

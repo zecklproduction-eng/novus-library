@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Rankings | NOVUS{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/page_ranking.css') }}">
+
+<div class="ranking-page">
+    <div class="ranking-container">
+        <!-- Header -->
+        <header class="ranking-header">
+            <h1>Ranking</h1>
+            
+            <!-- Type Tabs -->
+            <div class="ranking-tabs">
+                <button class="tab-btn active" onclick="filterType('Manga', this)">Manga</button>
+                <button class="tab-btn" onclick="filterType('Book', this)">Books</button>
+            </div>
+
+            <!-- Category Filters -->
+            <div class="filters-scroll">
+                <button class="filter-btn active" onclick="filterCategory('Hottest', this)">
+                    Hottest
+                    <div class="filter-indicator"></div>
+                </button>
+                <button class="filter-btn" onclick="filterCategory('Trending', this)">
+                    Trending
+                    <div class="filter-indicator"></div>
+                </button>
+                <button class="filter-btn" onclick="filterCategory('Most Popular', this)">
+                    Most Popular
+                    <div class="filter-indicator"></div>
+                </button>
+                 <button class="filter-btn" onclick="filterCategory('Ongoing', this)">
+                    Ongoing
+                    <div class="filter-indicator"></div>
+                </button>
+                <button class="filter-btn" onclick="filterCategory('Completed', this)">
+                    Completed
+                    <div class="filter-indicator"></div>
+                </button>
+            </div>
+        </header>
+
+        <!-- Grid -->
+        <div class="ranking-grid" id="rankingGrid">
+            {% for item in items %}
+            <div class="ranking-card-wrapper animate-card" 
+                 style="animation-delay: {{ loop.index0 * 100 }}ms"
+                 data-type="{{ item.type }}"
+                 data-categories="{{ item.categories|join(',') }}">
+                
+                <a href="{{ url_for('read_manga', id=item.id) if item.type == 'Manga' else url_for('view_book', id=item.id) }}" class="ranking-card">
+                    <!-- Image -->
+                    <div class="card-image-container">
+                        <img src="{{ item.imageUrl }}" alt="{{ item.title }}" class="card-img" loading="lazy">
+                        <div class="card-overlay"></div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="card-content">
+                        <div class="card-stats">
+                            <span class="rank-number">#{{ item.rank }}</span>
+                            <div class="view-count">
+                                <i class="fas fa-fire"></i>
+                                <span>{{ "{:,}".format(item.views) }}</span>
+                            </div>
+                        </div>
+
+                        <h3 class="card-title">{{ item.title }}</h3>
+                        <p class="card-author">{{ item.author }}</p>
+                        <p class="card-desc">{{ item.description }}</p>
+
+                        <div class="card-languages">
+                            {% for lang in item.languages %}
+                            <span class="lang-badge">{{ lang }}</span>
+                            {% endfor %}
+                        </div>
+
+                         <div class="card-actions">
+                             <div class="btn-read">
+                                 <i class="fas fa-book-open"></i> Read Now
+                             </div>
+                             <!--
+                             <button class="btn-action-secondary">
+                                 <i class="far fa-heart"></i> Add to Favorites
+                             </button>
+                             -->
+                         </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Empty State (Hidden by default) -->
+        <div id="emptyState" style="display: none; text-align: center; padding: 5rem 0; color: #6b7280;">
+             <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+             <p>No results found for this category.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentType = 'Manga'; // Default
+    let currentCategory = 'Hottest'; // Default
+
+    function filterType(type, btn) {
+        currentType = type;
+        
+        // Update tabs UI
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        applyFilters();
+    }
+
+    function filterCategory(category, btn) {
+        currentCategory = category;
+        
+        // Update filters UI
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const cards = document.querySelectorAll('.ranking-card-wrapper');
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const types = card.dataset.type;
+            const categories = card.dataset.categories.split(',');
+            
+            const matchType = types === currentType;
+            // For now, if category is 'All' or matches one of the item's categories
+            // Actually our backend logic assigned categories strictly for demo
+            // In a real app we might want more complex filtering
+            const matchCategory = categories.includes(currentCategory);
+            
+            if (matchType && matchCategory) {
+                card.style.display = 'block';
+                // Reset animation
+                card.style.animation = 'none';
+                card.offsetHeight; /* trigger reflow */
+                card.style.animation = null; 
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        const emptyState = document.getElementById('emptyState');
+        if (visibleCount === 0) {
+            emptyState.style.display = 'block';
+        } else {
+            emptyState.style.display = 'none';
+        }
+    }
+    
+    // Initial run
+    applyFilters();
+</script>
+{% endblock %}
