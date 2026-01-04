@@ -7608,6 +7608,108 @@ def api_media_search():
         })
     return jsonify(results)
 
+@app.route('/ranking')
+def ranking():
+    """Ranking page for manga and books"""
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Fetch all books with their view counts
+    c.execute("""
+        SELECT 
+            b.id,
+            b.title,
+            b.author,
+            b.description,
+            b.cover_path,
+            b.book_type,
+            COALESCE(COUNT(DISTINCT mp.user_id), 0) as total_views
+        FROM books b
+        LEFT JOIN manga_progress mp ON b.id = mp.manga_id
+        GROUP BY b.id
+        ORDER BY total_views DESC
+    """)
+    
+    books_data = c.fetchall()
+    conn.close()
+    
+    items = []
+    manga_rank = {'Hottest': 0, 'Trending': 0, 'Most Popular': 0, 'Ongoing': 0, 'Completed': 0, 'Most Viewed': 0}
+    book_rank = {'Hottest': 0, 'Trending': 0, 'Most Popular': 0, 'Fiction': 0, 'Non-Fiction': 0, 'Most Viewed': 0}
+    
+    for idx, book in enumerate(books_data):
+        book_id, title, author, description, cover_path, book_type, views = book
+        
+        # Determine type (Manga or Book)
+        item_type = 'Manga' if book_type and book_type.upper() in ['MANGA', 'MANHWA', 'MANHUA'] else 'Book'
+        
+        # Determine categories based on views
+        categories = []
+        
+        # Add category based on views (top items are "Hottest" and "Most Viewed")
+        if idx < 10:  # Top 10 are hottest
+            categories.append('Hottest')
+        if idx < 5:  # Top 5 are trending
+            categories.append('Trending')
+        if views > 10:  # High view count = Most Popular
+            categories.append('Most Popular')
+        
+        # Always add Most Viewed category
+        categories.append('Most Viewed')
+        
+        # Add default categories based on type
+        if item_type == 'Manga':
+            # Default to Ongoing for manga (can be updated later with a status column)
+            categories.append('Ongoing')
+        else:
+            # Default to Fiction for books
+            categories.append('Fiction')
+        
+        # Determine rank for each category
+        rank_dict = manga_rank if item_type == 'Manga' else book_rank
+        for cat in categories:
+            if cat in rank_dict:
+                rank_dict[cat] += 1
+        
+        # Use the first category's rank as the primary rank
+        primary_category = categories[0] if categories else 'Hottest'
+        rank = rank_dict.get(primary_category, idx + 1)
+        
+        # Handle cover image path
+        if cover_path:
+            if cover_path.startswith(('http://', 'https://')):
+                image_url = cover_path
+            else:
+                image_url = f"/static/{cover_path}"
+        else:
+            # Fallback to placeholder
+            image_url = f"https://picsum.photos/seed/{book_id}/400/600"
+        
+        # Default description if none exists
+        if not description:
+            description = f"Discover the story of {title} by {author or 'Unknown Author'}."
+        
+        # Languages - default to English for now (can be extended with a languages column)
+        languages = ['EN']
+        
+        items.append({
+            'id': book_id,
+            'rank': rank,
+            'title': title or 'Untitled',
+            'author': author or 'Unknown Author',
+            'description': description[:200] if description else '',  # Limit description length
+            'views': int(views) if views else 0,
+            'imageUrl': image_url,
+            'languages': languages,
+            'type': item_type,
+            'categories': categories
+        })
+    
+    return render_template('ranking.html', items=items)
+
+
+
 if __name__ == "__main__":
+
     init_db()
     app.run(debug=True, host="0.0.0.0", port=5000)
