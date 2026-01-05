@@ -30,6 +30,12 @@
     overflow: hidden !important;
     display: flex !important;        /* Use Flexbox Layout */
     flex-direction: column !important;
+    transition: margin-left 0.3s ease, width 0.3s ease;
+  }
+
+  body.zen-mode .main-content {
+      margin-left: 0 !important;
+      width: 100vw !important;
   }
 
   /* Header adjustments */
@@ -38,12 +44,27 @@
      margin-bottom: 0 !important;    /* Connect directly to reader */
      position: relative;
      z-index: 100;
+     transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  
+  body.zen-mode .top-header-minimal {
+     transform: translateY(-100%);
+     opacity: 0;
+     pointer-events: none;
+     height: 0 !important;
   }
   
   .sidebar {
      display: flex !important;
      z-index: 9999 !important; /* Ensure it's on top */
      visibility: visible !important;
+     transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+
+  body.zen-mode .sidebar {
+     transform: translateX(-100%);
+     opacity: 0;
+     pointer-events: none;
   }
 
   /* Reader Container fills remaining space */
@@ -160,8 +181,9 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: 20px;
+    padding: 10px; /* Reduced padding for more space */
     background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+    transition: all 0.3s ease;
   }
 
   .manga-pages {
@@ -172,11 +194,12 @@
     gap: 15px;
     overflow: auto;
     margin-bottom: 20px;
+    padding: 0; /* Remove internal padding for more space */
   }
 
   .manga-page {
     max-height: 100%;
-    max-width: 45%;
+    max-width: 48%; /* Slightly larger */
     object-fit: contain;
     border: 2px solid #00d4ff;
     border-radius: 8px;
@@ -184,7 +207,7 @@
   }
 
   .manga-page-single {
-    max-width: 90%;
+    max-width: 98%; /* Larger for single page */
   }
 
   /* NAVIGATION BAR */
@@ -228,6 +251,7 @@
     border-radius: 3px;
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
   }
 
   .progress-slider::-webkit-slider-thumb {
@@ -285,6 +309,34 @@
     overflow-y: auto;
     padding: 20px;
     gap: 20px;
+    transition: transform 0.3s ease, width 0.3s ease, opacity 0.3s ease;
+  }
+
+  body.zen-mode .reader-right {
+    width: 0;
+    padding: 0;
+    border: none;
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  body.zen-mode .reader-top-bar {
+    display: none; /* Hide top bar in Zen mode */
+  }
+
+  body.zen-mode .reader-nav-bar {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+  }
+  
+  /* Show nav bar on hover in zen mode */
+  body.zen-mode .reader-left:hover .reader-nav-bar {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
   }
 
   .sidebar-card {
@@ -729,6 +781,9 @@
   <!-- TOP BAR -->
   <div class="reader-top-bar">
     <div class="top-bar-left">
+      <a href="{{ url_for('manga') }}" class="back-btn" title="Back to Dashboard">
+        <i class="fas fa-arrow-left"></i>
+      </a>
       <div class="chapter-title">
         <i class="fas fa-book"></i>
         <span id="chapterDisplay">Chapter {{ chapter[1] if chapter else 1 }}: {{ chapter[2] if chapter else 'Loading...' }}</span>
@@ -797,6 +852,21 @@
         <div class="ai-toggle">
           <span>AI ASSISTANT</span>
           <div class="toggle-switch active" id="aiToggle"></div>
+        </div>
+        <!-- NEW: Chat UI -->
+        <div class="ai-chat-container" id="aiChatbot" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+            <div id="aiChatMessages" style="height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 6px; padding: 10px; font-size: 12px; color: #ccc;">
+                <div style="margin-bottom: 8px;"><b>AI:</b> Hello! How can I help you with this chapter?</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="aiChatInput" placeholder="Ask AI..." style="flex: 1; background: #1a1a2e; border: 1px solid #2a2a4e; border-radius: 4px; padding: 6px 10px; color: white; font-size: 12px;">
+                <button class="btn-cyan" style="padding: 6px 12px; font-size: 11px;">SEND</button>
+            </div>
+        </div>
+        <!-- NEW: Translate UI (hidden by default) -->
+        <div id="aiTranslate" style="display: none; margin-top: 15px;">
+            <div style="font-size: 12px; color: #888; margin-bottom: 10px;">Select text on page to translate (AI detected text).</div>
+            <button class="btn-cyan" style="width: 100%; font-size: 12px;">SCAN PAGE</button>
         </div>
       </div>
 
@@ -1006,6 +1076,13 @@
 
 
 
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    // Set worker source
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
+
 <script>
   let currentChapterId = {{ chapter[0] if chapter else 0 }};
   let currentChapterNum = {{ chapter[1] if chapter else 1 }};
@@ -1082,10 +1159,13 @@
 
     const currentFile = allPageFiles[currentPageIndex];
     if (currentFile.toLowerCase().endsWith('.pdf')) {
-      // PDF Fix: Force top alignment so it starts at the top, not centered
-      container.style.alignItems = 'flex-start';
-      container.style.justifyContent = 'center';
-      container.style.overflowY = 'auto'; // Ensure vertical scrolling
+      // PDF Fix: Full container height and top alignment
+      container.style.display = 'flex';
+      container.style.flexDirection = 'column';
+      container.style.alignItems = 'center'; // Center pages horizontally
+      container.style.justifyContent = 'flex-start'; // Start from top
+      container.style.overflowY = 'auto'; 
+      container.scrollTop = 0; // Immediate reset
       renderPdf(container, currentFile);
       return;
     }
@@ -1296,22 +1376,119 @@
       }
   }
 
-  function renderPdf(container, filename) {
-     const embed = document.createElement('embed');
-     // Calculate height based on page count to avoid "black void"
-     // OPTIMIZED: Reduced max height to 10000px to prevent browser lag
-     const estimatedHeight = (!currentPageCount || currentPageCount <= 1) ? 10000 : (currentPageCount * 1200);
+  async function renderPdf(container, filename) {
+     const url = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${filename}`;
+     container.innerHTML = '<div style="color: #00d4ff; padding: 20px;">Optimizing PDF Rendering... <i class="fas fa-spinner fa-spin"></i></div>';
      
-     embed.style.cssText = `width: 100%; height: ${estimatedHeight}px; border: none;`;
-     // Add params to hide toolbar/sidebar and fit width
-     embed.src = `/static/manga/manga_${mangaId}_ch${currentChapterNum}/${filename}#toolbar=0&navpanes=0&view=FitH`;
-     embed.type = 'application/pdf';
-     container.appendChild(embed);
-     
-     // CRITICAL: Force scroll to top
-     setTimeout(() => {
+     try {
+         const loadingTask = pdfjsLib.getDocument(url);
+         const pdf = await loadingTask.promise;
+         container.innerHTML = ''; // Clear loading message
+         
+         const mode = readerSettings.readingMode || 'single';
+         
+         if (mode === 'vertical') {
+             // Render all pages for vertical mode
+             for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                 const page = await pdf.getPage(pageNum);
+                 // OPTIMIZED: Use slightly lower scale for vertical to save memory/lag
+                 const viewport = page.getViewport({ scale: 1.2 }); 
+                 
+                 const canvas = document.createElement('canvas');
+                 const context = canvas.getContext('2d');
+                 canvas.height = viewport.height;
+                 canvas.width = viewport.width;
+                 
+                 // CRITICAL: Ensure it fits the container width
+                 canvas.style.maxWidth = '95%';
+                 canvas.style.height = 'auto';
+                 canvas.style.margin = '0 auto 20px auto'; // Center horizontally
+                 canvas.style.borderRadius = '8px';
+                 canvas.style.boxShadow = '0 8px 32px rgba(0,0,0,0.3)';
+                 canvas.style.display = 'block';
+                 
+                 container.appendChild(canvas);
+                 
+                 await page.render({
+                     canvasContext: context,
+                     viewport: viewport
+                 }).promise;
+             }
+         } else {
+             // Single/Double Mode
+             let pagesToRender = [currentPageIndex + 1];
+             if (mode === 'double' && currentPageIndex + 1 < pdf.numPages) {
+                 pagesToRender.push(currentPageIndex + 2);
+             }
+             
+             container.style.display = 'flex';
+             container.style.flexDirection = 'row';
+             container.style.justifyContent = 'center';
+             container.style.alignItems = 'center'; // Center vertically in single/double
+             container.style.gap = '15px';
+             container.style.overflow = 'hidden'; // No scroll in horiz mode
+
+             for (const pageNum of pagesToRender) {
+                 if (pageNum > pdf.numPages) break;
+                 
+                 const page = await pdf.getPage(pageNum);
+                 // Higher quality for single page but still reasonable
+                 const viewport = page.getViewport({ scale: 1.5 }); 
+                 
+                 const canvas = document.createElement('canvas');
+                 const context = canvas.getContext('2d');
+                 canvas.height = viewport.height;
+                 canvas.width = viewport.width;
+                 
+                 canvas.className = 'manga-page';
+                 if (mode === 'single') canvas.classList.add('manga-page-single');
+                 
+                 // Strict scaling for viewing
+                 canvas.style.height = '100%';
+                 canvas.style.width = 'auto';
+                 canvas.style.maxWidth = (mode === 'double') ? '48%' : '98%';
+                 canvas.style.objectFit = 'contain';
+                 
+                 container.appendChild(canvas);
+                 
+                 await page.render({
+                     canvasContext: context,
+                     viewport: viewport
+                 }).promise;
+                 
+                 if (readerSettings.ambientMode === 'true' || readerSettings.ambientMode === true) {
+                     const color = getAverageColorFromCanvas(canvas);
+                     applyAmbientGlow(canvas, color);
+                 }
+             }
+             
+             if (totalPages !== pdf.numPages) {
+                 totalPages = pdf.numPages;
+                 updateProgressBar();
+             }
+         }
+         // Final scroll reset after rendering starts
          container.scrollTop = 0;
-     }, 10);
+     } catch (err) {
+         console.error("PDF.js Error:", err);
+         container.innerHTML = `<div style="color: #ff4d4d; padding: 20px;">Error loading PDF: ${err.message}</div>`;
+     }
+  }
+
+  function getAverageColorFromCanvas(canvas) {
+      try {
+          const ctx = canvas.getContext('2d');
+          const i = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+          // Sample a few points for performance instead of full canvas if it's too big
+          // But PDF.js canvases are usually reasonable. 
+          // Let's just use the center pixel as a fast proxy for now or 1x1 draw
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = 1; tempCanvas.height = 1;
+          const tempCtx = tempCanvas.getContext('2d');
+          tempCtx.drawImage(canvas, 0, 0, 1, 1);
+          const data = tempCtx.getImageData(0, 0, 1, 1).data;
+          return `rgba(${data[0]}, ${data[1]}, ${data[2]}, 0.5)`;
+      } catch(e) { return null; }
   }
 
   function getBackgroundColor(setting) {
@@ -1638,19 +1815,26 @@
     document.getElementById('pageCounter').textContent = `Page ${currentPageIndex + 1}/${totalPages}`;
   }
 
+  function updateProgressBar() {
+    const slider = document.getElementById('progressSlider');
+    if (slider) {
+      slider.value = (currentPageIndex / Math.max(totalPages - 1, 1)) * 100;
+    }
+    updatePageCounter();
+  }
+
   function previousPage() {
     const mode = readerSettings.readingMode || 'single';
     const container = document.getElementById('mangaPages');
     const currentFile = allPageFiles[currentPageIndex];
     const isPdf = currentFile && currentFile.toLowerCase().endsWith('.pdf');
 
-    if (isPdf) {
-        // PDF Scroll Logic (Prev)
+    if (isPdf && mode === 'vertical') {
+        // PDF Scroll Logic (Prev) - Only for Vertical Full-Load
         if (container.scrollTop > 50) {
-            container.scrollBy({ top: -1034, behavior: 'smooth' }); // Scroll up by ~1 page height
+            container.scrollBy({ top: -1034, behavior: 'smooth' }); 
             return;
         }
-        // If at top, go to prev chapter
         previousChapter();
         return;
     }
@@ -1674,14 +1858,12 @@
     const currentFile = allPageFiles[currentPageIndex];
     const isPdf = currentFile && currentFile.toLowerCase().endsWith('.pdf');
 
-    if (isPdf) {
-        // PDF Scroll Logic (Next) - Scroll down by 1034px as requested
-        // Check if we can scroll more (allow some error margin)
+    if (isPdf && mode === 'vertical') {
+        // PDF Scroll Logic (Next) - Only for Vertical Full-Load
         if (container.scrollTop + container.clientHeight < container.scrollHeight - 50) {
             container.scrollBy({ top: 1034, behavior: 'smooth' });
             return;
         }
-        // If at bottom, go to next chapter
         nextChapter();
         return;
     }
@@ -2099,6 +2281,23 @@
   zenFloatBtn.onclick = toggleZenMode;
   document.body.appendChild(zenFloatBtn);
 
+  // AI Tab Switching
+  document.querySelectorAll('.ai-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+          const target = tab.dataset.tab;
+          document.querySelectorAll('.ai-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          
+          if (target === 'chatbot') {
+              document.getElementById('aiChatbot').style.display = 'flex';
+              document.getElementById('aiTranslate').style.display = 'none';
+          } else {
+              document.getElementById('aiChatbot').style.display = 'none';
+              document.getElementById('aiTranslate').style.display = 'block';
+          }
+      });
+  });
+
   // Controls Modal Logic
   document.getElementById('controlsBtn')?.addEventListener('click', () => {
       document.getElementById('controlsModal').classList.add('active');
@@ -2116,21 +2315,28 @@
   }
   
   function toggleZenMode() {
-      document.body.classList.toggle('zen-mode');
-      const isZen = document.body.classList.contains('zen-mode');
+      const isZen = document.body.classList.toggle('zen-mode');
       
       if (isZen) {
           zenFloatBtn.style.display = 'flex';
-          if (document.documentElement.requestFullscreen) {
-              document.documentElement.requestFullscreen().catch(e => console.log(e));
+          if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+              document.documentElement.requestFullscreen().catch(e => console.log("Fullscreen request failed:", e));
           }
       } else {
           zenFloatBtn.style.display = 'none';
           if (document.exitFullscreen && document.fullscreenElement) {
-              document.exitFullscreen().catch(e => console.log(e));
+              document.exitFullscreen().catch(e => console.log("Exit fullscreen failed:", e));
           }
       }
   }
+
+  // Synchronize Zen Mode class if user exits via ESC key
+  document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && document.body.classList.contains('zen-mode')) {
+          document.body.classList.remove('zen-mode');
+          zenFloatBtn.style.display = 'none';
+      }
+  });
   // Auto Scroll Logic
   let autoScrollInterval = null;
   const autoScrollToggle = document.getElementById('autoScrollToggle');
