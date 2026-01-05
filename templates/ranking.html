@@ -107,8 +107,11 @@
                              <div class="btn-read">
                                  <i class="fas fa-book-open"></i> Read Now
                              </div>
-                             <button class="btn-action-secondary" onclick="event.preventDefault(); addToFavorites({{ item.id }}, '{{ item.title }}')">
-                                 <i class="far fa-heart"></i> Add to Favorites
+                             <button class="btn-action-secondary fav-btn {% if item.is_favorited %}active{% endif %}" 
+                                     data-book-id="{{ item.id }}"
+                                     onclick="event.preventDefault(); toggleFavorite({{ item.id }}, '{{ item.title }}', this)">
+                                 <i class="{% if item.is_favorited %}fas{% else %}far{% endif %} fa-heart"></i> 
+                                 <span class="fav-text">{% if item.is_favorited %}Favorited{% else %}Add to Favorites{% endif %}</span>
                              </button>
                              <button class="btn-action-secondary" onclick="event.preventDefault(); shareItem('{{ item.title }}', '{{ item.id }}', '{{ item.type }}')">
                                  <i class="fas fa-share-alt"></i> Share
@@ -284,20 +287,47 @@
         scrollBtn.style.display = window.scrollY > 400 ? 'flex' : 'none';
     });
     
-    // Add to favorites function
-    function addToFavorites(id, title) {
-        let favorites = JSON.parse(localStorage.getItem('rankingFavorites') || '[]');
-        const isAlreadyFavorite = favorites.some(fav => fav.id === id);
+    // Toggle favorite function using AJAX
+    async function toggleFavorite(id, title, btn) {
+        const icon = btn.querySelector('i');
+        const text = btn.querySelector('.fav-text');
         
-        if (isAlreadyFavorite) {
-            favorites = favorites.filter(fav => fav.id !== id);
-            showToast(`Removed "${title}" from favorites`);
-        } else {
-            favorites.push({ id, title });
-            showToast(`Added "${title}" to favorites!`);
+        try {
+            const response = await fetch('/api/favorites/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ book_id: id })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                if (result.status === 'added') {
+                    icon.classList.remove('far');
+                    icon.classList.add('fas');
+                    btn.classList.add('active');
+                    text.textContent = 'Favorited';
+                    showToast(`Added "${title}" to favorites!`);
+                } else {
+                    icon.classList.remove('fas');
+                    icon.classList.add('far');
+                    btn.classList.remove('active');
+                    text.textContent = 'Add to Favorites';
+                    showToast(`Removed "${title}" from favorites`);
+                }
+            } else {
+                if (response.status === 401) {
+                    showToast('Please login to save favorites');
+                } else {
+                    showToast('Error: ' + (result.error || 'Something went wrong'));
+                }
+            }
+        } catch (error) {
+            console.error('Favorite Toggle Error:', error);
+            showToast('Unable to sync favorites. Please check your connection.');
         }
-        
-        localStorage.setItem('rankingFavorites', JSON.stringify(favorites));
     }
     
     // Share function
@@ -313,34 +343,12 @@
         } else {
             // Fallback: copy to clipboard
             navigator.clipboard.writeText(url).then(() => {
-                showToast('Link copied to clipboard!');
+                // showToast('Link copied to clipboard!');
             });
         }
-    }
-    
-    // Toast notification helper
-    function showToast(message) {
-        const toast = document.createElement('div');
-        toast.textContent = message;
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #dc2626;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            z-index: 9999;
-            animation: fadeInOut 2s ease forwards;
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
     }
     
     // Initial run
     applyFilters();
 </script>
 {% endblock %}
-

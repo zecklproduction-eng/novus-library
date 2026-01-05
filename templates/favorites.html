@@ -47,7 +47,7 @@
         <div class="favorites-card" data-title="{{ book.title.lower() }}" data-author="{{ book.author.lower() }}" data-category="{{ book.category }}">
           <div class="favorites-card-cover" style="position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
             {% if book.cover %}
-              <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px; position: absolute; top: 0; left: 0;">
+              <img src="{{ book.cover }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px; position: absolute; top: 0; left: 0;">
               <div class="favorites-card-cover-text" style="position:relative; left:10px; bottom:10px; z-index:2; background:rgba(0,0,0,0.75); padding:8px 10px; border-radius:4px; color: white;">
                 <span class="favorites-card-author" style="display:block; font-size:12px; margin-bottom:4px;">{{ book.author }}</span>
                 <span class="favorites-card-title" style="display:block; font-weight:bold; font-size:14px;">{{ book.title }}</span>
@@ -96,7 +96,7 @@
               <td class="favorites-table-cover">
                 <div class="favorites-table-cover-thumb">
                   {% if book.cover %}
-                    <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }}" style="width:48px; height:64px; object-fit:cover; border-radius:4px;">
+                    <img src="{{ book.cover }}" alt="{{ book.title }}" style="width:48px; height:64px; object-fit:cover; border-radius:4px;">
                   {% else %}
                     <span>{{ book.title[0] }}</span>
                   {% endif %}
@@ -155,7 +155,7 @@
         <div class="favorites-card">
           <div class="favorites-card-cover" style="position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
             {% if book.cover %}
-              <img src="{{ url_for('static', filename=book.cover) }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px; position: absolute; top: 0; left: 0;">
+              <img src="{{ book.cover }}" alt="{{ book.title }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px; position: absolute; top: 0; left: 0;">
             {% else %}
               <div style="width:100%; height:100%; background: linear-gradient(135deg,#667eea,#764ba2); border-radius:6px;"></div>
             {% endif %}

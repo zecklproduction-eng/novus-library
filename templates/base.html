@@ -303,6 +303,13 @@
       .user-interaction-close:hover {
         background: #555;
       }
+
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateX(-50%) translateY(1rem); }
+        15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-1rem); }
+      }
     </style>
   </head>
 
@@ -1275,8 +1282,37 @@
 </script>
     <!-- Dropdown + delete helper -->
     <script>
-      function toggleDropdown(button) {
-        const dropdown = button.closest(".dropdown-nav");
+      // Global Toast Notification System
+      function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast-notification ${type}`;
+        
+        let bgColor = '#dc2626'; // Default red
+        if (type === 'success') bgColor = '#059669'; // Emerald
+        if (type === 'info') bgColor = '#2563eb'; // Blue
+        
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: ${bgColor};
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            z-index: 10002;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            pointer-events: none;
+            animation: fadeInOut 2s ease forwards;
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+      }
+
+      function toggleDropdown(btn) {
+        const dropdown = btn.closest(".dropdown-nav");
         const content = dropdown.querySelector(".dropdown-content");
         const arrow   = dropdown.querySelector(".nav-logo-arrow");
 

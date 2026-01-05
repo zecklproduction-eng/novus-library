@@ -2119,8 +2119,39 @@
       preloadAround(currentPageIndex);
   };
   
+  // Engagement Tracking (15-second threshold)
+  let engagementRecorded = false;
+  let engagementTimer = null;
+
+  function startEngagementTimer() {
+      if (engagementRecorded) return;
+      
+      console.log("Engagement timer started (15s)...");
+      engagementTimer = setTimeout(() => {
+          fetch('/api/manga/record_view', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                  manga_id: mangaId,
+                  chapter_id: currentChapterId
+              })
+          })
+          .then(res => res.json())
+          .then(data => {
+              if (data.success) {
+                  engagementRecorded = true;
+                  console.log("Engaged view recorded successfully.");
+              }
+          })
+          .catch(err => console.error("Engagement tracking error:", err));
+      }, 15000); // 15 seconds
+  }
+
   // Initialize
-  window.addEventListener('DOMContentLoaded', restoreProgress);
+  window.addEventListener('DOMContentLoaded', () => {
+    restoreProgress();
+    startEngagementTimer();
+  });
 
   // Track scroll for vertical mode
   window.addEventListener('scroll', () => {

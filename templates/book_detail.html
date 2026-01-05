@@ -14,16 +14,12 @@
       <div class="row g-4 align-items-center">
         <!-- Cover -->
       <div class="col-md-4 text-center">
-    {% if book[6] %}
         <img
-          src="{{ url_for('static', filename=book[6]) }}"
+          src="{{ cover_url if cover_url else 'https://picsum.photos/seed/' ~ book[0] ~ '/400/600' }}"
           alt="{{ book[1] }} cover"
           class="img-fluid rounded shadow-sm"
           style="max-height: 260px; object-fit: cover;"
         >
-    {% else %}
-        <div style="font-size: 100px;">📖</div>
-    {% endif %}
 </div>
 
 
@@ -123,12 +119,10 @@
   </form>
 
   <!-- Favorite button -->
-  <form method="post" action="{{ url_for('favorites_book', book_id=book[0]) }}">
-    <button type="submit" class="btn btn-sm {% if is_favorited %}btn-danger{% else %}btn-outline-danger{% endif %}">
-      <i class="fas fa-heart {% if not is_favorited %}fa-regular{% else %}fa-solid{% endif %} me-1"></i>
-      {% if is_favorited %}Favorited{% else %}Add to Favorites{% endif %}
-    </button>
-  </form>
+  <button id="favoriteBtn" class="btn btn-sm {% if is_favorited %}btn-danger{% else %}btn-outline-danger{% endif %}" onclick="toggleFavoriteDetail({{ book[0] }})">
+    <i id="favoriteIcon" class="fas fa-heart {% if not is_favorited %}fa-regular{% else %}fa-solid{% endif %} me-1"></i>
+    <span id="favoriteText">{% if is_favorited %}Favorited{% else %}Add to Favorites{% endif %}</span>
+  </button>
 </div><br>
 
 
@@ -215,8 +209,8 @@
               <div class="bc-review-topline">
                 <span class="bc-review-user">{{ r[4] }}</span>
                 <span class="bc-review-stars">
-                  {% for _ in range(r[2] or 0) %}★{% endfor %}
-                  {% for _ in range(5 - (r[2] or 0)) %}☆{% endfor %}
+                  {% for _ in range((r[2] or 0)|int) %}★{% endfor %}
+                  {% for _ in range(5 - (r[2] or 0)|int) %}☆{% endfor %}
                 </span>
               </div>
               <p class="bc-review-text">{{ r[1] }}</p>
@@ -285,7 +279,7 @@
           <div class="bc-rec-cover">
             {% if rec[4] %}
             <img
-              src="{{ url_for('static', filename=rec[4]) }}"
+              src="{{ rec[4] }}"
               alt="{{ rec[1] }} cover"
             />
             {% else %}
@@ -403,6 +397,54 @@ document.getElementById('coverAiBtn')?.addEventListener('click', async function(
     btn.disabled = false; btn.innerHTML = '<i class="fas fa-image me-2"></i>AI Analyze Cover';
   }
 });
+
+async function toggleFavoriteDetail(bookId) {
+    const btn = document.getElementById('favoriteBtn');
+    const icon = document.getElementById('favoriteIcon');
+    const text = document.getElementById('favoriteText');
+    
+    if (!btn) return;
+
+    try {
+        btn.disabled = true;
+        const resp = await fetch('/api/favorites/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ book_id: bookId })
+        });
+        
+        const data = await resp.json();
+        
+        if (data.success) {
+            if (data.status === 'added') {
+                btn.classList.remove('btn-outline-danger');
+                btn.classList.add('btn-danger');
+                icon.classList.remove('fa-regular');
+                icon.classList.add('fa-solid');
+                text.textContent = 'Favorited';
+                showToast('Added to favorites!', 'success');
+            } else {
+                btn.classList.remove('btn-danger');
+                btn.classList.add('btn-outline-danger');
+                icon.classList.remove('fa-solid');
+                icon.classList.add('fa-regular');
+                text.textContent = 'Add to Favorites';
+                showToast('Removed from favorites.', 'info');
+            }
+        } else {
+            if (resp.status === 401 || data.error === 'Please log in') {
+                window.location.href = '/login';
+            } else {
+                showToast('Error: ' + (data.error || 'Unknown error'), 'danger');
+            }
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('Network error', 'danger');
+    } finally {
+        btn.disabled = false;
+    }
+}
 </script>
 
   </div>

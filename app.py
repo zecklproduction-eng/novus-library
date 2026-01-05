@@ -405,6 +405,17 @@ def admin_required(f):
     return wrapper
 
 
+def login_required(f):
+    """Allow any logged in user to access the route."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if "user_id" not in session:
+            flash("Please log in to access this page.", "info")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrapper
+
+
 def role_required(*roles):
     """Allow only the given roles to access the route."""
     def decorator(f):
@@ -1653,7 +1664,7 @@ def logout():
 
 # ---------- Book Detail ----------
 @app.route("/book/<int:id>")
-@admin_required
+@login_required
 def view_book(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -1762,6 +1773,12 @@ def view_book(id):
         ORDER BY datetime(r.created_at) DESC
     """, (id,))
     reviews = c.fetchall()
+    
+    # fetch rating stats
+    c.execute("SELECT COUNT(*), AVG(rating) FROM reviews WHERE book_id=?", (id,))
+    stats = c.fetchone()
+    review_count = stats[0] if stats else 0
+    avg_rating = stats[1] if stats else 0
 
     conn.close()
 
@@ -1774,14 +1791,48 @@ def view_book(id):
         "completed": "Completed",
     }
 
+    # Prepare cover URL for main book
+    main_cover_path = book[6]
+    if main_cover_path:
+        main_cover_url = main_cover_path if main_cover_path.startswith(('http://', 'https://')) else f"/static/{main_cover_path}"
+    else:
+        main_cover_url = None
+
+    # Prepare cover URLs for recommendations
+    formatted_recs = []
+    for r in recommendations:
+        r_id, r_title, r_author, r_cat, r_cover = r
+        if r_cover:
+            r_img = r_cover if r_cover.startswith(('http://', 'https://')) else f"/static/{r_cover}"
+        else:
+            r_img = None
+        formatted_recs.append((r_id, r_title, r_author, r_cat, r_img))
+
+    # Prepare cover URLs for top wishlisted
+    formatted_wishlisted = []
+    for r in top_wishlisted:
+        # Check if cover_path exists in the tuple (it depends on the query)
+        # c.execute("SELECT b.id, b.title, b.category, b.cover_path, COUNT(*) as cnt ...")
+        w_id, w_title, w_cat, w_cover, w_cnt = r
+        if w_cover:
+            w_img = w_cover if w_cover.startswith(('http://', 'https://')) else f"/static/{w_cover}"
+        else:
+            w_img = None
+        formatted_wishlisted.append((w_id, w_title, w_cat, w_img, w_cnt))
+
     return render_template(
-    "book_detail.html",
-    book=book,
-    reviews=reviews,
-    recommendations=recommendations,
-    top_wishlisted=top_wishlisted,
-    is_favorited=is_favorited
-)
+        "book_detail.html",
+        book=book,
+        cover_url=main_cover_url,
+        reviews=reviews,
+        recommendations=formatted_recs,
+        top_wishlisted=formatted_wishlisted,
+        is_favorited=is_favorited,
+        status_labels=status_labels,
+        current_status=current_status,
+        review_count=review_count,
+        avg_rating=avg_rating
+    )
 
 
 # ---------- AI Summary Endpoint ----------
@@ -3546,7 +3597,7 @@ def watchlist_remove():
     return redirect(url_for("watchlist"))
 
 @app.post("/watchlist/book/<int:book_id>")
-@admin_required
+@login_required
 def watchlist_book(book_id):
     """Add, update, or remove a single book in the user's watchlist
     from the book detail page.
@@ -3618,7 +3669,7 @@ def watchlist_book(book_id):
 
 # ---------- Favorites ----------
 @app.route("/favorites")
-@admin_required
+@login_required
 def favorites():
     """Display user's favorite books"""
     if "user_id" not in session:
@@ -3656,22 +3707,44 @@ def favorites():
     conn.close()
 
     # Format data for template
-    favorite_books_formatted = [
-        {
-            "id": r[0], 
-            "title": r[1], 
-            "author": r[2], 
-            "category": r[3], 
-            "cover": r[6],
-            "date_added": r[7]
-        }
-        for r in favorite_books
-    ]
+    favorite_books_formatted = []
+    for r in favorite_books:
+        book_id, title, author, category, pdf, audio, cover_path, date_added = r
+        
+        # Handle cover image path
+        if cover_path:
+            if cover_path.startswith(('http://', 'https://')):
+                image_url = cover_path
+            else:
+                image_url = f"/static/{cover_path}"
+        else:
+            image_url = f"https://picsum.photos/seed/{book_id}/400/600"
+            
+        favorite_books_formatted.append({
+            "id": book_id, 
+            "title": title, 
+            "author": author, 
+            "category": category, 
+            "cover": image_url,
+            "date_added": date_added
+        })
     
-    recently_read_books = [
-        {"id": r[0], "title": r[1], "author": r[2], "category": r[3], "cover": r[6], "date_read": r[7]}
-        for r in recently_read
-    ]
+    recently_read_books = []
+    for r in recently_read:
+        b_id, b_title, b_author, b_cat, b_pdf, b_audio, b_cover, b_date = r
+        if b_cover:
+            img_url = b_cover if b_cover.startswith(('http://', 'https://')) else f"/static/{b_cover}"
+        else:
+            img_url = f"https://picsum.photos/seed/{b_id}/400/600"
+            
+        recently_read_books.append({
+            "id": b_id, 
+            "title": b_title, 
+            "author": b_author, 
+            "category": b_cat, 
+            "cover": img_url, 
+            "date_read": b_date
+        })
     
     return render_template("favorites.html", 
                          favorite_books=favorite_books_formatted, 
@@ -3680,7 +3753,7 @@ def favorites():
 
 
 @app.post("/favorites/add")
-@admin_required
+@login_required
 def favorites_add():
     """Add a book to favorites"""
     if "user_id" not in session:
@@ -3733,7 +3806,7 @@ def favorites_add():
 
 
 @app.post("/favorites/remove")
-@admin_required
+@login_required
 def favorites_remove():
     """Remove a book from favorites"""
     if "user_id" not in session:
@@ -3758,7 +3831,7 @@ def favorites_remove():
 
 
 @app.post("/favorites/book/<int:book_id>")
-@admin_required
+@login_required
 def favorites_book(book_id):
     """Toggle favorite status for a book from the book detail page"""
     if "user_id" not in session:
@@ -3804,8 +3877,73 @@ def favorites_book(book_id):
 
     return redirect(url_for("view_book", id=book_id))
 
+
+@app.post("/api/favorites/toggle")
+@login_required
+def api_favorites_toggle():
+    """Toggle favorite status for a book via AJAX"""
+    data    = request.get_json() or {}
+    book_id = data.get("book_id")
+    
+    if not book_id:
+        return jsonify({"success": False, "error": "Missing book_id"}), 400
+        
+    user_id = session["user_id"]
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Check if book exists
+        c.execute("SELECT title FROM books WHERE id = ?", (book_id,))
+        book = c.fetchone()
+        if not book:
+            conn.close()
+            return jsonify({"success": False, "error": "Book not found"}), 404
+            
+        book_title = book[0]
+        
+        # Check if already favorited
+        c.execute("SELECT 1 FROM favorites WHERE user_id = ? AND book_id = ?", (user_id, book_id))
+        is_favorite = c.fetchone() is not None
+        
+        if is_favorite:
+            # Remove from favorites
+            c.execute("DELETE FROM favorites WHERE user_id = ? AND book_id = ?", (user_id, book_id))
+            status = "removed"
+            message = f"Removed '{book_title}' from favorites"
+        else:
+            # Add to favorites
+            c.execute("INSERT INTO favorites (user_id, book_id) VALUES (?, ?)", (user_id, book_id))
+            status = "added"
+            message = f"Added '{book_title}' to favorites"
+            
+            # Log activity
+            try:
+                c.execute("""
+                    INSERT INTO activity_log (user_id, book_id, activity_type)
+                    VALUES (?, ?, ?)
+                """, (user_id, book_id, 'favorited'))
+            except Exception:
+                pass
+                
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "success": True, 
+            "status": status, 
+            "message": message,
+            "book_id": book_id
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/manga")
-@admin_required
+@login_required
 def manga():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -3884,6 +4022,50 @@ def manga():
     )
 
 
+@app.route("/api/manga/record_view", methods=["POST"])
+def record_manga_view():
+    """Record a view after 15 seconds of engagement."""
+    if not session.get("user_id"):
+        return jsonify({"success": False, "error": "Login required"}), 401
+    
+    data = request.json
+    uid = session["user_id"]
+    manga_id = data.get("manga_id")
+    chapter_id = data.get("chapter_id")
+
+    if not manga_id or not chapter_id:
+        return jsonify({"success": False, "error": "Missing manga_id or chapter_id"}), 400
+
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        # We use manga_progress as the source for view counts in the ranking query.
+        # This INSERT OR IGNORE / REPLACE logic ensures 1 view per user per manga.
+        # If we want to allow re-views, we'd need a different schema, 
+        # but for ranking, unique viewers is usually better.
+        c.execute("""
+            INSERT INTO manga_progress (user_id, manga_id, chapter_id, updated_at)
+            VALUES (?, ?, ?, datetime('now'))
+            ON CONFLICT(user_id, manga_id) DO UPDATE SET
+                chapter_id = excluded.chapter_id,
+                updated_at = excluded.updated_at
+        """, (uid, manga_id, chapter_id))
+        conn.commit()
+        
+        # Also log this as an activity
+        c.execute("""
+            INSERT INTO activity_log (user_id, book_id, activity_type, timestamp)
+            VALUES (?, ?, 'view_engaged', datetime('now'))
+        """, (uid, manga_id))
+        conn.commit()
+        
+        return jsonify({"success": True, "message": "Engaged view recorded"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        conn.close()
+
+
 @app.route("/api/save_progress", methods=["POST"])
 def save_reading_progress():
     if not session.get("user_id"):
@@ -3918,7 +4100,7 @@ def save_reading_progress():
 
 
 @app.route("/manga/read/<int:id>")
-@admin_required
+@login_required
 def read_manga(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -3971,7 +4153,7 @@ def read_manga(id):
 
 # ---------- Modern Manga Reader (v2) ----------
 @app.route("/manga/<int:id>")
-@admin_required
+@login_required
 def manga_reader_v2(id):
     """Modern manga reader with AI features."""
     if "user_id" not in session:
@@ -7631,6 +7813,14 @@ def ranking():
     """)
     
     books_data = c.fetchall()
+    
+    # Get user's favorites if logged in
+    user_id = session.get("user_id")
+    favorited_book_ids = set()
+    if user_id:
+        c.execute("SELECT book_id FROM favorites WHERE user_id = ?", (user_id,))
+        favorited_book_ids = {row[0] for row in c.fetchall()}
+        
     conn.close()
     
     items = []
@@ -7702,7 +7892,8 @@ def ranking():
             'imageUrl': image_url,
             'languages': languages,
             'type': item_type,
-            'categories': categories
+            'categories': categories,
+            'is_favorited': book_id in favorited_book_ids
         })
     
     return render_template('ranking.html', items=items)
