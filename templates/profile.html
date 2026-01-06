@@ -2,438 +2,1212 @@
 {% block title %}Profile | NOVUS{% endblock %}
 {% block content %}
 <style>
-.active-log-content {
-  padding: 15px 0;
+/* ===== Profile Page Premium Styles ===== */
+.profile-page {
+    padding: 30px 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+    overflow-x: hidden;
 }
 
-.online-time-display {
-  display: flex;
-  align-items: center;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #00d4ff;
-  margin-bottom: 10px;
+/* Welcome Header */
+.profile-welcome-header {
+    position: relative;
+    padding: 40px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 40px;
+    overflow: hidden;
 }
 
-.online-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.profile-welcome-header::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(0, 212, 255, 0.15) 0%, transparent 70%);
+    pointer-events: none;
 }
 
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.profile-welcome-header::after {
+    content: '';
+    position: absolute;
+    bottom: -80px;
+    left: -80px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.1) 0%, transparent 70%);
+    pointer-events: none;
 }
 
-.stat-label {
-  color: #ccc;
-  font-size: 0.9rem;
+.welcome-content {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    position: relative;
+    z-index: 1;
 }
 
-.stat-value {
-  color: #fff;
-  font-weight: 600;
-  font-family: 'Courier New', monospace;
+.welcome-avatar {
+    flex-shrink: 0;
 }
 
-.online-time-text {
-  font-family: 'Courier New', monospace;
-  font-size: 1.2rem;
+.avatar-ring {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    padding: 4px;
+    background: linear-gradient(135deg, #00d4ff, #a78bfa, #f472b6);
+    animation: avatarRingRotate 4s linear infinite;
+}
+
+@keyframes avatarRingRotate {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+.avatar-ring img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #0d1117;
+}
+
+.welcome-info {
+    flex: 1;
+}
+
+.welcome-greeting {
+    font-size: 0.9rem;
+    color: #8b9bb4;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.welcome-name {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0 0 10px 0;
+    background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.welcome-meta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.meta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.meta-badge.role {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #c9d1d9;
+}
+
+.meta-badge.plan {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(167, 139, 250, 0.2));
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    color: #00d4ff;
+}
+
+.meta-badge.plan.pro {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 242, 255, 0.2));
+    border-color: #00d4ff;
+}
+
+.meta-badge.plan.ultimate {
+    position: relative;
+    background: linear-gradient(135deg, #7c3aed, #db2777, #f59e0b, #10b981, #0ea5e9, #7c3aed);
+    background-size: 300% 300%;
+    animation: ultimateGradient 4s ease infinite, ultimatePulse 2s ease-in-out infinite;
+    border: none;
+    color: #fff;
+    font-weight: 800;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 20px rgba(167, 139, 250, 0.5), 0 0 40px rgba(219, 39, 119, 0.3);
+    padding: 10px 20px;
+}
+
+.meta-badge.plan.ultimate::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #7c3aed, #db2777, #f59e0b, #10b981, #0ea5e9, #7c3aed);
+    background-size: 300% 300%;
+    animation: ultimateGradient 4s ease infinite;
+    z-index: -1;
+    filter: blur(8px);
+    opacity: 0.7;
+}
+
+.meta-badge.plan.ultimate i {
+    animation: ultimateCrown 2s ease-in-out infinite;
+}
+
+@keyframes ultimateGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes ultimatePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+@keyframes ultimateCrown {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(-5deg) scale(1.1); }
+    75% { transform: rotate(5deg) scale(1.1); }
+}
+
+.welcome-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.btn-profile-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    border: none;
+}
+
+.btn-profile-action.primary {
+    background: linear-gradient(135deg, #00d4ff, #00f2ff);
+    color: #000;
+}
+
+.btn-profile-action.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 212, 255, 0.3);
+}
+
+.btn-profile-action.secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #c9d1d9;
+}
+
+.btn-profile-action.secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Stats Section */
+.stats-section {
+    margin-bottom: 40px;
+}
+
+.stats-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stats-section-title i {
+    color: #00d4ff;
+}
+
+.stats-grid-enhanced {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.stat-card-enhanced {
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.stat-card-enhanced:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0, 212, 255, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.stat-card-enhanced::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #00d4ff, #a78bfa);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.stat-card-enhanced:hover::before {
+    opacity: 1;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    margin-bottom: 16px;
+}
+
+.stat-icon.books { background: rgba(0, 212, 255, 0.15); color: #00d4ff; }
+.stat-icon.pages { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+.stat-icon.rating { background: rgba(250, 204, 21, 0.15); color: #facc15; }
+.stat-icon.genre { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+
+.stat-number {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+.stat-label-enhanced {
+    font-size: 0.85rem;
+    color: #8b9bb4;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Content Grid */
+.profile-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 30px;
+}
+
+/* Glass Panel */
+.glass-panel {
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 24px;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.panel-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.panel-title i {
+    color: #00d4ff;
+}
+
+.panel-action {
+    font-size: 0.85rem;
+    color: #00d4ff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.panel-action:hover {
+    color: #00f2ff;
+    transform: translateX(4px);
+}
+
+/* Reading Cards */
+.reading-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
+}
+
+.reading-card {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.reading-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+.reading-card-cover {
+    position: relative;
+    aspect-ratio: 2/3;
+    overflow: hidden;
+}
+
+.reading-card-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.reading-card:hover .reading-card-cover img {
+    transform: scale(1.08);
+}
+
+.reading-card-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 40px 12px 12px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+}
+
+.reading-card-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.reading-card-author {
+    font-size: 0.75rem;
+    color: #8b9bb4;
+}
+
+/* Progress Ring */
+.progress-ring-container {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+}
+
+.progress-ring {
+    transform: rotate(-90deg);
+}
+
+.progress-ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 3;
+}
+
+.progress-ring-fill {
+    fill: none;
+    stroke: #00d4ff;
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.progress-ring-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+/* Finished Books Gallery */
+.finished-books-scroll {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.finished-book-item {
+    flex-shrink: 0;
+    width: 100px;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.finished-book-item:hover {
+    transform: translateY(-5px);
+}
+
+.finished-book-cover {
+    width: 100px;
+    height: 140px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+.finished-book-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.finished-book-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #c9d1d9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Right Sidebar Panels */
+.sidebar-panel {
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+/* Active Log */
+.active-log-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.active-pulse {
+    width: 10px;
+    height: 10px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: activePulse 2s infinite;
+}
+
+@keyframes activePulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+}
+
+.active-log-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.active-time-display {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.active-time-label {
+    font-size: 0.75rem;
+    color: #8b9bb4;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+}
+
+.active-time-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #10b981;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.active-stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.active-stat-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.active-stat-label {
+    font-size: 0.85rem;
+    color: #8b9bb4;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.active-stat-label i {
+    color: #00d4ff;
+    font-size: 0.9rem;
+}
+
+.active-stat-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Activity Timeline */
+.activity-timeline {
+    position: relative;
+    padding-left: 24px;
+}
+
+.activity-timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, #00d4ff, rgba(0, 212, 255, 0.1));
+}
+
+.activity-item-enhanced {
+    position: relative;
+    padding: 16px;
+    margin-bottom: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+}
+
+.activity-item-enhanced:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(0, 212, 255, 0.2);
+}
+
+.activity-item-enhanced::before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 20px;
+    width: 12px;
+    height: 12px;
+    background: #00d4ff;
+    border-radius: 50%;
+    border: 2px solid #0d1117;
+}
+
+.activity-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    margin-right: 12px;
+    font-size: 0.85rem;
+}
+
+.activity-icon.read { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.activity-icon.rate { background: rgba(250, 204, 21, 0.15); color: #facc15; }
+.activity-icon.fav { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.activity-icon.default { background: rgba(0, 212, 255, 0.15); color: #00d4ff; }
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-text {
+    font-size: 0.9rem;
+    color: #c9d1d9;
+    margin-bottom: 4px;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: #6e7681;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6e7681;
+}
+
+.empty-state i {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Modal Enhancement */
+.modal-content.glass-modal {
+    background: rgba(20, 20, 25, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+}
+
+.modal-header.glass-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 24px 30px;
+}
+
+.modal-title.glass-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff, #a1a1aa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.modal-body.glass-body {
+    padding: 30px;
+}
+
+.form-group-enhanced {
+    margin-bottom: 24px;
+}
+
+.form-label-enhanced {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #a1a1aa;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.form-input-enhanced {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: #fff;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.form-input-enhanced:focus {
+    outline: none;
+    border-color: #00d4ff;
+    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+
+.avatar-upload-area {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+}
+
+.avatar-preview-enhanced {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid rgba(0, 212, 255, 0.3);
+}
+
+.avatar-preview-enhanced img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-upload-info {
+    flex: 1;
+}
+
+.modal-footer.glass-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 20px 30px;
+}
+
+.btn-modal-save {
+    background: linear-gradient(135deg, #00d4ff, #00f2ff);
+    color: #000;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-modal-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 212, 255, 0.3);
+}
+
+.btn-modal-cancel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #a1a1aa;
+    padding: 12px 28px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-modal-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+.delay-1 { animation-delay: 0.1s; opacity: 0; }
+.delay-2 { animation-delay: 0.2s; opacity: 0; }
+.delay-3 { animation-delay: 0.3s; opacity: 0; }
+.delay-4 { animation-delay: 0.4s; opacity: 0; }
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .profile-content-grid {
+        grid-template-columns: 1fr;
+    }
+    .stats-grid-enhanced {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .profile-page {
+        padding: 20px;
+    }
+    .welcome-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    .welcome-meta {
+        justify-content: center;
+    }
+    .welcome-actions {
+        justify-content: center;
+    }
+    .stats-grid-enhanced {
+        grid-template-columns: 1fr 1fr;
+    }
+    .reading-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 </style>
-<div class="container py-3 profile-page">
-  <!-- Header -->
-  <!-- New Profile Card Header -->
-  <div class="row justify-content-center mb-5">
-      <div class="col-md-6 col-lg-5">
-          <div class="studio-card profile-preview-card {{ plan|default('basic') }}">
-               <!-- Background Layers -->
-                {% set bg_url = avatar_settings.avatar_bg_url %}
-                {% set is_video = bg_url and (bg_url.endswith('.mp4') or bg_url.endswith('.webm')) %}
-                <div class="studio-bg-layer {{ avatar_settings.avatar_bg_class|default('') }}" 
-                     style="{% if bg_url and not is_video %}background-image: url('{{ bg_url }}'); background-size: cover; background-position: center;{% endif %}
-                            {% if avatar_settings.avatar_bg_match_color and avatar_settings.avatar_bg_match_color == 'true' %}--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }};{% endif %}
-                            filter: brightness({{ avatar_settings.avatar_bg_brightness|default('100') }}%) blur({{ avatar_settings.avatar_bg_blur|default('0') }}px);">
-                    {% if is_video %}
-                        <video src="{{ bg_url }}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+
+<div class="profile-page">
+    <!-- Welcome Header -->
+    <div class="profile-welcome-header animate-in">
+        <div class="welcome-content">
+            <div class="welcome-avatar">
+                <div class="avatar-ring">
+                    {% if avatar_url %}
+                    <img src="{{ avatar_url }}" alt="{{ username }}">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Default Avatar">
                     {% endif %}
                 </div>
-               <div class="studio-overlay-layer" style="opacity: {{ (avatar_settings.avatar_bg_opacity|default('0')|int) / 100 }};"></div>
+            </div>
+            <div class="welcome-info">
+                <div class="welcome-greeting">Welcome back,</div>
+                <h1 class="welcome-name">{{ username or 'Reader' }}</h1>
+                <div class="welcome-meta">
+                    <span class="meta-badge role">
+                        <i class="fas fa-user-tag"></i> {{ role|default('Member')|capitalize }}
+                    </span>
+                    <span class="meta-badge plan {{ plan|default('basic')|lower }}">
+                        <i class="fas fa-crown"></i> {{ plan|default('Basic')|capitalize }} Member
+                    </span>
+                </div>
+                <div class="welcome-actions">
+                    <button class="btn-profile-action primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                        <i class="fas fa-pen"></i> Edit Profile
+                    </button>
+                    <a href="{{ url_for('avatar_studio') }}" class="btn-profile-action secondary">
+                        <i class="fas fa-palette"></i> Avatar Studio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-               <!-- Content -->
-               <div class="studio-avatar-container">
-                    <div class="studio-avatar-frame {{ avatar_settings.avatar_frame|default('none') }}">
-                        <div class="studio-avatar-img-wrapper border-{{ avatar_settings.avatar_border|default('solid') }}" style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
-                            {% if avatar_url %}
-                            <img src="{{ avatar_url }}" alt="{{ username }}" class="studio-avatar-img">
+    <!-- Stats Section -->
+    <div class="stats-section animate-in delay-1">
+        <div class="stats-section-title">
+            <i class="fas fa-chart-bar"></i> Reading Statistics
+        </div>
+        <div class="stats-grid-enhanced">
+            <div class="stat-card-enhanced">
+                <div class="stat-icon books"><i class="fas fa-book"></i></div>
+                <div class="stat-number" data-count="{{ count or 0 }}">{{ count or 0 }}</div>
+                <div class="stat-label-enhanced">Books Read</div>
+            </div>
+            <div class="stat-card-enhanced">
+                <div class="stat-icon pages"><i class="fas fa-file-alt"></i></div>
+                <div class="stat-number">{{ pages_read or '—' }}</div>
+                <div class="stat-label-enhanced">Pages Read</div>
+            </div>
+            <div class="stat-card-enhanced">
+                <div class="stat-icon rating"><i class="fas fa-star"></i></div>
+                <div class="stat-number">{{ avg_rating or '—' }}</div>
+                <div class="stat-label-enhanced">Avg Rating</div>
+            </div>
+            <div class="stat-card-enhanced">
+                <div class="stat-icon genre"><i class="fas fa-bookmark"></i></div>
+                <div class="stat-number" style="font-size: 1.5rem;">{{ fav or '—' }}</div>
+                <div class="stat-label-enhanced">Top Genre</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-content-grid">
+        <!-- Left Column -->
+        <div class="left-column">
+            <!-- Currently Reading -->
+            <div class="glass-panel animate-in delay-2">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-book-reader"></i> Currently Reading
+                    </div>
+                    <a href="{{ url_for('reading_history') }}" class="panel-action">
+                        View History <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                
+                {% if currently_reading %}
+                <div class="reading-cards-grid">
+                    {% for b in currently_reading %}
+                    <a href="{{ url_for('view_book', id=b['id']) }}" class="reading-card" style="text-decoration: none;">
+                        <div class="reading-card-cover">
+                            {% if b['cover'] %}
+                            <img src="{{ url_for('static', filename=b['cover']) }}" alt="{{ b['title'] }}">
                             {% else %}
-                            <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Default Avatar" class="studio-avatar-img">
+                            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #6a82fb, #fc5c7d);"></div>
+                            {% endif %}
+                            <div class="reading-card-overlay">
+                                <div class="reading-card-title">{{ b['title'] }}</div>
+                                <div class="reading-card-author">{{ b['author'] or 'Unknown' }}</div>
+                            </div>
+                            <div class="progress-ring-container">
+                                <svg class="progress-ring" width="44" height="44">
+                                    <circle class="progress-ring-bg" cx="22" cy="22" r="18"/>
+                                    <circle class="progress-ring-fill" cx="22" cy="22" r="18" 
+                                            stroke-dasharray="113" 
+                                            stroke-dashoffset="{{ 113 - (113 * (b['progress'] or 0) / 100) }}"/>
+                                </svg>
+                                <div class="progress-ring-text">{{ b['progress'] or 0 }}%</div>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-book-open"></i>
+                    <p>No books marked as 'reading' yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Recent Books Finished -->
+            <div class="glass-panel animate-in delay-3">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-check-circle"></i> Recently Finished
+                    </div>
+                </div>
+                
+                {% if recent_finished %}
+                <div class="finished-books-scroll">
+                    {% for b in recent_finished %}
+                    <a href="{{ url_for('view_book', id=b['id']) }}" class="finished-book-item" style="text-decoration: none;">
+                        <div class="finished-book-cover">
+                            {% if b['cover'] %}
+                            <img src="{{ url_for('static', filename=b['cover']) }}" alt="{{ b['title'] }}">
+                            {% else %}
+                            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 2rem; font-weight: 700;">{{ b['title'][0] }}</div>
                             {% endif %}
                         </div>
+                        <div class="finished-book-title" title="{{ b['title'] }}">{{ b['title'] }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-trophy"></i>
+                    <p>Finish a book to see it here!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="right-column">
+            <!-- Active Log -->
+            <div class="sidebar-panel animate-in delay-2">
+                <div class="active-log-header">
+                    <div class="active-pulse"></div>
+                    <div class="active-log-title">Active Session</div>
+                </div>
+                
+                <div class="active-time-display">
+                    <div class="active-time-label">Session Duration</div>
+                    <div class="active-time-value" id="sessionTimeDisplay">00:00:00</div>
+                </div>
+                
+                <div class="active-stats-list">
+                    <div class="active-stat-item">
+                        <span class="active-stat-label"><i class="fas fa-file"></i> Pages Visited</span>
+                        <span class="active-stat-value" id="pagesVisited">1</span>
                     </div>
-               </div>
-               
-               <h2 class="studio-username">{{ username or 'ReaderOne' }}</h2>
-               <div class="studio-role">{{ role|default('Member')|capitalize }}</div>
-               
-               <div class="studio-plan-badge {{ plan|default('basic') }}">
-                   <i class="fas fa-crown"></i> {{ plan|default('Basic')|capitalize }} Member
-               </div>
-               
-               <div class="mt-4">
-                   <a href="#" data-bs-toggle="modal" data-bs-target="#editProfileModal" class="studio-edit-link">
-                       <i class="fas fa-pen"></i> Edit Profile
-                   </a>
-               </div>
-          </div>
-      </div>
-  </div>
-
-  <div class="row g-4">
-    <!-- LEFT: Stats + Shelves -->
-    <div class="col-lg-8">
-      <!-- Stats -->
-      <div class="section-container mb-4">
-        <div class="section-title">Reading Stats</div>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value">{{ count }}</div>
-            <div class="stat-label">Books Read</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ pages_read or '—' }}</div>
-            <div class="stat-label">Pages Read</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ avg_rating or '—' }}</div>
-            <div class="stat-label">Average Rating</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ fav or '—' }}</div>
-            <div class="stat-label">Favorite Genre</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Currently Reading -->
-      <div class="section-container mb-4">
-        <div class="section-title">Currently Reading</div>
-        <div class="watchlist-cards-row">
-          {% for b in currently_reading %}
-          <div class="watchlist-card">
-            <div class="watchlist-card-cover" style="position: relative">
-              {% if b.cover %}
-              <img
-                src="{{ url_for('static', filename=b.cover) }}"
-                alt="{{ b.title }}"
-                style="
-                  width: 100%;
-                  height: 100%;
-                  object-fit: cover;
-                  border-radius: 6px;
-                "
-              />
-              {% else %}
-              <div
-                style="
-                  background: linear-gradient(135deg, #6a82fb, #fc5c7d);
-                  width: 100%;
-                  height: 100%;
-                  border-radius: 6px;
-                "
-              ></div>
-              {% endif %}
-              <div
-                class="watchlist-card-cover-text"
-                style="position: absolute; left: 10px; bottom: 10px"
-              >
-                <span class="watchlist-card-author"
-                  >{{ b.author or 'Unknown' }}</span
-                >
-                <span class="watchlist-card-title">{{ b.title }}</span>
-              </div>
+                    <div class="active-stat-item">
+                        <span class="active-stat-label"><i class="fas fa-clock"></i> Last Activity</span>
+                        <span class="active-stat-value" id="lastActive">Just now</span>
+                    </div>
+                </div>
             </div>
-            <div class="watchlist-card-footer">
-              <div class="watchlist-progress-circle">
-                <span>{{ b.progress }}%</span>
-              </div>
-              <div class="watchlist-card-status text-muted">
-                {{ b.progress }}% read
-              </div>
-            </div>
-          </div>
-          {% else %}
-          <p class="text-muted mb-0">No books marked as 'reading' yet.</p>
-          {% endfor %}
-        </div>
-      </div>
 
-      <!-- Recent Books Finished -->
-      <div class="section-container">
-        <div class="section-title">Recent Books Finished</div>
-        <div class="covers-row">
-          {% for b in recent_finished %}
-          <div class="cover-thumb">
-            {% if b.cover %}
-            <img
-              src="{{ url_for('static', filename=b.cover) }}"
-              alt="{{ b.title }}"
-              style="
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                border-radius: 6px;
-              "
-            />
-            {% else %}
-            <div class="cover-thumb-img">{{ b.title[0] }}</div>
-            {% endif %}
-            <div class="cover-thumb-title text-truncate" title="{{ b.title }}">
-              {{ b.title }}
+            <!-- Recent Activity -->
+            <div class="sidebar-panel animate-in delay-3">
+                <div class="panel-header" style="margin-bottom: 16px;">
+                    <div class="panel-title">
+                        <i class="fas fa-history"></i> Recent Activity
+                    </div>
+                </div>
+                
+                {% if recent_activity %}
+                <div class="activity-timeline">
+                    {% for a in recent_activity[:5] %}
+                    <div class="activity-item-enhanced">
+                        <div style="display: flex; align-items: flex-start;">
+                            <div class="activity-icon {% if 'read' in a.text|lower %}read{% elif 'rate' in a.text|lower or 'star' in a.text|lower %}rate{% elif 'favorite' in a.text|lower %}fav{% else %}default{% endif %}">
+                                <i class="fas {{ a.icon }}"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-text">{{ a.text|safe }}</div>
+                                <div class="activity-time">{{ a.when }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-stream"></i>
+                    <p>No activity yet.</p>
+                </div>
+                {% endif %}
             </div>
-          </div>
-          {% else %}
-          <p class="text-muted mb-0">Finish a book to see it here.</p>
-          {% endfor %}
         </div>
-      </div>
     </div>
-
-    <!-- RIGHT: Bio + Recent Activity -->
-    <div class="col-lg-4">
-      <div class="section-container mb-4">
-        <div class="section-title">Active Log</div>
-        <div class="active-log-content">
-          <div class="online-time-display">
-            <i class="fas fa-clock text-success me-2"></i>
-            <span class="online-time-text">Calculating...</span>
-          </div>
-          <div class="online-stats mt-3">
-            <div class="stat-item">
-              <span class="stat-label">Session Time:</span>
-              <span class="stat-value" id="sessionTime">00:00:00</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Pages Visited:</span>
-              <span class="stat-value" id="pagesVisited">0</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Last Active:</span>
-              <span class="stat-value" id="lastActive">Just now</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section-container">
-        <div class="section-title">Recent Activity</div>
-        <ul class="activity-list">
-          {% for a in recent_activity %}
-          <li class="activity-item">
-            <i class="fas {{ a.icon }}"></i>
-            <div>
-              <div class="activity-text">{{ a.text|safe }}</div>
-              <div class="activity-time text-muted small">{{ a.when }}</div>
-            </div>
-          </li>
-          {% else %}
-          <li class="text-muted small">No activity yet.</li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-  </div>
 </div>
+
 <!-- Edit Profile Modal -->
 <div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content" style="background:#1f1f1f; border:1px solid #333; border-radius:16px;">
-      <div class="modal-header" style="border-bottom:1px solid #333;">
-        <h5 class="modal-title" style="color:#fff; font-weight:800; letter-spacing:.5px;">
-          Account Settings
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-
-      <form method="post" action="{{ url_for('profile') }}" enctype="multipart/form-data">
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-lg-6">
-              <div class="section-container" style="margin-bottom:0;">
-  <div class="section-title">Personal Information</div>
-
-  <!-- Avatar -->
-  <div class="d-flex align-items-center gap-3 mb-3">
-    <div class="avatar-preview">
-      <img
-        src="{{ avatar_url or url_for('static', filename='img/default-avatar.png') }}"
-        alt="Profile photo"
-        id="avatarPreviewImg"
-      />
-    </div>
-
-    <div>
-      <label class="form-label mb-1">Profile Image</label>
-      <input type="file" id="avatarInput" name="avatar" accept="image/*">
-      <small style="opacity:.7;">PNG/JPG recommended. Square image looks best.</small>
-    </div>
-  </div>
-
-  <label class="form-label">Username</label>
-  <input class="form-control" name="username" value="{{ username }}" />
-
-  <div class="mt-3">
-    <label class="form-label">Email</label>
-    <input class="form-control" name="email" value="{{ email or '' }}" />
-  </div>
-
-  <button class="btn btn-neon mt-3 w-100" type="submit">
-    Save Changes
-  </button>
-</div>
-
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-modal">
+            <div class="modal-header glass-header">
+                <h5 class="modal-title glass-title">Edit Profile</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-
-            <div class="col-lg-6">
-              <div class="section-container" style="margin-bottom:0;">
-                <div class="section-title">Password &amp; Security</div>
-
-                <p class="text-muted small mb-3">For password changes and advanced security settings, visit the <a href="{{ url_for('settings') }}">Settings page</a>.</p>
-
-                <div class="d-flex align-items-center gap-2">
-                  <i class="fas fa-shield-alt text-success"></i>
-                  <span class="text-muted">Account security managed in Settings</span>
+            
+            <form method="post" action="{{ url_for('profile') }}" enctype="multipart/form-data">
+                <div class="modal-body glass-body">
+                    <!-- Avatar Upload -->
+                    <div class="form-group-enhanced">
+                        <label class="form-label-enhanced">Profile Picture</label>
+                        <div class="avatar-upload-area">
+                            <div class="avatar-preview-enhanced">
+                                <img src="{{ avatar_url or url_for('static', filename='img/default-avatar.png') }}" alt="Preview" id="avatarPreviewImg">
+                            </div>
+                            <div class="avatar-upload-info">
+                                <input type="file" id="avatarInput" name="avatar" accept="image/*" class="form-input-enhanced" style="padding: 10px;">
+                                <small style="color: #6e7681; margin-top: 8px; display: block;">PNG or JPG. Max 5MB.</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Username -->
+                    <div class="form-group-enhanced">
+                        <label class="form-label-enhanced">Username</label>
+                        <input type="text" name="username" value="{{ username }}" class="form-input-enhanced" placeholder="Your display name">
+                    </div>
+                    
+                    <!-- Email -->
+                    <div class="form-group-enhanced">
+                        <label class="form-label-enhanced">Email Address</label>
+                        <input type="email" name="email" value="{{ email or '' }}" class="form-input-enhanced" placeholder="your@email.com">
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
+                
+                <div class="modal-footer glass-footer" style="justify-content: flex-end; gap: 12px;">
+                    <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-modal-save">
+                        <i class="fas fa-check"></i> Save Changes
+                    </button>
+                </div>
+            </form>
         </div>
-
-        <div class="modal-footer" style="border-top:1px solid #333;">
-          <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Close</button>
-        </div>
-      </form>
     </div>
-  </div>
 </div>
-<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+
 <script>
-// Active Log functionality
+// Active Log Tracker - persists across page refreshes using localStorage
 class ActiveLogTracker {
-  constructor() {
-    this.sessionStart = new Date();
-    this.pageVisits = this.getPageVisits();
-    this.lastActive = new Date();
-    this.interval = null;
-    this.init();
-  }
-
-  init() {
-    this.updateDisplay();
-    this.startTracking();
-    this.trackPageVisit();
-
-    // Update last active on user interaction
-    ['mousedown', 'keydown', 'scroll', 'click'].forEach(event => {
-      document.addEventListener(event, () => {
+    constructor() {
+        // Get or create session start time from localStorage
+        const storedStart = localStorage.getItem('sessionStartTime');
+        const storedDate = localStorage.getItem('sessionStartDate');
+        const today = new Date().toDateString();
+        
+        // Reset if it's a new day or no stored session
+        if (!storedStart || storedDate !== today) {
+            this.sessionStart = new Date();
+            localStorage.setItem('sessionStartTime', this.sessionStart.getTime().toString());
+            localStorage.setItem('sessionStartDate', today);
+        } else {
+            this.sessionStart = new Date(parseInt(storedStart));
+        }
+        
+        this.pageVisits = this.getPageVisits();
         this.lastActive = new Date();
-        this.updateLastActive();
-      }, { passive: true });
-    });
-
-    // Track page visibility
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        this.lastActive = new Date();
-        this.updateLastActive();
-      }
-    });
-  }
-
-  startTracking() {
-    this.interval = setInterval(() => {
-      this.updateDisplay();
-    }, 1000);
-  }
-
-  updateDisplay() {
-    const now = new Date();
-    const sessionDuration = now - this.sessionStart;
-
-    // Format session time
-    const sessionTime = this.formatDuration(sessionDuration);
-    document.getElementById('sessionTime').textContent = sessionTime;
-
-    // Update online time text
-    const onlineTimeText = document.querySelector('.online-time-text');
-    if (onlineTimeText) {
-      onlineTimeText.textContent = `Online for ${sessionTime}`;
+        this.init();
     }
 
-    // Update pages visited
-    document.getElementById('pagesVisited').textContent = this.pageVisits;
-  }
-
-  updateLastActive() {
-    const now = new Date();
-    const timeDiff = now - this.lastActive;
-
-    let lastActiveText = 'Just now';
-
-    if (timeDiff < 60000) { // Less than 1 minute
-      lastActiveText = 'Just now';
-    } else if (timeDiff < 3600000) { // Less than 1 hour
-      const minutes = Math.floor(timeDiff / 60000);
-      lastActiveText = `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-    } else if (timeDiff < 86400000) { // Less than 1 day
-      const hours = Math.floor(timeDiff / 3600000);
-      lastActiveText = `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    } else {
-      const days = Math.floor(timeDiff / 86400000);
-      lastActiveText = `${days} day${days > 1 ? 's' : ''} ago`;
+    init() {
+        this.updateDisplay();
+        setInterval(() => this.updateDisplay(), 1000);
+        
+        ['mousedown', 'keydown', 'scroll', 'click'].forEach(event => {
+            document.addEventListener(event, () => {
+                this.lastActive = new Date();
+                this.updateLastActive();
+            }, { passive: true });
+        });
     }
 
-    document.getElementById('lastActive').textContent = lastActiveText;
-  }
-
-  formatDuration(milliseconds) {
-    const totalSeconds = Math.floor(milliseconds / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  }
-
-  getPageVisits() {
-    // Get or initialize page visit count from sessionStorage
-    let visits = parseInt(sessionStorage.getItem('pageVisits') || '0');
-    visits++;
-    sessionStorage.setItem('pageVisits', visits.toString());
-    return visits;
-  }
-
-  trackPageVisit() {
-    // Track current page visit
-    const currentPage = window.location.pathname;
-    const visitedPages = JSON.parse(sessionStorage.getItem('visitedPages') || '[]');
-
-    if (!visitedPages.includes(currentPage)) {
-      visitedPages.push(currentPage);
-      sessionStorage.setItem('visitedPages', JSON.stringify(visitedPages));
+    updateDisplay() {
+        const now = new Date();
+        const duration = now - this.sessionStart;
+        const sessionEl = document.getElementById('sessionTimeDisplay');
+        if (sessionEl) sessionEl.textContent = this.formatDuration(duration);
+        
+        const pagesEl = document.getElementById('pagesVisited');
+        if (pagesEl) pagesEl.textContent = this.pageVisits;
     }
-  }
+
+    updateLastActive() {
+        const el = document.getElementById('lastActive');
+        if (el) el.textContent = 'Just now';
+    }
+
+    formatDuration(ms) {
+        const s = Math.floor(ms / 1000);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    }
+
+    getPageVisits() {
+        // Use localStorage for persistence, reset daily
+        const storedDate = localStorage.getItem('pageVisitDate');
+        const today = new Date().toDateString();
+        
+        if (storedDate !== today) {
+            localStorage.setItem('pageVisitDate', today);
+            localStorage.setItem('pageVisits', '1');
+            return 1;
+        }
+        
+        let v = parseInt(localStorage.getItem('pageVisits') || '0') + 1;
+        localStorage.setItem('pageVisits', v.toString());
+        return v;
+    }
 }
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-  new ActiveLogTracker();
+// Avatar Preview
+document.getElementById('avatarInput')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('avatarPreviewImg').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    new ActiveLogTracker();
 });
 </script>
 {% endblock %}

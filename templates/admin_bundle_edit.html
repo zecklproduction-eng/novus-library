@@ -764,7 +764,7 @@
         </div>
     </header>
 
-    <form action="{{ url_for('admin_bundle_edit', id=bundle.id) }}" method="post">
+    <form action="{{ url_for('admin_bundle_edit', id=bundle.id) }}" method="post" enctype="multipart/form-data">
         <div class="edit-grid">
             <!-- Left Column: Core Configuration -->
             <div class="glass-panel">
@@ -787,6 +787,25 @@
                     <div class="form-group">
                         <label>Short Description</label>
                         <textarea name="description" class="form-control">{{ bundle.description }}</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Bundle Icon</label>
+                        <div style="display: flex; gap: 15px; align-items: center;">
+                            {% if bundle.icon_path %}
+                            <div style="width: 60px; height: 60px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                                <img src="{{ url_for('static', filename=bundle.icon_path) }}" style="width: 100%; height: 100%; object-fit: cover;" id="iconPreview">
+                            </div>
+                            {% else %}
+                            <div id="iconPreviewContainer" style="width: 60px; height: 60px; border-radius: 12px; border: 1px dashed rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; color: #71717a;">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            {% endif %}
+                            <div style="flex: 1;">
+                                <input type="file" name="icon" id="iconUpload" class="form-control" accept="image/*" style="padding: 8px 12px;">
+                                <div class="hint">Upload a square icon/thumbnail (PNG, JPG, WEBP). Recommended: 200x200px</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

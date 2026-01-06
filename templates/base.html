@@ -504,7 +504,7 @@
   <div class="dd-section-title">CONTENT</div>
   <a href="{{ url_for('my_uploads') }}"><i class="fas fa-book"></i> My Library</a>
   <a href="{{ url_for('add_book') }}"><i class="fas fa-upload"></i> Upload Book</a>
-  <a href="#"><i class="fas fa-clock-rotate-left"></i> Reading History</a>
+  <a href="{{ url_for('reading_history') }}"><i class="fas fa-clock-rotate-left"></i> Reading History</a>
   <a href="{{ url_for('favorites') }}"><i class="fas fa-heart"></i> Favorites</a>
 
   <!-- ACCOUNT -->
@@ -526,6 +526,7 @@
     <a href="/admin/team"><i class="fas fa-people-group"></i> Team Admin</a>
     <a href="{{ url_for('admin_system_logs') }}"><i class="fas fa-terminal"></i> System Logs</a>
     <a href="{{ url_for('admin_reports') }}"><i class="fas fa-flag"></i> User Reports</a>
+    <a href="{{ url_for('admin_ai_summaries') }}"><i class="fas fa-brain"></i> AI Summaries</a>
   {% endif %}
 
   <div class="dropdown-divider"></div>

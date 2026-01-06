@@ -2,145 +2,675 @@
 {% block title %}{{ user[1] }}'s Profile | NOVUS{% endblock %}
 
 {% block content %}
-<div class="container mt-5 mb-5">
-    <div class="row">
-        <!-- Sidebar / User Info -->
-        <div class="col-md-4 mb-4">
-            <!-- Studio Profile Card -->
-            <div class="studio-card profile-preview-card {{ user[4]|default('basic') }}" style="position: relative; overflow: hidden; height: auto; min-height: 450px;">
+<style>
+/* ===== User Visit Page Premium Styles ===== */
+.user-visit-page {
+    padding: 30px 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+    overflow-x: hidden;
+}
+
+/* Profile Header Banner */
+.profile-banner {
+    position: relative;
+    height: 200px;
+    border-radius: 24px;
+    overflow: hidden;
+    margin-bottom: -80px;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.3) 0%, rgba(167, 139, 250, 0.3) 50%, rgba(219, 39, 119, 0.3) 100%);
+}
+
+.profile-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 50%, rgba(13, 17, 23, 1) 100%);
+}
+
+/* Two Column Layout */
+.profile-row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 30px;
+    align-items: stretch;
+}
+
+.profile-card-col {
+    flex: 0 0 270px;
+}
+
+.stats-col {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+/* Profile Main Card */
+.profile-main-card {
+    position: relative;
+    background: rgba(20, 20, 25, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    overflow: hidden;
+    width: 270px;
+    height: 480px;
+    aspect-ratio: 9/16;
+}
+
+.profile-card-content {
+    position: relative;
+    z-index: 2;
+    padding: 40px 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+}
+
+/* Avatar Section */
+.profile-avatar-section {
+    flex-shrink: 0;
+    text-align: center;
+}
+
+.profile-avatar-ring {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    padding: 4px;
+    background: linear-gradient(135deg, #00d4ff, #a78bfa, #f472b6);
+    animation: avatarGlow 4s linear infinite;
+    margin: 0 auto;
+    flex-shrink: 0;
+}
+
+@keyframes avatarGlow {
+    0% { filter: hue-rotate(0deg); box-shadow: 0 0 40px rgba(0, 212, 255, 0.6); }
+    50% { filter: hue-rotate(180deg); box-shadow: 0 0 40px rgba(167, 139, 250, 0.6); }
+    100% { filter: hue-rotate(360deg); box-shadow: 0 0 40px rgba(0, 212, 255, 0.6); }
+}
+
+.profile-avatar-ring img,
+.profile-avatar-ring .avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #0d1117;
+}
+
+.avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    font-size: 3rem;
+    font-weight: 800;
+    color: #a78bfa;
+}
+
+/* Profile Info */
+.profile-info-section {
+    flex: 1;
+}
+
+.profile-username {
+    font-size: 2.8rem;
+    font-weight: 900;
+    margin: 10px 0 2px 0;
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.profile-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 20px;
+}
+
+.profile-plan-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.profile-plan-badge.pro {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: linear-gradient(135deg, #00d4ff, #0ea5e9, #22d3ee, #00d4ff);
+    background-size: 200% 200%;
+    animation: proShift 3s ease infinite;
+    border-radius: 20px;
+    color: #000;
+    font-size: 0.85rem;
+    font-weight: 700;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+    margin: 0;
+    text-transform: capitalize;
+    border: none;
+}
+
+@keyframes proShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.profile-plan-badge.ultimate {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: linear-gradient(135deg, #7c3aed, #db2777, #f59e0b, #10b981, #0ea5e9, #7c3aed);
+    background-size: 300% 300%;
+    animation: ultimateShift 4s ease infinite;
+    border-radius: 20px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    box-shadow: 0 0 20px rgba(167, 139, 250, 0.4);
+    margin: 0;
+    text-transform: capitalize;
+    border: none;
+}
+
+@keyframes ultimateShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.profile-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+}
+
+.btn-profile {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    border: none;
+}
+
+.btn-profile.primary {
+    background: linear-gradient(135deg, #00d4ff, #00f2ff);
+    color: #000;
+}
+
+.btn-profile.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 212, 255, 0.3);
+}
+
+.btn-profile.danger {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.btn-profile.danger:hover {
+    background: #ef4444;
+    color: #fff;
+}
+
+/* Stats Cards (in sidebar column) */
+.stat-card {
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 30px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0, 212, 255, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.stat-card:hover::before {
+    opacity: 1;
+}
+
+.stat-card.books::before { background: linear-gradient(90deg, #00d4ff, #0ea5e9); }
+.stat-card.favs::before { background: linear-gradient(90deg, #ef4444, #f97316); }
+.stat-card.planned::before { background: linear-gradient(90deg, #f59e0b, #eab308); }
+.stat-card.reading::before { background: linear-gradient(90deg, #10b981, #22c55e); }
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 14px;
+    font-size: 1.3rem;
+}
+
+.stat-icon.books { background: rgba(0, 212, 255, 0.15); color: #00d4ff; }
+.stat-icon.favs { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.stat-icon.planned { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.stat-icon.reading { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+
+.stat-number {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 6px;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #8b9bb4;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Activity Section */
+.activity-section {
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 28px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.section-header i {
+    font-size: 1.2rem;
+    color: #00d4ff;
+}
+
+.section-header h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+    color: #fff;
+}
+
+/* Activity Timeline */
+.activity-timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.activity-timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, #00d4ff, rgba(0, 212, 255, 0.1));
+}
+
+.activity-item {
+    position: relative;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+}
+
+.activity-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(0, 212, 255, 0.2);
+}
+
+.activity-item::before {
+    content: '';
+    position: absolute;
+    left: -26px;
+    top: 24px;
+    width: 14px;
+    height: 14px;
+    background: #0d1117;
+    border-radius: 50%;
+    border: 3px solid #00d4ff;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+    z-index: 1;
+}
+
+.activity-content {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.activity-icon.read { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.activity-icon.started { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.activity-icon.completed { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.activity-icon.favorited { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.activity-icon.default { background: rgba(0, 212, 255, 0.15); color: #00d4ff; }
+
+.activity-text {
+    flex: 1;
+}
+
+.activity-text .username {
+    font-weight: 700;
+    color: #fff;
+}
+
+.activity-text .action {
+    color: #8b9bb4;
+}
+
+.activity-text .title {
+    color: #00d4ff;
+    font-weight: 600;
+}
+
+.activity-time {
+    font-size: 0.8rem;
+    color: #6e7681;
+    margin-top: 4px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #6e7681;
+}
+
+.empty-state i {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* Report Modal Enhancement */
+.modal-content.glass-modal {
+    background: rgba(20, 20, 25, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+}
+
+.modal-header.glass-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 20px 24px;
+}
+
+.modal-body.glass-body {
+    padding: 24px;
+}
+
+.report-textarea {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #fff;
+    padding: 14px;
+    resize: none;
+    transition: all 0.2s ease;
+}
+
+.report-textarea:focus {
+    outline: none;
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+.delay-1 { animation-delay: 0.1s; opacity: 0; }
+.delay-2 { animation-delay: 0.2s; opacity: 0; }
+.delay-3 { animation-delay: 0.3s; opacity: 0; }
+
+/* Responsive */
+@media (max-width: 992px) {
+    .profile-row {
+        flex-direction: column;
+    }
+    .profile-card-col {
+        flex: 1;
+    }
+    .stats-col {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-col {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .user-visit-page {
+        padding: 20px;
+    }
+    .stats-col {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+</style>
+
+<div class="user-visit-page">
+    <!-- Two Column Layout -->
+    <div class="profile-row">
+        <!-- LEFT: Profile Card with Background -->
+        <div class="profile-card-col">
+            <div class="profile-main-card animate-in">
+                <!-- Background Layer -->
                 {% set bg_url = profile_avatar_settings.avatar_bg_url %}
                 {% set is_video = bg_url and (bg_url.endswith('.mp4') or bg_url.endswith('.webm')) %}
-                <div class="studio-bg-layer {{ profile_avatar_settings.avatar_bg_class|default('') }}" 
-                     style="{% if bg_url and not is_video %}background-image: url('{{ bg_url }}'); background-size: cover; background-position: center;{% endif %}
-                            {% if profile_avatar_settings.avatar_bg_match_color and profile_avatar_settings.avatar_bg_match_color == 'true' %}--border-color: {{ profile_avatar_settings.avatar_color|default('#00d4ff') }};{% endif %}
-                            filter: brightness({{ profile_avatar_settings.avatar_bg_brightness|default('100') }}%) blur({{ profile_avatar_settings.avatar_bg_blur|default('0') }}px);">
+                <div class="profile-bg-layer" style="position: absolute; inset: 0; z-index: 0;
+                    {% if bg_url and not is_video %}background-image: url('{{ bg_url }}'); background-size: cover; background-position: center;{% endif %}
+                    filter: brightness({{ profile_avatar_settings.avatar_bg_brightness|default('100') }}%) blur({{ profile_avatar_settings.avatar_bg_blur|default('0') }}px);">
                     {% if is_video %}
-                        <video src="{{ bg_url }}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                    <video src="{{ bg_url }}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
                     {% endif %}
                 </div>
-                <div class="studio-overlay-layer" style="opacity: {{ (profile_avatar_settings.avatar_bg_opacity|default('0')|int) / 100 }};"></div>
-
+                <div class="profile-overlay" style="position: absolute; inset: 0; background: rgba(0,0,0,{{ (profile_avatar_settings.avatar_bg_opacity|default('40')|int) / 100 }}); z-index: 1;"></div>
+                
                 <!-- Content -->
-                <div class="studio-avatar-container">
-                     <div class="studio-avatar-frame {{ profile_avatar_settings.avatar_frame|default('none') }}">
-                         <div class="studio-avatar-img-wrapper border-{{ profile_avatar_settings.avatar_border|default('solid') }}" style="--border-color: {{ profile_avatar_settings.avatar_color|default('#00d4ff') }}">
-                             {% if user[3] %}
-                             <img src="{{ user[3] }}" alt="{{ user[1] }}" class="studio-avatar-img">
-                             {% else %}
-                             <div class="studio-avatar-placeholder" style="background:#333; display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:40px; color:#ccc;">
-                                 {{ user[1][0]|upper }}
-                             </div>
-                             {% endif %}
-                         </div>
-                     </div>
-                </div>
-                
-                <h2 class="studio-username">{{ user[1] }}</h2>
-                <div class="studio-role">{{ user[2]|default('Member')|title }}</div>
-                
-                {% if user[4] and user[4] != 'basic' %}
-                <div class="studio-plan-badge {{ user[4] }}">
-                    <i class="fas fa-crown"></i> {{ user[4]|capitalize }} Member
-                </div>
-                {% endif %}
-                
-                <div class="mt-4 d-grid gap-2">
-                    {% if session.get('user_id') != user[0] %}
-                        <button class="btn btn-outline-danger btn-sm" onclick="reportUser({{ user[0] }}, '{{ user[1] }}')" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); border: 1px solid rgba(255,100,100,0.5);">
-                            <i class="fas fa-flag me-2"></i>Report User
-                        </button>
-                    {% else %}
-                        <a href="{{ url_for('profile') }}" class="studio-edit-link btn btn-outline-light btn-sm" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);">
-                            <i class="fas fa-edit me-2"></i>Edit Profile
-                        </a>
+                <div class="profile-card-content">
+                    <!-- Avatar -->
+                    <div class="profile-avatar-ring" style="--border-color: {{ profile_avatar_settings.avatar_color|default('#00d4ff') }}">
+                        {% if user[3] %}
+                        <img src="{{ user[3] }}" alt="{{ user[1] }}">
+                        {% else %}
+                        <div class="avatar-placeholder">{{ user[1][0]|upper }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Username & Role -->
+                    <h2 class="profile-username">{{ user[1] }}</h2>
+                    <div class="profile-role-badge">
+                        {{ user[2]|default('Member')|title }}
+                    </div>
+                    
+                    <!-- Plan Badge -->
+                    {% if user[4] == 'ultimate' %}
+                    <div class="profile-plan-badge ultimate">
+                        <i class="fas fa-crown"></i> Ultimate Member
+                    </div>
+                    {% elif user[4] == 'pro' %}
+                    <div class="profile-plan-badge pro">
+                        <i class="fas fa-bolt"></i> Pro Member
+                    </div>
                     {% endif %}
+                    
+                    <!-- Actions -->
+                    <div class="profile-actions" style="justify-content: center; margin-top: 0;">
+                        {% if session.get('user_id') != user[0] %}
+                        <button class="btn-profile danger" style="padding: 8px 16px; border-radius: 8px; font-size: 0.85rem;" onclick="reportUser({{ user[0] }}, '{{ user[1] }}')">
+                            <i class="fas fa-flag"></i> Report User
+                        </button>
+                        {% else %}
+                        <a href="{{ url_for('profile') }}" style="color: rgba(255,255,255,0.5); text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-pencil-alt"></i> Edit Profile
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Main Content / Stats -->
-        <div class="col-md-8">
-            <!-- Stats Row -->
-            <div class="row g-3 mb-4">
-                <div class="col-sm-4">
-                    <div class="card bg-dark border-secondary p-3 text-center">
-                        <h2 class="text-info mb-0">{{ read_count }}</h2>
-                        <small class="text-muted">Books Read</small>
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="card bg-dark border-secondary p-3 text-center">
-                        <h2 class="text-danger mb-0">{{ fav_count }}</h2>
-                        <small class="text-muted">Favorites</small>
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="card bg-dark border-secondary p-3 text-center">
-                        <div class="d-flex justify-content-around text-start small">
-                            <div>
-                                <div class="text-warning">{{ watchlist_stats.get('planned', 0) }}</div> <span class="text-muted">Planned</span>
-                            </div>
-                            <div>
-                                <div class="text-success">{{ watchlist_stats.get('completed', 0) }}</div> <span class="text-muted">Done</span>
-                            </div>
-                            <div>
-                                <div class="text-info">{{ watchlist_stats.get('reading', 0) }}</div> <span class="text-muted">Reading</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- RIGHT: Stats Grid -->
+        <div class="stats-col">
+            <div class="stat-card books animate-in delay-1">
+                <div class="stat-icon books"><i class="fas fa-book"></i></div>
+                <div class="stat-number">{{ read_count }}</div>
+                <div class="stat-label">Books Read</div>
             </div>
+            <div class="stat-card favs animate-in delay-1">
+                <div class="stat-icon favs"><i class="fas fa-heart"></i></div>
+                <div class="stat-number">{{ fav_count }}</div>
+                <div class="stat-label">Favorites</div>
+            </div>
+            <div class="stat-card planned animate-in delay-2">
+                <div class="stat-icon planned"><i class="fas fa-bookmark"></i></div>
+                <div class="stat-number">{{ watchlist_stats.get('planned', 0) }}</div>
+                <div class="stat-label">Planned</div>
+            </div>
+            <div class="stat-card reading animate-in delay-2">
+                <div class="stat-icon reading"><i class="fas fa-book-reader"></i></div>
+                <div class="stat-number">{{ watchlist_stats.get('reading', 0) }}</div>
+                <div class="stat-label">Reading</div>
+            </div>
+        </div>
+    </div>
 
-            <!-- Recent Activity -->
-            <h4 class="mb-3 border-bottom border-secondary pb-2">Recent Activity</h4>
-            <div class="activity-timeline">
-                {% if recent_activity %}
-                    {% for act in recent_activity %}
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="me-3 text-center" style="width: 40px;">
-                            <i class="fas {{ act.icon }} fa-lg text-secondary"></i>
-                        </div>
+    <!-- Activity Section -->
+    <div class="activity-section animate-in delay-3">
+        <div class="section-header">
+            <i class="fas fa-history"></i>
+            <h3>Recent Activity</h3>
+        </div>
+        
+        {% if recent_activity %}
+        <div class="activity-timeline">
+            {% for act in recent_activity %}
+            <div class="activity-item">
+                <div class="activity-content">
+                    <div class="activity-icon {{ act.type|lower if act.type else 'default' }}">
+                        <i class="fas {{ act.icon }}"></i>
+                    </div>
+                    <div class="activity-text">
                         <div>
-                            <div>
-                                <span class="fw-bold">{{ user[1] }}</span>
-                                <span class="text-muted small">{{ act.type|lower }}</span>
-                                <span class="text-info fw-bold">{{ act.title }}</span>
-                            </div>
-                            <small class="text-muted">{{ act.when }}</small>
+                            <span class="username">{{ user[1] }}</span>
+                            <span class="action">{{ act.type|lower }}</span>
+                            <span class="title">{{ act.title }}</span>
                         </div>
+                        <div class="activity-time">{{ act.when }}</div>
                     </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-muted text-center py-4">No recent activity to show.</p>
-                {% endif %}
+                </div>
             </div>
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-stream"></i>
+            <p>No recent activity to show.</p>
+        </div>
+        {% endif %}
     </div>
 </div>
 
-<!-- Report Modal (Reused) -->
+<!-- Report Modal -->
 <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-dark border-secondary">
-      <div class="modal-header border-secondary">
-        <h5 class="modal-title text-white">Report User</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p class="text-muted small">Help us keep the community safe. Why are you reporting <strong id="reportUserName" class="text-white"></strong>?</p>
-        <form id="reportForm">
-            <input type="hidden" id="reportUserId">
-            <div class="mb-3">
-                <textarea class="form-control bg-black text-white border-secondary" id="reportReason" rows="4" placeholder="Describe the issue..." required></textarea>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-modal">
+            <div class="modal-header glass-header">
+                <h5 class="modal-title text-white"><i class="fas fa-flag text-danger me-2"></i>Report User</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="d-flex justify-content-end">
-                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-danger">Submit Report</button>
+            <div class="modal-body glass-body">
+                <p class="text-muted mb-3">Help us keep the community safe. Why are you reporting <strong id="reportUserName" class="text-white"></strong>?</p>
+                <form id="reportForm">
+                    <input type="hidden" id="reportUserId">
+                    <textarea class="form-control report-textarea" id="reportReason" rows="4" placeholder="Describe the issue..." required></textarea>
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="button" class="btn-profile" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #a1a1aa;" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-profile danger">Submit Report</button>
+                    </div>
+                </form>
             </div>
-        </form>
-      </div>
+        </div>
     </div>
-  </div>
 </div>
 
 <script>

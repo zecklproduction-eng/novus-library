@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Reading History | NOVUS{% endblock %}
+
+{% block content %}
+<style>
+    .glass-panel {
+        background: rgba(30, 30, 30, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .welcome-header {
+        background: linear-gradient(90deg, #1f1f1f 0%, #2a2a2a 100%);
+        border-radius: 16px;
+        padding: 30px;
+        border: 1px solid #333;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .welcome-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--neon-blue);
+        box-shadow: 0 0 20px var(--neon-blue);
+    }
+
+    .history-card {
+        background: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: row;
+        height: 140px;
+    }
+
+    .history-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        border-color: var(--neon-blue);
+    }
+
+    .history-cover {
+        width: 100px;
+        min-width: 100px;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .history-details {
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex-grow: 1;
+    }
+
+    .history-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 5px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .history-author {
+        color: #aaa;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+
+    .history-date {
+        font-size: 0.8rem;
+        color: var(--neon-blue);
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .no-cover {
+        width: 100px;
+        min-width: 100px;
+        height: 100%;
+        background: linear-gradient(135deg, #444, #222);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #777;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+</style>
+
+<div class="container py-4 pb-5">
+    <!-- Header -->
+    <div class="welcome-header d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-2">
+                <i class="fas fa-clock-rotate-left me-2 text-info"></i> Reading History
+            </h1>
+            <p class="text-muted mb-0">Look back at the journeys you've taken.</p>
+        </div>
+        <div class="text-end">
+            <div class="h2 mb-0 fw-bold text-white">{{ history|length }}</div>
+            <div class="small text-muted text-uppercase">Books Read</div>
+        </div>
+    </div>
+
+    <!-- History Grid -->
+    <div class="row g-4">
+        {% for item in history %}
+        <div class="col-lg-6 col-xl-4">
+            <a href="{{ url_for('view_book', id=item.book_id) }}" class="text-decoration-none">
+                <div class="history-card glass-panel">
+                    {% if item.cover %}
+                        <img src="{{ url_for('static', filename=item.cover) }}" alt="{{ item.title }}" class="history-cover">
+                    {% else %}
+                        <div class="no-cover">
+                            {{ item.title[0] if item.title else '?' }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="history-details">
+                        <div class="history-title">{{ item.title }}</div>
+                        <div class="history-author">{{ item.author }}</div>
+                        <div class="history-date">
+                            <i class="far fa-calendar-alt"></i>
+                            Read on {{ item.date_read }}
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-book-open text-muted" style="font-size: 4rem; opacity: 0.2;"></i>
+            </div>
+            <h3 class="text-muted h5">No reading history yet.</h3>
+            <p class="text-muted small">Start reading books to see them appear here!</p>
+            <a href="{{ url_for('home') }}" class="btn btn-neon mt-3">Browse Library</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

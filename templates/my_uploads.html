@@ -2,105 +2,403 @@
 {% block title %}My Uploads | NOVUS{% endblock %}
 
 {% block content %}
-<div class="container py-3">
+<style>
+    :root {
+        --neon-blue: #00d4ff;
+        --neon-purple: #9d50bb;
+        --glass-bg: rgba(255, 255, 255, 0.03);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+    }
 
-  <div class="section-container mb-3">
-    <h2 class="page-title mb-1">My Uploads</h2>
-    <p class="text-muted mb-0">
+    body {
+        background-color: #0a0a0c;
+        color: #e4e4e7;
+    }
+
+    .uploads-page-container {
+        padding: 40px 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+        animation: fadeIn 0.8s ease-out;
+    }
+
+    /* Glass Header */
+    .uploads-header {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 40px;
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .uploads-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .page-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.02em;
+    }
+
+    /* Search System */
+    .search-section {
+        margin-bottom: 40px;
+    }
+
+    .search-box-premium {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 6px;
+        display: flex;
+        gap: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .search-box-premium:focus-within {
+        border-color: var(--neon-blue);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+    }
+
+    .search-input-premium {
+        background: transparent;
+        border: none;
+        color: #fff;
+        padding: 12px 20px;
+        width: 100%;
+        outline: none;
+        font-size: 1rem;
+    }
+
+    .btn-search-premium {
+        background: var(--neon-blue);
+        color: #000;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 12px;
+        font-weight: 700;
+        transition: all 0.3s ease;
+    }
+
+    .btn-search-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3);
+    }
+
+    /* Uploads Grid */
+    .uploads-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 30px;
+    }
+
+    .upload-card-premium {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .upload-card-premium:hover {
+        transform: translateY(-10px);
+        border-color: rgba(0, 212, 255, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-poster-wrapper {
+        position: relative;
+        aspect-ratio: 16/9;
+        overflow: hidden;
+    }
+
+    .card-poster {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s ease;
+    }
+
+    .upload-card-premium:hover .card-poster {
+        transform: scale(1.1);
+    }
+
+    .type-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        backdrop-filter: blur(10px);
+        z-index: 2;
+    }
+
+    .badge-manga {
+        background: rgba(157, 80, 187, 0.2);
+        border: 1px solid rgba(157, 80, 187, 0.4);
+        color: #d8b4fe;
+    }
+
+    .badge-book {
+        background: rgba(0, 212, 255, 0.2);
+        border: 1px solid rgba(0, 212, 255, 0.4);
+        color: #7dd3fc;
+    }
+
+    .card-content {
+        padding: 25px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .item-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: #fff;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .item-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        color: #a1a1aa;
+    }
+
+    .meta-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .meta-row i {
+        width: 16px;
+        color: var(--neon-blue);
+    }
+
+    /* Actions Bar */
+    .card-actions-premium {
+        display: flex;
+        gap: 10px;
+        padding-top: 20px;
+        border-top: 1px solid var(--glass-border);
+        margin-top: auto;
+    }
+
+    .btn-action-sm {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .btn-view { background: rgba(255, 255, 255, 0.05); color: #fff; }
+    .btn-view:hover { background: rgba(255, 255, 255, 0.1); }
+    
+    .btn-edit { background: rgba(0, 212, 255, 0.1); color: var(--neon-blue); }
+    .btn-edit:hover { background: rgba(0, 212, 255, 0.2); }
+
+    .btn-delete-card {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-delete-card:hover {
+        background: #ef4444;
+        color: #fff;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .empty-state-premium {
+        text-align: center;
+        padding: 100px 40px;
+        background: var(--glass-bg);
+        border: 1px dashed var(--glass-border);
+        border-radius: 24px;
+        color: #a1a1aa;
+    }
+</style>
+<div class="uploads-page-container">
+  
+  <!-- PREMIUM HEADER -->
+  <header class="uploads-header animate-in">
+    <h2 class="page-title mb-2">My Uploads</h2>
+    <p class="text-zinc-400 mb-0">
       {% if is_admin %}
-        Showing all books and manga in the catalog (admin view).
+        Manage all books and manga in the Novus catalog from this administrative view.
       {% else %}
-        These are the books and manga you have published to NOVUS.
+        Review and manage the books and manga you've shared with the community.
       {% endif %}
     </p>
-  </div>
+  </header>
+
+  <!-- SEARCH SECTION -->
+  <section class="search-section animate-in delay-1">
+    <form action="{{ url_for('my_uploads') }}" method="get">
+      <div class="search-box-premium">
+        <input type="text" name="q" class="search-input-premium" placeholder="Search by title, author, or genre..." value="{{ q }}">
+        <button type="submit" class="btn-search-premium">
+          <i class="fas fa-search me-2"></i>Search
+        </button>
+        {% if q %}
+          <a href="{{ url_for('my_uploads') }}" class="btn-action-sm btn-view px-4" title="Clear search">
+            <i class="fas fa-times"></i>
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
 
   {% if books %}
-  <div class="section-container">
-    <div class="grid-toolbar">
-      <div class="result-count">
-        {{ books|length }} item{{ books|length != 1 and 's' or '' }} found
+  <!-- GRID SECTION -->
+  <div class="animate-in delay-2">
+    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+      <div class="result-count small text-zinc-500 font-weight-bold uppercase tracking-wider">
+        <i class="fas fa-layer-group me-2 text-blue-400"></i>
+        {{ books|length }} items identified
       </div>
     </div>
 
-    <div class="product-grid">
+    <div class="uploads-grid">
       {% for b in books %}
-      <div class="product-card">
-        {% if b[9] %}  <!-- b[9] is the is_favorited boolean -->
-        <div class="favorite-heart-top-right">
-          <i class="fas fa-heart text-danger"></i>
-        </div>
-        {% endif %}
-        
-        <div class="product-thumb">
+      <div class="upload-card-premium">
+        <!-- Badge -->
+        <span class="type-badge {% if b[8] == 'manga' %}badge-manga{% else %}badge-book{% endif %}">
+          {{ b[8] or 'Book' }}
+        </span>
+
+        <!-- Thumb/Poster -->
+        <div class="card-poster-wrapper">
           {% if b[6] %}
-            <img src="{{ url_for('static', filename=b[6]) }}" alt="{{ b[1] }} cover" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
+            <img src="{{ url_for('static', filename=b[6]) }}" alt="{{ b[1] }}" class="card-poster">
           {% else %}
-            {% if b[8] == 'manga' %}
-              <div class="book-icon">🎨</div>
-            {% else %}
-              <div class="book-icon">📚</div>
-            {% endif %}
-          {% endif %}
-        </div>
-
-        <div class="product-title">
-          {{ b[1] }}
-          {% if b[8] == 'manga' %}
-            <span style="font-size: 10px; background: #667eea; color: white; padding: 2px 6px; border-radius: 3px; margin-left: 5px;">MANGA</span>
-          {% endif %}
-        </div>
-        <div class="product-meta">
-          <div>Author: <strong>{{ b[2] or 'Unknown' }}</strong></div>
-          <div>Category: {{ b[3] }}</div>
-          {% if b[8] == 'manga' and b[0] in manga_chapters %}
-          <div style="color: #667eea; font-weight: 500;">
-            <i class="fas fa-file-pdf" style="margin-right: 5px;"></i>
-            {{ manga_chapters[b[0]] }} chapter{{ manga_chapters[b[0]] != 1 and 's' or '' }}
-          </div>
-          {% endif %}
-          <div class="text-muted" style="font-size: 0.75rem;">
-            Added on: {{ b[7] or 'N/A' }}
-          </div>
-        </div>
-
-        <div class="product-actions">
-          {% if b[8] == 'manga' %}
-            <a href="{{ url_for('upload_chapter', manga_id=b[0]) }}" class="btn btn-ghost" title="Upload Chapter">
-              <i class="fas fa-plus"></i><span>Ch</span>
-            </a>
+            <div class="card-poster d-flex align-items-center justify-content-center bg-zinc-900">
+               <i class="fas {% if b[8] == 'manga' %}fa-paint-brush{% else %}fa-book-open{% endif %} fa-3x text-zinc-800"></i>
+            </div>
           {% endif %}
           
-          <a href="{% if b[8] == 'manga' %}{{ url_for('read_manga', id=b[0]) }}{% else %}{{ url_for('view_book', id=b[0]) }}{% endif %}" class="btn btn-ghost">
-            <i class="fas fa-eye"></i><span>View</span>
-          </a>
-
-          <a href="{{ url_for('edit_book', id=b[0]) }}" class="btn btn-orange">
-            <i class="fas fa-edit"></i><span>Edit</span>
-          </a>
-
-          <form method="POST"
-                action="{{ url_for('delete_book', id=b[0]) }}"
-                onsubmit="return confirm('Delete this {{ 'manga' if b[8] == 'manga' else 'book' }} permanently?');"
-                style="width: 100%;">
-            <button type="submit" class="btn btn-danger" title="Delete" style="width: 100%;">
-              <i class="fas fa-trash"></i><span>Del</span>
-            </button>
-          </form>
+          {% if b[9] %}
+          <div class="position-absolute top-15 start-15 z-2">
+            <i class="fas fa-heart text-danger shadow-lg"></i>
+          </div>
+          {% endif %}
         </div>
 
+        <!-- Content -->
+        <div class="card-content">
+          <h3 class="item-title">{{ b[1] }}</h3>
+          
+          <div class="item-meta">
+            <div class="meta-row">
+              <i class="fas fa-user-edit"></i>
+              <span>By <strong>{{ b[2] or 'Unknown' }}</strong></span>
+            </div>
+            <div class="meta-row">
+              <i class="fas fa-tag"></i>
+              <span>{{ b[3] }}</span>
+            </div>
+            {% if b[8] == 'manga' and b[0] in manga_chapters %}
+            <div class="meta-row text-purple-400">
+              <i class="fas fa-scroll"></i>
+              <span>{{ manga_chapters[b[0]] }} Chapter{{ manga_chapters[b[0]] != 1 and 's' or '' }}</span>
+            </div>
+            {% endif %}
+            <div class="meta-row small text-zinc-600">
+              <i class="fas fa-calendar-alt"></i>
+              <span>Added {{ b[7] or 'N/A' }}</span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="card-actions-premium">
+            <a href="{% if b[8] == 'manga' %}{{ url_for('read_manga', id=b[0]) }}{% else %}{{ url_for('view_book', id=b[0]) }}{% endif %}" class="btn-action-sm btn-view" title="View Details">
+              <i class="fas fa-external-link-alt"></i><span>View</span>
+            </a>
+
+            <a href="{{ url_for('edit_book', id=b[0]) }}" class="btn-action-sm btn-edit" title="Edit Content">
+              <i class="fas fa-pen-nib"></i><span>Edit</span>
+            </a>
+
+            {% if b[8] == 'manga' %}
+              <a href="{{ url_for('upload_chapter', manga_id=b[0]) }}" class="btn-action-sm btn-view border-purple-900/30" title="Upload Chapter">
+                <i class="fas fa-plus"></i><span>Ch</span>
+              </a>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('delete_book', id=b[0]) }}" onsubmit="return confirm('Permanently delete this item?');" class="m-0">
+              <button type="submit" class="btn-delete-card" title="Delete Permanent">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
       {% endfor %}
     </div>
   </div>
   {% else %}
-  <div class="section-container empty-note">
-    {% if is_admin %}
-      No books or manga have been uploaded yet.
-    {% else %}
-      You haven't uploaded any books or manga yet.
-      <br>
-      <a href="{{ url_for('add_book') }}" class="btn-neon mt-3">Upload Your First Book</a>
+  <div class="empty-state-premium animate-in">
+    <i class="fas fa-cloud-upload-alt fa-4x mb-4 text-zinc-800"></i>
+    <h3 class="text-white">Nothing Found</h3>
+    <p class="mb-4">
+      {% if is_admin %}
+        The catalog is currently empty or no results match your query.
+      {% else %}
+        You haven't uploaded anything to Novus yet. Start sharing today!
+      {% endif %}
+    </p>
+    {% if not is_admin %}
+      <a href="{{ url_for('add_book') }}" class="btn-search-premium d-inline-block text-decoration-none">
+        <i class="fas fa-plus me-2"></i>Upload Now
+      </a>
     {% endif %}
   </div>
   {% endif %}

@@ -969,14 +969,30 @@ def init_db():
             user_id INTEGER NOT NULL,
             title TEXT NOT NULL,
             item_type TEXT NOT NULL,
+            manga_id INTEGER, -- For chapter requests
             author TEXT,
             notes TEXT,
             status TEXT DEFAULT 'Requested',
             vote_count INTEGER DEFAULT 0,
             created_at TEXT DEFAULT (DATETIME('now')),
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (manga_id) REFERENCES books(id),
+            FOREIGN KEY (fulfilled_by) REFERENCES users(id)
         )
     """)
+
+    # Migration for requests table
+    try:
+        c.execute("ALTER TABLE requests ADD COLUMN manga_id INTEGER")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    
+    try:
+        c.execute("ALTER TABLE requests ADD COLUMN fulfilled_by INTEGER")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
 
     # request votes tracking (to prevent double voting)
     c.execute("""
@@ -996,7 +1012,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS publisher_earnings (
             id INTEGER PRIMARY KEY,
             user_id INTEGER NOT NULL,
-            request_id INTEGER NOT NULL,
+            request_id INTEGER, -- Optional, if for a request
             amount REAL NOT NULL,
             reason TEXT,
             created_at TEXT DEFAULT (DATETIME('now')),
@@ -1024,6 +1040,13 @@ def init_db():
     # Migration for bundles table
     try:
         c.execute("ALTER TABLE bundles ADD COLUMN min_plan TEXT DEFAULT 'basic'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    
+    # Add icon_path column for bundle icons
+    try:
+        c.execute("ALTER TABLE bundles ADD COLUMN icon_path TEXT")
         conn.commit()
     except sqlite3.OperationalError:
         pass
@@ -2735,6 +2758,15 @@ def add_book():
                 INSERT INTO chapters (manga_id, chapter_num, title, pdf_filename, page_count)
                 VALUES (?, ?, ?, ?, ?)
             """, (manga_id, 1, "Chapter 1", pages_data, page_count))
+            
+            # Reward publisher 0.15$ for Chapter 1
+            try:
+                c.execute("""
+                    INSERT INTO publisher_earnings (user_id, request_id, amount, reason)
+                    VALUES (?, ?, ?, ?)
+                """, (session['user_id'], None, 0.15, f"Chapter Upload Reward: {title} Ch 1"))
+            except Exception as e:
+                print(f"Error rewarding publisher for Ch 1: {e}")
             conn.commit()
 
         conn.close()
@@ -2759,8 +2791,9 @@ def add_book():
                  base_reward = 0.50
                  bonus = (votes // 2) * 0.20
                  earned_amount = base_reward + bonus
+                 pass
                  
-                 conn.execute("UPDATE requests SET status='Added' WHERE id=?", (request_id,))
+                 conn.execute("UPDATE requests SET status='Added', fulfilled_by=? WHERE id=?", (session['user_id'], request_id))
                  
                  # Record earning
                  conn.execute("INSERT INTO publisher_earnings (user_id, request_id, amount, reason) VALUES (?, ?, ?, ?)", 
@@ -3022,7 +3055,7 @@ def profile():
 
     # Get reading history
     c.execute("""
-        SELECT books.title, books.category, history.date_read, books.author, books.cover_path
+        SELECT books.title, books.category, history.date_read, books.author, books.cover_path, books.id
         FROM history
         JOIN books ON history.book_id = books.id
         WHERE history.user_id = ?
@@ -3033,7 +3066,7 @@ def profile():
 
     # Get currently reading from watchlist
     c.execute("""
-        SELECT b.title, b.author, b.cover_path, w.progress
+        SELECT b.title, b.author, b.cover_path, w.progress, b.id
         FROM watchlist w
         JOIN books b ON w.book_id = b.id
         WHERE w.user_id = ? AND w.status = 'reading'
@@ -3070,13 +3103,13 @@ def profile():
 
     # Format currently reading
     currently_reading = [
-        {"title": r[0], "author": r[1], "progress": r[3] or 0, "cover": r[2]}
+        {"id": r[4], "title": r[0], "author": r[1], "progress": r[3] or 0, "cover": r[2]}
         for r in currently_reading_raw
     ]
 
     # Format recent finished (first 6 from history)
     recent_finished = [
-        {"title": r[0], "author": r[3], "cover": r[4]}
+        {"id": r[5], "title": r[0], "author": r[3], "cover": r[4]}
         for r in hist[:6]
     ]
 
@@ -3131,6 +3164,8 @@ def profile():
         username=session.get("username"),
         avatar_url=session.get("avatar_url"),
         email=session.get("email"),
+        plan=session.get("plan", "basic"),
+        role=session.get("role", "member"),
         count=total_read,
         fav=fav_genre,
         pages_read=None,  # Could be calculated from progress, but leaving as None for now
@@ -3425,6 +3460,39 @@ def log_activity():
         conn.close()
         return jsonify({"error": str(e)}), 500
 
+
+# ---------- Reading History ----------
+@app.route("/reading_history")
+def reading_history():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT b.id, b.title, b.author, b.cover_path, h.date_read
+        FROM history h
+        JOIN books b ON h.book_id = b.id
+        WHERE h.user_id = ?
+        ORDER BY h.date_read DESC
+    """, (user_id,))
+    history_data = c.fetchall()
+    conn.close()
+
+    formatted_history = []
+    for row in history_data:
+        # Format date if needed, or pass raw
+        formatted_history.append({
+            "book_id": row[0],
+            "title": row[1],
+            "author": row[2],
+            "cover": row[3],
+            "date_read": row[4]
+        })
+
+    return render_template("reading_history.html", history=formatted_history)
 
 # ---------- Watchlist ----------
 @app.route("/watchlist")
@@ -4395,6 +4463,19 @@ def upload_chapter(manga_id):
         INSERT INTO chapters (manga_id, chapter_num, title, pdf_filename, page_count)
         VALUES (?, ?, ?, ?, ?)
     """, (manga_id, chapter_num, chapter_title, pages_data, page_count))
+    
+    # Reward publisher 0.15$ per chapter
+    try:
+        # Get manga title for the reason
+        c.execute("SELECT title FROM books WHERE id=?", (manga_id,))
+        m_row = c.fetchone()
+        manga_title = m_row[0] if m_row else "Unknown Manga"
+        c.execute("""
+            INSERT INTO publisher_earnings (user_id, request_id, amount, reason)
+            VALUES (?, ?, ?, ?)
+        """, (session['user_id'], None, 0.15, f"Chapter Upload Reward: {manga_title} Ch {chapter_num}"))
+    except Exception as e:
+        print(f"Error rewarding publisher for Ch {chapter_num}: {e}")
     conn.commit()
     conn.close()
 
@@ -4924,7 +5005,7 @@ def user_profile(user_id):
 
     # Get user info
     c.execute("""
-        SELECT id, username, email, role, avatar_url, plan
+        SELECT id, username, role, avatar_url, plan
         FROM users
         WHERE id = ?
     """, (user_id,))
@@ -4935,38 +5016,77 @@ def user_profile(user_id):
         flash('User not found.', 'danger')
         return redirect(url_for('home'))
 
-    # Get user's uploaded books
+    # Get stats
+    c.execute("SELECT COUNT(*) FROM history WHERE user_id=?", (user_id,))
+    read_count = c.fetchone()[0]
+
+    c.execute("SELECT status, COUNT(*) FROM watchlist WHERE user_id=? GROUP BY status", (user_id,))
+    watchlist_stats = dict(c.fetchall())
+
+    c.execute("SELECT COUNT(*) FROM favorites WHERE user_id=?", (user_id,))
+    fav_count = c.fetchone()[0]
+
+    # Recent activity
     c.execute("""
-        SELECT id, title, author, category, cover_path, created_at
-        FROM books
-        WHERE uploader_id = ? AND book_type != 'manga'
-        ORDER BY created_at DESC
+        SELECT al.activity_type, b.title, al.timestamp
+        FROM activity_log al
+        JOIN books b ON al.book_id = b.id
+        WHERE al.user_id = ?
+        ORDER BY al.timestamp DESC
         LIMIT 10
     """, (user_id,))
+    activity_raw = c.fetchall()
 
-    books = c.fetchall()
-
-    # Get user's reading activity
-    c.execute("""
-        SELECT COUNT(*) FROM activity_log WHERE user_id = ?
-    """, (user_id,))
-
-    activity_count = c.fetchone()[0]
-
-    # Get user's review count
-    c.execute("""
-        SELECT COUNT(*) FROM reviews WHERE user_id = ?
-    """, (user_id,))
-
-    review_count = c.fetchone()[0]
+    # Get avatar settings
+    profile_avatar_settings = fetch_user_avatar_settings(user_id)
 
     conn.close()
 
+    # Format activity
+    activity_icons = {
+        'read': 'fa-book-open',
+        'started': 'fa-play-circle',
+        'completed': 'fa-check-circle',
+        'favorited': 'fa-heart',
+        'summarized': 'fa-sparkles'
+    }
+
+    recent_activity = []
+    for activity_type, title, timestamp in activity_raw:
+        try:
+            dt = datetime.fromisoformat(timestamp)
+            now = datetime.utcnow()
+            diff = now - dt
+
+            if diff.days > 365:
+                when = f"{diff.days // 365}y ago"
+            elif diff.days > 30:
+                when = f"{diff.days // 30}mo ago"
+            elif diff.days > 0:
+                when = f"{diff.days}d ago"
+            elif diff.seconds > 3600:
+                when = f"{diff.seconds // 3600}h ago"
+            elif diff.seconds > 60:
+                when = f"{diff.seconds // 60}m ago"
+            else:
+                when = "Just now"
+        except:
+            when = timestamp
+        
+        recent_activity.append({
+            'type': activity_type.replace('_', ' ').title(),
+            'title': title,
+            'when': when,
+            'icon': activity_icons.get(activity_type, 'fa-circle')
+        })
+
     return render_template('user_profile.html',
                          user=user,
-                         books=books,
-                         activity_count=activity_count,
-                         review_count=review_count)
+                         read_count=read_count,
+                         watchlist_stats=watchlist_stats,
+                         fav_count=fav_count,
+                         recent_activity=recent_activity,
+                         profile_avatar_settings=profile_avatar_settings)
 
 
 
@@ -5286,7 +5406,7 @@ def about():
 
 # ---------- My Uploads ----------
 @app.route("/my_uploads")
-@admin_required
+@role_required("admin", "publisher")
 def my_uploads():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -5294,34 +5414,36 @@ def my_uploads():
     user_id = session["user_id"]
     role = session.get("role")
 
+    q = request.args.get("q", "").strip()
+
     conn = get_conn()
     c = conn.cursor()
 
-    if role == "admin":
-        c.execute("""
-            SELECT id, title, author,
-                   COALESCE(category,'General') AS category,
-                   pdf_filename,
-                   audio_filename,
-                   cover_path,
-                   created_at,
-                   COALESCE(book_type, 'book') AS book_type
-            FROM books
-            ORDER BY datetime(created_at) DESC
-        """)
-    else:
-        c.execute("""
-            SELECT id, title, author,
-                   COALESCE(category,'General') AS category,
-                   pdf_filename,
-                   audio_filename,
-                   cover_path,
-                   created_at,
-                   COALESCE(book_type, 'book') AS book_type
-            FROM books
-            WHERE uploader_id = ?
-            ORDER BY datetime(created_at) DESC
-        """, (user_id,))
+    base_query = """
+        SELECT id, title, author,
+               COALESCE(category,'General') AS category,
+               pdf_filename,
+               audio_filename,
+               cover_path,
+               created_at,
+               COALESCE(book_type, 'book') AS book_type
+        FROM books
+        WHERE 1=1
+    """
+    params = []
+
+    if role != "admin":
+        base_query += " AND uploader_id = ?"
+        params.append(user_id)
+
+    if q:
+        base_query += " AND (title LIKE ? OR author LIKE ?)"
+        wildcard_q = f"%{q}%"
+        params.extend([wildcard_q, wildcard_q])
+
+    base_query += " ORDER BY datetime(created_at) DESC"
+
+    c.execute(base_query, tuple(params))
     books_raw = c.fetchall()
 
     # Get user's favorite book IDs for showing heart icons
@@ -5348,7 +5470,7 @@ def my_uploads():
 
     conn.close()
 
-    return render_template("my_uploads.html", books=books, is_admin=(role == "admin"), manga_chapters=manga_chapters)
+    return render_template("my_uploads.html", books=books, is_admin=(role == "admin"), manga_chapters=manga_chapters, q=q)
 
 
 # ---------- Team Admin ----------
@@ -6566,7 +6688,7 @@ def bundles():
     c = conn.cursor()
     
     c.execute("""
-        SELECT id, slug, name, description, includes_json, theme_json, banner_preset, is_active, min_plan
+        SELECT id, slug, name, description, includes_json, theme_json, banner_preset, is_active, min_plan, icon_path
         FROM bundles
         WHERE is_active = 1
         ORDER BY id
@@ -6585,7 +6707,8 @@ def bundles():
             "theme": json.loads(b[5]) if b[5] else {},
             "banner_preset": b[6],
             "is_active": b[7],
-            "min_plan": b[8]
+            "min_plan": b[8],
+            "icon_path": b[9]
         })
     
     # Get user plan
@@ -6652,6 +6775,23 @@ def admin_bundle_edit(id):
         is_active = 1 if request.form.get("is_active") else 0
         min_plan = request.form.get("min_plan", "basic")
         
+        # Handle icon upload
+        icon_path = None
+        icon_file = request.files.get("icon")
+        if icon_file and icon_file.filename:
+            from werkzeug.utils import secure_filename
+            import os
+            
+            BUNDLE_ICONS_FOLDER = os.path.join("static", "uploads", "bundle_icons")
+            os.makedirs(BUNDLE_ICONS_FOLDER, exist_ok=True)
+            
+            ext = icon_file.filename.rsplit(".", 1)[-1].lower()
+            if ext in {"png", "jpg", "jpeg", "webp", "gif"}:
+                stored_name = f"bundle_{id}_{secure_filename(icon_file.filename)}"
+                save_path = os.path.join(BUNDLE_ICONS_FOLDER, stored_name)
+                icon_file.save(save_path)
+                icon_path = f"uploads/bundle_icons/{stored_name}"
+        
         # Parse includes (one per line)
         includes = [line.strip() for line in includes_text.split("\n") if line.strip()]
         
@@ -6662,11 +6802,19 @@ def admin_bundle_edit(id):
             flash("Invalid theme JSON format.", "danger")
             return redirect(url_for("admin_bundle_edit", id=id))
         
-        c.execute("""
-            UPDATE bundles
-            SET name=?, slug=?, description=?, includes_json=?, theme_json=?, banner_preset=?, is_active=?, min_plan=?
-            WHERE id=?
-        """, (name, slug, description, json.dumps(includes), json.dumps(theme), banner_preset, is_active, min_plan, id))
+        # Update with or without icon
+        if icon_path:
+            c.execute("""
+                UPDATE bundles
+                SET name=?, slug=?, description=?, includes_json=?, theme_json=?, banner_preset=?, is_active=?, min_plan=?, icon_path=?
+                WHERE id=?
+            """, (name, slug, description, json.dumps(includes), json.dumps(theme), banner_preset, is_active, min_plan, icon_path, id))
+        else:
+            c.execute("""
+                UPDATE bundles
+                SET name=?, slug=?, description=?, includes_json=?, theme_json=?, banner_preset=?, is_active=?, min_plan=?
+                WHERE id=?
+            """, (name, slug, description, json.dumps(includes), json.dumps(theme), banner_preset, is_active, min_plan, id))
         conn.commit()
         conn.close()
         
@@ -6675,7 +6823,7 @@ def admin_bundle_edit(id):
     
     # GET request
     c.execute("""
-        SELECT id, slug, name, description, includes_json, theme_json, banner_preset, is_active, min_plan
+        SELECT id, slug, name, description, includes_json, theme_json, banner_preset, is_active, min_plan, icon_path
         FROM bundles
         WHERE id = ?
     """, (id,))
@@ -6718,7 +6866,8 @@ def admin_bundle_edit(id):
         "theme": json.loads(b[5]) if b[5] else {},
         "banner_preset": b[6],
         "is_active": b[7],
-        "min_plan": b[8]
+        "min_plan": b[8],
+        "icon_path": b[9]
     }
     
     return render_template("admin_bundle_edit.html", bundle=bundle, assets=asset_library)
@@ -7177,12 +7326,13 @@ def support_requests():
         item_type = request.form.get("item_type")
         author = request.form.get("author")
         notes = request.form.get("notes")
+        manga_id = request.form.get("manga_id") or None
 
         if title and item_type:
             c.execute("""
-                INSERT INTO requests (user_id, title, item_type, author, notes)
-                VALUES (?, ?, ?, ?, ?)
-            """, (session["user_id"], title, item_type, author, notes))
+                INSERT INTO requests (user_id, title, item_type, author, notes, manga_id)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (session["user_id"], title, item_type, author, notes, manga_id))
             conn.commit()
             flash("Request submitted successfully!", "success")
         else:
@@ -7197,9 +7347,13 @@ def support_requests():
 
     query = """
         SELECT r.id, r.title, r.item_type, r.author, r.status, r.vote_count, u.username,
-               (SELECT vote_value FROM request_votes WHERE request_id = r.id AND user_id = ?) as user_vote
+               (SELECT vote_value FROM request_votes WHERE request_id = r.id AND user_id = ?) as user_vote,
+               r.manga_id, b.title as manga_title, r.user_id, r.notes,
+               f.username as fulfiller_name
         FROM requests r
         JOIN users u ON r.user_id = u.id
+        LEFT JOIN books b ON r.manga_id = b.id
+        LEFT JOIN users f ON r.fulfilled_by = f.id
         WHERE 1=1
     """
     params = [session["user_id"]]
@@ -7213,6 +7367,9 @@ def support_requests():
         params.append(session["user_id"])
     elif tab == "answered":
         query += " AND r.status IN ('Added', 'Rejected', 'Planned')"
+    else: # Trending (default) or Newest
+        # Show ONLY active requests (Requested)
+        query += " AND r.status = 'Requested'"
     
     # Ordering
     if tab == "newest":
@@ -7300,6 +7457,87 @@ def update_request_status():
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
+
+
+@app.route("/api/requests/delete", methods=["POST"])
+def delete_request():
+    if not session.get("user_id"):
+        return jsonify({"success": False, "error": "Login required"}), 401
+    
+    data = request.json
+    req_id = data.get("request_id")
+    uid = session["user_id"]
+    role = session.get("role", "reader")
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT user_id, status FROM requests WHERE id = ?", (req_id,))
+    row = c.fetchone()
+    
+    if not row:
+        conn.close()
+        return jsonify({"success": False, "error": "Request not found"}), 404
+    
+    owner_id, status = row
+    
+    if status == 'Added':
+        conn.close()
+        return jsonify({"success": False, "error": "Cannot delete fulfilled requests"}), 403
+
+    # Auth: Admin or Owner (if still requested)
+    if role not in ["admin", "publisher"] and (owner_id != uid or status != "Requested"):
+        conn.close()
+        return jsonify({"success": False, "error": "Unauthorized"}), 403
+    
+    c.execute("DELETE FROM requests WHERE id = ?", (req_id,))
+    c.execute("DELETE FROM request_votes WHERE request_id = ?", (req_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route("/api/requests/edit", methods=["POST"])
+def edit_request():
+    if not session.get("user_id"):
+        return jsonify({"success": False, "error": "Login required"}), 401
+    
+    data = request.json
+    req_id = data.get("request_id")
+    uid = session["user_id"]
+    role = session.get("role", "reader")
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT user_id, status FROM requests WHERE id = ?", (req_id,))
+    row = c.fetchone()
+    
+    if not row:
+        conn.close()
+        return jsonify({"success": False, "error": "Request not found"}), 404
+    
+    owner_id, status = row
+
+    if status == 'Added':
+        conn.close()
+        return jsonify({"success": False, "error": "Cannot edit fulfilled requests"}), 403
+
+    if role not in ["admin", "publisher"] and (owner_id != uid or status != "Requested"):
+        conn.close()
+        return jsonify({"success": False, "error": "Unauthorized"}), 403
+    
+    title = data.get("title")
+    item_type = data.get("item_type")
+    author = data.get("author")
+    notes = data.get("notes")
+    manga_id = data.get("manga_id")
+
+    c.execute("""
+        UPDATE requests 
+        SET title=?, item_type=?, author=?, notes=?, manga_id=?
+        WHERE id=?
+    """, (title, item_type, author, notes, manga_id, req_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
 
 
 @app.route("/admin/revenue")
@@ -7899,6 +8137,33 @@ def ranking():
     return render_template('ranking.html', items=items)
 
 
+@app.route("/api/manga/search")
+def api_manga_search():
+    query = request.args.get("q", "").strip()
+    if not query:
+        return jsonify([])
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        SELECT id, title, author, cover_path 
+        FROM books 
+        WHERE (book_type = 'manga' OR category LIKE '%Manga%')
+        AND title LIKE ? 
+        LIMIT 10
+    """, (f"%{query}%",))
+    rows = c.fetchall()
+    conn.close()
+    
+    results = []
+    for row in rows:
+        results.append({
+            'id': row[0],
+            'title': row[1],
+            'author': row[2],
+            'cover': row[3]
+        })
+    return jsonify(results)
 
 if __name__ == "__main__":
 

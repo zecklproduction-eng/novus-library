@@ -41,6 +41,7 @@
         margin-bottom: 16px;
         background: linear-gradient(135deg, #a78bfa, #e879f9, #22d3ee);
         -webkit-background-clip: text;
+        background-clip: text;
         -webkit-text-fill-color: transparent;
         letter-spacing: -0.02em;
     }
@@ -161,16 +162,16 @@
         border: 1px solid rgba(255,255,255,0.08);
         border-radius: 16px;
         overflow: hidden;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.2s ease, border-color 0.2s ease;
         position: relative;
         display: flex;
         flex-direction: column;
+        content-visibility: auto;
+        contain-intrinsic-size: 280px 320px;
     }
     .anim-card:hover {
-        transform: translateY(-8px);
-        background: rgba(255,255,255,0.06);
-        border-color: rgba(255,255,255,0.2);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        transform: translateY(-4px);
+        border-color: rgba(255,255,255,0.25);
     }
     .media-container {
         height: 180px;
@@ -189,7 +190,6 @@
     .anim-card:hover .media-container img, 
     .anim-card:hover .media-container video {
         opacity: 1;
-        transform: scale(1.05);
     }
     .plan-badge {
         position: absolute;
@@ -328,9 +328,9 @@
                     </span>
                     {% set ext = anim.path.split('.')[-1].lower() %}
                     {% if ext in ['mp4', 'webm'] %}
-                        <video src="{{ url_for('static', filename=anim.path) }}" autoplay loop muted></video>
+                        <video class="lazy-video" data-src="{{ url_for('static', filename=anim.path) }}" loop muted playsinline></video>
                     {% else %}
-                        <img src="{{ url_for('static', filename=anim.path) }}" />
+                        <img src="{{ url_for('static', filename=anim.path) }}" loading="lazy" />
                     {% endif %}
                 </div>
                 <div class="card-content">
@@ -348,7 +348,7 @@
                         
                         <!-- Admin Edit Button -->
                         {% if session.get('role') == 'admin' %}
-                        <button class="action-btn btn-manage" onclick="location.href='{{ url_for('customization_upload') }}?edit_id={{ anim.id }}'">
+                        <button class="action-btn btn-manage" onclick="location.href='{{ url_for('customization_upload') }}?edit_id={{ anim.id }}';">
                             EDIT
                         </button>
                         {% endif %}
@@ -365,17 +365,98 @@
             {% endfor %}
         {% endfor %}
     </div>
+    
+    <!-- Pagination / Load More -->
+    <div class="pagination-section" style="text-align: center; margin: 40px 0;">
+        <button id="loadMoreBtn" class="search-btn" style="padding: 14px 40px; font-size: 1rem;">
+            Load More
+        </button>
+        <p id="loadingStatus" class="text-muted mt-2" style="color: rgba(255,255,255,0.5); font-size: 0.9rem;"></p>
+    </div>
 </div>
 
 <script>
+    // Pagination Configuration
+    const ITEMS_PER_PAGE = 12;
+    let currentPage = 1;
+    let allCards = [];
+    let filteredCards = [];
+
+    function initPagination() {
+        allCards = Array.from(document.querySelectorAll('.anim-card'));
+        filteredCards = [...allCards];
+        
+        // Hide all cards initially
+        allCards.forEach(card => card.style.display = 'none');
+        
+        // Show first batch
+        showCards();
+        updateLoadMoreButton();
+    }
+
+    function showCards() {
+        const startIdx = 0;
+        const endIdx = currentPage * ITEMS_PER_PAGE;
+        
+        filteredCards.forEach((card, index) => {
+            if (index < endIdx) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Re-initialize observer for newly visible cards
+        if (typeof initMediaObserver === 'function') {
+            initMediaObserver();
+        }
+    }
+
+    function loadMore() {
+        currentPage++;
+        showCards();
+        updateLoadMoreButton();
+    }
+
+    function updateLoadMoreButton() {
+        const btn = document.getElementById('loadMoreBtn');
+        const status = document.getElementById('loadingStatus');
+        const shown = Math.min(currentPage * ITEMS_PER_PAGE, filteredCards.length);
+        const total = filteredCards.length;
+        
+        if (status) {
+            status.textContent = `Showing ${shown} of ${total} animations`;
+        }
+        
+        if (btn) {
+            if (shown >= total) {
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = 'inline-block';
+            }
+        }
+    }
+
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+        initPagination();
+        
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', loadMore);
+        }
+    });
+
     function filterAnimations() {
-        // ... (existing filter logic) ...
         const query = document.getElementById('searchAnim').value.toLowerCase();
         const type = document.getElementById('typeFilter').value;
         const plan = document.getElementById('planFilter').value;
-        const cards = document.querySelectorAll('.anim-card');
 
-        cards.forEach(card => {
+        // Reset pagination on filter
+        currentPage = 1;
+        
+        // Filter cards
+        filteredCards = allCards.filter(card => {
             const title = card.getAttribute('data-title');
             const cardType = card.getAttribute('data-type');
             const cardPlan = card.getAttribute('data-plan');
@@ -384,12 +465,15 @@
             let matchesType = (type === 'all' || cardType === type);
             let matchesPlan = (plan === 'all' || cardPlan === plan);
 
-            if (matchesSearch && matchesType && matchesPlan) {
-                card.style.display = 'flex';
-            } else {
-                card.style.display = 'none';
-            }
+            return matchesSearch && matchesType && matchesPlan;
         });
+        
+        // Hide all first
+        allCards.forEach(card => card.style.display = 'none');
+        
+        // Show filtered batch
+        showCards();
+        updateLoadMoreButton();
     }
 
     // Live search
@@ -415,7 +499,6 @@
     }
 
     async function deleteAnim(btn, id) {
-        // Find name from card
         const card = btn.closest('.anim-card');
         const name = card.getAttribute('data-title') || 'Animation';
         
@@ -425,7 +508,6 @@
             const res = await fetch(`/api/animation/${id}/delete`, { method: 'DELETE' });
             const data = await res.json();
             if(data.success) {
-                // Remove card from UI immediately with animation
                 card.style.opacity = '0';
                 card.style.transform = 'scale(0.8)';
                 setTimeout(() => card.remove(), 300);
@@ -486,44 +568,100 @@
 </style>
 
 <script>
-    // ... existing ...
+    // Optimized Media Handling with IntersectionObserver
+    let videoObserver;
+    
+    function initMediaObserver() {
+        const options = {
+            root: null,
+            rootMargin: '50px',
+            threshold: 0.1
+        };
+
+        if ('IntersectionObserver' in window) {
+            videoObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        loadAndPlayVideo(entry.target);
+                    } else {
+                        pauseVideo(entry.target);
+                    }
+                });
+            }, options);
+
+            document.querySelectorAll('.lazy-video').forEach(video => {
+                videoObserver.observe(video);
+            });
+        }
+    }
+
+    function loadAndPlayVideo(video) {
+        if (!video.src && video.dataset.src) {
+            video.src = video.dataset.src;
+        }
+        
+        const autoplayEnabled = localStorage.getItem('autoplay_previews') !== 'false';
+        if (autoplayEnabled) {
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    // Auto-play was prevented
+                    console.log('Autoplay prevented/interrupted');
+                });
+            }
+        }
+    }
+
+    function pauseVideo(video) {
+        video.pause();
+    }
 
     // Autoplay Logic
     function toggleAutoplay(enabled) {
         localStorage.setItem('autoplay_previews', enabled);
-        const videos = document.querySelectorAll('video');
-        videos.forEach(v => {
+        // Force update all currently visible videos
+        document.querySelectorAll('video').forEach(v => {
             if(enabled) {
+                // If observable says it's in view (or just simply ALL loaded ones)
+                if(v.src && !v.paused) return; // already playing
                 v.muted = true;
-                v.play().catch(e => console.log('Autoplay blocked', e));
+                v.play().catch(e => {});
             } else {
                 v.pause();
-                v.currentTime = 0; // Reset to frame 1 Optional?
             }
         });
+        
+        // Re-run observer logic to respect new setting for visible items
+        if(videoObserver) {
+             // Re-observing doesn't re-trigger callback immediately usually, 
+             // but our scroll handler fallback will catch it if we had one.
+             // Instead, we just manually trigger for all visible.
+             // Actually, simplest is just loop all:
+             document.querySelectorAll('.lazy-video').forEach(v => {
+                const rect = v.getBoundingClientRect();
+                if(rect.top < window.innerHeight && rect.bottom > 0) {
+                    if(enabled) v.play().catch(()=>{});
+                    else v.pause();
+                }
+             });
+        }
+    }
+    
+    // Fallback for no IntersectionObserver (rare now)
+    function handleScroll() {
+        if (!('IntersectionObserver' in window)) {
+            // ... manual check implementation if needed ...
+        }
     }
 
-    // Initialize Autoplay logic
+    // Initialize
     document.addEventListener('DOMContentLoaded', () => {
         const toggle = document.getElementById('autoplayToggle');
         const isEnabled = localStorage.getItem('autoplay_previews') !== 'false';
         
         if (toggle) toggle.checked = isEnabled;
         
-        // Initial enforcement
-        // Small timeout to ensure videos loaded? Or MutationObserver?
-        setTimeout(() => {
-            const videos = document.querySelectorAll('video');
-            videos.forEach(v => {
-                if(!isEnabled) {
-                    v.removeAttribute('autoplay');
-                    v.pause();
-                } else {
-                    v.muted = true;
-                    // v.play() - HTML autoplay handles it, but reinforce
-                }
-            });
-        }, 100);
+        initMediaObserver();
     });
 </script>
 {% endblock %}

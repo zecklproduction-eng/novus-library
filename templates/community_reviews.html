@@ -622,15 +622,17 @@
                     <div className="flex-grow flex flex-col min-w-0">
                         <div className="flex justify-between items-start mb-6">
                             <div className="flex items-center gap-4">
-                                <a href={`/profile/${review.user.username}`} className="relative block group/avatar">
+                                <a href="#" onClick={(e) => window.openUserInteractionModal(review.user.id, review.user.username, 'Reader', review.user.avatarUrl, e, 'review')} className="relative block group/avatar">
                                     <img src={review.user.avatarUrl} className="w-10 h-10 rounded-full border-2 border-white shadow-md group-hover/avatar:ring-2 group-hover/avatar:ring-indigo-100 transition-all" />
                                     <div className="absolute -bottom-1 -right-1 bg-[var(--cr-accent)] text-white p-0.5 rounded-full border-2 border-[var(--cr-card-bg)] shadow-sm z-10 animate-bounce group-hover:animate-none">
                                         <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path d="M5 13l4 4L19 7" /></svg>
                                     </div>
                                 </a>
                                 <div className="text-left">
-                                    <h4 className="text-sm font-black text-[var(--cr-text-main)] group-hover/card:text-[var(--cr-accent)] transition-colors uppercase tracking-tight">{review.user.username}</h4>
-                                    <span className="text-[10px] text-[var(--cr-text-muted)] font-black uppercase tracking-[0.2em] mt-0.5 inline-block">2 hours ago</span>
+                                    <a href="#" onClick={(e) => window.openUserInteractionModal(review.user.id, review.user.username, 'Reader', review.user.avatarUrl, e, 'review')} className="text-sm font-black text-[var(--cr-text-main)] group-hover/card:text-[var(--cr-accent)] transition-colors uppercase tracking-tight hover:underline">
+                                        {review.user.username}
+                                    </a>
+                                    <span className="text-[10px] text-[var(--cr-text-muted)] font-black uppercase tracking-[0.2em] mt-0.5 block">2 hours ago</span>
                                 </div>
                             </div>
                             <div className="flex flex-col items-end">

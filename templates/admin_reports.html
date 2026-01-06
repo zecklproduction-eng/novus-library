@@ -1,182 +1,364 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>User Reports | NOVUS Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.png') }}">
-    <style>
-        body {
-            background-color: #000000;
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
-        }
-        .navbar {
-            background-color: #1a1a1a;
-            border-bottom: 1px solid #333;
-        }
-        .card {
-            background-color: #1e1e1e;
-            border: 1px solid #333;
-            color: white;
-        }
-        .table {
-            color: white;
-        }
-        .table thead th {
-            background-color: #2b2b2b;
-            border-color: #444;
-            color: #00d4ff;
-        }
-        .table tbody td {
-            border-color: #444;
-        }
-        .badge-danger { background-color: #dc3545; }
-        .badge-warning { background-color: #ffc107; color: black; }
-        .badge-info { background-color: #00d4ff; color: black; }
-        .btn-neon {
-            background: #00d4ff;
-            border: none;
-            color: black;
-            font-weight: bold;
-            padding: 8px 16px;
-            border-radius: 5px;
-            transition: 0.3s;
-        }
-        .btn-neon:hover {
-            background: white;
-            box-shadow: 0 0 10px #00d4ff;
-        }
-        .report-reasons {
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/admin/users">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" width="30" height="30" class="me-2">
-                NOVUS Admin - User Reports
-            </a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="/admin/users">User Management</a>
-                <a class="nav-link" href="/admin/ai_summaries">AI Summaries</a>
-                <a class="nav-link" href="/admin/system_logs">System Logs</a>
-                <a class="nav-link active" href="/admin/reports">Reports</a>
-                <a class="nav-link" href="/">Back to Site</a>
+{% extends "base.html" %}
+
+{% block title %}User Reports - Admin Dashboard | NOVUS{% endblock %}
+
+{% block content %}
+<style>
+    /* Page-specific styles for Report Management */
+    .glass-panel {
+        background: rgba(30, 30, 30, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .glass-panel:hover {
+        border-color: rgba(0, 212, 255, 0.3);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 212, 255, 0.1);
+    }
+    
+    .table-glass {
+        width: 100%;
+        border-collapse: separate; 
+        border-spacing: 0;
+        color: #e0e0e0;
+    }
+    
+    .table-glass thead th {
+        background: rgba(0, 0, 0, 0.4);
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        padding: 16px;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 1.5px;
+        color: var(--neon-blue);
+        font-weight: 700;
+    }
+    
+    .table-glass tbody td {
+        padding: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        vertical-align: middle;
+        font-size: 0.9rem;
+        transition: background-color 0.2s;
+    }
+    
+    .table-glass tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .table-glass tbody tr:hover td {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .badge-role {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .badge-admin { 
+        background: rgba(220, 53, 69, 0.2); 
+        color: #ff6b6b; 
+        border: 1px solid rgba(220, 53, 69, 0.4);
+    }
+    .badge-publisher { 
+        background: rgba(255, 193, 7, 0.15); 
+        color: #ffda6a; 
+        border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+    .badge-user { 
+        background: rgba(0, 212, 255, 0.15); 
+        color: #5ce1ff; 
+        border: 1px solid rgba(0, 212, 255, 0.3);
+    }
+    
+    .badge-count {
+        background: #2a2a2a;
+        color: white;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: bold;
+        border: 1px solid #444;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    }
+    
+    .badge-count.danger {
+        background: linear-gradient(135deg, #dc3545, #a71d2a);
+        border: none;
+        box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+    }
+    
+    .reason-truncate {
+        max-width: 250px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        vertical-align: middle;
+        color: #aaa;
+        font-style: italic;
+    }
+    
+    .action-btn-sm {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        border-radius: 6px;
+        transition: 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid transparent;
+    }
+    
+    .btn-view {
+        background: rgba(0, 212, 255, 0.1);
+        color: var(--neon-blue);
+        border-color: rgba(0, 212, 255, 0.3);
+    }
+    .btn-view:hover {
+        background: var(--neon-blue);
+        color: #000;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+    }
+    
+    .btn-manage {
+        background: rgba(255, 255, 255, 0.05);
+        color: #ccc;
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-manage:hover {
+        background: #fff;
+        color: #000;
+    }
+    
+    .welcome-header {
+        background: linear-gradient(90deg, #1f1f1f 0%, #2a2a2a 100%);
+        border-radius: 16px;
+        padding: 30px;
+        border: 1px solid #333;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .welcome-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--neon-blue);
+        box-shadow: 0 0 20px var(--neon-blue);
+    }
+</style>
+
+<div class="container-fluid pt-2 pb-5">
+    
+    <!-- Welcome Header -->
+    <div class="welcome-header d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-2">
+                <i class="fas fa-flag me-2 text-danger"></i> Report Management
+            </h1>
+            <p class="text-muted mb-0">Monitor user behavior and handle reported content efficiently.</p>
+        </div>
+        <div class="d-flex gap-3">
+             <div class="text-end">
+                <div class="h2 mb-0 fw-bold text-white">{{ reported_users|length }}</div>
+                <div class="small text-muted text-uppercase">Flagged Users</div>
+             </div>
+             <div class="vr bg-secondary opacity-25"></div>
+             <div class="text-end">
+                <div class="h2 mb-0 fw-bold text-white">{{ all_reports|length }}</div>
+                <div class="small text-muted text-uppercase">Total Reports</div>
+             </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- High Priority: Multiple Reports -->
+        <div class="col-12">
+            <div class="glass-panel">
+                <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-light border-opacity-10 bg-black bg-opacity-25">
+                    <div>
+                        <h4 class="mb-1 text-white fw-bold"> <i class="fas fa-exclamation-triangle text-warning me-2"></i> Users with Multiple Reports (2+)</h4>
+                        <p class="small text-muted mb-0">These accounts have been flagged multiple times and require immediate review.</p>
+                    </div>
+                </div>
+                
+                <div class="p-0">
+                    {% if reported_users %}
+                    <div class="table-responsive">
+                        <table class="table-glass">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th class="text-center">Reports</th>
+                                    <th>Primary Reason</th>
+                                    <th>Last Reported</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in reported_users %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="bg-dark rounded-circle d-flex align-items-center justify-content-center text-secondary" style="width: 40px; height: 40px; border: 1px solid #444;">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-white">{{ user[1] }}</div>
+                                                <div class="small text-muted">ID: {{ user[0] }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-muted">{{ user[2] or 'No Email' }}</td>
+                                    <td>
+                                        <span class="badge-role 
+                                            {% if user[3] == 'admin' %}badge-admin
+                                            {% elif user[3] == 'publisher' %}badge-publisher
+                                            {% else %}badge-user{% endif %}">
+                                            {{ user[3] }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge-count danger">{{ user[4] }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="reason-truncate" title="{{ user[5] }}">
+                                            <i class="fas fa-quote-left text-muted opacity-50 me-1"></i> {{ user[5] }}
+                                        </span>
+                                    </td>
+                                    <td class="text-muted small">{{ user[6] }}</td>
+                                    <td class="text-end">
+                                        <a href="/user/{{ user[0] }}" class="action-btn-sm btn-view me-1">
+                                            <i class="fas fa-eye"></i> Profile
+                                        </a>
+                                        <a href="/admin/users" class="action-btn-sm btn-manage">
+                                            <i class="fas fa-cog"></i> Manage
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                       <div class="mb-3">
+                           <i class="fas fa-check-circle text-success" style="font-size: 3rem; opacity: 0.5;"></i>
+                       </div>
+                       <h5 class="text-muted">No high-priority users found.</h5>
+                       <p class="small text-muted opacity-75">There are no users with 2 or more reports at this time.</p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
-    </nav>
 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-12">
-                <!-- Users with 2+ Reports -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h4 class="mb-0">Users with Multiple Reports (2+)</h4>
-                        <small class="text-muted">These users require attention from administrators</small>
+        <!-- All Reports Log -->
+        <div class="col-12">
+            <div class="glass-panel">
+                 <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-light border-opacity-10 bg-black bg-opacity-25">
+                    <div>
+                        <h4 class="mb-1 text-white fw-bold">Full Report History</h4>
+                        <p class="small text-muted mb-0">A complete log of every report submitted on the platform.</p>
                     </div>
-                    <div class="card-body">
-                        {% if reported_users %}
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Username</th>
-                                        <th>Email</th>
-                                        <th>Role</th>
-                                        <th>Report Count</th>
-                                        <th>Reasons</th>
-                                        <th>Latest Report</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for user in reported_users %}
-                                    <tr>
-                                        <td>{{ user[1] }}</td>
-                                        <td>{{ user[2] or 'N/A' }}</td>
-                                        <td>
-                                            <span class="badge
-                                                {% if user[3] == 'admin' %}badge-danger
-                                                {% elif user[3] == 'publisher' %}badge-warning
-                                                {% else %}badge-info{% endif %}">
-                                                {{ user[3] }}
-                                            </span>
-                                        </td>
-                                        <td><span class="badge badge-danger">{{ user[4] }}</span></td>
-                                        <td>
-                                            <span class="report-reasons" title="{{ user[5] }}">{{ user[5] }}</span>
-                                        </td>
-                                        <td>{{ user[6] }}</td>
-                                        <td>
-                                            <a href="/user/{{ user[0] }}" class="btn btn-sm btn-neon me-1">View Profile</a>
-                                            <a href="/admin/users" class="btn btn-sm btn-outline-danger">Manage</a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <div class="text-center py-4">
-                            <p class="text-muted">No users currently have 2 or more reports.</p>
-                        </div>
-                        {% endif %}
+                    <div>
+                         <!-- Search or Filter could go here -->
+                         <div class="input-group input-group-sm" style="width: 250px;">
+                             <span class="input-group-text bg-dark border-secondary text-muted"><i class="fas fa-search"></i></span>
+                             <input type="text" class="form-control bg-dark border-secondary text-white" placeholder="Search reports...">
+                         </div>
                     </div>
                 </div>
 
-                <!-- All Reports -->
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="mb-0">All User Reports</h4>
-                        <small class="text-muted">Complete history of user reports</small>
+                <div class="p-0">
+                    {% if all_reports %}
+                    <div class="table-responsive">
+                        <table class="table-glass">
+                            <thead>
+                                <tr>
+                                    <th>Date Submitted</th>
+                                    <th>Reporter</th>
+                                    <th>Reported User</th>
+                                    <th>Reason</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in all_reports %}
+                                <tr>
+                                    <td class="text-muted font-monospace small">{{ report[6] }}</td>
+                                    <td>
+                                        <a href="/user/{{ report[1] }}" class="text-decoration-none text-light d-flex align-items-center gap-2">
+                                            <i class="fas fa-user-shield text-muted small"></i>
+                                            <span>{{ report[2] }}</span>
+                                        </a>
+                                    </td>
+                                    <td>
+                                         <a href="/user/{{ report[3] }}" class="text-decoration-none text-light d-flex align-items-center gap-2">
+                                            <i class="fas fa-user-tag text-danger small"></i>
+                                            <span class="text-danger-emphasis">{{ report[4] }}</span>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="d-inline-block text-white-50" style="font-size: 0.95rem;">
+                                            {{ report[5] }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="/user/{{ report[3] }}" class="action-btn-sm btn-manage btn-sm p-1 px-2 border-0 bg-transparent text-muted hover-white" title="View Reported Profile">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="card-body">
-                        {% if all_reports %}
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Reporter</th>
-                                        <th>Reported User</th>
-                                        <th>Reason</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for report in all_reports %}
-                                    <tr>
-                                        <td>{{ report[6] }}</td>
-                                        <td>{{ report[2] }} (ID: {{ report[1] }})</td>
-                                        <td>{{ report[4] }} (ID: {{ report[3] }})</td>
-                                        <td>{{ report[5] }}</td>
-                                        <td>
-                                            <a href="/user/{{ report[1] }}" class="btn btn-sm btn-outline-primary me-1">View Reporter</a>
-                                            <a href="/user/{{ report[3] }}" class="btn btn-sm btn-outline-warning">View Reported</a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <div class="text-center py-4">
-                            <p class="text-muted">No user reports found.</p>
-                        </div>
-                        {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                       <h5 class="text-muted">No reports found.</h5>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<script>
+    // Search functionality for the "All Reports" table
+    document.querySelector('input[placeholder="Search reports..."]').addEventListener('keyup', function(e) {
+        const searchText = e.target.value.toLowerCase();
+        const tableRows = document.querySelectorAll('.table-glass tbody tr');
+        
+        tableRows.forEach(row => {
+            const rowText = row.innerText.toLowerCase();
+            if(rowText.includes(searchText)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -136,11 +136,12 @@
 
             <div class="bundles-list" id="bundlesList">
                 {% for bundle in bundles %}
-                <!-- Debug: Bundle {{ bundle.name }} Plan is {{ bundle.min_plan }} -->
+                <!-- Debug: Bundle {{ bundle.name }} Plan is '{{ bundle.min_plan }}' -->
+                {% set plan_lower = (bundle.min_plan or 'basic')|trim|lower %}
                 {% set plan_class = '' %}
-                {% if bundle.min_plan|lower == 'ultimate' %}
+                {% if plan_lower == 'ultimate' %}
                     {% set plan_class = 'ultimate-card-glow' %}
-                {% elif bundle.min_plan|lower == 'pro' %}
+                {% elif plan_lower == 'pro' %}
                     {% set plan_class = 'pro-card-glow' %}
                 {% endif %}
                 
@@ -148,12 +149,16 @@
                      data-bundle-id="{{ bundle.id }}"
                      data-bundle='{{ bundle | tojson | safe }}'
                      onclick="selectBundle(this)">
-                    {% if bundle.min_plan|lower == 'ultimate' %}
+                    {% if plan_lower == 'ultimate' %}
                         <span class="ultimate-badge">ULTIMATE</span>
-                    {% elif bundle.min_plan|lower == 'pro' %}
+                    {% elif plan_lower == 'pro' %}
                         <span class="pro-badge">PRO</span>
                     {% endif %}
-                    <div class="bundle-card-preview" style="background: {{ bundle.theme.colors[0] if bundle.theme.colors else '#0d1117' }}"></div>
+                    <div class="bundle-card-preview" style="background: {{ bundle.theme.colors[0] if bundle.theme.colors else '#0d1117' }}">
+                        {% if bundle.icon_path %}
+                        <img src="{{ url_for('static', filename=bundle.icon_path) }}" alt="{{ bundle.name }} icon" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                        {% endif %}
+                    </div>
                     <div class="bundle-card-info">
                         <div class="bundle-card-name">
                             {{ bundle.name }}
