@@ -3,48 +3,304 @@
 {% block title %}About | NOVUS{% endblock %}
 
 {% block content %}
-<div class="container py-3 about-page">
+<style>
+    :root {
+        --neon-blue: #00d4ff;
+        --neon-purple: #9d50bb;
+        --glass-bg: rgba(255, 255, 255, 0.03);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --deep-dark: #0c0c0e;
+    }
 
-  <!-- Hero -->
-  <div class="section-container about-hero mb-4">
-    <h1 class="mb-2">Meet the Developers</h1>
-    <p class="text-muted mb-0">
-      The team behind NOVUS — building a clean, student-friendly digital library.
-    </p>
-  </div>
+    body {
+        background-color: var(--deep-dark) !important;
+    }
 
-  <!-- Team grid -->
-  <div class="team-grid">
-    {% for p in people %}
-      <div class="team-card">
-        <div class="team-avatar">
-          {% if p.avatar %}
-            <img src="{{ p.avatar }}" alt="{{ p.name }}">
-          {% else %}
-            <div class="team-initials">{{ p.initials }}</div>
-          {% endif %}
-        </div>
-        <div class="team-name">{{ p.name }}</div>
-        <div class="team-role text-muted">{{ p.role }}</div>
-        <div class="team-bio">
-          {{ p.bio }}
-        </div>
-        <!-- optional footer row for future links -->
-        <div class="team-links">
-          <span class="badge-soft">Team NOVUS</span>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
+    .about-container {
+        padding: 60px 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+        min-height: 100vh;
+    }
 
-  <!-- Project blurb -->
-  <div class="section-container mt-4">
-    <h5 class="section-title mb-2">Our Mission</h5>
-    <p class="mb-0 text-muted">
-      Provide a simple, modern, and fast e-library experience for students and teachers —
-      with a consistent dark UI, helpful tooltips, and neat organization.
-    </p>
-  </div>
+    /* Hero Section */
+    .about-hero {
+        text-align: center;
+        margin-bottom: 80px;
+        position: relative;
+    }
 
+    .about-hero::before {
+        content: '';
+        position: absolute;
+        top: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 900;
+        margin-bottom: 20px;
+        background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.02em;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        color: #71717a;
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    /* Team Grid */
+    .team-grid-premium {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-bottom: 80px;
+    }
+
+    .team-card-premium {
+        background: rgba(255, 255, 255, 0.02);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        padding: 40px 30px;
+        text-align: center;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .team-card-premium::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+        opacity: 0;
+        transition: opacity 0.4s;
+    }
+
+    .team-card-premium:hover {
+        transform: translateY(-10px);
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(0, 212, 255, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .team-card-premium:hover::after {
+        opacity: 1;
+    }
+
+    /* Avatar Styling */
+    .avatar-wrapper {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 25px;
+    }
+
+    .avatar-ring {
+        position: absolute;
+        top: -5px;
+        left: -5px;
+        right: -5px;
+        bottom: -5px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple)) border-box;
+        -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: destination-out;
+        mask-composite: exclude;
+        opacity: 0.5;
+        transition: all 0.4s ease;
+    }
+
+    .team-card-premium:hover .avatar-ring {
+        opacity: 1;
+        transform: rotate(180deg);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+
+    .team-avatar-premium {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #18181b;
+        border: 4px solid #0c0c0e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .team-initials-premium {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--neon-blue);
+        text-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+    }
+
+    .team-name-premium {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 8px;
+    }
+
+    .team-role-premium {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--neon-blue);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 20px;
+    }
+
+    .team-bio-premium {
+        font-size: 1rem;
+        line-height: 1.6;
+        color: #a1a1aa;
+        margin-bottom: 25px;
+    }
+
+    .badge-premium {
+        display: inline-block;
+        padding: 6px 16px;
+        background: rgba(0, 212, 255, 0.1);
+        color: var(--neon-blue);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 100px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* Mission Section */
+    .mission-section {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        padding: 50px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+    }
+
+    .mission-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .mission-title i {
+        color: var(--neon-blue);
+    }
+
+    .mission-text {
+        font-size: 1.1rem;
+        color: #a1a1aa;
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.8;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-in {
+        animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        opacity: 0;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+
+    @media (max-width: 768px) {
+        .hero-title { font-size: 2.5rem; }
+        .about-container { padding: 40px 15px; }
+        .mission-section { padding: 30px 20px; }
+    }
+</style>
+
+<div class="about-container">
+    <!-- Hero Section -->
+    <div class="about-hero animate-in">
+        <h1 class="hero-title">Meet the Developers</h1>
+        <p class="hero-subtitle">
+            The creative minds behind NOVUS — building the next generation of 
+            clean, student-friendly digital libraries.
+        </p>
+    </div>
+
+    <!-- Team Grid -->
+    <div class="team-grid-premium">
+        {% for p in people %}
+            <div class="team-card-premium animate-in delay-{{ loop.index if loop.index <= 4 else 4 }}">
+                <div class="avatar-wrapper">
+                    <div class="avatar-ring"></div>
+                    <div class="team-avatar-premium">
+                        {% if p.avatar %}
+                            <img src="{{ p.avatar }}" alt="{{ p.name }}" class="team-avatar-premium">
+                        {% else %}
+                            <div class="team-initials-premium">{{ p.initials }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <h3 class="team-name-premium">{{ p.name }}</h3>
+                <div class="team-role-premium">{{ p.role }}</div>
+                
+                <p class="team-bio-premium">
+                    {{ p.bio }}
+                </p>
+                
+                <div class="team-links">
+                    <span class="badge-premium">Team NOVUS</span>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Mission Section -->
+    <div class="mission-section animate-in delay-4">
+        <h2 class="mission-title">
+            <i class="fas fa-rocket"></i>
+            Our Mission
+        </h2>
+        <p class="mission-text">
+            To provide a simple, modern, and fast e-library experience for students and teachers —
+            powered by a consistent glassmorphism UI, intuitive navigation, and high-performance organization tools.
+        </p>
+    </div>
 </div>
 {% endblock %}

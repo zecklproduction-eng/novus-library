@@ -1,78 +1,365 @@
 {% extends "base.html" %}
 {% block title %}Settings | NOVUS{% endblock %}
 {% block content %}
-<div class="container py-3 settings-page">
-  <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2 class="mb-0">Settings</h2>
-      <p class="text-muted mb-0">Manage your account and preferences</p>
-    </div>
-  </div>
+<style>
+    :root {
+        --neon-blue: #00d4ff;
+        --neon-purple: #9d50bb;
+        --glass-bg: rgba(255, 255, 255, 0.03);
+        --glass-border: rgba(255, 255, 255, 0.08);
+    }
+
+    body {
+        background-color: #0a0a0c;
+        color: #e4e4e7;
+    }
+
+    .settings-page-container {
+        padding: 40px 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+        animation: fadeIn 0.8s ease-out;
+    }
+
+    /* Glass Header */
+    .settings-header {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 40px;
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .settings-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .settings-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.02em;
+        margin-bottom: 8px;
+    }
+
+    .settings-subtitle {
+        color: #71717a;
+        font-size: 1rem;
+    }
+
+    /* Section Containers */
+    .settings-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+        transition: all 0.3s ease;
+    }
+
+    .settings-card:hover {
+        border-color: rgba(0, 212, 255, 0.2);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .section-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(0, 212, 255, 0.1);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--neon-blue);
+        font-size: 1.1rem;
+    }
+
+    .section-title-text {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+    }
+
+    /* Form Controls */
+    .form-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #a1a1aa;
+        margin-bottom: 8px;
+    }
+
+    .form-control-premium {
+        background: rgba(0, 0, 0, 0.2) !important;
+        border: 1px solid var(--glass-border) !important;
+        border-radius: 12px !important;
+        padding: 12px 18px !important;
+        color: #fff !important;
+        transition: all 0.3s ease !important;
+        font-size: 0.95rem !important;
+    }
+
+    .form-control-premium:focus {
+        background: rgba(0, 0, 0, 0.3) !important;
+        border-color: var(--neon-blue) !important;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.1) !important;
+        outline: none !important;
+    }
+
+    /* Buttons */
+    .btn-premium {
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        border: 1px solid transparent;
+    }
+
+    .btn-update {
+        background: var(--neon-blue);
+        color: #000;
+    }
+
+    .btn-update:hover {
+        background: #00b8e6;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3);
+        color: #000;
+    }
+
+    .btn-security {
+        background: rgba(157, 80, 187, 0.1);
+        color: #d8b4fe;
+        border: 1px solid rgba(157, 80, 187, 0.3);
+    }
+
+    .btn-security:hover {
+        background: rgba(157, 80, 187, 0.2);
+        border-color: var(--neon-purple);
+        box-shadow: 0 0 15px rgba(157, 80, 187, 0.2);
+        color: #fff;
+    }
+
+    .btn-ghost-premium {
+        background: rgba(255, 255, 255, 0.03);
+        color: #a1a1aa;
+        border: 1px solid var(--glass-border);
+    }
+
+    .btn-ghost-premium:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+
+    /* Avatar Upload */
+    .avatar-upload-wrapper {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 30px;
+    }
+
+    .avatar-preview-container {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 4px solid var(--glass-border);
+        background: var(--glass-bg);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .avatar-upload-wrapper:hover .avatar-preview-container {
+        border-color: var(--neon-blue);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    }
+
+    .avatar-preview-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-placeholder-icon {
+        font-size: 3rem;
+        color: #3f3f46;
+    }
+
+    .avatar-edit-badge {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        width: 36px;
+        height: 36px;
+        background: var(--neon-blue);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #000;
+        cursor: pointer;
+        border: 3px solid #0a0a0c;
+        transition: all 0.3s ease;
+        z-index: 5;
+    }
+
+    .avatar-edit-badge:hover {
+        transform: scale(1.1);
+        background: #fff;
+    }
+
+    #avatar-input {
+        display: none;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+        animation: fadeIn 0.8s ease-out forwards;
+        opacity: 0;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+</style>
+<div class="settings-page-container">
+  
+  <!-- PREMIUM HEADER -->
+  <header class="settings-header animate-in">
+    <h2 class="settings-title">Account Settings</h2>
+    <p class="settings-subtitle mb-0">Customize your profile, secure your account, and personalize your experience.</p>
+  </header>
 
   <div class="row g-4">
-    <!-- Settings Content -->
     <div class="col-12">
-      <!-- Account Settings -->
-      <div class="section-container mb-4">
-        <div class="section-title">
-          <i class="fas fa-user me-2"></i>Account Settings
+      
+      <!-- ACCOUNT SECTION -->
+      <section class="settings-card animate-in delay-1">
+        <div class="section-header">
+          <div class="section-icon">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <h3 class="section-title-text">Profile Information</h3>
         </div>
-        <form method="post" action="{{ url_for('settings') }}">
+        
+        <form method="post" action="{{ url_for('settings') }}" enctype="multipart/form-data">
           <input type="hidden" name="action" value="update_account">
-          <div class="row g-3">
+          
+          <div class="avatar-upload-wrapper">
+            <div class="avatar-preview-container" id="avatar-preview">
+              {% if user[2] %}
+                <img src="{{ url_for('static', filename=user[2]) }}" class="avatar-preview-img" alt="Profile Picture">
+              {% else %}
+                <i class="fas fa-user avatar-placeholder-icon"></i>
+              {% endif %}
+            </div>
+            <label for="avatar-input" class="avatar-edit-badge">
+              <i class="fas fa-camera"></i>
+            </label>
+            <input type="file" id="avatar-input" name="avatar" accept="image/*" data-action="previewAvatar">
+          </div>
+
+          <div class="row g-4">
             <div class="col-md-6">
               <label class="form-label">Username</label>
-              <input type="text" class="form-control" name="username" value="{{ user[0] }}" required>
+              <input type="text" class="form-control-premium form-control" name="username" value="{{ user[0] }}" required placeholder="Enter your username">
             </div>
             <div class="col-md-6">
-              <label class="form-label">Email</label>
-              <input type="email" class="form-control" name="email" value="{{ user[1] or '' }}">
+              <label class="form-label">Email Address</label>
+              <input type="email" class="form-control-premium form-control" name="email" value="{{ user[1] or '' }}" placeholder="Enter your email address">
             </div>
           </div>
-          <button type="submit" class="btn btn-neon mt-3">
-            <i class="fas fa-save me-2"></i>Update Account
-          </button>
+          <div class="mt-4">
+            <button type="submit" class="btn-premium btn-update">
+              <i class="fas fa-save"></i>Apply Changes
+            </button>
+          </div>
         </form>
-      </div>
+      </section>
 
-      <!-- Security Settings -->
-      <div class="section-container mb-4">
-        <div class="section-title">
-          <i class="fas fa-shield me-2"></i>Security
+      <!-- SECURITY SECTION -->
+      <section class="settings-card animate-in delay-2">
+        <div class="section-header">
+          <div class="section-icon" style="background: rgba(157, 80, 187, 0.1); color: var(--neon-purple);">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <h3 class="section-title-text">Security & Password</h3>
         </div>
+
         <form method="post" action="{{ url_for('settings') }}">
           <input type="hidden" name="action" value="change_password">
-          <div class="row g-3">
+          <div class="row g-4">
             <div class="col-md-4">
               <label class="form-label">Current Password</label>
-              <input type="password" class="form-control" name="current_password" required>
+              <input type="password" class="form-control-premium form-control" name="current_password" required placeholder="••••••••">
             </div>
             <div class="col-md-4">
               <label class="form-label">New Password</label>
-              <input type="password" class="form-control" name="new_password" required>
+              <input type="password" class="form-control-premium form-control" name="new_password" required placeholder="New password">
             </div>
             <div class="col-md-4">
-              <label class="form-label">Confirm New Password</label>
-              <input type="password" class="form-control" name="confirm_password" required>
+              <label class="form-label">Confirm Password</label>
+              <input type="password" class="form-control-premium form-control" name="confirm_password" required placeholder="Retype new password">
             </div>
           </div>
-          <button type="submit" class="btn btn-neon mt-3">
-            <i class="fas fa-key me-2"></i>Change Password
-          </button>
+          <div class="mt-4">
+            <button type="submit" class="btn-premium btn-security">
+              <i class="fas fa-key"></i>Update Password
+            </button>
+          </div>
         </form>
-      </div>
+      </section>
 
-      <!-- Appearance Settings -->
-      <div class="section-container">
-        <div class="section-title">
-          <i class="fas fa-palette me-2"></i>Appearance
+      <!-- APPEARANCE SECTION -->
+      <section class="settings-card animate-in delay-3">
+        <div class="section-header">
+          <div class="section-icon" style="background: rgba(255, 165, 0, 0.1); color: #ffa500;">
+            <i class="fas fa-magic"></i>
+          </div>
+          <h3 class="section-title-text">Personalization</h3>
         </div>
-        <p class="text-muted mb-3">Customize your reading experience and interface preferences.</p>
-        <button type="button" class="btn btn-outline-light" data-action="openAppearanceModal">
-          <i class="fas fa-cog me-2"></i>Open Appearance Settings
+        <p class="text-zinc-500 mb-4">fine-tune your interface, adjust themes, and customize visual effects across NOVUS.</p>
+        <button type="button" class="btn-premium btn-ghost-premium" data-action="openAppearanceModal">
+          <i class="fas fa-sliders-h"></i>Launch Appearance Studio
         </button>
-      </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -91,7 +378,32 @@ document.addEventListener('click', function(e) {
         window.openAppearanceModal();
       }
       break;
+    
+    case 'previewAvatar':
+      const input = element;
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const preview = document.getElementById('avatar-preview');
+          preview.innerHTML = `<img src="${e.target.result}" class="avatar-preview-img" alt="Preview">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+      break;
   }
+});
+
+// For dynamic event handling of file input change which doesn't always trigger on click for 'closest' logic
+document.getElementById('avatar-input').addEventListener('change', function() {
+    const input = this;
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('avatar-preview');
+            preview.innerHTML = `<img src="${e.target.result}" class="avatar-preview-img" alt="Preview">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
 });
 </script>
 {% endblock %}

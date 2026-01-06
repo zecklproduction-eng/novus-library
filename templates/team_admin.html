@@ -2,68 +2,396 @@
 {% block title %}Team Admin | NOVUS{% endblock %}
 
 {% block content %}
-<div class="container py-3">
-  <div class="section-container mb-4">
-    <div class="section-title">Add Team Member</div>
-    <form action="/admin/team" method="post" enctype="multipart/form-data" class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">Full Name *</label>
-        <input name="full_name" class="form-control" required placeholder="NAME----">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Role</label>
-        <input name="role" class="form-control" placeholder="what he contributed?">
-      </div>
-      <div class="col-12">
-        <label class="form-label">Bio</label>
-        <textarea name="bio" rows="3" class="form-control" placeholder="Short description..."></textarea>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Avatar (optional)</label>
-        <input type="file" name="avatar" class="form-control" accept="image/*">
-        <small class="text-muted">Saved under /static/img/team/</small>
-      </div>
-      <div class="col-12 d-flex justify-content-end">
-        <button class="btn btn-neon">Save</button>
-      </div>
-    </form>
-  </div>
+<style>
+    :root {
+        --neon-blue: #00d4ff;
+        --neon-purple: #9d50bb;
+        --deep-dark: #0c0c0e;
+        --glass-bg: rgba(255, 255, 255, 0.03);
+        --glass-border: rgba(255, 255, 255, 0.08);
+    }
 
-  <div class="section-container">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <div class="section-title">Members</div>
+    /* Force Dark Theme */
+    body, html {
+        background-color: var(--deep-dark) !important;
+        color: #e4e4e7 !important;
+    }
+
+    .team-admin-container {
+        padding: 40px 20px;
+        max-width: 1240px;
+        margin: 0 auto;
+        min-height: 100vh;
+        background-color: var(--deep-dark);
+        animation: fadeIn 0.8s ease-out;
+    }
+
+    /* Glass Header */
+    .admin-header {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 30px 40px;
+        margin-bottom: 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .admin-title-group {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .admin-icon-box {
+        width: 60px;
+        height: 60px;
+        background: rgba(0, 212, 255, 0.1);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--neon-blue);
+        font-size: 1.5rem;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    }
+
+    .admin-title {
+        font-size: 2rem;
+        font-weight: 800;
+        margin: 0;
+        background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Cards */
+    .premium-card {
+        background: rgba(20, 20, 25, 0.6) !important;
+        backdrop-filter: blur(15px);
+        border: 1px solid var(--glass-border) !important;
+        border-radius: 24px;
+        padding: 30px;
+        margin-bottom: 30px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    .premium-card:hover {
+        border-color: rgba(0, 212, 255, 0.3) !important;
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 212, 255, 0.05);
+    }
+
+    .card-title-premium {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .card-title-premium i {
+        color: var(--neon-blue);
+        text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    }
+
+    /* Forms */
+    .form-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #a1a1aa;
+        margin-bottom: 8px;
+    }
+
+    .form-control-premium {
+        background: rgba(0, 0, 0, 0.4) !important;
+        border: 1px solid var(--glass-border) !important;
+        border-radius: 14px !important;
+        padding: 14px 20px !important;
+        color: #fff !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .form-control-premium:focus {
+        border-color: var(--neon-blue) !important;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.15) !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .form-control-premium::placeholder {
+        color: #52525b;
+    }
+
+    /* Table */
+    .table-responsive {
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid var(--glass-border);
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .table-premium {
+        margin-bottom: 0;
+        background: transparent !important;
+        color: #e4e4e7 !important;
+    }
+
+    .table-premium th {
+        background: rgba(255, 255, 255, 0.03) !important;
+        color: #71717a !important;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 20px 24px;
+        border: none !important;
+    }
+
+    .table-premium td {
+        padding: 24px;
+        color: #e4e4e7 !important;
+        border-top: 1px solid var(--glass-border) !important;
+        background: transparent !important;
+        vertical-align: middle;
+    }
+
+    .table-premium th:last-child,
+    .table-premium td:last-child {
+        min-width: 150px;
+        text-align: right;
+    }
+
+    .table-premium tr:hover td {
+        background: rgba(255, 255, 255, 0.02) !important;
+    }
+
+    .member-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        object-fit: cover;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .member-avatar:hover {
+        transform: scale(1.1);
+    }
+
+    .member-initials {
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #000;
+        font-weight: 800;
+        font-size: 1rem;
+        box-shadow: 0 5px 15px rgba(0, 212, 255, 0.2);
+    }
+
+    .role-badge {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        background: rgba(0, 212, 255, 0.1);
+        color: var(--neon-blue);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* Buttons */
+    .btn-premium {
+        padding: 12px 24px;
+        border-radius: 14px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+    }
+
+    .btn-neon-premium {
+        background: var(--neon-blue);
+        color: #000;
+        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+    }
+
+    .btn-neon-premium:hover {
+        background: #fff;
+        box-shadow: 0 0 25px rgba(0, 212, 255, 0.4);
+        transform: translateY(-2px);
+    }
+
+    .btn-danger-premium {
+        background: rgba(239, 68, 68, 0.15) !important;
+        color: #f87171 !important;
+        border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    }
+
+    .btn-danger-premium:hover {
+        background: #ef4444 !important;
+        border-color: #ef4444 !important;
+        color: #fff !important;
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        transform: translateY(-2px);
+    }
+
+    .btn-ghost-premium {
+        background: rgba(255, 255, 255, 0.05);
+        color: #a1a1aa;
+        border: 1px solid var(--glass-border);
+    }
+
+    .btn-ghost-premium:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+        animation: fadeIn 0.8s ease-out forwards;
+        opacity: 0;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+</style>
+
+<div class="team-admin-container">
+  
+  <!-- PREMIUM HEADER -->
+  <header class="admin-header animate-in">
+    <div class="admin-title-group">
+      <div class="admin-icon-box">
+        <i class="fas fa-users-cog"></i>
+      </div>
       <div>
-        <a href="{{ url_for('admin_ai_summaries') }}" class="btn btn-outline-light btn-sm">Manage AI Summaries</a>
-        <a href="{{ url_for('admin_fix_uploaders') }}" class="btn btn-outline-light btn-sm ms-2">Fix Uploaders</a>
+        <h2 class="admin-title">Team Management</h2>
+        <p class="text-zinc-500 mb-0">Add and manage project contributors.</p>
       </div>
     </div>
-    <div class="table-responsive">
-      <table class="table table-dark table-borderless align-middle">
-        <thead><tr><th>Name</th><th>Role</th><th>Bio</th><th>Avatar</th><th class="text-end">Actions</th></tr></thead>
-        <tbody>
-          {% for m in members %}
-          <tr>
-            <td>{{ m[1] }}</td>
-            <td>{{ m[2] }}</td>
-            <td class="text-muted">{{ m[3] }}</td>
-            <td>
-              {% if m[4] %}
-                <img src="{{ url_for('static', filename=m[4]) }}" style="height:40px;border-radius:8px;">
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('admin_ai_summaries') }}" class="btn-premium btn-ghost-premium">
+        <i class="fas fa-robot"></i>AI Summaries
+      </a>
+      <a href="{{ url_for('admin_fix_uploaders') }}" class="btn-premium btn-ghost-premium">
+        <i class="fas fa-tools"></i>Fix Uploaders
+      </a>
+    </div>
+  </header>
+
+  <div class="row g-4">
+    <!-- ADD MEMBER FORM -->
+    <div class="col-lg-5">
+      <div class="premium-card animate-in delay-1">
+        <div class="card-title-premium">
+          <i class="fas fa-user-plus"></i>Add Team Member
+        </div>
+        <form action="/admin/team" method="post" enctype="multipart/form-data" class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Full Name *</label>
+            <input name="full_name" class="form-control-premium form-control" required placeholder="Display Name">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Role</label>
+            <input name="role" class="form-control-premium form-control" placeholder="e.g. Lead Developer">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Bio</label>
+            <textarea name="bio" rows="3" class="form-control-premium form-control" placeholder="What they contributed..."></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Avatar (optional)</label>
+            <input type="file" name="avatar" class="form-control-premium form-control" accept="image/*">
+          </div>
+          <div class="col-12 pt-2">
+            <button class="btn-premium btn-neon-premium w-100 justify-content-center">
+              <i class="fas fa-save"></i>Add Member
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MEMBERS LIST -->
+    <div class="col-lg-7">
+      <div class="premium-card animate-in delay-2">
+        <div class="card-title-premium">
+          <i class="fas fa-list"></i>Current Members
+        </div>
+        <div class="table-responsive">
+          <table class="table table-premium align-middle">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Details</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in members %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-3">
+                    {% if m[4] %}
+                      <img src="{{ url_for('static', filename=m[4]) }}" class="member-avatar" alt="{{ m[1] }}">
+                    {% else %}
+                      <div class="member-initials">
+                        {{ m[1][0] if m[1] else '?' }}
+                      </div>
+                    {% endif %}
+                    <div>
+                      <div class="fw-bold">{{ m[1] }}</div>
+                      <span class="role-badge">{{ m[2] }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="text-zinc-500 small" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
+                    {{ m[3] }}
+                  </div>
+                </td>
+                <td class="text-end">
+                  <form action="{{ url_for('team_delete', member_id=m[0]) }}" method="post" class="d-inline" onsubmit="return confirm('Remove this member?');">
+                    <button class="btn-premium btn-danger-premium">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
               {% else %}
-                <span class="text-muted">—</span>
-              {% endif %}
-            </td>
-            <td class="text-end">
-              <form action="{{ url_for('team_delete', member_id=m[0]) }}" method="post" class="d-inline">
-                <button class="btn btn-sm btn-danger">Delete</button>
-              </form>
-            </td>
-          </tr>
-          {% else %}
-          <tr><td colspan="5" class="text-center text-muted">No members yet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+              <tr>
+                <td colspan="3" class="text-center py-5 text-zinc-500">
+                  <i class="fas fa-user-friends fa-3x mb-3 opacity-20"></i>
+                  <p>No team members added yet.</p>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>

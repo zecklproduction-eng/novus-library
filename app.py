@@ -788,6 +788,21 @@ def init_db():
         )
     """)
 
+    # chapter_comments (for general discussion on a chapter)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_comments (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            chapter_id INTEGER NOT NULL,
+            parent_id INTEGER, -- For nested replies
+            content TEXT,
+            created_at TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (chapter_id) REFERENCES chapters(id),
+            FOREIGN KEY (parent_id) REFERENCES chapter_comments(id)
+        )
+    """)
+
     # activity log (track user reading activities)
     c.execute("""
         CREATE TABLE IF NOT EXISTS activity_log (
@@ -2344,7 +2359,7 @@ def admin_ai_summaries_clear():
 
 
 @app.post("/book/<int:id>/review")
-@admin_required
+@login_required
 def add_review(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -2375,7 +2390,7 @@ def add_review(id):
     return redirect(url_for("view_book", id=id))
 
 @app.post("/review/<int:review_id>/delete")
-@admin_required
+@login_required
 def delete_review(review_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -3333,6 +3348,18 @@ def settings():
                 flash("Username is already taken.", "danger")
                 return redirect(url_for("settings"))
 
+            # Handle Profile Picture Upload
+            if "avatar" in request.files:
+                file = request.files["avatar"]
+                if file and file.filename != "" and allowed_file(file.filename):
+                    filename = secure_filename(f"user_{user_id}_{file.filename}")
+                    filepath = os.path.join(UPLOAD_FOLDER, filename)
+                    file.save(filepath)
+                    
+                    # Store as relative path for template use
+                    avatar_url = f"uploads/avatars/{filename}"
+                    c.execute("UPDATE users SET avatar_url=? WHERE id=?", (avatar_url, user_id))
+
             # Update username and email
             c.execute("UPDATE users SET username=? WHERE id=?", (username, user_id))
             session["username"] = username
@@ -3353,7 +3380,7 @@ def settings():
     # GET request - show settings page
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT username, email FROM users WHERE id=?", (user_id,))
+    c.execute("SELECT username, email, avatar_url FROM users WHERE id=?", (user_id,))
     user_data = c.fetchone()
     conn.close()
 
@@ -7991,6 +8018,79 @@ def api_post_comment():
     conn.commit()
     conn.close()
     
+    return jsonify({"success": True})
+    
+@app.route("/api/manga/<int:manga_id>/reviews")
+def api_get_manga_reviews(manga_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        SELECT r.id, r.content, r.rating, r.created_at,
+               u.username, u.avatar_url, u.id
+        FROM reviews r
+        JOIN users u ON u.id = r.user_id
+        WHERE r.book_id = ?
+        ORDER BY datetime(r.created_at) DESC
+    """, (manga_id,))
+    reviews = []
+    for row in c.fetchall():
+        reviews.append({
+            "id": row[0],
+            "content": row[1],
+            "rating": row[2],
+            "created_at": row[3],
+            "username": row[4],
+            "avatar_url": row[5],
+            "user_id": row[6]
+        })
+    conn.close()
+    return jsonify(reviews)
+
+@app.route("/api/chapter/<int:chapter_id>/comments")
+def api_get_chapter_comments(chapter_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        SELECT cc.id, cc.content, cc.created_at,
+               u.username, u.avatar_url, u.id, cc.parent_id
+        FROM chapter_comments cc
+        JOIN users u ON u.id = cc.user_id
+        WHERE cc.chapter_id = ?
+        ORDER BY datetime(cc.created_at) ASC
+    """, (chapter_id,))
+    comments = []
+    for row in c.fetchall():
+        comments.append({
+            "id": row[0],
+            "content": row[1],
+            "created_at": row[2],
+            "username": row[3],
+            "avatar_url": row[4],
+            "user_id": row[5],
+            "parent_id": row[6]
+        })
+    conn.close()
+    return jsonify(comments)
+
+@app.post("/api/chapter/<int:chapter_id>/comment")
+@login_required
+def api_post_chapter_comment(chapter_id):
+    user_id = session["user_id"]
+    data = request.json
+    content = (data.get("content") or "").strip()
+    parent_id = data.get("parent_id")
+
+    if not content:
+        return jsonify({"error": "Content is required"}), 400
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO chapter_comments (user_id, chapter_id, content, parent_id)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, chapter_id, content, parent_id))
+    conn.commit()
+    conn.close()
     return jsonify({"success": True})
 
 @app.route("/api/media/search")
