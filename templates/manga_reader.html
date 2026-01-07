@@ -3,6 +3,18 @@
 
 {% block content %}
 <style>
+  :root {
+    --neon-blue: #00d4ff;
+    --neon-purple: #9d50bb;
+    --neon-red: #ef4444;
+    --deep-dark: #0a0a0c;
+    --card-bg: rgba(255, 255, 255, 0.02);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+  }
+
   * {
     margin: 0;
     padding: 0;
@@ -10,8 +22,8 @@
   }
 
   body {
-    background-color: #1a1a2e;
-    color: #e0e0e0;
+    background-color: var(--deep-dark) !important;
+    color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
@@ -19,7 +31,7 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background: var(--deep-dark);
     overflow: hidden;
     width: 100%;
   }
@@ -33,78 +45,87 @@
     z-index: 9999;
   }
 
-  .manga-reader-container.fullscreen .reader-top-bar {
-    position: relative;
-  }
-
-  /* TOP BAR */
+  /* TOP BAR - Sleek Modern Design */
   .reader-top-bar {
-    background: linear-gradient(90deg, rgba(26, 26, 46, 0.98) 0%, rgba(22, 33, 62, 0.98) 100%);
-    border-bottom: 2px solid #00d4ff;
-    padding: 12px 20px;
+    background: rgba(10, 10, 12, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 12px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 20px;
-    flex-wrap: wrap;
     flex-shrink: 0;
   }
 
   .top-bar-left {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 16px;
     flex: 1;
   }
 
   .chapter-title {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 16px;
-    color: #e0e0e0;
+    gap: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
   }
 
   .chapter-title i {
-    color: #00d4ff;
+    color: var(--neon-blue);
+    font-size: 14px;
   }
 
   .top-bar-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
   }
 
-  .btn-cyan {
-    background: #00d4ff;
+  .btn-premium {
+    background: linear-gradient(135deg, var(--neon-blue) 0%, #0099cc 100%);
     color: #000;
     border: none;
     padding: 8px 16px;
-    border-radius: 6px;
+    border-radius: 10px;
     cursor: pointer;
-    font-weight: 600;
-    font-size: 13px;
-    transition: all 0.3s ease;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  .btn-cyan:hover {
-    background: #00a8cc;
+  .btn-premium:hover {
     transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
   }
 
   .btn-icon {
-    background: transparent;
-    border: none;
-    color: #00d4ff;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
     cursor: pointer;
-    font-size: 18px;
-    padding: 8px;
+    font-size: 14px;
+    padding: 10px;
+    border-radius: 10px;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .btn-icon:hover {
-    color: #00a8cc;
-    transform: scale(1.1);
+    background: rgba(0, 212, 255, 0.1);
+    border-color: rgba(0, 212, 255, 0.3);
+    color: var(--neon-blue);
+    transform: scale(1.05);
   }
 
   /* MAIN CONTENT */
@@ -122,7 +143,7 @@
     flex-direction: column;
     overflow: hidden;
     padding: 20px;
-    background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+    background: #080808;
   }
 
   .manga-pages {
@@ -130,32 +151,38 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 15px;
+    gap: 20px;
     overflow: auto;
     margin-bottom: 20px;
+    background: #050505;
+    border-radius: 16px;
+    padding: 20px;
   }
 
   .manga-pages::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   .manga-pages::-webkit-scrollbar-track {
-    background: #2a2a4e;
+    background: transparent;
   }
 
   .manga-pages::-webkit-scrollbar-thumb {
-    background: #00d4ff;
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+
+  .manga-pages::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 212, 255, 0.3);
   }
 
   .manga-page {
     max-height: 100%;
     max-width: 45%;
     object-fit: contain;
-    border: 2px solid #00d4ff;
-    border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 212, 255, 0.1);
+    border-radius: 4px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   }
 
   .manga-page-single {
@@ -164,19 +191,31 @@
 
   .manga-loading {
     text-align: center;
-    color: #888;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
   }
 
   .manga-loading i {
     font-size: 48px;
-    margin-bottom: 15px;
-    display: block;
-    animation: spin 2s linear infinite;
+    color: var(--neon-blue);
+    animation: pulse 2s ease-in-out infinite;
   }
 
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  @keyframes pulse {
+
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
   }
 
   /* NAVIGATION BAR */
@@ -185,263 +224,306 @@
     justify-content: space-between;
     align-items: center;
     gap: 20px;
-    padding: 15px 0;
-    border-top: 2px solid #00d4ff;
-    padding-top: 15px;
+    padding: 16px 0;
     flex-shrink: 0;
   }
 
   .nav-btn {
-    background: transparent;
-    border: 2px solid #00d4ff;
-    color: #00d4ff;
-    padding: 8px 12px;
-    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 10px 16px;
+    border-radius: 12px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 13px;
+    font-weight: 600;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .nav-btn:hover {
-    background: #00d4ff;
-    color: #000;
+    background: rgba(0, 212, 255, 0.1);
+    border-color: rgba(0, 212, 255, 0.3);
+    color: var(--neon-blue);
   }
 
   .progress-control {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 16px;
   }
 
   .progress-slider {
     flex: 1;
-    height: 6px;
-    background: #2a2a4e;
-    border-radius: 3px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
     cursor: pointer;
   }
 
   .progress-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 16px;
-    height: 16px;
-    background: #00d4ff;
+    width: 14px;
+    height: 14px;
+    background: var(--neon-blue);
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+    transition: transform 0.2s ease;
+  }
+
+  .progress-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
   }
 
   .progress-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    background: #00d4ff;
+    width: 14px;
+    height: 14px;
+    background: var(--neon-blue);
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
   }
 
   .page-counter {
-    color: #00d4ff;
-    font-size: 13px;
-    font-weight: 600;
-    min-width: 80px;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    color: var(--neon-blue);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 100px;
+    min-width: 90px;
     text-align: center;
   }
 
   .next-btn-large {
-    background: #00d4ff;
+    background: linear-gradient(135deg, var(--neon-blue) 0%, #0099cc 100%);
     color: #000;
     border: none;
     padding: 10px 20px;
-    border-radius: 6px;
+    border-radius: 12px;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 13px;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .next-btn-large:hover {
-    background: #00a8cc;
     transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
   }
 
   /* RIGHT SIDEBAR */
   .reader-right {
-    width: 380px;
-    background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
-    border-left: 2px solid #00d4ff;
+    width: 360px;
+    background: rgba(10, 10, 12, 0.98);
+    backdrop-filter: blur(20px);
+    border-left: 1px solid var(--glass-border);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     padding: 20px;
-    gap: 20px;
+    gap: 16px;
   }
 
   .reader-right::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .reader-right::-webkit-scrollbar-track {
-    background: #2a2a4e;
+    width: 4px;
   }
 
   .reader-right::-webkit-scrollbar-thumb {
-    background: #00d4ff;
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
   }
 
   .sidebar-card {
-    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
-    border: 2px solid #00d4ff;
-    border-radius: 8px;
-    padding: 15px;
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
+    transition: all 0.3s ease;
+  }
+
+  .sidebar-card:hover {
+    border-color: rgba(0, 212, 255, 0.2);
   }
 
   .sidebar-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    color: #00d4ff;
-    font-weight: 600;
-    font-size: 14px;
+    gap: 10px;
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
   }
 
   .sidebar-header i {
-    font-size: 16px;
+    color: var(--neon-blue);
+    font-size: 14px;
   }
 
   .ai-tabs {
     display: flex;
     gap: 8px;
-    margin-bottom: 12px;
   }
 
   .ai-tab {
-    background: transparent;
-    border: 2px solid #2a2a4e;
-    color: #888;
-    padding: 8px 12px;
-    border-radius: 4px;
+    flex: 1;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    padding: 10px 12px;
+    border-radius: 10px;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     transition: all 0.3s ease;
+    text-align: center;
   }
 
   .ai-tab.active {
-    border-color: #00d4ff;
-    color: #00d4ff;
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
     background: rgba(0, 212, 255, 0.1);
   }
 
   .ai-tab:hover {
-    border-color: #00d4ff;
+    border-color: rgba(0, 212, 255, 0.3);
+    color: var(--text-secondary);
   }
 
   .ai-toggle {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: 12px 0;
+    padding: 12px 0;
+    border-top: 1px solid var(--glass-border);
+    font-size: 13px;
+    color: var(--text-secondary);
   }
 
   .toggle-switch {
-    width: 48px;
-    height: 28px;
-    background: #2a2a4e;
-    border-radius: 14px;
+    width: 44px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
     cursor: pointer;
     position: relative;
     transition: background 0.3s ease;
-    border: 2px solid #00d4ff;
   }
 
   .toggle-switch.active {
-    background: #00d4ff;
+    background: var(--neon-blue);
   }
 
   .toggle-switch::after {
     content: '';
     position: absolute;
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     background: white;
     border-radius: 50%;
-    top: 2px;
-    left: 2px;
+    top: 3px;
+    left: 3px;
     transition: left 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   }
 
   .toggle-switch.active::after {
-    left: 24px;
+    left: 23px;
   }
 
   .ai-content {
-    color: #b0b0b0;
+    color: var(--text-secondary);
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.7;
   }
 
   .ai-summary {
-    margin: 10px 0;
+    margin: 12px 0;
   }
 
   .ai-summary-point {
     display: flex;
-    gap: 8px;
-    margin: 8px 0;
-  }
-
-  .ai-summary-point::before {
-    content: '•';
-    color: #00d4ff;
-    font-weight: bold;
-    min-width: 8px;
+    gap: 10px;
+    margin: 10px 0;
+    padding-left: 12px;
+    border-left: 2px solid var(--neon-blue);
+    color: var(--text-secondary);
+    font-size: 13px;
   }
 
   .view-analysis-btn {
-    background: #00d4ff;
-    color: #000;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 4px;
+    background: rgba(0, 212, 255, 0.1);
+    color: var(--neon-blue);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 12px 16px;
+    border-radius: 12px;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     width: 100%;
-    margin-top: 10px;
     transition: all 0.3s ease;
   }
 
   .view-analysis-btn:hover {
-    background: #00a8cc;
+    background: var(--neon-blue);
+    color: #000;
   }
 
   .character-profiles {
-    margin-top: 10px;
+    margin-top: 8px;
   }
 
   .character-item {
     display: flex;
-    gap: 10px;
-    margin: 10px 0;
+    gap: 12px;
+    margin: 12px 0;
     align-items: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+  }
+
+  .character-item:hover {
+    border-color: var(--glass-border);
+    background: rgba(255, 255, 255, 0.04);
   }
 
   .character-avatar {
-    width: 36px;
-    height: 36px;
-    background: #2a2a4e;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%);
     border-radius: 50%;
-    border: 2px solid #00d4ff;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #fff;
+    font-size: 12px;
   }
 
   .character-info {
@@ -449,32 +531,84 @@
   }
 
   .character-name {
-    color: #e0e0e0;
+    color: var(--text-primary);
     font-weight: 600;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .character-trait {
-    color: #888;
+    color: var(--text-muted);
     font-size: 11px;
-  }
-
-  .voice-actor-badge {
-    background: #00d4ff;
-    color: #000;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: 600;
-    white-space: nowrap;
+    margin-top: 2px;
   }
 
   .expand-btn {
-    margin-top: 8px;
-    color: #888;
+    margin-top: 12px;
+    color: var(--text-muted);
     cursor: pointer;
     font-size: 12px;
     text-align: center;
+    padding: 10px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .expand-btn:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--neon-blue);
+  }
+
+  /* Character Description Dropdown */
+  .character-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .character-main {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .character-expand-btn {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: 12px;
+    transition: transform 0.3s ease;
+  }
+
+  .character-expand-btn.expanded {
+    transform: rotate(180deg);
+  }
+
+  .character-description {
+    display: none;
+    padding: 10px 12px;
+    margin-top: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    border-left: 2px solid var(--neon-blue);
+    animation: slideDown 0.3s ease;
+  }
+
+  .character-description.show {
+    display: block;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* SETTINGS MODAL */
@@ -485,8 +619,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 1000;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    z-index: 10000;
     align-items: center;
     justify-content: center;
   }
@@ -496,33 +631,44 @@
   }
 
   .settings-modal-content {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border: 2px solid #00d4ff;
-    border-radius: 12px;
-    padding: 30px;
-    max-width: 500px;
-    max-height: 80vh;
+    background: rgba(15, 15, 18, 0.98);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 32px;
+    max-width: 480px;
+    width: 90%;
+    max-height: 85vh;
     overflow-y: auto;
-    color: #e0e0e0;
+    color: var(--text-primary);
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
   }
 
   .settings-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #00d4ff;
-    margin-bottom: 20px;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .settings-title i {
+    color: var(--neon-blue);
   }
 
   .setting-item {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
 
   .setting-label {
     display: block;
-    color: #b0b0b0;
-    font-size: 14px;
+    color: var(--text-secondary);
+    font-size: 13px;
     font-weight: 600;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .setting-options {
@@ -532,41 +678,70 @@
   }
 
   .setting-option {
-    background: transparent;
-    border: 2px solid #2a2a4e;
-    color: #888;
-    padding: 8px 12px;
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    padding: 10px 16px;
+    border-radius: 10px;
     cursor: pointer;
     font-size: 12px;
+    font-weight: 600;
     transition: all 0.3s ease;
   }
 
   .setting-option:hover {
-    border-color: #00d4ff;
+    border-color: rgba(0, 212, 255, 0.3);
+    color: var(--text-secondary);
   }
 
   .setting-option.active {
-    background: #00d4ff;
+    background: var(--neon-blue);
     color: #000;
-    border-color: #00d4ff;
-    font-weight: 600;
+    border-color: var(--neon-blue);
+    font-weight: 700;
   }
 
   .close-modal-btn {
-    background: #00d4ff;
+    background: linear-gradient(135deg, var(--neon-blue) 0%, #0099cc 100%);
     color: #000;
     border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
+    padding: 14px 24px;
+    border-radius: 14px;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     width: 100%;
-    margin-top: 20px;
+    margin-top: 24px;
+    transition: all 0.3s ease;
   }
 
   .close-modal-btn:hover {
-    background: #00a8cc;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+  }
+
+  /* Custom Range Slider for Settings */
+  .settings-modal-content input[type="range"] {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .settings-modal-content input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--neon-blue);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
   }
 
   /* RESPONSIVE */
@@ -584,7 +759,7 @@
     .reader-right {
       width: 100%;
       border-left: none;
-      border-top: 2px solid #00d4ff;
+      border-top: 1px solid var(--glass-border);
       max-height: 40vh;
     }
 
@@ -592,9 +767,598 @@
       max-width: 100%;
     }
 
-    .top-bar-left, .top-bar-right {
+    .top-bar-left,
+    .top-bar-right {
       flex: none;
     }
+
+    .reader-top-bar {
+      padding: 10px 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn-premium span {
+      display: none;
+    }
+  }
+
+  /* COMMENTS & REVIEWS SECTION */
+  .reader-bottom-section {
+    background: var(--deep-dark);
+    padding: 40px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+
+  .section-title i {
+    color: var(--neon-blue);
+  }
+
+  .section-count {
+    background: rgba(0, 212, 255, 0.1);
+    color: var(--neon-blue);
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  /* Reviews */
+  .reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .review-card {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s ease;
+  }
+
+  .review-card:hover {
+    border-color: rgba(0, 212, 255, 0.2);
+  }
+
+  .review-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .review-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #fff;
+    font-size: 14px;
+  }
+
+  .review-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .review-meta {
+    flex: 1;
+  }
+
+  .review-author {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 14px;
+  }
+
+  .review-date {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .review-rating {
+    display: flex;
+    gap: 4px;
+  }
+
+  .review-rating i {
+    color: #fbbf24;
+    font-size: 12px;
+  }
+
+  .review-rating i.empty {
+    color: var(--text-muted);
+  }
+
+  .review-text {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Comments */
+  .comments-section {
+    margin-top: 40px;
+  }
+
+  .comment-form {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .comment-input-wrapper {
+    display: flex;
+    gap: 12px;
+  }
+
+  .comment-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: var(--text-primary);
+    font-size: 14px;
+    resize: none;
+    min-height: 50px;
+    transition: all 0.3s ease;
+  }
+
+  .comment-input:focus {
+    outline: none;
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+  }
+
+  .comment-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .comment-submit {
+    background: linear-gradient(135deg, var(--neon-blue), #0099cc);
+    color: #000;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .comment-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+  }
+
+  .comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .comment-item {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 16px 20px;
+  }
+
+  .comment-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .comment-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #fff;
+    font-size: 12px;
+  }
+
+  .comment-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .comment-author {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 13px;
+  }
+
+  .comment-time {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .comment-text {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-left: 48px;
+  }
+
+  .comment-actions {
+    display: flex;
+    gap: 16px;
+    margin-left: 48px;
+    margin-top: 10px;
+  }
+
+  .comment-action {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+  }
+
+  .comment-action:hover {
+    color: var(--neon-blue);
+  }
+
+  .no-content-message {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+  }
+
+  .no-content-message i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+  }
+
+  /* NEW CHAPTER RATING CARD */
+  .chapter-rating-card {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+
+  .rating-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+  }
+
+  .rating-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .rating-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .rating-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 10px 16px;
+    border-radius: 100px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .rating-btn:hover {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+  }
+
+  .rating-btn.active {
+    background: rgba(0, 212, 255, 0.15);
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+  }
+
+  .like-btn i,
+  .dislike-btn i {
+    font-size: 16px;
+  }
+
+  /* NEW COMMENTS SECTION */
+  .comments-section-new {
+    margin-top: 24px;
+  }
+
+  .comments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .comments-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .comments-sort {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .comments-sort select {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .comments-sort select:focus {
+    outline: none;
+  }
+
+  /* Add Comment Form */
+  .add-comment-form {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .comment-avatar-wrapper {
+    flex-shrink: 0;
+  }
+
+  .comment-avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3a3a5e, #2a2a4e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+
+  .comment-input-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .comment-textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    font-size: 14px;
+    padding: 8px 0;
+    resize: none;
+    transition: border-color 0.2s;
+  }
+
+  .comment-textarea:focus {
+    outline: none;
+    border-bottom-color: var(--neon-blue);
+  }
+
+  .comment-textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  .comment-post-btn {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--neon-blue), #0099cc);
+    color: #000;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 100px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: none;
+  }
+
+  .comment-textarea:focus~.comment-post-btn,
+  .comment-post-btn.show {
+    display: block;
+  }
+
+  .comment-post-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+  }
+
+  /* Comments List */
+  .comments-list-new {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .comment-item-new {
+    display: flex;
+    gap: 12px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  }
+
+  .comment-item-new:last-child {
+    border-bottom: none;
+  }
+
+  .comment-avatar-new {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #000;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .comment-avatar-new img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .comment-content-new {
+    flex: 1;
+  }
+
+  .comment-meta-new {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .comment-username {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 14px;
+  }
+
+  .comment-username:hover {
+    color: var(--neon-blue);
+    cursor: pointer;
+  }
+
+  .comment-timestamp {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .comment-body {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+
+  .comment-actions-new {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .comment-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+    padding: 0;
+  }
+
+  .comment-action-btn:hover {
+    color: var(--neon-blue);
+  }
+
+  .comment-action-btn.danger-btn:hover {
+    color: #ff4b2b;
+  }
+
+  .comment-action-btn.liked {
+    color: var(--neon-blue);
+  }
+
+  .comment-reply {
+    margin-left: 50px;
+    border-left: 2px solid rgba(0, 212, 255, 0.2);
+    padding-left: 15px;
+    margin-top: 5px;
+  }
+
+  .reply-container {
+    margin-bottom: 10px;
+  }
+
+  .nav-btn.active {
+    background: var(--neon-blue) !important;
+    box-shadow: 0 0 15px var(--neon-blue);
+    color: #fff !important;
+  }
+
+  .no-comments-message {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    font-size: 14px;
   }
 </style>
 
@@ -608,8 +1372,8 @@
       </div>
     </div>
     <div class="top-bar-right">
-      <button class="btn-cyan" id="aiInsightsBtn">
-        <i class="fas fa-lightbulb"></i> AI INSIGHTS
+      <button class="btn-premium" id="aiInsightsBtn">
+        <i class="fas fa-sparkles"></i> <span>AI INSIGHTS</span>
       </button>
       <button class="btn-icon" id="settingsBtn" title="Settings">
         <i class="fas fa-cog"></i>
@@ -646,6 +1410,16 @@
           <input type="range" id="progressSlider" class="progress-slider" min="0" max="100" value="0">
           <span class="page-counter" id="pageCounter">Page 1/1</span>
         </div>
+        <button class="nav-btn" id="autoScrollBtn" onclick="toggleAutoScroll()" title="Auto-Scroll">
+          <i class="fas fa-play"></i> Auto-Scroll
+        </button>
+        <select id="scrollSpeedSelect" onchange="setAutoScrollSpeed(parseFloat(this.value))" title="Scroll Speed"
+          style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 5px 8px; border-radius: 6px; font-size: 12px;">
+          <option value="1">Slow</option>
+          <option value="2" selected>Normal</option>
+          <option value="4">Fast</option>
+          <option value="6">Very Fast</option>
+        </select>
         <button class="next-btn-large" id="nextBtn" onclick="nextPage()">
           NEXT <i class="fas fa-chevron-right"></i>
         </button>
@@ -696,6 +1470,118 @@
         <div class="character-profiles" id="characterProfiles">
           <p style="color: #888; font-size: 12px; text-align: center;">Loading characters...</p>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAPTER RATING & COMMENTS SECTION -->
+<div class="reader-bottom-section">
+
+  <!-- Chapter Rating Card -->
+  <div class="chapter-rating-card">
+    <div class="rating-left">
+      <h3 class="rating-title">Chapter Rating</h3>
+      <p class="rating-subtitle">How would you rate this chapter?</p>
+    </div>
+    <div class="rating-actions">
+      <button class="rating-btn like-btn" id="likeChapterBtn">
+        <i class="fas fa-thumbs-up"></i>
+        <span id="likeCount">0</span>
+      </button>
+      <button class="rating-btn dislike-btn" id="dislikeChapterBtn">
+        <i class="fas fa-thumbs-down"></i>
+      </button>
+      <button class="rating-btn share-btn" id="shareChapterBtn">
+        <i class="fas fa-share-alt"></i> Share
+      </button>
+      <button class="rating-btn more-btn">
+        <i class="fas fa-ellipsis-h"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Reviews Section -->
+  <div class="reviews-section" style="margin-bottom: 40px;">
+    <div class="section-header">
+      <h3 class="section-title">
+        <i class="fas fa-star"></i>
+        Reviews
+      </h3>
+      <span class="section-count" id="reviewCount">0 reviews</span>
+    </div>
+
+    <!-- Review Form -->
+    <div class="comment-form" style="margin-bottom: 24px;">
+      <div style="margin-bottom: 16px;">
+        <label class="setting-label" style="display: block; margin-bottom: 12px; color: var(--text-secondary);">Your
+          Rating</label>
+        <div class="star-rating" id="starRating" style="display: flex; gap: 8px;">
+          <i class="fas fa-star" data-rating="1"
+            style="cursor: pointer; font-size: 28px; color: var(--text-muted); transition: color 0.2s;"></i>
+          <i class="fas fa-star" data-rating="2"
+            style="cursor: pointer; font-size: 28px; color: var(--text-muted); transition: color 0.2s;"></i>
+          <i class="fas fa-star" data-rating="3"
+            style="cursor: pointer; font-size: 28px; color: var(--text-muted); transition: color 0.2s;"></i>
+          <i class="fas fa-star" data-rating="4"
+            style="cursor: pointer; font-size: 28px; color: var(--text-muted); transition: color 0.2s;"></i>
+          <i class="fas fa-star" data-rating="5"
+            style="cursor: pointer; font-size: 28px; color: var(--text-muted); transition: color 0.2s;"></i>
+        </div>
+      </div>
+      <div class="comment-input-wrapper">
+        <textarea class="comment-input" id="reviewInput" placeholder="Write your review..." rows="3"
+          style="min-height: 80px;"></textarea>
+        <button class="comment-submit" id="submitReview"
+          style="background: linear-gradient(135deg, #fbbf24, #f59e0b); display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-star"></i> Submit Review
+        </button>
+      </div>
+    </div>
+
+    <!-- Reviews List -->
+    <div class="reviews-grid" id="reviewsList">
+      <div class="no-content-message" id="noReviewsMsg">
+        <i class="fas fa-star"></i>
+        <p>No reviews yet. Be the first to review!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comments Section -->
+  <div class="comments-section-new">
+    <div class="comments-header">
+      <h3 class="comments-title">
+        <span id="commentCountNum">0</span> Comments
+      </h3>
+      <div class="comments-sort">
+        <i class="fas fa-sort"></i>
+        <span>Sort by:</span>
+        <select id="commentSort">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="popular">Most Popular</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Add Comment Form -->
+    <div class="add-comment-form">
+      <div class="comment-avatar-wrapper">
+        <div class="comment-avatar-placeholder">
+          <i class="fas fa-user"></i>
+        </div>
+      </div>
+      <div class="comment-input-area">
+        <textarea class="comment-textarea" id="commentInput" placeholder="Add a comment..." rows="1"></textarea>
+        <button class="comment-post-btn" id="submitComment">Post</button>
+      </div>
+    </div>
+
+    <!-- Comments List -->
+    <div class="comments-list-new" id="commentsList">
+      <div class="no-comments-message" id="noCommentsMsg">
+        <p>No comments yet. Be the first to share your thoughts!</p>
       </div>
     </div>
   </div>
@@ -760,8 +1646,8 @@
 </div>
 
 <script>
-  let currentChapterId = {{ chapter[0] if chapter else chapters[0][0] if chapters else 0 }};
-  let chapters = {{ chapters|tojson }};
+  let currentChapterId = parseInt("{{ chapter[0] if chapter else (chapters[0][0] if chapters else 0) }}");
+  let chapters = {{ chapters | tojson | safe }};
   let currentPageIndex = 0;
   let totalPages = 1;
   let readingMode = 'single';
@@ -809,9 +1695,9 @@
     const container = document.querySelector('.manga-reader-container');
     const btn = document.getElementById('fullscreenBtn');
     const icon = btn.querySelector('i');
-    
+
     container.classList.toggle('fullscreen');
-    
+
     if (container.classList.contains('fullscreen')) {
       icon.className = 'fas fa-compress';
       btn.title = 'Exit Fullscreen';
@@ -827,15 +1713,15 @@
 
   // Setting Options
   document.querySelectorAll('.setting-option').forEach(btn => {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', function () {
       const setting = this.dataset.setting;
       const value = this.dataset.value;
-      
+
       document.querySelectorAll(`[data-setting="${setting}"]`).forEach(b => {
         b.classList.remove('active');
       });
       this.classList.add('active');
-      
+
       readerSettings[setting] = value;
       readingMode = value;
       saveSettings();
@@ -848,36 +1734,63 @@
     const container = document.getElementById('mangaPages');
     const images = container.querySelectorAll('img');
     const navBar = document.querySelector('.reader-nav-bar');
-    
-    container.style.flexDirection = (readingMode === 'vertical' || readingMode === 'horizontal') ? 'column' : 'row';
-    
-    // Hide nav bar in vertical mode (user preference for continuous scroll)
+
+    // Reset container styles
+    container.style.flexDirection = 'column';
+    container.style.overflowX = 'hidden';
+    container.style.overflowY = 'auto';
+    container.style.flexWrap = 'nowrap';
+
     if (readingMode === 'vertical') {
-        if (navBar) navBar.style.display = 'none';
+      // Vertical scroll - pages stacked vertically
+      container.style.flexDirection = 'column';
+      if (navBar) navBar.style.display = 'none';
+    } else if (readingMode === 'horizontal') {
+      // Horizontal scroll - pages in a row
+      container.style.flexDirection = 'row';
+      container.style.overflowX = 'auto';
+      container.style.overflowY = 'hidden';
+      if (navBar) navBar.style.display = 'flex';
+    } else if (readingMode === 'double') {
+      // Double page view - two pages side by side
+      container.style.flexDirection = 'row';
+      container.style.flexWrap = 'wrap';
+      container.style.justifyContent = 'center';
+      if (navBar) navBar.style.display = 'flex';
     } else {
-        if (navBar) navBar.style.display = 'flex';
+      // Single page view (default)
+      container.style.flexDirection = 'column';
+      container.style.alignItems = 'center';
+      if (navBar) navBar.style.display = 'flex';
     }
-    
+
     images.forEach(img => {
       if (readingMode === 'double') {
-        img.style.maxWidth = '45%';
+        img.style.maxWidth = '48%';
+        img.style.height = 'auto';
       } else if (readingMode === 'vertical') {
         img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+      } else if (readingMode === 'horizontal') {
+        img.style.maxWidth = 'none';
+        img.style.height = '100%';
+        img.style.flexShrink = '0';
       } else {
         img.style.maxWidth = '90%';
+        img.style.height = 'auto';
       }
     });
   }
 
   // Brightness slider
-  document.getElementById('brightnessSlider')?.addEventListener('input', function() {
+  document.getElementById('brightnessSlider')?.addEventListener('input', function () {
     readerSettings.brightness = this.value;
     document.getElementById('mangaPages').style.filter = `brightness(${this.value}%)`;
     saveSettings();
   });
 
   // AI Toggle
-  document.getElementById('aiToggle')?.addEventListener('click', function() {
+  document.getElementById('aiToggle')?.addEventListener('click', function () {
     this.classList.toggle('active');
     readerSettings.aiAssistantEnabled = this.classList.contains('active');
     saveSettings();
@@ -896,7 +1809,7 @@
         const resp = await fetch('/report_manga', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ manga_id: {{ manga[0] }}, reason: reason })
+          body: JSON.stringify({ manga_id: parseInt("{{ manga[0] }}"), reason: reason })
         });
         if (resp.ok) {
           alert('Report submitted successfully. Thank you!');
@@ -938,39 +1851,43 @@
     try {
       const response = await fetch(`/api/manga/${mangaId}/characters`);
       if (!response.ok) throw new Error('Failed to load characters');
-      
+
       const characters = await response.json();
       const container = document.getElementById('characterProfiles');
-      
+
       if (characters.length === 0) {
         container.innerHTML = '<p style="color: #888; font-size: 12px; text-align: center;">No characters added yet</p>';
         return;
       }
-      
+
       container.innerHTML = '';
       characters.forEach((char, idx) => {
         if (idx < 3) { // Show first 3, rest are hidden
           const item = document.createElement('div');
           item.className = 'character-item';
-          const avatarContent = char.avatar_url 
+          const avatarContent = char.avatar_url
             ? `<img src="${char.avatar_url}" alt="${char.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
             : `<span style="font-weight: bold; color: #fff; font-size: 12px;">${char.name.substring(0, 2).toUpperCase()}</span>`;
+
+          const hasDescription = char.description && char.description.trim() !== '';
+
           item.innerHTML = `
-            <div class="character-avatar" style="background: linear-gradient(135deg, #00d4ff 0%, #0f3460 100%); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; font-size: 12px;">
-              ${avatarContent}
+            <div class="character-main" ${hasDescription ? `onclick="toggleCharacterDesc(this)"` : ''}>
+              <div class="character-avatar" style="background: linear-gradient(135deg, #00d4ff 0%, #0f3460 100%); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; font-size: 12px;">
+                ${avatarContent}
+              </div>
+              <div class="character-info">
+                <div class="character-name">${char.name}</div>
+                <div class="character-trait">${char.role || 'Supporting'}</div>
+              </div>
+              ${hasDescription ? `<i class="fas fa-chevron-down character-expand-btn"></i>` : ''}
             </div>
-            <div class="character-info">
-              <div class="character-name">${char.name}</div>
-              <div class="character-trait">${char.role || 'Supporting'}</div>
-            </div>
+            ${hasDescription ? `<div class="character-description">${escapeHtml(char.description)}</div>` : ''}
           `;
-          if (char.description) {
-            item.title = char.description;
-          }
           container.appendChild(item);
         }
       });
-      
+
       if (characters.length > 3) {
         const expandBtn = document.createElement('div');
         expandBtn.className = 'expand-btn';
@@ -985,17 +1902,31 @@
     }
   }
 
+  // Toggle character description dropdown
+  function toggleCharacterDesc(mainEl) {
+    const item = mainEl.closest('.character-item');
+    const desc = item.querySelector('.character-description');
+    const icon = mainEl.querySelector('.character-expand-btn');
+
+    if (desc) {
+      desc.classList.toggle('show');
+      if (icon) {
+        icon.classList.toggle('expanded');
+      }
+    }
+  }
+
   // Show all characters in expanded view
   function showAllCharacters(characters) {
     const modal = document.createElement('div');
     modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center;';
-    
+
     const content = document.createElement('div');
     content.style.cssText = 'background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid #00d4ff; border-radius: 12px; padding: 20px; max-width: 600px; max-height: 80vh; overflow-y: auto; color: #e0e0e0;';
-    
+
     let html = '<h2 style="color: #00d4ff; margin-bottom: 20px;">All Characters</h2>';
     characters.forEach(char => {
-      const avatarContent = char.avatar_url 
+      const avatarContent = char.avatar_url
         ? `<img src="${char.avatar_url}" alt="${char.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 2px solid #00d4ff;">`
         : `<span style="color: #fff; font-weight: bold;">${char.name.substring(0, 2).toUpperCase()}</span>`;
       html += `
@@ -1012,14 +1943,14 @@
       `;
     });
     html += '<button onclick="this.closest(\'div\').parentElement.remove()" style="background: #00d4ff; color: #000; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; margin-top: 20px;">Close</button>';
-    
+
     content.innerHTML = html;
     modal.appendChild(content);
     document.body.appendChild(modal);
   }
 
   // Progress slider
-  document.getElementById('progressSlider')?.addEventListener('input', function() {
+  document.getElementById('progressSlider')?.addEventListener('input', function () {
     const percentage = parseFloat(this.value);
     currentPageIndex = Math.floor((percentage / 100) * Math.max(totalPages - 1, 1));
     updatePageCounter();
@@ -1029,134 +1960,147 @@
   async function loadChapter(chapterId, chapterNum) {
     const mangaPages = document.getElementById('mangaPages');
     mangaPages.innerHTML = '<div class="manga-loading"><i class="fas fa-spinner"></i><p>Loading chapter...</p></div>';
-    
+
     try {
       // Fetch chapter image list from server
       const response = await fetch(`/api/chapter/${chapterId}/pages`);
       if (!response.ok) throw new Error('Failed to load chapter');
-      
+
       const pages = await response.json();
       mangaPages.innerHTML = '';
-      
+
       if (pages.length === 0) {
         mangaPages.innerHTML = '<div class="manga-loading"><i class="fas fa-exclamation-circle"></i><p>No pages found for this chapter</p></div>';
         totalPages = 0;
         return;
       }
-      
+
+      // Check if it's a PDF chapter
+      if (pages.length === 1 && pages[0].type === 'pdf') {
+        // Render PDF in an iframe with hidden toolbar and sidebar
+        const iframe = document.createElement('iframe');
+        iframe.src = pages[0].url + '#toolbar=0&navpanes=0&scrollbar=1&view=FitH';
+        iframe.className = 'manga-pdf-viewer';
+        iframe.style.cssText = 'width: 100%; height: 85vh; border: none; border-radius: 8px; background: #1a1a2e;';
+        mangaPages.appendChild(iframe);
+        totalPages = 1;
+        updatePageCounter();
+        return;
+      }
+
       // Load images
       let loadedCount = 0;
-      
+
       for (const [index, page] of pages.entries()) {
         const img = document.createElement('img');
         img.src = page.url;
         img.alt = `Page ${page.page_num}`;
         img.className = 'manga-page';
         img.dataset.originalIndex = index;
-        
-        img.onload = function() {
-           // Check for spread splitting
-           if (readerSettings.splitSpreads === 'true' && this.naturalWidth > this.naturalHeight * 1.3) {
-               // It's a spread! Split it.
-               try {
-                   const canvasL = document.createElement('canvas');
-                   const canvasR = document.createElement('canvas');
-                   const ctxL = canvasL.getContext('2d');
-                   const ctxR = canvasR.getContext('2d');
-                   
-                   const w = this.naturalWidth;
-                   const h = this.naturalHeight;
-                   const halfW = Math.floor(w / 2);
-                   
-                   canvasL.width = halfW;
-                   canvasL.height = h;
-                   canvasR.width = halfW;
-                   canvasR.height = h;
-                   
-                   // Draw Left Half (0 to halfW) -> Page 1 (if L-R) or Page 2 (if R-L)
-                   // Draw Right Half (halfW to w)
-                   
-                   // Assuming standard web display: Left is 1st, Right is 2nd? 
-                   // Actually for Manga (R-L), the RIGHT side is usually the first page.
-                   // But let's stick to visual left-to-right flow for generic "next page" logic.
-                   // The user asks for "remaining page show up in next page".
-                   // If I read Left-to-Right, I see Left first?
-                   // Let's assume Left Half is Page A, Right Half is Page B.
-                   
-                   ctxL.drawImage(this, 0, 0, halfW, h, 0, 0, halfW, h);
-                   ctxR.drawImage(this, halfW, 0, halfW, h, 0, 0, halfW, h);
-                   
-                   const imgL = document.createElement('img');
-                   imgL.src = canvasL.toDataURL('image/jpeg');
-                   imgL.className = 'manga-page split-page';
-                   
-                   const imgR = document.createElement('img');
-                   imgR.src = canvasR.toDataURL('image/jpeg');
-                   imgR.className = 'manga-page split-page';
-                   
-                   // Insert replacement
-                   // If Manga (R-L), Right side comes first!
-                   // Let's assume standard Western split (L -> R) unless told otherwise.
-                   // Actually, many users read manga R-L. 
-                   // If I modify this, I should maybe put Right First?
-                   // User did not specify direction. I will do Left -> Right as default.
-                   
-                   this.parentNode.insertBefore(imgL, this);
-                   this.parentNode.insertBefore(imgR, this);
-                   this.remove(); // Remove original
-                   
-                   recalcTotalPages();
-               } catch(e) {
-                   console.error("Split failed", e);
-               }
-           }
-           // Check for long strip splitting (Vertical Webtoon)
-           else if (readerSettings.splitTallPages === 'true' && this.naturalHeight > this.naturalWidth * 2.5) {
-               try {
-                   // Target aspect ratio for chunks (e.g., 2:3 => height = width * 1.5)
-                   // We want them to fit nicely on a screen.
-                   const w = this.naturalWidth;
-                   const h = this.naturalHeight;
-                   const targetChunkHeight = Math.floor(w * 1.6); 
-                   const numChunks = Math.ceil(h / targetChunkHeight);
-                   
-                   // Don't split if it's just barely over (avoid tiny chunks) unless huge.
-                   if (numChunks > 1) {
-                       const newPages = [];
-                       
-                       for (let i = 0; i < numChunks; i++) {
-                           const canvas = document.createElement('canvas');
-                           const ctx = canvas.getContext('2d');
-                           
-                           const sourceY = i * targetChunkHeight;
-                           const chunkHeight = Math.min(targetChunkHeight, h - sourceY);
-                           
-                           // If last chunk is too small (< 10% of width), maybe merge with prev? 
-                           // For simplicity, just render it.
-                           
-                           canvas.width = w;
-                           canvas.height = chunkHeight;
-                           
-                           ctx.drawImage(this, 0, sourceY, w, chunkHeight, 0, 0, w, chunkHeight);
-                           
-                           const imgChunk = document.createElement('img');
-                           imgChunk.src = canvas.toDataURL('image/jpeg');
-                           imgChunk.className = 'manga-page split-page-vertical';
-                           newPages.push(imgChunk);
-                       }
-                       
-                       // Insert all chunks
-                       newPages.forEach(p => this.parentNode.insertBefore(p, this));
-                       this.remove(); // Remove original long strip
-                       
-                       recalcTotalPages();
-                   }
-               } catch(e) {
-                   console.error("Vertical split failed", e);
-               }
-           }
-           loadedCount++;
-           if(loadedCount === pages.length) recalcTotalPages();
+
+        img.onload = function () {
+          // Check for spread splitting
+          if (readerSettings.splitSpreads === 'true' && this.naturalWidth > this.naturalHeight * 1.3) {
+            // It's a spread! Split it.
+            try {
+              const canvasL = document.createElement('canvas');
+              const canvasR = document.createElement('canvas');
+              const ctxL = canvasL.getContext('2d');
+              const ctxR = canvasR.getContext('2d');
+
+              const w = this.naturalWidth;
+              const h = this.naturalHeight;
+              const halfW = Math.floor(w / 2);
+
+              canvasL.width = halfW;
+              canvasL.height = h;
+              canvasR.width = halfW;
+              canvasR.height = h;
+
+              // Draw Left Half (0 to halfW) -> Page 1 (if L-R) or Page 2 (if R-L)
+              // Draw Right Half (halfW to w)
+
+              // Assuming standard web display: Left is 1st, Right is 2nd? 
+              // Actually for Manga (R-L), the RIGHT side is usually the first page.
+              // But let's stick to visual left-to-right flow for generic "next page" logic.
+              // The user asks for "remaining page show up in next page".
+              // If I read Left-to-Right, I see Left first?
+              // Let's assume Left Half is Page A, Right Half is Page B.
+
+              ctxL.drawImage(this, 0, 0, halfW, h, 0, 0, halfW, h);
+              ctxR.drawImage(this, halfW, 0, halfW, h, 0, 0, halfW, h);
+
+              const imgL = document.createElement('img');
+              imgL.src = canvasL.toDataURL('image/jpeg');
+              imgL.className = 'manga-page split-page';
+
+              const imgR = document.createElement('img');
+              imgR.src = canvasR.toDataURL('image/jpeg');
+              imgR.className = 'manga-page split-page';
+
+              // Insert replacement
+              // If Manga (R-L), Right side comes first!
+              // Let's assume standard Western split (L -> R) unless told otherwise.
+              // Actually, many users read manga R-L. 
+              // If I modify this, I should maybe put Right First?
+              // User did not specify direction. I will do Left -> Right as default.
+
+              this.parentNode.insertBefore(imgL, this);
+              this.parentNode.insertBefore(imgR, this);
+              this.remove(); // Remove original
+
+              recalcTotalPages();
+            } catch (e) {
+              console.error("Split failed", e);
+            }
+          }
+          // Check for long strip splitting (Vertical Webtoon)
+          else if (readerSettings.splitTallPages === 'true' && this.naturalHeight > this.naturalWidth * 2.5) {
+            try {
+              // Target aspect ratio for chunks (e.g., 2:3 => height = width * 1.5)
+              // We want them to fit nicely on a screen.
+              const w = this.naturalWidth;
+              const h = this.naturalHeight;
+              const targetChunkHeight = Math.floor(w * 1.6);
+              const numChunks = Math.ceil(h / targetChunkHeight);
+
+              // Don't split if it's just barely over (avoid tiny chunks) unless huge.
+              if (numChunks > 1) {
+                const newPages = [];
+
+                for (let i = 0; i < numChunks; i++) {
+                  const canvas = document.createElement('canvas');
+                  const ctx = canvas.getContext('2d');
+
+                  const sourceY = i * targetChunkHeight;
+                  const chunkHeight = Math.min(targetChunkHeight, h - sourceY);
+
+                  // If last chunk is too small (< 10% of width), maybe merge with prev? 
+                  // For simplicity, just render it.
+
+                  canvas.width = w;
+                  canvas.height = chunkHeight;
+
+                  ctx.drawImage(this, 0, sourceY, w, chunkHeight, 0, 0, w, chunkHeight);
+
+                  const imgChunk = document.createElement('img');
+                  imgChunk.src = canvas.toDataURL('image/jpeg');
+                  imgChunk.className = 'manga-page split-page-vertical';
+                  newPages.push(imgChunk);
+                }
+
+                // Insert all chunks
+                newPages.forEach(p => this.parentNode.insertBefore(p, this));
+                this.remove(); // Remove original long strip
+
+                recalcTotalPages();
+              }
+            } catch (e) {
+              console.error("Vertical split failed", e);
+            }
+          }
+          loadedCount++;
+          if (loadedCount === pages.length) recalcTotalPages();
         };
 
         img.onerror = () => {
@@ -1165,11 +2109,12 @@
         };
         mangaPages.appendChild(img);
       }
-      
+
       totalPages = pages.length; // Initial estimate
       currentPageIndex = 0;
       updatePageCounter();
       applyReadingMode();
+      loadChapterRating();
     } catch (error) {
       console.error('Error loading chapter:', error);
       mangaPages.innerHTML = '<div class="manga-loading"><i class="fas fa-exclamation-circle"></i><p>Error loading chapter pages</p></div>';
@@ -1177,51 +2122,613 @@
   }
 
   function recalcTotalPages() {
-      const allPages = document.querySelectorAll('.manga-page');
-      totalPages = allPages.length;
-      updatePageCounter();
+    const allPages = document.querySelectorAll('.manga-page');
+    totalPages = allPages.length;
+    updatePageCounter();
   }
 
   // Initial load
   document.addEventListener('DOMContentLoaded', () => {
-    if (chapters.length > 0) {
-      // Load first chapter
-      const chapter = chapters[0];
-      currentChapterId = chapter[0];
-      document.getElementById('chapterDisplay').textContent = `Chapter ${chapter[1]}: ${chapter[2]}`;
-      loadChapter(chapter[0], chapter[1]);
-      
-      // Load characters
-      loadCharacters({{ manga[0] }});
-      
-      // Add chapter selector if there are multiple chapters
-      if (chapters.length > 1) {
-        const topBarLeft = document.querySelector('.top-bar-left');
-        const selector = document.createElement('select');
-        selector.id = 'chapterSelector';
-        selector.style.cssText = 'background: #2a2a4e; color: #e0e0e0; border: 2px solid #00d4ff; padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;';
-        
-        chapters.forEach(ch => {
-          const option = document.createElement('option');
-          option.value = ch[0];
-          option.textContent = `Ch ${ch[1]}: ${ch[2]}`;
-          if (ch[0] === chapter[0]) option.selected = true;
-          selector.appendChild(option);
-        });
-        
-        selector.addEventListener('change', (e) => {
-          const selectedId = parseInt(e.target.value);
-          const selectedChapter = chapters.find(ch => ch[0] === selectedId);
-          if (selectedChapter) {
-            currentChapterId = selectedId;
-            document.getElementById('chapterDisplay').textContent = `Chapter ${selectedChapter[1]}: ${selectedChapter[2]}`;
-            loadChapter(selectedId, selectedChapter[1]);
+    console.log('Reader DOMContentLoaded started');
+
+    // 1. Initialize Chapters & Content
+    try {
+      if (typeof chapters !== 'undefined' && chapters && chapters.length > 0) {
+        const chapter = chapters[0];
+        currentChapterId = chapter[0];
+        const chapterDisplay = document.getElementById('chapterDisplay');
+        if (chapterDisplay) {
+          chapterDisplay.textContent = `Chapter ${chapter[1]}: ${chapter[2]}`;
+        }
+        loadChapter(chapter[0], chapter[1]);
+
+        // Add chapter selector
+        if (chapters.length > 1) {
+          const topBarLeft = document.querySelector('.top-bar-left');
+          if (topBarLeft) {
+            const selector = document.createElement('select');
+            selector.id = 'chapterSelector';
+            selector.style.cssText = 'background: #2a2a4e; color: #e0e0e0; border: 2px solid #00d4ff; padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; margin-left: 10px;';
+
+            chapters.forEach(ch => {
+              const option = document.createElement('option');
+              option.value = ch[0];
+              option.textContent = `Ch ${ch[1]}: ${ch[2]}`;
+              if (ch[0] === chapter[0]) option.selected = true;
+              selector.appendChild(option);
+            });
+
+            selector.addEventListener('change', (e) => {
+              const selectedId = parseInt(e.target.value);
+              const selectedChapter = chapters.find(ch => ch[0] === selectedId);
+              if (selectedChapter) {
+                currentChapterId = selectedId;
+                if (chapterDisplay) chapterDisplay.textContent = `Chapter ${selectedChapter[1]}: ${selectedChapter[2]}`;
+                loadChapter(selectedId, selectedChapter[1]);
+              }
+            });
+            topBarLeft.appendChild(selector);
           }
-        });
-        
-        topBarLeft.appendChild(selector);
+        }
+      } else {
+        console.warn('No chapters found or chapters variable is undefined');
       }
+    } catch (err) {
+      console.error('Error initializing chapters:', err);
+    }
+
+    // 2. Load Characters
+    try {
+      const mangaIdTag = "{{ manga[0] if manga else '' }}";
+      const mangaId = parseInt(mangaIdTag);
+      if (!isNaN(mangaId) && typeof loadCharacters === 'function') {
+        loadCharacters(mangaId);
+      }
+    } catch (err) {
+      console.error('Error loading characters:', err);
+    }
+
+    // 3. Load Comments
+    try {
+      if (typeof loadComments === 'function') {
+        loadComments();
+      }
+    } catch (err) {
+      console.error('Error starting comments load:', err);
+    }
+
+    // 4. Load Reviews
+    try {
+      if (typeof loadReviews === 'function') {
+        loadReviews();
+      }
+    } catch (err) {
+      console.error('Error starting reviews load:', err);
     }
   });
+
+  // Load comments for this manga
+  async function loadComments() {
+    try {
+      const response = await fetch(`/api/manga/{{ manga[0] }}/comments`);
+      if (!response.ok) return;
+
+      const comments = await response.json();
+      const container = document.getElementById('commentsList');
+      const countEl = document.getElementById('commentCountNum');
+      const noCommentsMsg = document.getElementById('noCommentsMsg');
+      const currentUserId = parseInt("{{ session.get('user_id', 0) }}");
+
+      if (!comments || comments.length === 0) {
+        container.innerHTML = `
+          <div class="no-comments-message" id="noCommentsMsg">
+            <p>No comments yet. Be the first to share your thoughts!</p>
+          </div>
+        `;
+        if (countEl) countEl.textContent = '0';
+        return;
+      }
+
+      if (countEl) countEl.textContent = comments.length;
+
+      // Separate top-level comments and replies
+      const topLevel = comments.filter(c => !c.parent_id);
+      const replies = comments.filter(c => c.parent_id);
+
+      const renderComment = (c, isReply = false) => {
+        const timeAgo = formatTimeAgo(c.created_at);
+        const isOwner = currentUserId && c.user_id === currentUserId;
+        const likedClass = c.user_liked ? 'liked' : '';
+        return `
+          <div class="comment-item-new ${isReply ? 'comment-reply' : ''}" data-comment-id="${c.id}">
+            <div class="comment-avatar-new">
+              ${c.avatar ? `<img src="${c.avatar.startsWith('http') || c.avatar.startsWith('/') ? c.avatar : '/static/' + c.avatar}" alt="${c.username}">` : c.username.substring(0, 2).toUpperCase()}
+            </div>
+            <div class="comment-content-new">
+              <div class="comment-meta-new">
+                <span class="comment-username">@${c.username}</span>
+                <span class="comment-timestamp">${timeAgo}</span>
+              </div>
+              <div class="comment-body" id="comment-body-${c.id}">${escapeHtml(c.content)}</div>
+              <div class="comment-actions-new">
+                <button class="comment-action-btn ${likedClass}" onclick="likeComment(${c.id}, this)">
+                  <i class="fas fa-thumbs-up"></i> <span class="like-count">${c.likes || 0}</span>
+                </button>
+                <button class="comment-action-btn" onclick="showReplyForm(${c.id}, '${c.username}')">
+                  <i class="fas fa-reply"></i> Reply
+                </button>
+                ${isOwner ? `
+                  <button class="comment-action-btn" onclick="editComment(${c.id})">
+                    <i class="fas fa-edit"></i> Edit
+                  </button>
+                  <button class="comment-action-btn danger-btn" onclick="deleteComment(${c.id})">
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
+                ` : `
+                  <button class="comment-action-btn" onclick="reportComment(${c.id})">
+                    <i class="fas fa-flag"></i> Report
+                  </button>
+                `}
+              </div>
+            </div>
+          </div>
+          <div class="reply-container" id="replies-${c.id}">
+            ${replies.filter(r => r.parent_id === c.id).map(r => renderComment(r, true)).join('')}
+          </div>
+        `;
+      };
+
+      container.innerHTML = topLevel.map(c => renderComment(c)).join('');
+    } catch (error) {
+      console.error('Error loading comments:', error);
+    }
+  }
+
+  // --- End of loadComments ---
+
+  // Helper function to format time ago
+  function formatTimeAgo(dateStr) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (diffDay > 0) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+    if (diffHour > 0) return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
+    if (diffMin > 0) return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
+    return 'just now';
+  }
+
+  // Like a comment
+  async function likeComment(commentId, btn) {
+    try {
+      const response = await fetch(`/api/comment/${commentId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const likeCount = btn.querySelector('.like-count');
+        if (likeCount) likeCount.textContent = data.likes;
+
+        if (data.liked) {
+          btn.classList.add('liked');
+        } else {
+          btn.classList.remove('liked');
+        }
+      } else {
+        const err = await response.json();
+        alert(err.error || 'Failed to like comment');
+      }
+    } catch (error) {
+      console.error('Error liking comment:', error);
+    }
+  }
+
+  // Show reply form under a comment
+  function showReplyForm(commentId, username) {
+    // Remove any existing reply forms
+    document.querySelectorAll('.reply-form-inline').forEach(el => el.remove());
+
+    const commentEl = document.querySelector(`[data-comment-id="${commentId}"]`);
+    if (!commentEl) return;
+
+    const replyForm = document.createElement('div');
+    replyForm.className = 'reply-form-inline';
+    replyForm.innerHTML = `
+      <div style="margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border-left: 2px solid var(--neon-blue);">
+        <div style="font-size: 12px; color: #888; margin-bottom: 8px;">Replying to @${username}</div>
+        <textarea id="replyInput-${commentId}" placeholder="Write your reply..." style="width: 100%; min-height: 60px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px; color: #fff; font-size: 13px; resize: vertical;"></textarea>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button onclick="submitReply(${commentId})" style="padding: 6px 16px; background: var(--neon-blue); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px;">Reply</button>
+          <button onclick="this.closest('.reply-form-inline').remove()" style="padding: 6px 16px; background: rgba(255,255,255,0.1); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px;">Cancel</button>
+        </div>
+      </div>
+    `;
+    commentEl.appendChild(replyForm);
+    document.getElementById(`replyInput-${commentId}`).focus();
+  }
+
+  // Submit a reply
+  async function submitReply(parentCommentId) {
+    const input = document.getElementById(`replyInput-${parentCommentId}`);
+    const content = input.value.trim();
+    if (!content) return;
+
+    try {
+      const response = await fetch(`/api/manga/{{ manga[0] }}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: `@reply: ${content}`, parent_id: parentCommentId })
+      });
+      if (response.ok) {
+        document.querySelector('.reply-form-inline')?.remove();
+        loadComments();
+      }
+    } catch (error) {
+      console.error('Error posting reply:', error);
+    }
+  }
+
+  // Edit a comment
+  function editComment(commentId) {
+    const bodyEl = document.getElementById(`comment-body-${commentId}`);
+    if (!bodyEl) return;
+
+    const currentContent = bodyEl.textContent;
+    bodyEl.innerHTML = `
+      <textarea id="editInput-${commentId}" style="width: 100%; min-height: 60px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px; color: #fff; font-size: 13px;">${currentContent}</textarea>
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <button onclick="saveEditComment(${commentId})" style="padding: 6px 16px; background: var(--neon-blue); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px;">Save</button>
+        <button onclick="loadComments()" style="padding: 6px 16px; background: rgba(255,255,255,0.1); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px;">Cancel</button>
+      </div>
+    `;
+    document.getElementById(`editInput-${commentId}`).focus();
+  }
+
+  // Save edited comment
+  async function saveEditComment(commentId) {
+    const input = document.getElementById(`editInput-${commentId}`);
+    const content = input.value.trim();
+    if (!content) return;
+
+    try {
+      const response = await fetch(`/api/comment/${commentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      });
+      if (response.ok) {
+        loadComments();
+      } else {
+        const err = await response.json();
+        alert(err.error || 'Failed to update comment');
+      }
+    } catch (error) {
+      console.error('Error updating comment:', error);
+    }
+  }
+
+  // Delete a comment
+  async function deleteComment(commentId) {
+    if (!confirm('Are you sure you want to delete this comment?')) return;
+
+    try {
+      const response = await fetch(`/api/comment/${commentId}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        loadComments();
+      } else {
+        const err = await response.json();
+        alert(err.error || 'Failed to delete comment');
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    }
+  }
+
+  // Report a comment
+  function reportComment(commentId) {
+    alert('Report functionality coming soon. Comment ID: ' + commentId);
+  }
+
+  // Autoscroll feature
+  let autoScrollEnabled = false;
+  let autoScrollInterval = null;
+  let autoScrollSpeed = 2; // pixels per frame
+
+  function toggleAutoScroll() {
+    autoScrollEnabled = !autoScrollEnabled;
+    const btn = document.getElementById('autoScrollBtn');
+
+    if (autoScrollEnabled) {
+      btn.classList.add('active');
+      btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+      startAutoScroll();
+    } else {
+      btn.classList.remove('active');
+      btn.innerHTML = '<i class="fas fa-play"></i> Auto-Scroll';
+      stopAutoScroll();
+    }
+  }
+
+  function startAutoScroll() {
+    const container = document.getElementById('mangaPages');
+    if (!container) return;
+
+    autoScrollInterval = setInterval(() => {
+      if (autoScrollEnabled) {
+        if (readingMode === 'horizontal') {
+          container.scrollLeft += autoScrollSpeed;
+          // Stop at end
+          if (container.scrollLeft >= container.scrollWidth - container.clientWidth) {
+            toggleAutoScroll();
+          }
+        } else {
+          container.scrollTop += autoScrollSpeed;
+          // Stop at end
+          if (container.scrollTop >= container.scrollHeight - container.clientHeight) {
+            toggleAutoScroll();
+          }
+        }
+      }
+    }, 16); // ~60fps
+  }
+
+  function stopAutoScroll() {
+    if (autoScrollInterval) {
+      clearInterval(autoScrollInterval);
+      autoScrollInterval = null;
+    }
+  }
+
+  function setAutoScrollSpeed(speed) {
+    autoScrollSpeed = speed;
+  }
+
+  // Reviews section removed - rating is now done via the Chapter Rating card
+
+  // Submit comment
+  document.getElementById('submitComment')?.addEventListener('click', async () => {
+    const input = document.getElementById('commentInput');
+    const content = input.value.trim();
+
+    if (!content) {
+      alert('Please enter a comment.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/manga/{{ manga[0] }}/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      });
+
+      if (response.ok) {
+        input.value = '';
+        postBtn.classList.remove('show');
+        loadComments();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to post comment.');
+      }
+    } catch (error) {
+      console.error('Error posting comment:', error);
+      alert('Failed to post comment.');
+    }
+  });
+
+  // Post button visibility toggle
+  const commentTextarea = document.getElementById('commentInput');
+  const postBtn = document.getElementById('submitComment');
+
+  if (commentTextarea && postBtn) {
+    commentTextarea.addEventListener('focus', () => {
+      postBtn.classList.add('show');
+    });
+
+    commentTextarea.addEventListener('input', () => {
+      if (commentTextarea.value.trim()) {
+        postBtn.classList.add('show');
+      }
+    });
+  }
+
+  // ===============================================
+  // STAR RATING & REVIEW FUNCTIONALITY
+  // ===============================================
+
+  let selectedRating = 5;
+
+  // Star rating click handler
+  document.querySelectorAll('#starRating i').forEach(star => {
+    star.addEventListener('click', function () {
+      selectedRating = parseInt(this.dataset.rating);
+      updateStarDisplay();
+    });
+
+    star.addEventListener('mouseover', function () {
+      const rating = parseInt(this.dataset.rating);
+      document.querySelectorAll('#starRating i').forEach((s, idx) => {
+        s.style.color = idx < rating ? '#fbbf24' : 'var(--text-muted)';
+      });
+    });
+
+    star.addEventListener('mouseout', function () {
+      updateStarDisplay();
+    });
+  });
+
+  function updateStarDisplay() {
+    document.querySelectorAll('#starRating i').forEach((s, idx) => {
+      s.style.color = idx < selectedRating ? '#fbbf24' : 'var(--text-muted)';
+    });
+  }
+
+  // Initialize stars with default rating
+  updateStarDisplay();
+
+  // Load reviews
+  async function loadReviews() {
+    try {
+      const response = await fetch('/api/manga/{{ manga[0] }}/reviews');
+      if (!response.ok) return;
+
+      const reviews = await response.json(); // API returns array directly
+
+      const reviewsList = document.getElementById('reviewsList');
+      const noReviewsMsg = document.getElementById('noReviewsMsg');
+      const reviewCount = document.getElementById('reviewCount');
+
+      if (reviews && reviews.length > 0) {
+        if (noReviewsMsg) noReviewsMsg.style.display = 'none';
+        if (reviewCount) reviewCount.textContent = `${reviews.length} review${reviews.length > 1 ? 's' : ''}`;
+
+        reviewsList.innerHTML = reviews.map(review => {
+          const avatarUrl = review.avatar ? (review.avatar.startsWith('http') || review.avatar.startsWith('/') ? review.avatar : '/static/' + review.avatar) : null;
+          return `
+          <div class="review-card">
+            <div class="review-header">
+              <div class="review-avatar">
+                ${avatarUrl ? `<img src="${avatarUrl}" alt="${review.username}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : (review.username ? review.username.charAt(0).toUpperCase() : 'U')}
+              </div>
+              <div class="review-meta">
+                <div class="review-author">${review.username || 'Anonymous'}</div>
+                <div class="review-date">${formatTimeAgo(review.created_at)}</div>
+              </div>
+              <div class="review-rating">
+                ${[1, 2, 3, 4, 5].map(i => `<i class="fas fa-star ${i > review.rating ? 'empty' : ''}"></i>`).join('')}
+              </div>
+            </div>
+            <div class="review-text">${escapeHtml(review.content)}</div>
+          </div>
+        `}).join('');
+      } else {
+        if (noReviewsMsg) noReviewsMsg.style.display = 'block';
+        if (reviewCount) reviewCount.textContent = '0 reviews';
+      }
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+    }
+  }
+
+  // Helper function to escape HTML
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Submit review
+  document.getElementById('submitReview')?.addEventListener('click', async () => {
+    const input = document.getElementById('reviewInput');
+    const content = input.value.trim();
+
+    if (!content) {
+      alert('Please write a review.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/manga/{{ manga[0] }}/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, rating: selectedRating })
+      });
+
+      if (response.ok) {
+        input.value = '';
+        selectedRating = 5;
+        updateStarDisplay();
+        loadReviews();
+        alert('Review submitted successfully!');
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to submit review.');
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Failed to submit review.');
+    }
+  });
+
+  // Load reviews on page load
+  // (Now handled inside DOMContentLoaded above)
+
+  // Chapter Ratings
+  async function loadChapterRating() {
+    if (!currentChapterId) return;
+    try {
+      const response = await fetch(`/api/chapter/${currentChapterId}/rating`);
+      if (response.ok) {
+        const data = await response.json();
+        updateChapterRatingUI(data);
+      }
+    } catch (error) {
+      console.error('Error loading chapter rating:', error);
+    }
+  }
+
+  async function rateChapter(rating) {
+    if (!currentChapterId) return;
+    try {
+      const response = await fetch(`/api/chapter/${currentChapterId}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        updateChapterRatingUI(data);
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to rate chapter');
+      }
+    } catch (error) {
+      console.error('Error rating chapter:', error);
+    }
+  }
+
+  function updateChapterRatingUI(data) {
+    const likeBtn = document.getElementById('likeChapterBtn');
+    const dislikeBtn = document.getElementById('dislikeChapterBtn');
+    const likeCount = document.getElementById('likeCount');
+
+    if (likeCount) likeCount.textContent = data.likes;
+
+    likeBtn?.classList.remove('active');
+    dislikeBtn?.classList.remove('active');
+
+    if (data.user_rating === 1) {
+      likeBtn?.classList.add('active');
+    } else if (data.user_rating === -1) {
+      dislikeBtn?.classList.add('active');
+    }
+  }
+
+  document.getElementById('likeChapterBtn')?.addEventListener('click', () => {
+    const isActive = document.getElementById('likeChapterBtn').classList.contains('active');
+    rateChapter(isActive ? 0 : 1);
+  });
+
+  document.getElementById('dislikeChapterBtn')?.addEventListener('click', () => {
+    const isActive = document.getElementById('dislikeChapterBtn').classList.contains('active');
+    rateChapter(isActive ? 0 : -1);
+  });
+
+  // Call loadChapterRating when a chapter is loaded
+  const originalLoadChapter = loadChapter;
+  loadChapter = function (id, num) {
+    originalLoadChapter(id, num);
+    loadChapterRating();
+  };
+
+  if (currentChapterId) loadChapterRating();
+
 </script>
 {% endblock %}

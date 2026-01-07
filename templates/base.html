@@ -1,1299 +1,1431 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>
-      {% block title %}NOVUS | Digital Library{% endblock %}
-    </title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Bootstrap CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
+  <title>
+    {% block title %}NOVUS | Digital Library{% endblock %}
+  </title>
 
-    <!-- Font Awesome -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 
-    <!-- Favicon -->
-    <link
-      rel="shortcut icon"
-      href="{{ url_for('static', filename='img/logo.png') }}"
-    />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-    <!-- Main app stylesheet -->
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/style.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/animations.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/studio.css') }}"
-    />
+  <!-- Favicon -->
+  <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.png') }}" />
 
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/studio.css') }}"
-    />
+  <!-- Main app stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/studio.css') }}" />
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/studio.css') }}" />
 
 
-    <style>
-      /* Pulsing Loading Bar with Glow */
-      .top-loading-bar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 4px;
-        background: linear-gradient(90deg, #00d4ff, #0090ff, #00d4ff);
-        background-size: 200% 100%;
-        z-index: 10000;
-        transform: translateX(-100%) scaleY(1);
-        transition: transform 0.3s ease;
+  <style>
+    /* Pulsing Loading Bar with Glow */
+    .top-loading-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #00d4ff, #0090ff, #00d4ff);
+      background-size: 200% 100%;
+      z-index: 10000;
+      transform: translateX(-100%) scaleY(1);
+      transition: transform 0.3s ease;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+    }
+
+    .top-loading-bar.show {
+      transform: translateX(0) scaleY(1);
+      animation: loadingPulse 1.5s ease-in-out infinite;
+    }
+
+    .top-loading-bar.page-load {
+      transform: translateX(0) scaleY(1);
+      animation: pageLoadProgress 3s ease-out forwards;
+    }
+
+    @keyframes loadingPulse {
+      0% {
+        transform: translateX(0) scaleY(1);
         box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+        height: 4px;
       }
 
-      .top-loading-bar.show {
+      50% {
+        transform: translateX(0) scaleY(1.5);
+        box-shadow: 0 0 40px rgba(0, 212, 255, 1);
+        height: 6px;
+      }
+
+      100% {
         transform: translateX(0) scaleY(1);
-        animation: loadingPulse 1.5s ease-in-out infinite;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+        height: 4px;
+      }
+    }
+
+    @keyframes pageLoadProgress {
+      0% {
+        transform: translateX(-100%) scaleY(1);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+        height: 4px;
       }
 
-      .top-loading-bar.page-load {
+      50% {
+        transform: translateX(-20%) scaleY(1.3);
+        box-shadow: 0 0 35px rgba(0, 212, 255, 1);
+        height: 5px;
+      }
+
+      80% {
+        transform: translateX(-5%) scaleY(1.5);
+        box-shadow: 0 0 40px rgba(0, 212, 255, 1.2);
+        height: 6px;
+      }
+
+      100% {
         transform: translateX(0) scaleY(1);
-        animation: pageLoadProgress 3s ease-out forwards;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+        height: 4px;
       }
+    }
 
-      @keyframes loadingPulse {
-        0% {
-          transform: translateX(0) scaleY(1);
-          box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
-          height: 4px;
-        }
-        50% {
-          transform: translateX(0) scaleY(1.5);
-          box-shadow: 0 0 40px rgba(0, 212, 255, 1);
-          height: 6px;
-        }
-        100% {
-          transform: translateX(0) scaleY(1);
-          box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
-          height: 4px;
-        }
-      }
+    /* Logout Animation Styles */
+    .logout-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(220, 53, 69, 0.9) 0%, rgba(0, 0, 0, 0.95) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.5s ease;
+    }
 
-      @keyframes pageLoadProgress {
-        0% {
-          transform: translateX(-100%) scaleY(1);
-          box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
-          height: 4px;
-        }
-        50% {
-          transform: translateX(-20%) scaleY(1.3);
-          box-shadow: 0 0 35px rgba(0, 212, 255, 1);
-          height: 5px;
-        }
-        80% {
-          transform: translateX(-5%) scaleY(1.5);
-          box-shadow: 0 0 40px rgba(0, 212, 255, 1.2);
-          height: 6px;
-        }
-        100% {
-          transform: translateX(0) scaleY(1);
-          box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
-          height: 4px;
-        }
-      }
+    .logout-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
 
-      /* Logout Animation Styles */
-      .logout-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: radial-gradient(circle, rgba(220, 53, 69, 0.9) 0%, rgba(0, 0, 0, 0.95) 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.5s ease;
-      }
+    .logout-animation {
+      text-align: center;
+      color: white;
+    }
 
-      .logout-overlay.show {
+    .logout-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      animation: logoutPulse 1s ease-in-out infinite;
+    }
+
+    .logout-text {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      animation: logoutFadeIn 0.5s ease;
+    }
+
+    .logout-subtext {
+      font-size: 1rem;
+      opacity: 0.8;
+      animation: logoutFadeIn 0.8s ease;
+    }
+
+    @keyframes logoutPulse {
+
+      0%,
+      100% {
+        transform: scale(1);
         opacity: 1;
-        visibility: visible;
       }
 
-      .logout-animation {
-        text-align: center;
-        color: white;
-      }
-
-      .logout-icon {
-        font-size: 4rem;
-        margin-bottom: 1rem;
-        animation: logoutPulse 1s ease-in-out infinite;
-      }
-
-      .logout-text {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-        animation: logoutFadeIn 0.5s ease;
-      }
-
-      .logout-subtext {
-        font-size: 1rem;
+      50% {
+        transform: scale(1.1);
         opacity: 0.8;
-        animation: logoutFadeIn 0.8s ease;
       }
+    }
 
-      @keyframes logoutPulse {
-        0%, 100% {
-          transform: scale(1);
-          opacity: 1;
-        }
-        50% {
-          transform: scale(1.1);
-          opacity: 0.8;
-        }
-      }
-
-      @keyframes logoutFadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      /* User Interaction Modal */
-      .user-interaction-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10001;
+    @keyframes logoutFadeIn {
+      from {
         opacity: 0;
-        visibility: hidden;
-        transition: all 0.3s ease;
+        transform: translateY(20px);
       }
 
-      .user-interaction-modal.show {
+      to {
         opacity: 1;
-        visibility: visible;
+        transform: translateY(0);
+      }
+    }
+
+    /* User Interaction Modal */
+    .user-interaction-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .user-interaction-modal.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .user-interaction-dialog {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 12px;
+      width: 320px;
+      max-width: 90vw;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      transform: scale(0.9) translateY(20px);
+      transition: all 0.3s ease;
+    }
+
+    .user-interaction-modal.show .user-interaction-dialog {
+      transform: scale(1) translateY(0);
+    }
+
+    .user-interaction-header {
+      padding: 20px;
+      border-bottom: 1px solid #333;
+      text-align: center;
+    }
+
+    .user-interaction-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      margin: 0 auto 10px;
+      border: 3px solid #00d4ff;
+      object-fit: cover;
+    }
+
+    .user-interaction-name {
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .user-interaction-role {
+      color: #ccc;
+      font-size: 0.9rem;
+      margin: 0;
+    }
+
+    .user-interaction-body {
+      padding: 0;
+    }
+
+    .user-interaction-option {
+      display: block;
+      width: 100%;
+      padding: 15px 20px;
+      background: none;
+      border: none;
+      color: #fff;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-bottom: 1px solid #333;
+    }
+
+    .user-interaction-option:last-child {
+      border-bottom: none;
+    }
+
+    .user-interaction-option:hover {
+      background: rgba(0, 212, 255, 0.1);
+      color: #00d4ff;
+    }
+
+    .user-interaction-option.danger:hover {
+      background: rgba(220, 53, 69, 0.1);
+      color: #dc3545;
+    }
+
+    .user-interaction-icon {
+      margin-right: 12px;
+      width: 18px;
+      text-align: center;
+    }
+
+    .user-interaction-footer {
+      padding: 15px 20px;
+      border-top: 1px solid #333;
+      text-align: center;
+    }
+
+    .user-interaction-close {
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .user-interaction-close:hover {
+      background: #555;
+    }
+
+    @keyframes fadeInOut {
+      0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(1rem);
       }
 
-      .user-interaction-dialog {
-        background: #1e1e1e;
-        border: 1px solid #333;
-        border-radius: 12px;
-        width: 320px;
-        max-width: 90vw;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        overflow: hidden;
-        transform: scale(0.9) translateY(20px);
-        transition: all 0.3s ease;
+      15% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
       }
 
-      .user-interaction-modal.show .user-interaction-dialog {
-        transform: scale(1) translateY(0);
+      85% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
       }
 
-      .user-interaction-header {
-        padding: 20px;
-        border-bottom: 1px solid #333;
-        text-align: center;
+      100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-1rem);
       }
+    }
+  </style>
+</head>
 
-      .user-interaction-avatar {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        margin: 0 auto 10px;
-        border: 3px solid #00d4ff;
-        object-fit: cover;
-      }
+<body class="{{ body_class|default('') }}">
 
-      .user-interaction-name {
-        color: #fff;
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin-bottom: 4px;
-      }
+  <!-- Pulsing Loading Bar with Glow -->
+  <div id="topLoadingBar" class="top-loading-bar page-load"></div>
 
-      .user-interaction-role {
-        color: #ccc;
-        font-size: 0.9rem;
-        margin: 0;
-      }
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <a href="{{ url_for('home') }}">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" class="sidebar-logo" alt="NOVUS Logo" />
+    </a>
 
-      .user-interaction-body {
-        padding: 0;
-      }
+    <div class="nav-links">
 
-      .user-interaction-option {
-        display: block;
-        width: 100%;
-        padding: 15px 20px;
-        background: none;
-        border: none;
-        color: #fff;
-        text-align: left;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border-bottom: 1px solid #333;
-      }
-
-      .user-interaction-option:last-child {
-        border-bottom: none;
-      }
-
-      .user-interaction-option:hover {
-        background: rgba(0, 212, 255, 0.1);
-        color: #00d4ff;
-      }
-
-      .user-interaction-option.danger:hover {
-        background: rgba(220, 53, 69, 0.1);
-        color: #dc3545;
-      }
-
-      .user-interaction-icon {
-        margin-right: 12px;
-        width: 18px;
-        text-align: center;
-      }
-
-      .user-interaction-footer {
-        padding: 15px 20px;
-        border-top: 1px solid #333;
-        text-align: center;
-      }
-
-      .user-interaction-close {
-        background: #333;
-        color: #fff;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-
-      .user-interaction-close:hover {
-        background: #555;
-      }
-
-      @keyframes fadeInOut {
-        0% { opacity: 0; transform: translateX(-50%) translateY(1rem); }
-        15% { opacity: 1; transform: translateX(-50%) translateY(0); }
-        85% { opacity: 1; transform: translateX(-50%) translateY(0); }
-        100% { opacity: 0; transform: translateX(-50%) translateY(-1rem); }
-      }
-    </style>
-  </head>
-
-  <body class="{{ body_class|default('') }}">
-
-    <!-- Pulsing Loading Bar with Glow -->
-    <div id="topLoadingBar" class="top-loading-bar page-load"></div>
-
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-      <a href="{{ url_for('home') }}">
-        <img
-          src="{{ url_for('static', filename='img/logo.png') }}"
-          class="sidebar-logo"
-          alt="NOVUS Logo"
-        />
+      <!-- Dashboard -->
+      <a href="{{ url_for('home') }}" class="nav-item">
+        <i class="fas fa-home"></i>
+        <span class="tooltip-text">Dashboard</span>
       </a>
 
-      <div class="nav-links">
-
-  <!-- Dashboard -->
-  <a href="{{ url_for('home') }}" class="nav-item">
-    <i class="fas fa-home"></i>
-    <span class="tooltip-text">Dashboard</span>
-  </a>
-
-  <!-- MANGA PORTAL BUTTON (with warp animation) -->
-<a href="{{ url_for('manga') }}"
-   class="nav-item nav-manga"
-   id="nav-manga">
-  <i class="fas fa-dragon"></i>
-  <span class="tooltip-text">Manga Universe</span>
-</a>
+      <!-- MANGA PORTAL BUTTON (with warp animation) -->
+      <a href="{{ url_for('manga') }}" class="nav-item nav-manga" id="nav-manga">
+        <i class="fas fa-dragon"></i>
+        <span class="tooltip-text">Manga Universe</span>
+      </a>
 
 
-  <!-- Add Book (admin + publisher only) -->
-  {% if session.get('role') in ['admin', 'publisher'] %}
-  <a href="{{ url_for('add_book') }}" class="nav-item">
-    <i class="fas fa-upload"></i>
-    <span class="tooltip-text">Upload Book</span>
-  </a>
-  {% endif %}
+      <!-- Add Book (admin + publisher only) -->
+      {% if session.get('role') in ['admin', 'publisher'] %}
+      <a href="{{ url_for('add_book') }}" class="nav-item">
+        <i class="fas fa-upload"></i>
+        <span class="tooltip-text">Upload Book</span>
+      </a>
+      {% endif %}
 
-  <!-- Community -->
-  <a href="{{ url_for('community_reviews') }}" class="nav-item">
-    <i class="fas fa-comments"></i>
-    <span class="tooltip-text">Community</span>
-  </a>
+      <!-- Community -->
+      <a href="{{ url_for('community_reviews') }}" class="nav-item">
+        <i class="fas fa-comments"></i>
+        <span class="tooltip-text">Community</span>
+      </a>
 
-  <!-- Watchlist -->
-  <a href="{{ url_for('watchlist') }}" class="nav-item">
-    <i class="fas fa-layer-group"></i>
-    <span class="tooltip-text">Watchlist</span>
-  </a>
+      <!-- Watchlist -->
+      <a href="{{ url_for('watchlist') }}" class="nav-item">
+        <i class="fas fa-layer-group"></i>
+        <span class="tooltip-text">Watchlist</span>
+      </a>
 
-  <!-- Customization (New Image Button) - Pro/Ultimate Only -->
-  {% if session.get('plan') in ['pro', 'ultimate'] %}
-  <a href="{{ url_for('customization') }}" class="nav-item nav-item-img nav-customization">
-    <img src="{{ url_for('static', filename='img/nav_icon_customization.png') }}" alt="Customization">
-    <span class="tooltip-text">Customization</span>
-  </a>
-  {% endif %}
+      <!-- Customization (New Image Button) - Pro/Ultimate Only -->
+      {% if session.get('plan') in ['pro', 'ultimate'] %}
+      <a href="{{ url_for('customization') }}" class="nav-item nav-item-img nav-customization">
+        <img src="{{ url_for('static', filename='img/nav_icon_customization.png') }}" alt="Customization">
+        <span class="tooltip-text">Customization</span>
+      </a>
+      {% endif %}
 
-  <!-- Profile -->
-  <a href="{{ url_for('profile') }}" class="nav-item">
-    <i class="fas fa-user"></i>
-    <span class="tooltip-text">My Profile</span>
-  </a>
+      <!-- Profile -->
+      <a href="{{ url_for('profile') }}" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span class="tooltip-text">My Profile</span>
+      </a>
 
-  <!-- My Uploads (admin + publisher only) -->
-  {% if session.get('role') in ['admin', 'publisher'] %}
-  <a href="{{ url_for('my_uploads') }}" class="nav-item">
-    <i class="fas fa-folder-open"></i>
-    <span class="tooltip-text">My Uploads</span>
-  </a>
-  {% endif %}
+      <!-- My Uploads (admin + publisher only) -->
+      {% if session.get('role') in ['admin', 'publisher'] %}
+      <a href="{{ url_for('my_uploads') }}" class="nav-item">
+        <i class="fas fa-folder-open"></i>
+        <span class="tooltip-text">My Uploads</span>
+      </a>
+      {% endif %}
 
-  <!-- Customization Upload (Old Button) -->
-  <!-- Customization Upload (Old Button) - Admin Only -->
-  {% if session.get('role') == 'admin' %}
-  <a href="{{ url_for('customization_upload') }}" class="nav-item nav-customization">
-    <i class="fas fa-wand-magic-sparkles"></i>
-    <span class="tooltip-text">Customization Upload</span>
-  </a>
-  {% endif %}
+      <!-- Customization Upload (Old Button) -->
+      <!-- Customization Upload (Old Button) - Admin Only -->
+      {% if session.get('role') == 'admin' %}
+      <a href="{{ url_for('customization_upload') }}" class="nav-item nav-customization">
+        <i class="fas fa-wand-magic-sparkles"></i>
+        <span class="tooltip-text">Customization Upload</span>
+      </a>
+      {% endif %}
 
 
 
-  <!-- Logout -->
-  {% if session.get('user_id') %}
-  <a href="#" onclick="handleLogout(event)" class="nav-item nav-item-logout">
-    <i class="fas fa-sign-out-alt"></i>
-    <span class="tooltip-text">Logout</span>
-  </a>
-  {% endif %}
+      <!-- Logout -->
+      {% if session.get('user_id') %}
+      <a href="#" onclick="handleLogout(event)" class="nav-item nav-item-logout">
+        <i class="fas fa-sign-out-alt"></i>
+        <span class="tooltip-text">Logout</span>
+      </a>
+      {% endif %}
 
-</div>
-
-
-      <div class="sidebar-footer">
-        <span class="sidebar-brand-text">NOVUS</span>
-      </div>
     </div>
 
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
-      <header class="top-header-minimal">
-        <div class="logo-text-top">NOVUS</div>
 
-        <div class="d-flex align-items-center">
-          <div class="top-menu-links">
-  {% if session.get('role') == 'admin' %}
-  <a href="/admin/team" class="nav-link-item">Team Admin</a>
-<a href="{{ url_for('user_management') }}" class="nav-link-item">User Management</a>
-<a href="{{ url_for('admin_reports') }}" class="nav-link-item">Reports</a>
-{% endif %}
-<a href="{{ url_for('ranking') }}" class="nav-link-item">Rankings</a>
+    <div class="sidebar-footer">
+      <span class="sidebar-brand-text">NOVUS</span>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <header class="top-header-minimal">
+      <div class="logo-text-top">NOVUS</div>
+
+      <div class="d-flex align-items-center">
+        <div class="top-menu-links">
+          {% if session.get('role') == 'admin' %}
+          <a href="/admin/team" class="nav-link-item">Team Admin</a>
+          <a href="{{ url_for('user_management') }}" class="nav-link-item">User Management</a>
+          <a href="{{ url_for('admin_reports') }}" class="nav-link-item">Reports</a>
+          {% endif %}
+          <a href="{{ url_for('ranking') }}" class="nav-link-item">Rankings</a>
 
 
-            <div class="dropdown-nav">
-              <button
-                class="dropdown-btn"
-                type="button"
-                onclick="toggleDropdown(this)"
-              >
-                Help &amp; Info
-                <i class="fas fa-arrow-up nav-logo-arrow"></i>
-              </button>
-              <div class="dropdown-content">
-                <a href="{{ url_for('faq') }}">FAQ & Guidelines</a>
-                <a href="{{ url_for('support_requests') }}">Support / Request</a>
-                <a href="{{ url_for('about') }}">About</a>
+          <div class="dropdown-nav">
+            <button class="dropdown-btn" type="button" onclick="toggleDropdown(this)">
+              Help &amp; Info
+              <i class="fas fa-arrow-up nav-logo-arrow"></i>
+            </button>
+            <div class="dropdown-content">
+              <a href="{{ url_for('faq') }}">FAQ & Guidelines</a>
+              <a href="{{ url_for('support_requests') }}">Support / Request</a>
+              <a href="{{ url_for('about') }}">About</a>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- Top-right: Profile icon dropdown (or Login button if logged out) -->
+        {% if session.get('user_id') %}
+        <div class="dropdown-nav ms-3 profile-dropdown">
+          <button class="profile-menu-btn" type="button" onclick="toggleDropdown(this)" aria-label="Open profile menu">
+            {% if user_avatar %}
+            <img src="{{ user_avatar }}" alt="Profile" class="profile-avatar-icon"
+              style="width:36px; height:36px; border-radius:50%; object-fit:cover;">
+            {% else %}
+            <i class="fas fa-user-circle"></i>
+            {% endif %}
+          </button>
+
+          <div class="dropdown-content profile-dropdown-content">
+
+            <!-- Header - Clean avatar only -->
+            <div class="profile-dd-header">
+              <div class="profile-dd-avatar {% if session.get('plan') == 'ultimate' %}avatar-ultimate{% endif %}">
+                {% if user_avatar %}
+                <img src="{{ user_avatar }}" />
+                {% else %}
+                <i class="fas fa-user-circle"></i>
+                {% endif %}
               </div>
+              <div class="profile-dd-info">
+                <div class="profile-dd-name">{{ session.get('username') }}</div>
+                <div class="profile-dd-role">{{ session.get('role','User')|capitalize }}</div>
+                <div class="profile-dd-plan">
+                  Plan: <strong>{{ session.get('plan','basic')|capitalize }}</strong>
+                  {% if session.get('plan') == 'ultimate' %}
+                  <span class="sub-forever">Forever</span>
+                  {% elif session.get('plan_days_left') is not none %}
+                  <span class="sub-days">{{ session.get('plan_days_left') }}d left</span>
+                  {% endif %}
+                </div>
               </div>
             </div>
 
+            <!-- PROFILE -->
+            <div class="dd-section-title">PROFILE</div>
+            <a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Profile & Settings</a>
+            <a href="#" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+              <i class="fas fa-pen"></i> Edit Profile
+            </a>
+            <a href="{{ url_for('settings') }}"><i class="fas fa-shield"></i> Security</a>
+            <a href="{{ url_for('avatar_studio') }}"><i class="fas fa-paint-brush"></i> Avatar Studio</a>
+            <a href="#" onclick="openAppearanceModal(); return false;"><i class="fas fa-palette"></i> Appearance</a>
+            {% if session.get('role') in ['admin', 'publisher'] or session.get('plan') in ['pro', 'ultimate'] %}
+            <a href="{{ url_for('admin_revenue') }}"><i class="fas fa-chart-line"></i> Revenue Dashboard</a>
+            {% endif %}
+            {% if session.get('role') == 'admin' %}
 
-  <!-- Top-right: Profile icon dropdown (or Login button if logged out) -->
-{% if session.get('user_id') %}
-  <div class="dropdown-nav ms-3 profile-dropdown">
-    <button class="profile-menu-btn" type="button" onclick="toggleDropdown(this)" aria-label="Open profile menu">
-      {% if user_avatar %}
-        <img src="{{ user_avatar }}" alt="Profile" class="profile-avatar-icon" style="width:36px; height:36px; border-radius:50%; object-fit:cover;">
-      {% else %}
-        <i class="fas fa-user-circle"></i>
-      {% endif %}
-    </button>
+            <a href="{{ url_for('customization_upload') }}"><i class="fas fa-wand-magic-sparkles"></i> Customization
+              Upload</a>
+            {% endif %}
 
-    <div class="dropdown-content profile-dropdown-content">
+            <!-- CONTENT -->
+            <div class="dd-section-title">CONTENT</div>
+            <a href="{{ url_for('my_uploads') }}"><i class="fas fa-book"></i> My Library</a>
+            <a href="{{ url_for('add_book') }}"><i class="fas fa-upload"></i> Upload Book</a>
+            <a href="{{ url_for('reading_history') }}"><i class="fas fa-clock-rotate-left"></i> Reading History</a>
+            <a href="{{ url_for('favorites') }}"><i class="fas fa-heart"></i> Favorites</a>
 
-  <!-- Header - Clean avatar only -->
-  <div class="profile-dd-header">
-    <div class="profile-dd-avatar {% if session.get('plan') == 'ultimate' %}avatar-ultimate{% endif %}">
-      {% if session.get('avatar_url') %}
-        <img src="{{ session.get('avatar_url') }}" />
-      {% else %}
-        <i class="fas fa-user-circle"></i>
-      {% endif %}
-    </div>
-    <div class="profile-dd-info">
-      <div class="profile-dd-name">{{ session.get('username') }}</div>
-      <div class="profile-dd-role">{{ session.get('role','User')|capitalize }}</div>
-      <div class="profile-dd-plan">
-        Plan: <strong>{{ session.get('plan','basic')|capitalize }}</strong>
-        {% if session.get('plan') == 'ultimate' %}
-          <span class="sub-forever">Forever</span>
-        {% elif session.get('plan_days_left') is not none %}
-          <span class="sub-days">{{ session.get('plan_days_left') }}d left</span>
-        {% endif %}
-      </div>
-    </div>
-  </div>
+            <!-- ACCOUNT -->
+            <div class="dd-section-title">ACCOUNT</div>
+            <a href="#" onclick="toggleNotificationDropdown(this); return false;" class="notification-link">
+              <i class="fas fa-bell"></i>
+              <span>Notifications</span>
+              <span class="notification-badge-small" id="notificationBadge">0</span>
+            </a>
+            <a href="#" onclick="openBillingModal(); return false;">
+              <i class="fas fa-credit-card me-2"></i> Billing & Subscription
+            </a>
 
-  <!-- PROFILE -->
-  <div class="dd-section-title">PROFILE</div>
-  <a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Profile & Settings</a>
-  <a href="#" data-bs-toggle="modal" data-bs-target="#editProfileModal">
-    <i class="fas fa-pen"></i> Edit Profile
-  </a>
-  <a href="{{ url_for('settings') }}"><i class="fas fa-shield"></i> Security</a>
-  <a href="{{ url_for('avatar_studio') }}"><i class="fas fa-paint-brush"></i> Avatar Studio</a>
-  <a href="#" onclick="openAppearanceModal(); return false;"><i class="fas fa-palette"></i> Appearance</a>
-  {% if session.get('role') in ['admin', 'publisher'] or session.get('plan') in ['pro', 'ultimate'] %}
-  <a href="{{ url_for('admin_revenue') }}"><i class="fas fa-chart-line"></i> Revenue Dashboard</a>
-  {% endif %}
-  {% if session.get('role') == 'admin' %}
+            <a href="#" onclick="openActivityLogModal(); return false;"><i class="fas fa-chart-line"></i> Activity
+              Log</a>
 
-  <a href="{{ url_for('customization_upload') }}"><i class="fas fa-wand-magic-sparkles"></i> Customization Upload</a>
-  {% endif %}
+            {% if session.get('role') == 'admin' %}
+            <div class="dd-section-title">ADMIN</div>
+            <a href="{{ url_for('user_management') }}"><i class="fas fa-users-gear"></i> User Management</a>
+            <a href="/admin/team"><i class="fas fa-people-group"></i> Team Admin</a>
+            <a href="{{ url_for('admin_system_logs') }}"><i class="fas fa-terminal"></i> System Logs</a>
+            <a href="{{ url_for('admin_reports') }}"><i class="fas fa-flag"></i> User Reports</a>
+            <a href="{{ url_for('admin_ai_summaries') }}"><i class="fas fa-brain"></i> AI Summaries</a>
+            {% endif %}
 
-  <!-- CONTENT -->
-  <div class="dd-section-title">CONTENT</div>
-  <a href="{{ url_for('my_uploads') }}"><i class="fas fa-book"></i> My Library</a>
-  <a href="{{ url_for('add_book') }}"><i class="fas fa-upload"></i> Upload Book</a>
-  <a href="{{ url_for('reading_history') }}"><i class="fas fa-clock-rotate-left"></i> Reading History</a>
-  <a href="{{ url_for('favorites') }}"><i class="fas fa-heart"></i> Favorites</a>
+            <div class="dropdown-divider"></div>
 
-  <!-- ACCOUNT -->
-  <div class="dd-section-title">ACCOUNT</div>
-  <a href="#" onclick="toggleNotificationDropdown(this); return false;" class="notification-link">
-    <i class="fas fa-bell"></i>
-    <span>Notifications</span>
-    <span class="notification-badge-small" id="notificationBadge">0</span>
-  </a>
-  <a href="#" onclick="openBillingModal(); return false;">
-  <i class="fas fa-credit-card me-2"></i> Billing & Subscription
-</a>
-
-  <a href="#" onclick="openActivityLogModal(); return false;"><i class="fas fa-chart-line"></i> Activity Log</a>
-
-  {% if session.get('role') == 'admin' %}
-    <div class="dd-section-title">ADMIN</div>
-    <a href="{{ url_for('user_management') }}"><i class="fas fa-users-gear"></i> User Management</a>
-    <a href="/admin/team"><i class="fas fa-people-group"></i> Team Admin</a>
-    <a href="{{ url_for('admin_system_logs') }}"><i class="fas fa-terminal"></i> System Logs</a>
-    <a href="{{ url_for('admin_reports') }}"><i class="fas fa-flag"></i> User Reports</a>
-    <a href="{{ url_for('admin_ai_summaries') }}"><i class="fas fa-brain"></i> AI Summaries</a>
-  {% endif %}
-
-  <div class="dropdown-divider"></div>
-
-  <!-- LOGOUT -->
-  <a href="#" onclick="handleLogout(event)" class="danger">
-    <i class="fas fa-right-from-bracket"></i> Log Out
-  </a>
-</div>
-
-    <!-- Notification Dropdown (positioned relative to profile dropdown) -->
-    <div class="notification-dropdown-content profile-notification-dropdown">
-      <div class="notification-dropdown-header">
-        <span>Notifications</span>
-        <button class="mark-all-read-btn" onclick="markAllNotificationsRead()">Mark all as read</button>
-      </div>
-      <div class="notification-list" id="notificationList">
-        <div class="notification-loading">
-          <i class="fas fa-spinner fa-spin"></i> Loading...
-        </div>
-      </div>
-      <div class="notification-dropdown-footer">
-        <a href="#" onclick="openActivityLogModal(); return false;" class="view-all-notifications">
-          <i class="fas fa-list"></i> View All Activity
-        </a>
-      </div>
-    </div>
-  </div>
-{% else %}
-  <a href="{{ url_for('login') }}" class="cta-button ms-3">
-    <i class="fas fa-sign-in-alt me-2"></i>
-    Log In
-  </a>
-{% endif %}
-        </div>
-      </header>
-
-      <!-- FLASH MESSAGES -->
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="flash-container" style="margin: 15px 0;">
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible fade show"
-                   role="alert"
-                   style="background:#222; border:1px solid #444; color:white;">
-                {{ message }}
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
-              </div>
-            {% endfor %}
+            <!-- LOGOUT -->
+            <a href="#" onclick="handleLogout(event)" class="danger">
+              <i class="fas fa-right-from-bracket"></i> Log Out
+            </a>
           </div>
+
+          <!-- Notification Dropdown (positioned relative to profile dropdown) -->
+          <div class="notification-dropdown-content profile-notification-dropdown">
+            <div class="notification-dropdown-header">
+              <span>Notifications</span>
+              <button class="mark-all-read-btn" onclick="markAllNotificationsRead()">Mark all as read</button>
+            </div>
+            <div class="notification-list" id="notificationList">
+              <div class="notification-loading">
+                <i class="fas fa-spinner fa-spin"></i> Loading...
+              </div>
+            </div>
+            <div class="notification-dropdown-footer">
+              <a href="#" onclick="openActivityLogModal(); return false;" class="view-all-notifications">
+                <i class="fas fa-list"></i> View All Activity
+              </a>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="cta-button ms-3">
+          <i class="fas fa-sign-in-alt me-2"></i>
+          Log In
+        </a>
         {% endif %}
-      {% endwith %}
+      </div>
+    </header>
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container" style="margin: 15px 0;">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert"
+        style="background:#222; border:1px solid #444; color:white;">
+        {{ message }}
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
 
     <!-- Reward Popup -->
-    <div id="rewardModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
-        <div class="modal-content" style="background: linear-gradient(135deg, #1f2937 0%, #111827 100%); width: 400px; padding: 30px; border-radius: 16px; text-align: center; border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 0 50px rgba(16, 185, 129, 0.2); position: relative;">
-            
-            <div style="width: 80px; height: 80px; background: rgba(16, 185, 129, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
-                <i class="fas fa-coins" style="font-size: 36px; color: #34d399; animation: pulse 2s infinite;"></i>
-            </div>
-            
-            <h2 style="color: #fff; margin: 0 0 10px; font-weight: 700;">Reward Unlocked!</h2>
-            <p style="color: #9ca3af; margin-bottom: 20px;">You've earned a reward for fulfilling a request.</p>
-            
-            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 25px;">
-                <span style="display: block; color: #34d399; font-size: 32px; font-weight: 800; text-shadow: 0 0 20px rgba(52, 211, 153, 0.5);" id="rewardAmount">$0.00</span>
-                <span style="color: #6b7280; font-size: 13px;">Added to Publisher Earnings</span>
-            </div>
-            
-            <button onclick="closeRewardModal()" style="background: #10b981; color: white; border: none; padding: 12px 30px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%;">
-                Awesome!
-            </button>
+    <div id="rewardModal" class="modal"
+      style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+      <div class="modal-content"
+        style="background: linear-gradient(135deg, #1f2937 0%, #111827 100%); width: 400px; padding: 30px; border-radius: 16px; text-align: center; border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 0 50px rgba(16, 185, 129, 0.2); position: relative;">
+
+        <div
+          style="width: 80px; height: 80px; background: rgba(16, 185, 129, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+          <i class="fas fa-coins" style="font-size: 36px; color: #34d399; animation: pulse 2s infinite;"></i>
         </div>
+
+        <h2 style="color: #fff; margin: 0 0 10px; font-weight: 700;">Reward Unlocked!</h2>
+        <p style="color: #9ca3af; margin-bottom: 20px;">You've earned a reward for fulfilling a request.</p>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+          <span
+            style="display: block; color: #34d399; font-size: 32px; font-weight: 800; text-shadow: 0 0 20px rgba(52, 211, 153, 0.5);"
+            id="rewardAmount">$0.00</span>
+          <span style="color: #6b7280; font-size: 13px;">Added to Publisher Earnings</span>
+        </div>
+
+        <button onclick="closeRewardModal()"
+          style="background: #10b981; color: white; border: none; padding: 12px 30px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%;">
+          Awesome!
+        </button>
+      </div>
     </div>
-  
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const earned = urlParams.get('earned');
-            
-            if (earned) {
-                const amount = parseFloat(earned);
-                if (!isNaN(amount) && amount > 0) {
-                    const rewardEl = document.getElementById('rewardAmount');
-                    const modalEl = document.getElementById('rewardModal');
-                    if(rewardEl && modalEl) {
-                        rewardEl.textContent = '$' + amount.toFixed(2);
-                        modalEl.style.display = 'flex';
-                        // Clean URL
-                        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-                        window.history.pushState({path: newUrl}, '', newUrl);
-                    }
-                }
+      document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const earned = urlParams.get('earned');
+
+        if (earned) {
+          const amount = parseFloat(earned);
+          if (!isNaN(amount) && amount > 0) {
+            const rewardEl = document.getElementById('rewardAmount');
+            const modalEl = document.getElementById('rewardModal');
+            if (rewardEl && modalEl) {
+              rewardEl.textContent = '$' + amount.toFixed(2);
+              modalEl.style.display = 'flex';
+              // Clean URL
+              const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+              window.history.pushState({ path: newUrl }, '', newUrl);
             }
-        });
-        
-        function closeRewardModal() {
-            document.getElementById('rewardModal').style.display = 'none';
+          }
         }
+      });
+
+      function closeRewardModal() {
+        document.getElementById('rewardModal').style.display = 'none';
+      }
     </script>
-    
+
     <style>
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4); }
-            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(52, 211, 153, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+          box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4);
         }
+
+        70% {
+          transform: scale(1.1);
+          box-shadow: 0 0 0 10px rgba(52, 211, 153, 0);
+        }
+
+        100% {
+          transform: scale(1);
+          box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+        }
+      }
     </style>
 
-      {% block content %}{% endblock %}
-    </div>
+    {% block content %}{% endblock %}
+  </div>
 
-    <div id="manga-warp-overlay" class="warp-overlay {{ anim_styles.manga if anim_styles else 'classic' }}">
+  <div id="manga-warp-overlay" class="warp-overlay {{ anim_styles.manga if anim_styles else 'classic' }}">
 
 
-      {% if animations.manga_enter %}
-      <div class="custom-anim-media">
-        {% set path = animations.manga_enter.path %}
-        {% set ext = path.split('.')[-1].lower() %}
-        {% if ext in ['mp4', 'webm'] %}
-          <video src="{{ url_for('static', filename=path) }}" 
-                 autoplay muted playsinline preload="auto"
-                 onplay="console.log('Video started playing automatically')"
-                 onerror="console.error('Video loading error!', this.error)"></video>
-        {% else %}
-          <img src="{{ url_for('static', filename=path) }}" />
-        {% endif %}
-      </div>
+    {% if animations.manga_enter %}
+    <div class="custom-anim-media">
+      {% set path = animations.manga_enter.path %}
+      {% set ext = path.split('.')[-1].lower() %}
+      {% if ext in ['mp4', 'webm'] %}
+      <video src="{{ url_for('static', filename=path) }}" autoplay muted playsinline preload="auto"
+        onplay="console.log('Video started playing automatically')"
+        onerror="console.error('Video loading error!', this.error)"></video>
       {% else %}
-      <div class="custom-anim-media">
-        <video src="{{ url_for('static', filename='img/2b65722c-8014-43be-97a0-6e86501b0070.mp4') }}" 
-               muted playsinline preload="auto"></video>
-      </div>
+      <img src="{{ url_for('static', filename=path) }}" />
       {% endif %}
-
     </div>
+    {% else %}
+    <div class="custom-anim-media">
+      <video src="{{ url_for('static', filename='img/2b65722c-8014-43be-97a0-6e86501b0070.mp4') }}" muted playsinline
+        preload="auto"></video>
+    </div>
+    {% endif %}
 
-    <div id="logoutOverlay" class="logout-overlay {{ anim_styles.logout if anim_styles else 'fade' }}">
-      <svg style="position: absolute; width: 0; height: 0;"></svg>
+  </div>
 
-      {% if animations.logout %}
-      <div class="custom-anim-media">
-        {% set path = animations.logout.path %}
-        {% set ext = path.split('.')[-1].lower() %}
-        {% if ext in ['mp4', 'webm'] %}
-          <video src="{{ url_for('static', filename=path) }}" autoplay muted playsinline preload="auto"></video>
-        {% else %}
-          <img src="{{ url_for('static', filename=path) }}" />
-        {% endif %}
-      </div>
+  <div id="logoutOverlay" class="logout-overlay {{ anim_styles.logout if anim_styles else 'fade' }}">
+    <svg style="position: absolute; width: 0; height: 0;"></svg>
+
+    {% if animations.logout %}
+    <div class="custom-anim-media">
+      {% set path = animations.logout.path %}
+      {% set ext = path.split('.')[-1].lower() %}
+      {% if ext in ['mp4', 'webm'] %}
+      <video src="{{ url_for('static', filename=path) }}" autoplay muted playsinline preload="auto"></video>
       {% else %}
-      {% if anim_styles.logout == 'shutter' %}
-      <div class="shutter-overlay-container">
-        {% for i in range(10) %}<div class="shutter-blade"></div>{% endfor %}
-      </div>
-      {% elif anim_styles.logout == 'pixel' %}
-      <div class="pixel-overlay-container">
-        {% for i in range(100) %}<div class="pixel-block"></div>{% endfor %}
-      </div>
-      {% endif %}
-
-      <div class="logout-animation">
-        <div class="logout-icon"><i class="fas fa-sign-out-alt"></i></div>
-        <div class="logout-text">Logging Out...</div>
-        <div class="logout-subtext">See you next time!</div>
-      </div>
+      <img src="{{ url_for('static', filename=path) }}" />
       {% endif %}
     </div>
+    {% else %}
+    {% if anim_styles.logout == 'shutter' %}
+    <div class="shutter-overlay-container">
+      {% for i in range(10) %}<div class="shutter-blade"></div>{% endfor %}
+    </div>
+    {% elif anim_styles.logout == 'pixel' %}
+    <div class="pixel-overlay-container">
+      {% for i in range(100) %}<div class="pixel-block"></div>{% endfor %}
+    </div>
+    {% endif %}
 
-    <!-- USER INTERACTION MODAL -->
-    <div id="userInteractionModal" class="user-interaction-modal">
-      <div class="user-interaction-dialog">
-        <div class="user-interaction-header">
-          <img id="userAvatar" src="" alt="User Avatar" class="user-interaction-avatar">
-          <div class="user-interaction-name" id="userName">User Name</div>
-          <div class="user-interaction-role" id="userRole">Role</div>
-        </div>
-        <div class="user-interaction-body">
-          <button class="user-interaction-option" onclick="visitUserProfile()">
-            <i class="fas fa-user user-interaction-icon"></i>
-            Visit Profile
-          </button>
-          <button class="user-interaction-option" onclick="sendMessage()">
-            <i class="fas fa-envelope user-interaction-icon"></i>
-            Send Message
-          </button>
-          <button class="user-interaction-option" onclick="reportUser()">
-            <i class="fas fa-flag user-interaction-icon"></i>
-            Report User
-          </button>
-          <button class="user-interaction-option danger" onclick="blockUser()">
-            <i class="fas fa-ban user-interaction-icon"></i>
-            Block User
-          </button>
-        </div>
-        <div class="user-interaction-footer">
-          <button class="user-interaction-close" onclick="closeUserInteractionModal()">Close</button>
-        </div>
+    <div class="logout-animation">
+      <div class="logout-icon"><i class="fas fa-sign-out-alt"></i></div>
+      <div class="logout-text">Logging Out...</div>
+      <div class="logout-subtext">See you next time!</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- USER INTERACTION MODAL -->
+  <div id="userInteractionModal" class="user-interaction-modal">
+    <div class="user-interaction-dialog">
+      <div class="user-interaction-header">
+        <img id="userAvatar" src="" alt="User Avatar" class="user-interaction-avatar">
+        <div class="user-interaction-name" id="userName">User Name</div>
+        <div class="user-interaction-role" id="userRole">Role</div>
       </div>
-    </div>
-
-
-    <!-- Bootstrap bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Profile JavaScript -->
-    <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
-    
-    <!-- Appearance Settings JavaScript -->
-    <script src="{{ url_for('static', filename='js/appearance.js') }}"></script>
-
-<!-- Activity Log Modal -->
-<div class="activity-log-modal" id="activityLogModal" aria-hidden="true">
-  <div class="activity-log-backdrop" onclick="closeActivityLogModal()"></div>
-
-  <div class="activity-log-dialog" role="dialog" aria-modal="true" aria-label="Activity log">
-    <button class="activity-log-close" onclick="closeActivityLogModal()" aria-label="Close">
-      &times;
-    </button>
-
-    <div class="activity-log-header">
-      <h2>ACTIVITY LOG</h2>
-    </div>
-
-    <div class="activity-log-content" id="activityLogContent">
-      <div class="activity-loading">
-        <i class="fas fa-spinner fa-spin"></i> Loading activities...
+      <div class="user-interaction-body">
+        <button class="user-interaction-option" onclick="visitUserProfile()">
+          <i class="fas fa-user user-interaction-icon"></i>
+          Visit Profile
+        </button>
+        <button class="user-interaction-option" onclick="sendMessage()">
+          <i class="fas fa-envelope user-interaction-icon"></i>
+          Send Message
+        </button>
+        <button class="user-interaction-option" onclick="reportUser()">
+          <i class="fas fa-flag user-interaction-icon"></i>
+          Report User
+        </button>
+        <button class="user-interaction-option danger" onclick="blockUser()">
+          <i class="fas fa-ban user-interaction-icon"></i>
+          Block User
+        </button>
       </div>
-    </div>
-
-    <div class="activity-log-footer">
-      <button class="activity-log-btn-secondary" onclick="closeActivityLogModal()">Close</button>
-      <a href="{{ url_for('profile') }}#activity" class="activity-log-btn-primary">VIEW FULL HISTORY</a>
+      <div class="user-interaction-footer">
+        <button class="user-interaction-close" onclick="closeUserInteractionModal()">Close</button>
+      </div>
     </div>
   </div>
-</div>
 
-    <!-- Billing / Subscription Modal -->
-<div class="billing-modal" id="billingModal" aria-hidden="true">
-  <div class="billing-backdrop" onclick="closeBillingModal()"></div>
 
-  <div class="billing-dialog" role="dialog" aria-modal="true" aria-label="Billing and subscription">
-    <button class="billing-close" onclick="closeBillingModal()" aria-label="Close">
-      &times;
-    </button>
+  <!-- Bootstrap bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <div class="billing-header">
-      <div class="billing-badge-container">
-        <span class="billing-premium-badge"><i class="fas fa-sparkles"></i> PREMIMUM</span>
+  <!-- Profile JavaScript -->
+  <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+
+  <!-- Appearance Settings JavaScript -->
+  <script src="{{ url_for('static', filename='js/appearance.js') }}"></script>
+
+  <!-- Activity Log Modal -->
+  <div class="activity-log-modal" id="activityLogModal" aria-hidden="true">
+    <div class="activity-log-backdrop" onclick="closeActivityLogModal()"></div>
+
+    <div class="activity-log-dialog" role="dialog" aria-modal="true" aria-label="Activity log">
+      <button class="activity-log-close" onclick="closeActivityLogModal()" aria-label="Close">
+        &times;
+      </button>
+
+      <div class="activity-log-header">
+        <h2>ACTIVITY LOG</h2>
       </div>
-      <h2>Unlock the Full Power of AI</h2>
-      <p>Elevate your experience with advanced AI tools, exclusive content, and premium features.</p>
-    </div>
 
-    <div class="billing-grid">
-      <!-- Basic -->
-      <div class="plan-card {% if session.get('plan') == 'basic' %}plan-current{% endif %}">
-        <div class="plan-card-header">
-          <div class="plan-title-wrapper">
-            <i class="fas fa-leaf plan-icon"></i>
-            <div class="plan-title">Basic</div>
-          </div>
-          {% if session.get('plan') == 'basic' %}
+      <div class="activity-log-content" id="activityLogContent">
+        <div class="activity-loading">
+          <i class="fas fa-spinner fa-spin"></i> Loading activities...
+        </div>
+      </div>
+
+      <div class="activity-log-footer">
+        <button class="activity-log-btn-secondary" onclick="closeActivityLogModal()">Close</button>
+        <a href="{{ url_for('profile') }}#activity" class="activity-log-btn-primary">VIEW FULL HISTORY</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Billing / Subscription Modal -->
+  <div class="billing-modal" id="billingModal" aria-hidden="true">
+    <div class="billing-backdrop" onclick="closeBillingModal()"></div>
+
+    <div class="billing-dialog" role="dialog" aria-modal="true" aria-label="Billing and subscription">
+      <button class="billing-close" onclick="closeBillingModal()" aria-label="Close">
+        &times;
+      </button>
+
+      <div class="billing-header">
+        <div class="billing-badge-container">
+          <span class="billing-premium-badge"><i class="fas fa-sparkles"></i> PREMIMUM</span>
+        </div>
+        <h2>Unlock the Full Power of AI</h2>
+        <p>Elevate your experience with advanced AI tools, exclusive content, and premium features.</p>
+      </div>
+
+      <div class="billing-grid">
+        <!-- Basic -->
+        <div class="plan-card {% if session.get('plan') == 'basic' %}plan-current{% endif %}">
+          <div class="plan-card-header">
+            <div class="plan-title-wrapper">
+              <i class="fas fa-leaf plan-icon"></i>
+              <div class="plan-title">Basic</div>
+            </div>
+            {% if session.get('plan') == 'basic' %}
             <div class="plan-current-badge">
               <i class="fas fa-check-circle"></i> Active
             </div>
-          {% endif %}
-        </div>
-        <div class="plan-details">
-          <div class="plan-price-large">Free</div>
-          <ul class="plan-features">
-            <li><i class="fas fa-check"></i> Ad-Free Reading</li>
-            <li><i class="fas fa-check"></i> Basic AI Summary</li>
-            <li><i class="fas fa-check"></i> AI Character Lore</li>
-            <li><i class="fas fa-check"></i> Standard Library</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Pro (Most Popular) -->
-      <div class="plan-card plan-featured {% if session.get('plan') == 'pro' %}plan-current{% endif %}">
-        <div class="plan-card-header">
-          <div class="plan-title-wrapper">
-            <i class="fas fa-bolt plan-icon"></i>
-            <div class="plan-title">Pro</div>
-          </div>
-          <div class="plan-badge-right">
-            <div class="plan-ribbon">RECOMMENDED</div>
-            {% if session.get('plan') == 'pro' %}
-              <div class="plan-current-badge">
-                <i class="fas fa-check-circle"></i> Active
-              </div>
             {% endif %}
           </div>
-        </div>
-        <div class="plan-details">
-          <div class="plan-price-large">$4.99<span>/mo</span></div>
-          <ul class="plan-features">
-            <li><i class="fas fa-check"></i> Full Customization Studio</li>
-            <li><i class="fas fa-check"></i> Pro Bundles Access</li>
-            <li><i class="fas fa-check"></i> Advanced AI Analysis</li>
-            <li><i class="fas fa-check"></i> Advanced AI Summary</li>
-            <li><i class="fas fa-check"></i> Pro Avatar Frames & BGs</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Ultimate -->
-      <div class="plan-card plan-ultimate {% if session.get('plan') == 'ultimate' %}plan-current{% endif %}">
-        <div class="plan-card-header">
-          <div class="plan-title-wrapper">
-            <i class="fas fa-crown plan-icon"></i>
-            <div class="plan-title">Ultimate</div>
+          <div class="plan-details">
+            <div class="plan-price-large">Free</div>
+            <ul class="plan-features">
+              <li><i class="fas fa-check"></i> Ad-Free Reading</li>
+              <li><i class="fas fa-check"></i> Basic AI Summary</li>
+              <li><i class="fas fa-check"></i> AI Character Lore</li>
+              <li><i class="fas fa-check"></i> Standard Library</li>
+            </ul>
           </div>
-          <div class="plan-badge-right">
-            {% if session.get('plan') == 'ultimate' %}
+        </div>
+
+        <!-- Pro (Most Popular) -->
+        <div class="plan-card plan-featured {% if session.get('plan') == 'pro' %}plan-current{% endif %}">
+          <div class="plan-card-header">
+            <div class="plan-title-wrapper">
+              <i class="fas fa-bolt plan-icon"></i>
+              <div class="plan-title">Pro</div>
+            </div>
+            <div class="plan-badge-right">
+              <div class="plan-ribbon">RECOMMENDED</div>
+              {% if session.get('plan') == 'pro' %}
               <div class="plan-current-badge">
                 <i class="fas fa-check-circle"></i> Active
               </div>
-            {% elif session.get('role') == 'admin' %}
+              {% endif %}
+            </div>
+          </div>
+          <div class="plan-details">
+            <div class="plan-price-large">$4.99<span>/mo</span></div>
+            <ul class="plan-features">
+              <li><i class="fas fa-check"></i> Full Customization Studio</li>
+              <li><i class="fas fa-check"></i> Pro Bundles Access</li>
+              <li><i class="fas fa-check"></i> Advanced AI Analysis</li>
+              <li><i class="fas fa-check"></i> Advanced AI Summary</li>
+              <li><i class="fas fa-check"></i> Pro Avatar Frames & BGs</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Ultimate -->
+        <div class="plan-card plan-ultimate {% if session.get('plan') == 'ultimate' %}plan-current{% endif %}">
+          <div class="plan-card-header">
+            <div class="plan-title-wrapper">
+              <i class="fas fa-crown plan-icon"></i>
+              <div class="plan-title">Ultimate</div>
+            </div>
+            <div class="plan-badge-right">
+              {% if session.get('plan') == 'ultimate' %}
+              <div class="plan-current-badge">
+                <i class="fas fa-check-circle"></i> Active
+              </div>
+              {% elif session.get('role') == 'admin' %}
               <div class="plan-current-badge plan-admin-badge">
                 <i class="fas fa-crown"></i> Admin
               </div>
-            {% endif %}
+              {% endif %}
+            </div>
+          </div>
+          <div class="plan-details">
+            <div class="plan-price-large">$9.99<span>/mo</span></div>
+            <ul class="plan-features">
+              <li><i class="fas fa-check"></i> All Pro Features</li>
+              <li><i class="fas fa-check"></i> Unlimited AI Analysis</li>
+              <li><i class="fas fa-check"></i> Deep AI Insights</li>
+              <li><i class="fas fa-check"></i> Exclusive Ultimate Bundles</li>
+              <li><i class="fas fa-check"></i> Video Profile Backgrounds</li>
+              <li><i class="fas fa-check"></i> Offline Reading</li>
+            </ul>
           </div>
         </div>
-        <div class="plan-details">
-          <div class="plan-price-large">$9.99<span>/mo</span></div>
-          <ul class="plan-features">
-            <li><i class="fas fa-check"></i> All Pro Features</li>
-            <li><i class="fas fa-check"></i> Unlimited AI Analysis</li>
-            <li><i class="fas fa-check"></i> Deep AI Insights</li>
-            <li><i class="fas fa-check"></i> Exclusive Ultimate Bundles</li>
-            <li><i class="fas fa-check"></i> Video Profile Backgrounds</li>
-            <li><i class="fas fa-check"></i> Offline Reading</li>
-          </ul>
-        </div>
       </div>
-    </div>
 
-    <div class="billing-actions">
-      {% if session.get('plan') == 'ultimate' %}
+      <div class="billing-actions">
+        {% if session.get('plan') == 'ultimate' %}
         <div class="ultimate-countdown">
           <i class="fas fa-crown"></i>
           <span>Ultimate Subscription Active</span>
         </div>
-      {% elif session.get('plan') == 'pro' %}
+        {% elif session.get('plan') == 'pro' %}
         <button class="billing-primary" onclick="startUpgrade('ultimate')">
           Upgrade to Ultimate
         </button>
-      {% else %}
+        {% else %}
         <button class="billing-primary" onclick="startUpgrade('pro')">
           Upgrade Now
         </button>
-      {% endif %}
-      <button class="billing-secondary" onclick="closeBillingModal()">Close</button>
+        {% endif %}
+        <button class="billing-secondary" onclick="closeBillingModal()">Close</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Payment Method Modal (new) -->
-<style>
-.payment-method-modal{position:fixed;inset:0;display:none;z-index:6000}
-.payment-method-modal.show{display:flex}
-.payment-method-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6)}
-.payment-method-dialog{position:relative;margin:auto;background:#0b1219;color:#e6f7ff;border:1px solid #1e374a;border-radius:16px;width:min(92vw,720px);max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.6);padding:20px}
-.payment-method-title{margin:0 0 10px 0;text-align:center;font-weight:800;letter-spacing:.06em}
-.payment-method-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:6px 0}
-.payment-option{display:grid;place-items:center;gap:8px;border-radius:14px;border:1px solid #1e374a;background:#0f1720;padding:16px;cursor:pointer;transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease}
-.payment-option .payment-logo{width:72px;height:72px;object-fit:contain}
-.payment-option span{font-weight:800;color:#e6f7ff;letter-spacing:.03em}
-.payment-option:hover{transform:translateY(-1px);border-color:#00d4ff;box-shadow:0 0 0 2px rgba(0,212,255,.08)}
-.payment-option.selected{border-color:#00d4ff;box-shadow:0 0 0 2px rgba(0,212,255,.18)}
-.payment-method-actions{display:flex;gap:10px;justify-content:center;margin-top:16px}
-.payment-method-primary{background:#00d4ff;color:#001018;border:none;border-radius:10px;padding:10px 18px;font-weight:800;cursor:pointer}
-.payment-method-secondary{background:#15202b;color:#e6f7ff;border:1px solid #1e374a;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer}
-.payment-method-close{position:absolute;top:10px;right:12px;background:transparent;border:none;color:#e6f7ff;font-size:24px;cursor:pointer}
-@media(max-width:520px){.payment-option .payment-logo{width:64px;height:64px}}
-</style>
-<div id="paymentMethodModal" class="payment-method-modal" aria-hidden="true">
-  <div class="payment-method-backdrop" onclick="closePaymentMethodModal()"></div>
-  <div class="payment-method-dialog" role="dialog" aria-modal="true" aria-label="Select payment method">
-    <button class="payment-method-close" onclick="closePaymentMethodModal()" aria-label="Close">&times;</button>
-    <h3 class="payment-method-title">Select Payment Method</h3>
-    <div class="payment-method-grid" style="grid-template-columns:repeat(3,1fr)">
-      <button class="payment-option" id="pm-esewa" onclick="selectPaymentMethod('esewa')">
-        <img src="{{ url_for('static', filename='img/esewa_logo.png') }}" alt="eSewa" class="payment-logo" />
-        <span>eSewa</span>
-      </button>
-      <button class="payment-option" id="pm-khalti" onclick="selectPaymentMethod('khalti')">
-        <img src="{{ url_for('static', filename='img/khalti.png') }}" alt="Khalti" class="payment-logo" />
-        <span>Khalti</span>
-      </button>
-      <button class="payment-option" id="pm-card" onclick="selectPaymentMethod('card')">
-        <i class="fas fa-credit-card payment-logo" aria-hidden="true"></i>
-        <span>Credit / Debit Card</span>
-      </button>
-    </div>
-    <div class="payment-method-actions">
-      <button class="payment-method-primary" onclick="confirmPayment()">Confirm</button>
-      <button class="payment-method-secondary" onclick="closePaymentMethodModal()">Cancel</button>
+  <!-- Payment Method Modal (new) -->
+  <style>
+    .payment-method-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 6000
+    }
+
+    .payment-method-modal.show {
+      display: flex
+    }
+
+    .payment-method-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, .6)
+    }
+
+    .payment-method-dialog {
+      position: relative;
+      margin: auto;
+      background: #0b1219;
+      color: #e6f7ff;
+      border: 1px solid #1e374a;
+      border-radius: 16px;
+      width: min(92vw, 720px);
+      max-height: 88vh;
+      overflow: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+      padding: 20px
+    }
+
+    .payment-method-title {
+      margin: 0 0 10px 0;
+      text-align: center;
+      font-weight: 800;
+      letter-spacing: .06em
+    }
+
+    .payment-method-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      padding: 6px 0
+    }
+
+    .payment-option {
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      border-radius: 14px;
+      border: 1px solid #1e374a;
+      background: #0f1720;
+      padding: 16px;
+      cursor: pointer;
+      transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease
+    }
+
+    .payment-option .payment-logo {
+      width: 72px;
+      height: 72px;
+      object-fit: contain
+    }
+
+    .payment-option span {
+      font-weight: 800;
+      color: #e6f7ff;
+      letter-spacing: .03em
+    }
+
+    .payment-option:hover {
+      transform: translateY(-1px);
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, .08)
+    }
+
+    .payment-option.selected {
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, .18)
+    }
+
+    .payment-method-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 16px
+    }
+
+    .payment-method-primary {
+      background: #00d4ff;
+      color: #001018;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-weight: 800;
+      cursor: pointer
+    }
+
+    .payment-method-secondary {
+      background: #15202b;
+      color: #e6f7ff;
+      border: 1px solid #1e374a;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-weight: 700;
+      cursor: pointer
+    }
+
+    .payment-method-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: transparent;
+      border: none;
+      color: #e6f7ff;
+      font-size: 24px;
+      cursor: pointer
+    }
+
+    @media(max-width:520px) {
+      .payment-option .payment-logo {
+        width: 64px;
+        height: 64px
+      }
+    }
+  </style>
+  <div id="paymentMethodModal" class="payment-method-modal" aria-hidden="true">
+    <div class="payment-method-backdrop" onclick="closePaymentMethodModal()"></div>
+    <div class="payment-method-dialog" role="dialog" aria-modal="true" aria-label="Select payment method">
+      <button class="payment-method-close" onclick="closePaymentMethodModal()" aria-label="Close">&times;</button>
+      <h3 class="payment-method-title">Select Payment Method</h3>
+      <div class="payment-method-grid" style="grid-template-columns:repeat(3,1fr)">
+        <button class="payment-option" id="pm-esewa" onclick="selectPaymentMethod('esewa')">
+          <img src="{{ url_for('static', filename='img/esewa_logo.png') }}" alt="eSewa" class="payment-logo" />
+          <span>eSewa</span>
+        </button>
+        <button class="payment-option" id="pm-khalti" onclick="selectPaymentMethod('khalti')">
+          <img src="{{ url_for('static', filename='img/khalti.png') }}" alt="Khalti" class="payment-logo" />
+          <span>Khalti</span>
+        </button>
+        <button class="payment-option" id="pm-card" onclick="selectPaymentMethod('card')">
+          <i class="fas fa-credit-card payment-logo" aria-hidden="true"></i>
+          <span>Credit / Debit Card</span>
+        </button>
+      </div>
+      <div class="payment-method-actions">
+        <button class="payment-method-primary" onclick="confirmPayment()">Confirm</button>
+        <button class="payment-method-secondary" onclick="closePaymentMethodModal()">Cancel</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Appearance Modal -->
-<div class="appearance-modal" id="appearanceModal" aria-hidden="true">
-  <div class="appearance-backdrop" onclick="closeAppearanceModal()"></div>
-  
-  <div class="appearance-dialog" role="dialog" aria-modal="true" aria-label="Appearance settings">
-    <button class="appearance-close" onclick="closeAppearanceModal()" aria-label="Close">
-      &times;
-    </button>
+  <!-- Appearance Modal -->
+  <div class="appearance-modal" id="appearanceModal" aria-hidden="true">
+    <div class="appearance-backdrop" onclick="closeAppearanceModal()"></div>
 
-    <div class="appearance-header">
-      <h2><i class="fas fa-palette"></i> Appearance Settings</h2>
-      <p>Customize your reading experience</p>
-    </div>
+    <div class="appearance-dialog" role="dialog" aria-modal="true" aria-label="Appearance settings">
+      <button class="appearance-close" onclick="closeAppearanceModal()" aria-label="Close">
+        &times;
+      </button>
 
-    <div class="appearance-content">
-      <!-- Theme Selection -->
-      <div class="appearance-section">
-        <h3><i class="fas fa-paint-brush"></i> Theme</h3>
-        <div class="theme-options">
-          <div class="theme-option active" data-theme="dark" data-action="selectTheme">
-            <div class="theme-preview dark-theme-preview"></div>
-            <span>Dark</span>
-          </div>
-          <div class="theme-option" data-theme="light" data-action="selectTheme">
-            <div class="theme-preview light-theme-preview"></div>
-            <span>Light</span>
-          </div>
-          <div class="theme-option" data-theme="blue" data-action="selectTheme">
-            <div class="theme-preview blue-theme-preview"></div>
-            <span>Ocean Blue</span>
-          </div>
-          <div class="theme-option" data-theme="purple" data-action="selectTheme">
-            <div class="theme-preview purple-theme-preview"></div>
-            <span>Royal Purple</span>
-          </div>
-
-          <div class="theme-option" data-theme="midnight" data-action="selectTheme">
-            <div class="theme-preview midnight-theme-preview" style="background: #02040a;"></div>
-            <span>Midnight</span>
-          </div>
-          <div class="theme-option" data-theme="forest" data-action="selectTheme">
-            <div class="theme-preview forest-theme-preview" style="background: #0a1a0a;"></div>
-            <span>Forest</span>
-          </div>
-          <div class="theme-option" data-theme="sunset" data-action="selectTheme">
-            <div class="theme-preview sunset-theme-preview" style="background: #1a0a0a;"></div>
-            <span>Sunset</span>
-          </div>
-          <div class="theme-option" data-theme="nebula" data-action="selectTheme">
-            <div class="theme-preview nebula-theme-preview" style="background: #1a0a2a;"></div>
-            <span>Nebula</span>
-          </div>
-          <div class="theme-option" data-theme="angelic" data-action="selectTheme">
-            <div class="theme-preview angelic-theme-preview" style="background: #f8f9fa;"></div>
-            <span>Angelic</span>
-          </div>
-          <div class="theme-option" data-theme="demonic" data-action="selectTheme">
-            <div class="theme-preview demonic-theme-preview" style="background: #1a0505;"></div>
-            <span>Demonic</span>
-          </div>
-        </div>
+      <div class="appearance-header">
+        <h2><i class="fas fa-palette"></i> Appearance Settings</h2>
+        <p>Customize your reading experience</p>
       </div>
 
-      <!-- Font Size -->
-      <div class="appearance-section">
-        <h3><i class="fas fa-text-height"></i> Font Size</h3>
-        <div class="font-size-options">
-          <button class="font-size-btn" data-size="small" data-action="selectFontSize">
-            <span class="font-size-sample small">Aa</span>
-            <small>Small</small>
-          </button>
-          <button class="font-size-btn active" data-size="medium" data-action="selectFontSize">
-            <span class="font-size-sample medium">Aa</span>
-            <small>Medium</small>
-          </button>
-          <button class="font-size-btn" data-size="large" data-action="selectFontSize">
-            <span class="font-size-sample large">Aa</span>
-            <small>Large</small>
-          </button>
-          <button class="font-size-btn" data-size="xlarge" data-action="selectFontSize">
-            <span class="font-size-sample xlarge">Aa</span>
-            <small>Extra Large</small>
-          </button>
-        </div>
-      </div>
+      <div class="appearance-content">
+        <!-- Theme Selection -->
+        <div class="appearance-section">
+          <h3><i class="fas fa-paint-brush"></i> Theme</h3>
+          <div class="theme-options">
+            <div class="theme-option active" data-theme="dark" data-action="selectTheme">
+              <div class="theme-preview dark-theme-preview"></div>
+              <span>Dark</span>
+            </div>
+            <div class="theme-option" data-theme="light" data-action="selectTheme">
+              <div class="theme-preview light-theme-preview"></div>
+              <span>Light</span>
+            </div>
+            <div class="theme-option" data-theme="blue" data-action="selectTheme">
+              <div class="theme-preview blue-theme-preview"></div>
+              <span>Ocean Blue</span>
+            </div>
+            <div class="theme-option" data-theme="purple" data-action="selectTheme">
+              <div class="theme-preview purple-theme-preview"></div>
+              <span>Royal Purple</span>
+            </div>
 
-      <!-- Layout Density -->
-      <div class="appearance-section">
-        <h3><i class="fas fa-th"></i> Layout Density</h3>
-        <div class="density-options">
-          <button class="density-btn" data-density="compact" data-action="selectDensity">
-            <div class="density-preview compact"></div>
-            <small>Compact</small>
-          </button>
-          <button class="density-btn active" data-density="comfortable" data-action="selectDensity">
-            <div class="density-preview comfortable"></div>
-            <small>Comfortable</small>
-          </button>
-          <button class="density-btn" data-density="spacious" data-action="selectDensity">
-            <div class="density-preview spacious"></div>
-            <small>Spacious</small>
-          </button>
+            <div class="theme-option" data-theme="midnight" data-action="selectTheme">
+              <div class="theme-preview midnight-theme-preview" style="background: #02040a;"></div>
+              <span>Midnight</span>
+            </div>
+            <div class="theme-option" data-theme="forest" data-action="selectTheme">
+              <div class="theme-preview forest-theme-preview" style="background: #0a1a0a;"></div>
+              <span>Forest</span>
+            </div>
+            <div class="theme-option" data-theme="sunset" data-action="selectTheme">
+              <div class="theme-preview sunset-theme-preview" style="background: #1a0a0a;"></div>
+              <span>Sunset</span>
+            </div>
+            <div class="theme-option" data-theme="nebula" data-action="selectTheme">
+              <div class="theme-preview nebula-theme-preview" style="background: #1a0a2a;"></div>
+              <span>Nebula</span>
+            </div>
+            <div class="theme-option" data-theme="angelic" data-action="selectTheme">
+              <div class="theme-preview angelic-theme-preview" style="background: #f8f9fa;"></div>
+              <span>Angelic</span>
+            </div>
+            <div class="theme-option" data-theme="demonic" data-action="selectTheme">
+              <div class="theme-preview demonic-theme-preview" style="background: #1a0505;"></div>
+              <span>Demonic</span>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Accent Color -->
-      <div class="appearance-section">
-        <h3><i class="fas fa-palette"></i> Accent Color</h3>
-        <div class="accent-options">
-          <button class="accent-option active" data-color="cyan" data-action="selectAccentColor" style="background: linear-gradient(135deg, #00d4ff, #0090ff)">
-            <span class="accent-check">✓</span>
-          </button>
-          <button class="accent-option" data-color="purple" data-action="selectAccentColor" style="background: linear-gradient(135deg, #667eea, #764ba2)">
-            <span class="accent-check">✓</span>
-          </button>
-          <button class="accent-option" data-color="pink" data-action="selectAccentColor" style="background: linear-gradient(135deg, #ff9a9e, #fecfef)">
-            <span class="accent-check">✓</span>
-          </button>
-          <button class="accent-option" data-color="green" data-action="selectAccentColor" style="background: linear-gradient(135deg, #56ab2f, #a8e6cf)">
-            <span class="accent-check">✓</span>
-          </button>
-          <button class="accent-option" data-color="orange" data-action="selectAccentColor" style="background: linear-gradient(135deg, #ff6b35, #f7931e)">
-            <span class="accent-check">✓</span>
-          </button>
-          <button class="accent-option" data-color="emerald" data-action="selectAccentColor" style="background: linear-gradient(135deg, #10b981, #059669)">
-            <span class="accent-check">✓</span>
-          </button>
-          <button class="accent-option" data-color="ruby" data-action="selectAccentColor" style="background: linear-gradient(135deg, #ef4444, #b91c1c)">
-            <span class="accent-check">✓</span>
-          </button>
-          <button class="accent-option" data-color="amber" data-action="selectAccentColor" style="background: linear-gradient(135deg, #f59e0b, #d97706)">
-            <span class="accent-check">✓</span>
-          </button>
-          <button class="accent-option" data-color="indigo" data-action="selectAccentColor" style="background: linear-gradient(135deg, #6366f1, #4338ca)">
-            <span class="accent-check">✓</span>
-          </button>
+        <!-- Font Size -->
+        <div class="appearance-section">
+          <h3><i class="fas fa-text-height"></i> Font Size</h3>
+          <div class="font-size-options">
+            <button class="font-size-btn" data-size="small" data-action="selectFontSize">
+              <span class="font-size-sample small">Aa</span>
+              <small>Small</small>
+            </button>
+            <button class="font-size-btn active" data-size="medium" data-action="selectFontSize">
+              <span class="font-size-sample medium">Aa</span>
+              <small>Medium</small>
+            </button>
+            <button class="font-size-btn" data-size="large" data-action="selectFontSize">
+              <span class="font-size-sample large">Aa</span>
+              <small>Large</small>
+            </button>
+            <button class="font-size-btn" data-size="xlarge" data-action="selectFontSize">
+              <span class="font-size-sample xlarge">Aa</span>
+              <small>Extra Large</small>
+            </button>
+          </div>
         </div>
-      </div>
 
-      <!-- Reading Preferences -->
-      <div class="appearance-section">
-        <h3><i class="fas fa-book-open"></i> Reading Preferences</h3>
-        <div class="reading-preferences">
-          <label class="preference-toggle">
-            <input type="checkbox" id="toggleSmoothScroll" data-action="toggleSmoothScroll">
-            <span class="toggle-slider"></span>
-            <span class="toggle-label">Smooth scrolling</span>
-          </label>
-          <label class="preference-toggle">
-            <input type="checkbox" id="togglePageTransitions" data-action="togglePageTransitions" checked>
-            <span class="toggle-slider"></span>
-            <span class="toggle-label">Page transitions</span>
-          </label>
-          
-          <div class="preference-group" style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
+        <!-- Layout Density -->
+        <div class="appearance-section">
+          <h3><i class="fas fa-th"></i> Layout Density</h3>
+          <div class="density-options">
+            <button class="density-btn" data-density="compact" data-action="selectDensity">
+              <div class="density-preview compact"></div>
+              <small>Compact</small>
+            </button>
+            <button class="density-btn active" data-density="comfortable" data-action="selectDensity">
+              <div class="density-preview comfortable"></div>
+              <small>Comfortable</small>
+            </button>
+            <button class="density-btn" data-density="spacious" data-action="selectDensity">
+              <div class="density-preview spacious"></div>
+              <small>Spacious</small>
+            </button>
+          </div>
+        </div>
+
+        <!-- Accent Color -->
+        <div class="appearance-section">
+          <h3><i class="fas fa-palette"></i> Accent Color</h3>
+          <div class="accent-options">
+            <button class="accent-option active" data-color="cyan" data-action="selectAccentColor"
+              style="background: linear-gradient(135deg, #00d4ff, #0090ff)">
+              <span class="accent-check">✓</span>
+            </button>
+            <button class="accent-option" data-color="purple" data-action="selectAccentColor"
+              style="background: linear-gradient(135deg, #667eea, #764ba2)">
+              <span class="accent-check">✓</span>
+            </button>
+            <button class="accent-option" data-color="pink" data-action="selectAccentColor"
+              style="background: linear-gradient(135deg, #ff9a9e, #fecfef)">
+              <span class="accent-check">✓</span>
+            </button>
+            <button class="accent-option" data-color="green" data-action="selectAccentColor"
+              style="background: linear-gradient(135deg, #56ab2f, #a8e6cf)">
+              <span class="accent-check">✓</span>
+            </button>
+            <button class="accent-option" data-color="orange" data-action="selectAccentColor"
+              style="background: linear-gradient(135deg, #ff6b35, #f7931e)">
+              <span class="accent-check">✓</span>
+            </button>
+            <button class="accent-option" data-color="emerald" data-action="selectAccentColor"
+              style="background: linear-gradient(135deg, #10b981, #059669)">
+              <span class="accent-check">✓</span>
+            </button>
+            <button class="accent-option" data-color="ruby" data-action="selectAccentColor"
+              style="background: linear-gradient(135deg, #ef4444, #b91c1c)">
+              <span class="accent-check">✓</span>
+            </button>
+            <button class="accent-option" data-color="amber" data-action="selectAccentColor"
+              style="background: linear-gradient(135deg, #f59e0b, #d97706)">
+              <span class="accent-check">✓</span>
+            </button>
+            <button class="accent-option" data-color="indigo" data-action="selectAccentColor"
+              style="background: linear-gradient(135deg, #6366f1, #4338ca)">
+              <span class="accent-check">✓</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Reading Preferences -->
+        <div class="appearance-section">
+          <h3><i class="fas fa-book-open"></i> Reading Preferences</h3>
+          <div class="reading-preferences">
             <label class="preference-toggle">
-              <input type="checkbox" id="toggleAnimations" data-action="toggleAnimations" checked>
+              <input type="checkbox" id="toggleSmoothScroll" data-action="toggleSmoothScroll">
               <span class="toggle-slider"></span>
-              <span class="toggle-label" style="font-weight: 600; color: var(--neon-blue);">Enable Animations</span>
+              <span class="toggle-label">Smooth scrolling</span>
             </label>
-            
-            <div id="animationSubSettings" style="margin-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+            <label class="preference-toggle">
+              <input type="checkbox" id="togglePageTransitions" data-action="togglePageTransitions" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-label">Page transitions</span>
+            </label>
+
+            <div class="preference-group" style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
               <label class="preference-toggle">
-                <input type="checkbox" id="toggleUiEffects" data-action="toggleUiEffects" checked>
+                <input type="checkbox" id="toggleAnimations" data-action="toggleAnimations" checked>
                 <span class="toggle-slider"></span>
-                <span class="toggle-label" style="font-size: 0.9em; color: #bbb;">UI Effects <small>(Hover, Pulse)</small></span>
+                <span class="toggle-label" style="font-weight: 600; color: var(--neon-blue);">Enable Animations</span>
               </label>
-              <label class="preference-toggle">
-                <input type="checkbox" id="toggleSpecialEffects" data-action="toggleSpecialEffects" checked>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label" style="font-size: 0.9em; color: #bbb;">Special Effects <small>(Warp, Overlays)</small></span>
-              </label>
+
+              <div id="animationSubSettings"
+                style="margin-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+                <label class="preference-toggle">
+                  <input type="checkbox" id="toggleUiEffects" data-action="toggleUiEffects" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label" style="font-size: 0.9em; color: #bbb;">UI Effects <small>(Hover,
+                      Pulse)</small></span>
+                </label>
+                <label class="preference-toggle">
+                  <input type="checkbox" id="toggleSpecialEffects" data-action="toggleSpecialEffects" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label" style="font-size: 0.9em; color: #bbb;">Special Effects <small>(Warp,
+                      Overlays)</small></span>
+                </label>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="appearance-footer">
-      <div class="appearance-actions">
-        <button class="appearance-btn secondary" data-action="resetToDefaults">
-          <i class="fas fa-undo"></i> Reset to Defaults
-        </button>
-        <div class="appearance-main-actions">
-          <button class="appearance-btn secondary" data-action="closeAppearanceModal">Close</button>
-          <button class="appearance-btn primary" data-action="applyAppearanceSettings">
-            <i class="fas fa-check"></i> Apply Theme
+      <div class="appearance-footer">
+        <div class="appearance-actions">
+          <button class="appearance-btn secondary" data-action="resetToDefaults">
+            <i class="fas fa-undo"></i> Reset to Defaults
           </button>
+          <div class="appearance-main-actions">
+            <button class="appearance-btn secondary" data-action="closeAppearanceModal">Close</button>
+            <button class="appearance-btn primary" data-action="applyAppearanceSettings">
+              <i class="fas fa-check"></i> Apply Theme
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<script>
-  function openBillingModal() {
-    document.getElementById("billingModal").classList.add("show");
-    document.body.classList.add("no-scroll");
-  }
-  function closeBillingModal() {
-    document.getElementById("billingModal").classList.remove("show");
-    document.body.classList.remove("no-scroll");
-  }
-  function openPaymentMethodModal() {
-    document.getElementById("paymentMethodModal").classList.add("show");
-    document.body.classList.add("no-scroll");
-  }
-  function closePaymentMethodModal() {
-    document.getElementById("paymentMethodModal").classList.remove("show");
-    document.body.classList.remove("no-scroll");
-  }
-  function startUpgrade(plan) {
-    window._selectedPlan = plan;
-    // reset selection state
-    window._selectedMethod = null;
-    var es = document.getElementById('pm-esewa');
-    var kh = document.getElementById('pm-khalti');
-    if (es) es.classList.remove('selected');
-    if (kh) kh.classList.remove('selected');
-    openPaymentMethodModal();
-  }
-  function selectPaymentMethod(method) {
-    window._selectedMethod = method;
-    var es = document.getElementById('pm-esewa');
-    var kh = document.getElementById('pm-khalti');
-    var cc = document.getElementById('pm-card');
-    if (es) es.classList.toggle('selected', method === 'esewa');
-    if (kh) kh.classList.toggle('selected', method === 'khalti');
-    if (cc) cc.classList.toggle('selected', method === 'card');
-  }
-  function confirmPayment() {
-    var plan = window._selectedPlan || 'pro';
-    var method = window._selectedMethod;
-    if (!method) {
-      // nudge: default highlight eSewa if nothing chosen
+  <script>
+    function openBillingModal() {
+      document.getElementById("billingModal").classList.add("show");
+      document.body.classList.add("no-scroll");
+    }
+    function closeBillingModal() {
+      document.getElementById("billingModal").classList.remove("show");
+      document.body.classList.remove("no-scroll");
+    }
+    function openPaymentMethodModal() {
+      document.getElementById("paymentMethodModal").classList.add("show");
+      document.body.classList.add("no-scroll");
+    }
+    function closePaymentMethodModal() {
+      document.getElementById("paymentMethodModal").classList.remove("show");
+      document.body.classList.remove("no-scroll");
+    }
+    function startUpgrade(plan) {
+      window._selectedPlan = plan;
+      // reset selection state
+      window._selectedMethod = null;
       var es = document.getElementById('pm-esewa');
-      if (es) es.classList.add('selected');
-      return;
+      var kh = document.getElementById('pm-khalti');
+      if (es) es.classList.remove('selected');
+      if (kh) kh.classList.remove('selected');
+      openPaymentMethodModal();
     }
-    closePaymentMethodModal();
-    if (method === 'esewa') {
-      window.location.href = `/pay/esewa/initiate?plan=${encodeURIComponent(plan)}`;
-    } else if (method === 'khalti') {
-      window.location.href = `/pay/khalti/initiate?plan=${encodeURIComponent(plan)}`;
-    } else if (method === 'card') {
-      // placeholder route; implement server route if needed
-      window.location.href = `/pay/card/initiate?plan=${encodeURIComponent(plan)}`;
+    function selectPaymentMethod(method) {
+      window._selectedMethod = method;
+      var es = document.getElementById('pm-esewa');
+      var kh = document.getElementById('pm-khalti');
+      var cc = document.getElementById('pm-card');
+      if (es) es.classList.toggle('selected', method === 'esewa');
+      if (kh) kh.classList.toggle('selected', method === 'khalti');
+      if (cc) cc.classList.toggle('selected', method === 'card');
     }
-  }
-</script>
+    function confirmPayment() {
+      var plan = window._selectedPlan || 'pro';
+      var method = window._selectedMethod;
+      if (!method) {
+        // nudge: default highlight eSewa if nothing chosen
+        var es = document.getElementById('pm-esewa');
+        if (es) es.classList.add('selected');
+        return;
+      }
+      closePaymentMethodModal();
+      if (method === 'esewa') {
+        window.location.href = `/pay/esewa/initiate?plan=${encodeURIComponent(plan)}`;
+      } else if (method === 'khalti') {
+        window.location.href = `/pay/khalti/initiate?plan=${encodeURIComponent(plan)}`;
+      } else if (method === 'card') {
+        // placeholder route; implement server route if needed
+        window.location.href = `/pay/card/initiate?plan=${encodeURIComponent(plan)}`;
+      }
+    }
+  </script>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const mangaLink = document.getElementById("nav-manga");
-    const overlay   = document.getElementById("manga-warp-overlay");
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const mangaLink = document.getElementById("nav-manga");
+      const overlay = document.getElementById("manga-warp-overlay");
 
-    if (!mangaLink || !overlay) return;
+      if (!mangaLink || !overlay) return;
 
-    mangaLink.addEventListener("click", function (e) {
-      e.preventDefault(); 
-      const href = this.href;
+      mangaLink.addEventListener("click", function (e) {
+        e.preventDefault();
+        const href = this.href;
 
-      // 1. Reset
-      document.body.classList.remove("manga-warp");
-      overlay.classList.remove("show");
-      overlay.style.cssText = "";
-      void document.body.offsetWidth; // Force Reflow
+        // 1. Reset
+        document.body.classList.remove("manga-warp");
+        overlay.classList.remove("show");
+        overlay.style.cssText = "";
+        void document.body.offsetWidth; // Force Reflow
 
-      // 2. Force Visibility (High Z-Index & Black Background)
-      overlay.style.position = "fixed";
-      overlay.style.top = "0";
-      overlay.style.left = "0";
-      overlay.style.width = "100vw";
-      overlay.style.height = "100vh";
-      overlay.style.zIndex = "2147483647"; 
-      overlay.style.backgroundColor = "black";
-      overlay.style.opacity = "1";
-      overlay.style.visibility = "visible";
-      overlay.style.display = "flex";
-      overlay.style.transition = "none";
-      overlay.style.animation = "none";
-      
-      overlay.classList.add("show");
-      document.body.classList.add("manga-warp");
+        // 2. Force Visibility (High Z-Index & Black Background)
+        overlay.style.position = "fixed";
+        overlay.style.top = "0";
+        overlay.style.left = "0";
+        overlay.style.width = "100vw";
+        overlay.style.height = "100vh";
+        overlay.style.zIndex = "2147483647";
+        overlay.style.backgroundColor = "black";
+        overlay.style.opacity = "1";
+        overlay.style.visibility = "visible";
+        overlay.style.display = "flex";
+        overlay.style.transition = "none";
+        overlay.style.animation = "none";
 
-      // Check for bundle-specific manga animation in localStorage
-      const activeBundleTheme = JSON.parse(localStorage.getItem('appThemeSettings') || '{}');
-      if (activeBundleTheme.manga_path) {
+        overlay.classList.add("show");
+        document.body.classList.add("manga-warp");
+
+        // Check for bundle-specific manga animation in localStorage
+        const activeBundleTheme = JSON.parse(localStorage.getItem('appThemeSettings') || '{}');
+        if (activeBundleTheme.manga_path) {
           const customMediaContainer = overlay.querySelector('.custom-anim-media');
           if (customMediaContainer) {
-              const path = activeBundleTheme.manga_path;
-              const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
-              if (isVideo) {
-                  customMediaContainer.innerHTML = `<video src="/static/${path}" autoplay muted playsinline preload="auto"></video>`;
-              } else {
-                  customMediaContainer.innerHTML = `<img src="/static/${path}" />`;
-              }
+            const path = activeBundleTheme.manga_path;
+            const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
+            if (isVideo) {
+              customMediaContainer.innerHTML = `<video src="/static/${path}" autoplay muted playsinline preload="auto"></video>`;
+            } else {
+              customMediaContainer.innerHTML = `<img src="/static/${path}" />`;
+            }
           }
-      }
+        }
 
-      // 3. Play video if exists
-      const video = overlay.querySelector('video');
-      if (video) {
-        // Ensure parent container is visible and has no conflicting animations
-        const parent = video.parentElement;
-        if (parent) {
+        // 3. Play video if exists
+        const video = overlay.querySelector('video');
+        if (video) {
+          // Ensure parent container is visible and has no conflicting animations
+          const parent = video.parentElement;
+          if (parent) {
             parent.style.display = "block";
             parent.style.width = "100%";
             parent.style.height = "100%";
             parent.style.zIndex = "2147483647";
-            parent.style.position = "absolute"; 
+            parent.style.position = "absolute";
             parent.style.animation = "none"; // Disable Zoom Effect
             parent.style.opacity = "1";
+          }
+
+          // Ensure Video is visible
+          video.style.display = "block";
+          video.style.width = "100%";
+          video.style.height = "100%";
+          video.style.objectFit = "cover";
+          video.style.zIndex = "2147483647";
+          video.style.opacity = "1";
+          video.style.visibility = "visible";
+
+          video.currentTime = 0;
+          video.play().catch(err => console.error("Manga video play error:", err));
         }
 
-        // Ensure Video is visible
-        video.style.display = "block";
-        video.style.width = "100%";
-        video.style.height = "100%";
-        video.style.objectFit = "cover";
-        video.style.zIndex = "2147483647";
-        video.style.opacity = "1";
-        video.style.visibility = "visible";
-        
-        video.currentTime = 0;
-        video.play().catch(err => console.error("Manga video play error:", err));
-      }
-
-      // 4. Redirect after video/animation
-      const performRedirect = (del) => {
+        // 4. Redirect after video/animation
+        const performRedirect = (del) => {
           setTimeout(() => { window.location.href = href; }, del);
-      };
+        };
 
-      if (video) {
+        if (video) {
           const startTimer = () => {
-              const vidDuration = Math.min(video.duration * 1000 || 3000, 12000);
-              performRedirect(vidDuration);
+            const vidDuration = Math.min(video.duration * 1000 || 3000, 12000);
+            performRedirect(vidDuration);
           };
           if (video.readyState >= 1) startTimer();
           else {
-              video.onloadedmetadata = startTimer;
-              setTimeout(startTimer, 1500); 
+            video.onloadedmetadata = startTimer;
+            setTimeout(startTimer, 1500);
           }
-      } else {
+        } else {
           performRedirect(3000);
-      }
+        }
+      });
     });
-  });
-</script>
-    <!-- Dropdown + delete helper -->
-    <script>
-      // Global Toast Notification System
-      function showToast(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = `toast-notification ${type}`;
-        
-        let bgColor = '#dc2626'; // Default red
-        if (type === 'success') bgColor = '#059669'; // Emerald
-        if (type === 'info') bgColor = '#2563eb'; // Blue
-        
-        toast.textContent = message;
-        toast.style.cssText = `
+  </script>
+  <!-- Dropdown + delete helper -->
+  <script>
+    // Global Toast Notification System
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast-notification ${type}`;
+
+      let bgColor = '#dc2626'; // Default red
+      if (type === 'success') bgColor = '#059669'; // Emerald
+      if (type === 'info') bgColor = '#2563eb'; // Blue
+
+      toast.textContent = message;
+      toast.style.cssText = `
             position: fixed;
             bottom: 2rem;
             left: 50%;
@@ -1308,75 +1440,75 @@
             pointer-events: none;
             animation: fadeInOut 2s ease forwards;
         `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    }
+
+    function toggleDropdown(btn) {
+      const dropdown = btn.closest(".dropdown-nav");
+      const content = dropdown.querySelector(".dropdown-content");
+      const arrow = dropdown.querySelector(".nav-logo-arrow");
+
+      const isOpen = content.style.display === "block";
+
+      // Close all dropdowns
+      document.querySelectorAll(".dropdown-content").forEach(el => {
+        el.style.display = "none";
+      });
+      document.querySelectorAll(".nav-logo-arrow").forEach(el => {
+        el.style.transform = "translateY(2px) rotate(180deg)";
+      });
+
+      // Open this one if it was closed
+      if (!isOpen) {
+        content.style.display = "block";
+        arrow.style.transform = "translateY(2px) rotate(0deg)";
       }
+    }
 
-      function toggleDropdown(btn) {
-        const dropdown = btn.closest(".dropdown-nav");
-        const content = dropdown.querySelector(".dropdown-content");
-        const arrow   = dropdown.querySelector(".nav-logo-arrow");
+    function confirmDelete() {
+      return confirm("Are you sure you want to permanently delete this book?");
+    }
+  </script>
 
-        const isOpen = content.style.display === "block";
+  <!-- Activity Log Modal Functions -->
+  <script>
+    function openActivityLogModal() {
+      const modal = document.getElementById("activityLogModal");
+      modal.classList.add("show");
+      document.body.classList.add("no-scroll");
+      loadActivityLog();
+    }
 
-        // Close all dropdowns
-        document.querySelectorAll(".dropdown-content").forEach(el => {
-          el.style.display = "none";
-        });
-        document.querySelectorAll(".nav-logo-arrow").forEach(el => {
-          el.style.transform = "translateY(2px) rotate(180deg)";
-        });
+    function closeActivityLogModal() {
+      const modal = document.getElementById("activityLogModal");
+      modal.classList.remove("show");
+      document.body.classList.remove("no-scroll");
+    }
 
-        // Open this one if it was closed
-        if (!isOpen) {
-          content.style.display = "block";
-          arrow.style.transform = "translateY(2px) rotate(0deg)";
-        }
-      }
+    function loadActivityLog() {
+      const contentDiv = document.getElementById("activityLogContent");
 
-      function confirmDelete() {
-        return confirm("Are you sure you want to permanently delete this book?");
-      }
-    </script>
-
-    <!-- Activity Log Modal Functions -->
-    <script>
-      function openActivityLogModal() {
-        const modal = document.getElementById("activityLogModal");
-        modal.classList.add("show");
-        document.body.classList.add("no-scroll");
-        loadActivityLog();
-      }
-
-      function closeActivityLogModal() {
-        const modal = document.getElementById("activityLogModal");
-        modal.classList.remove("show");
-        document.body.classList.remove("no-scroll");
-      }
-
-      function loadActivityLog() {
-        const contentDiv = document.getElementById("activityLogContent");
-        
-        fetch("{{ url_for('get_activity_log') }}?limit=5")
-          .then(response => response.json())
-          .then(activities => {
-            if (!activities || activities.length === 0) {
-              contentDiv.innerHTML = `
+      fetch("{{ url_for('get_activity_log') }}?limit=5")
+        .then(response => response.json())
+        .then(activities => {
+          if (!activities || activities.length === 0) {
+            contentDiv.innerHTML = `
                 <div class="activity-empty">
                   <i class="fas fa-inbox"></i>
                   <p>No activities yet</p>
                 </div>
               `;
-              return;
-            }
+            return;
+          }
 
-            let html = '<div class="activity-list">';
-            
-            activities.forEach(activity => {
-              const badgeClass = activity.has_summary ? 'activity-badge-summarized' : '';
-              const badgeIcon = activity.has_summary ? '<span class="activity-badge">AI Summarized</span>' : '';
-              
-              html += `
+          let html = '<div class="activity-list">';
+
+          activities.forEach(activity => {
+            const badgeClass = activity.has_summary ? 'activity-badge-summarized' : '';
+            const badgeIcon = activity.has_summary ? '<span class="activity-badge">AI Summarized</span>' : '';
+
+            html += `
                 <div class="activity-item">
                   <div class="activity-icon">
                     <i class="fas ${activity.icon}"></i>
@@ -1391,12 +1523,12 @@
                   </div>
                 </div>
               `;
-            });
+          });
 
-            html += '</div>';
-            
-            // Add reading level bar
-            html += `
+          html += '</div>';
+
+          // Add reading level bar
+          html += `
               <div class="activity-reading-level">
                 <div class="reading-level-text">Reading Level: 7 - Chronoscribe</div>
                 <div class="reading-level-bar">
@@ -1406,86 +1538,86 @@
               </div>
             `;
 
-            contentDiv.innerHTML = html;
-          })
-          .catch(error => {
-            console.error("Error loading activity log:", error);
-            contentDiv.innerHTML = `
+          contentDiv.innerHTML = html;
+        })
+        .catch(error => {
+          console.error("Error loading activity log:", error);
+          contentDiv.innerHTML = `
               <div class="activity-empty">
                 <i class="fas fa-exclamation-circle"></i>
                 <p>Error loading activities</p>
               </div>
             `;
-          });
-      }
+        });
+    }
 
-      // Close modal when clicking outside
-      document.addEventListener("click", function(event) {
-        const modal = document.getElementById("activityLogModal");
-        const backdrop = document.querySelector(".activity-log-backdrop");
-        if (event.target === backdrop) {
-          closeActivityLogModal();
-        }
+    // Close modal when clicking outside
+    document.addEventListener("click", function (event) {
+      const modal = document.getElementById("activityLogModal");
+      const backdrop = document.querySelector(".activity-log-backdrop");
+      if (event.target === backdrop) {
+        closeActivityLogModal();
+      }
+    });
+  </script>
+
+  <!-- Notification System Functions -->
+  <script>
+    // Notification dropdown toggle
+    function toggleNotificationDropdown(button) {
+      const profileDropdown = button.closest(".profile-dropdown");
+      const notificationDropdown = profileDropdown.querySelector(".profile-notification-dropdown");
+      const isOpen = notificationDropdown.classList.contains("show");
+
+      // Close all notification dropdowns
+      document.querySelectorAll(".notification-dropdown-content").forEach(el => {
+        el.classList.remove("show");
       });
-    </script>
 
-    <!-- Notification System Functions -->
-    <script>
-      // Notification dropdown toggle
-      function toggleNotificationDropdown(button) {
-        const profileDropdown = button.closest(".profile-dropdown");
-        const notificationDropdown = profileDropdown.querySelector(".profile-notification-dropdown");
-        const isOpen = notificationDropdown.classList.contains("show");
-        
-        // Close all notification dropdowns
-        document.querySelectorAll(".notification-dropdown-content").forEach(el => {
-          el.classList.remove("show");
-        });
-        
-        // Close profile dropdown
-        document.querySelectorAll(".profile-dropdown-content").forEach(el => {
-          el.style.display = "none";
-        });
-        document.querySelectorAll(".nav-logo-arrow").forEach(el => {
-          el.style.transform = "translateY(2px) rotate(180deg)";
-        });
-        
-        // Open this notification dropdown if it was closed
-        if (!isOpen) {
-          notificationDropdown.classList.add("show");
-          loadNotifications();
-        }
+      // Close profile dropdown
+      document.querySelectorAll(".profile-dropdown-content").forEach(el => {
+        el.style.display = "none";
+      });
+      document.querySelectorAll(".nav-logo-arrow").forEach(el => {
+        el.style.transform = "translateY(2px) rotate(180deg)";
+      });
+
+      // Open this notification dropdown if it was closed
+      if (!isOpen) {
+        notificationDropdown.classList.add("show");
+        loadNotifications();
       }
+    }
 
-      // Load notifications
-      function loadNotifications() {
-        const notificationList = document.getElementById("notificationList");
-        
-        fetch("{{ url_for('get_activity_log') }}?limit=3")
-          .then(response => response.json())
-          .then(activities => {
-            if (!activities || activities.length === 0) {
-              notificationList.innerHTML = `
+    // Load notifications
+    function loadNotifications() {
+      const notificationList = document.getElementById("notificationList");
+
+      fetch("{{ url_for('get_activity_log') }}?limit=3")
+        .then(response => response.json())
+        .then(activities => {
+          if (!activities || activities.length === 0) {
+            notificationList.innerHTML = `
                 <div class="notification-empty">
                   <i class="fas fa-inbox"></i>
                   <p>No notifications yet</p>
                 </div>
               `;
-              updateNotificationBadge(0);
-              return;
-            }
+            updateNotificationBadge(0);
+            return;
+          }
 
-            let html = '';
-            let unreadCount = 0;
-            
-            activities.forEach((activity, index) => {
-              const isUnread = index < 2; // Mark first 2 as unread for demo
-              if (isUnread) unreadCount++;
-              
-              const badgeClass = activity.has_summary ? 'activity-badge-summarized' : '';
-              const badgeIcon = activity.has_summary ? '<span class="activity-badge" style="font-size: 10px; padding: 2px 6px; margin-left: 8px;">AI</span>' : '';
-              
-              html += `
+          let html = '';
+          let unreadCount = 0;
+
+          activities.forEach((activity, index) => {
+            const isUnread = index < 2; // Mark first 2 as unread for demo
+            if (isUnread) unreadCount++;
+
+            const badgeClass = activity.has_summary ? 'activity-badge-summarized' : '';
+            const badgeIcon = activity.has_summary ? '<span class="activity-badge" style="font-size: 10px; padding: 2px 6px; margin-left: 8px;">AI</span>' : '';
+
+            html += `
                 <div class="notification-item ${isUnread ? 'unread' : ''}" onclick="markNotificationRead(${activity.id || index})">
                   <div class="notification-icon-small">
                     <i class="fas ${activity.icon}"></i>
@@ -1500,258 +1632,258 @@
                   </div>
                 </div>
               `;
-            });
+          });
 
-            notificationList.innerHTML = html;
-            updateNotificationBadge(unreadCount);
-          })
-          .catch(error => {
-            console.error("Error loading notifications:", error);
-            notificationList.innerHTML = `
+          notificationList.innerHTML = html;
+          updateNotificationBadge(unreadCount);
+        })
+        .catch(error => {
+          console.error("Error loading notifications:", error);
+          notificationList.innerHTML = `
               <div class="notification-empty">
                 <i class="fas fa-exclamation-circle"></i>
                 <p>Error loading notifications</p>
               </div>
             `;
-            updateNotificationBadge(0);
-          });
-      }
-
-      // Update notification badge
-      function updateNotificationBadge(count) {
-        const badge = document.getElementById("notificationBadge");
-        if (badge) {
-          if (count > 0) {
-            badge.textContent = count > 99 ? '99+' : count;
-            badge.classList.add("has-notifications");
-          } else {
-            badge.textContent = '0';
-            badge.classList.remove("has-notifications");
-          }
-        }
-      }
-
-      // Mark notification as read
-      function markNotificationRead(notificationId) {
-        // For demo purposes, just update the UI
-        const notificationItems = document.querySelectorAll('.notification-item.unread');
-        if (notificationItems.length > 0) {
-          notificationItems[0].classList.remove('unread');
-          updateNotificationBadge(notificationItems.length - 1);
-        }
-      }
-
-      // Mark all notifications as read
-      function markAllNotificationsRead() {
-        const notificationItems = document.querySelectorAll('.notification-item.unread');
-        notificationItems.forEach(item => {
-          item.classList.remove('unread');
+          updateNotificationBadge(0);
         });
-        updateNotificationBadge(0);
-        
-        // Show feedback
-        const markBtn = document.querySelector('.mark-all-read-btn');
-        const originalText = markBtn.textContent;
-        markBtn.textContent = 'Marked as read';
-        markBtn.style.color = '#4CAF50';
-        
-        setTimeout(() => {
-          markBtn.textContent = originalText;
-          markBtn.style.color = 'var(--neon-blue)';
-        }, 2000);
-      }
+    }
 
-      // Close notification dropdown when clicking outside
-      document.addEventListener("click", function(event) {
-        const notificationContainer = event.target.closest(".notification-container");
-        const profileContainer = event.target.closest(".profile-dropdown");
-        
-        if (!notificationContainer && !profileContainer) {
-          document.querySelectorAll(".notification-dropdown-content").forEach(el => {
-            el.classList.remove("show");
-          });
-        }
-      });
-
-      // Load notifications on page load
-      document.addEventListener("DOMContentLoaded", function() {
-        // Load notifications after a short delay
-        setTimeout(() => {
-          loadNotifications();
-        }, 1000);
-      });
-
-      // Logout animation function
-      function handleLogout(event) {
-        event.preventDefault();
-
-        const overlay = document.getElementById('logoutOverlay');
-        const topLoadingBar = document.getElementById('topLoadingBar');
-
-        // Show loading bar
-        if (topLoadingBar) {
-          topLoadingBar.classList.add('show');
-          topLoadingBar.classList.remove('page-load');
-        }
-
-        // Show overlay
-        overlay.classList.add('show');
-
-        // Check for bundle-specific logout animation in localStorage
-        const activeBundleTheme = JSON.parse(localStorage.getItem('appThemeSettings') || '{}');
-        if (activeBundleTheme.logout_animation) {
-            const customMediaContainer = overlay.querySelector('.custom-anim-media');
-            if (customMediaContainer) {
-                const path = activeBundleTheme.logout_animation;
-                const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
-                if (isVideo) {
-                    customMediaContainer.innerHTML = `<video src="/static/${path}" autoplay muted playsinline preload="auto"></video>`;
-                } else {
-                    customMediaContainer.innerHTML = `<img src="/static/${path}" />`;
-                }
-            } else {
-                // If there was no .custom-anim-media (e.g. using default styles), we can create it
-                const container = document.createElement('div');
-                container.className = 'custom-anim-media';
-                const path = activeBundleTheme.logout_animation;
-                const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
-                if (isVideo) {
-                    container.innerHTML = `<video src="/static/${path}" autoplay muted playsinline preload="auto"></video>`;
-                } else {
-                    container.innerHTML = `<img src="/static/${path}" />`;
-                }
-                overlay.prepend(container);
-                // Hide default animation content
-                const logoutAnimContent = overlay.querySelector('.logout-animation');
-                if (logoutAnimContent) logoutAnimContent.style.display = 'none';
-            }
-        }
-
-        // Redirect to logout after animation
-        const video = overlay.querySelector('video');
-        const performLogout = (del) => {
-            setTimeout(() => { window.location.href = '{{ url_for("logout") }}'; }, del);
-        };
-
-        if (video) {
-            const startTimer = () => {
-                const vidDuration = Math.min(video.duration * 1000 || 3000, 12000);
-                performLogout(vidDuration);
-            };
-            if (video.readyState >= 1) startTimer();
-            else {
-                video.onloadedmetadata = startTimer;
-                setTimeout(startTimer, 1500); // Safety
-            }
+    // Update notification badge
+    function updateNotificationBadge(count) {
+      const badge = document.getElementById("notificationBadge");
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = count > 99 ? '99+' : count;
+          badge.classList.add("has-notifications");
         } else {
-            performLogout(3000); // 3s for images
+          badge.textContent = '0';
+          badge.classList.remove("has-notifications");
         }
       }
+    }
 
-      // Page load completion handler
-      window.addEventListener('load', function() {
-        const topLoadingBar = document.getElementById('topLoadingBar');
+    // Mark notification as read
+    function markNotificationRead(notificationId) {
+      // For demo purposes, just update the UI
+      const notificationItems = document.querySelectorAll('.notification-item.unread');
+      if (notificationItems.length > 0) {
+        notificationItems[0].classList.remove('unread');
+        updateNotificationBadge(notificationItems.length - 1);
+      }
+    }
 
-        // Hide page load loading bar after animation completes
-        setTimeout(() => {
-          if (topLoadingBar && topLoadingBar.classList.contains('page-load')) {
-            topLoadingBar.style.transform = 'translateX(100%) scaleY(0)';
-            setTimeout(() => {
-              topLoadingBar.style.display = 'none';
-            }, 300);
+    // Mark all notifications as read
+    function markAllNotificationsRead() {
+      const notificationItems = document.querySelectorAll('.notification-item.unread');
+      notificationItems.forEach(item => {
+        item.classList.remove('unread');
+      });
+      updateNotificationBadge(0);
+
+      // Show feedback
+      const markBtn = document.querySelector('.mark-all-read-btn');
+      const originalText = markBtn.textContent;
+      markBtn.textContent = 'Marked as read';
+      markBtn.style.color = '#4CAF50';
+
+      setTimeout(() => {
+        markBtn.textContent = originalText;
+        markBtn.style.color = 'var(--neon-blue)';
+      }, 2000);
+    }
+
+    // Close notification dropdown when clicking outside
+    document.addEventListener("click", function (event) {
+      const notificationContainer = event.target.closest(".notification-container");
+      const profileContainer = event.target.closest(".profile-dropdown");
+
+      if (!notificationContainer && !profileContainer) {
+        document.querySelectorAll(".notification-dropdown-content").forEach(el => {
+          el.classList.remove("show");
+        });
+      }
+    });
+
+    // Load notifications on page load
+    document.addEventListener("DOMContentLoaded", function () {
+      // Load notifications after a short delay
+      setTimeout(() => {
+        loadNotifications();
+      }, 1000);
+    });
+
+    // Logout animation function
+    function handleLogout(event) {
+      event.preventDefault();
+
+      const overlay = document.getElementById('logoutOverlay');
+      const topLoadingBar = document.getElementById('topLoadingBar');
+
+      // Show loading bar
+      if (topLoadingBar) {
+        topLoadingBar.classList.add('show');
+        topLoadingBar.classList.remove('page-load');
+      }
+
+      // Show overlay
+      overlay.classList.add('show');
+
+      // Check for bundle-specific logout animation in localStorage
+      const activeBundleTheme = JSON.parse(localStorage.getItem('appThemeSettings') || '{}');
+      if (activeBundleTheme.logout_animation) {
+        const customMediaContainer = overlay.querySelector('.custom-anim-media');
+        if (customMediaContainer) {
+          const path = activeBundleTheme.logout_animation;
+          const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
+          if (isVideo) {
+            customMediaContainer.innerHTML = `<video src="/static/${path}" autoplay muted playsinline preload="auto"></video>`;
+          } else {
+            customMediaContainer.innerHTML = `<img src="/static/${path}" />`;
           }
-        }, 3000); // Wait for 3 seconds (animation duration)
-      });
-
-      // User Interaction Modal Functions
-      let currentUserId = null;
-      let currentContext = null;
-
-      function openUserInteractionModal(userId, userName, userRole, avatarUrl, event, context = null) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        // Debug: temporarily show alert
-        console.log('Opening modal for user:', userId, userName, context);
-
-        // Don't show modal for current user
-        const loggedInUserId = '{{ session.get("user_id", "") }}';
-        if (userId == loggedInUserId) {
-          console.log('Not showing modal for current user');
-          // Temporarily show modal anyway for testing
-          // return;
-        }
-
-        currentUserId = userId;
-        currentContext = context;
-
-        // Update modal content
-        document.getElementById('userName').textContent = userName;
-        document.getElementById('userRole').textContent = userRole || 'Reader';
-
-        const avatarImg = document.getElementById('userAvatar');
-        if (avatarUrl) {
-          avatarImg.src = avatarUrl;
         } else {
-          avatarImg.src = '{{ url_for("static", filename="img/person.png") }}';
+          // If there was no .custom-anim-media (e.g. using default styles), we can create it
+          const container = document.createElement('div');
+          container.className = 'custom-anim-media';
+          const path = activeBundleTheme.logout_animation;
+          const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
+          if (isVideo) {
+            container.innerHTML = `<video src="/static/${path}" autoplay muted playsinline preload="auto"></video>`;
+          } else {
+            container.innerHTML = `<img src="/static/${path}" />`;
+          }
+          overlay.prepend(container);
+          // Hide default animation content
+          const logoutAnimContent = overlay.querySelector('.logout-animation');
+          if (logoutAnimContent) logoutAnimContent.style.display = 'none';
         }
-
-        // Show/hide options based on context
-        const allOptions = document.querySelectorAll('.user-interaction-option');
-        const sendMessageBtn = document.querySelector('.user-interaction-option .fa-envelope')?.closest('.user-interaction-option');
-        const blockUserBtn = document.querySelector('.user-interaction-option.danger');
-
-        if (context === 'review') {
-          // Hide send message and block user options for reviews
-          if (sendMessageBtn) sendMessageBtn.style.display = 'none';
-          if (blockUserBtn) blockUserBtn.style.display = 'none';
-        } else {
-          // Show all options for other contexts
-          allOptions.forEach(option => option.style.display = 'block');
-        }
-
-        // Show modal
-        document.getElementById('userInteractionModal').classList.add('show');
-        document.body.classList.add('no-scroll');
       }
 
-      function closeUserInteractionModal() {
-        document.getElementById('userInteractionModal').classList.remove('show');
-        document.body.classList.remove('no-scroll');
-        currentUserId = null;
-        currentContext = null;
+      // Redirect to logout after animation
+      const video = overlay.querySelector('video');
+      const performLogout = (del) => {
+        setTimeout(() => { window.location.href = '{{ url_for("logout") }}'; }, del);
+      };
 
-        // Reset option visibility
-        const allOptions = document.querySelectorAll('.user-interaction-option');
+      if (video) {
+        const startTimer = () => {
+          const vidDuration = Math.min(video.duration * 1000 || 3000, 12000);
+          performLogout(vidDuration);
+        };
+        if (video.readyState >= 1) startTimer();
+        else {
+          video.onloadedmetadata = startTimer;
+          setTimeout(startTimer, 1500); // Safety
+        }
+      } else {
+        performLogout(3000); // 3s for images
+      }
+    }
+
+    // Page load completion handler
+    window.addEventListener('load', function () {
+      const topLoadingBar = document.getElementById('topLoadingBar');
+
+      // Hide page load loading bar after animation completes
+      setTimeout(() => {
+        if (topLoadingBar && topLoadingBar.classList.contains('page-load')) {
+          topLoadingBar.style.transform = 'translateX(100%) scaleY(0)';
+          setTimeout(() => {
+            topLoadingBar.style.display = 'none';
+          }, 300);
+        }
+      }, 3000); // Wait for 3 seconds (animation duration)
+    });
+
+    // User Interaction Modal Functions
+    let currentUserId = null;
+    let currentContext = null;
+
+    function openUserInteractionModal(userId, userName, userRole, avatarUrl, event, context = null) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Debug: temporarily show alert
+      console.log('Opening modal for user:', userId, userName, context);
+
+      // Don't show modal for current user
+      const loggedInUserId = '{{ session.get("user_id", "") }}';
+      if (userId == loggedInUserId) {
+        console.log('Not showing modal for current user');
+        // Temporarily show modal anyway for testing
+        // return;
+      }
+
+      currentUserId = userId;
+      currentContext = context;
+
+      // Update modal content
+      document.getElementById('userName').textContent = userName;
+      document.getElementById('userRole').textContent = userRole || 'Reader';
+
+      const avatarImg = document.getElementById('userAvatar');
+      if (avatarUrl) {
+        avatarImg.src = avatarUrl;
+      } else {
+        avatarImg.src = '{{ url_for("static", filename="img/person.png") }}';
+      }
+
+      // Show/hide options based on context
+      const allOptions = document.querySelectorAll('.user-interaction-option');
+      const sendMessageBtn = document.querySelector('.user-interaction-option .fa-envelope')?.closest('.user-interaction-option');
+      const blockUserBtn = document.querySelector('.user-interaction-option.danger');
+
+      if (context === 'review') {
+        // Hide send message and block user options for reviews
+        if (sendMessageBtn) sendMessageBtn.style.display = 'none';
+        if (blockUserBtn) blockUserBtn.style.display = 'none';
+      } else {
+        // Show all options for other contexts
         allOptions.forEach(option => option.style.display = 'block');
       }
 
-      function visitUserProfile() {
-        if (currentUserId) {
-          window.location.href = `/user/${currentUserId}`;
-        }
-        closeUserInteractionModal();
-      }
+      // Show modal
+      document.getElementById('userInteractionModal').classList.add('show');
+      document.body.classList.add('no-scroll');
+    }
 
-      function sendMessage() {
-        // Placeholder for messaging functionality
-        alert('Messaging feature coming soon!');
-        closeUserInteractionModal();
-      }
+    function closeUserInteractionModal() {
+      document.getElementById('userInteractionModal').classList.remove('show');
+      document.body.classList.remove('no-scroll');
+      currentUserId = null;
+      currentContext = null;
 
-      function reportUser() {
-        if (confirm('Are you sure you want to report this user?')) {
-          // Log the report
-          fetch('/report_user', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              reported_user_id: currentUserId,
-              reason: 'Inappropriate behavior'
-            })
+      // Reset option visibility
+      const allOptions = document.querySelectorAll('.user-interaction-option');
+      allOptions.forEach(option => option.style.display = 'block');
+    }
+
+    function visitUserProfile() {
+      if (currentUserId) {
+        window.location.href = `/user/${currentUserId}`;
+      }
+      closeUserInteractionModal();
+    }
+
+    function sendMessage() {
+      // Placeholder for messaging functionality
+      alert('Messaging feature coming soon!');
+      closeUserInteractionModal();
+    }
+
+    function reportUser() {
+      if (confirm('Are you sure you want to report this user?')) {
+        // Log the report
+        fetch('/report_user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            reported_user_id: currentUserId,
+            reason: 'Inappropriate behavior'
           })
+        })
           .then(response => response.json())
           .then(data => {
             if (data.success) {
@@ -1764,25 +1896,26 @@
             console.error('Error reporting user:', error);
             alert('Failed to report user. Please try again.');
           });
-        }
+      }
+      closeUserInteractionModal();
+    }
+
+    function blockUser() {
+      if (confirm('Are you sure you want to block this user? You will no longer see their content.')) {
+        // Placeholder for blocking functionality
+        alert('User blocking feature coming soon!');
+      }
+      closeUserInteractionModal();
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function (event) {
+      const modal = document.getElementById('userInteractionModal');
+      if (event.target === modal) {
         closeUserInteractionModal();
       }
+    });
+  </script>
+</body>
 
-      function blockUser() {
-        if (confirm('Are you sure you want to block this user? You will no longer see their content.')) {
-          // Placeholder for blocking functionality
-          alert('User blocking feature coming soon!');
-        }
-        closeUserInteractionModal();
-      }
-
-      // Close modal when clicking outside
-      document.addEventListener('click', function(event) {
-        const modal = document.getElementById('userInteractionModal');
-        if (event.target === modal) {
-          closeUserInteractionModal();
-        }
-      });
-    </script>
-  </body>
 </html>

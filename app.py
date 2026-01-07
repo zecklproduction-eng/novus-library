@@ -384,8 +384,12 @@ def check_banned():
 # Context processor to make user avatar available globally
 @app.context_processor
 def inject_user_avatar():
+    avatar_url = session.get('avatar_url')
+    # Add /static/ prefix if needed
+    if avatar_url and not avatar_url.startswith('http') and not avatar_url.startswith('/'):
+        avatar_url = '/static/' + avatar_url
     return {
-        'user_avatar': session.get('avatar_url'),
+        'user_avatar': avatar_url,
         'user_id': session.get('user_id')
     }
 
@@ -785,21 +789,6 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (chapter_id) REFERENCES chapters(id),
             UNIQUE(user_id, chapter_id)
-        )
-    """)
-
-    # chapter_comments (for general discussion on a chapter)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS chapter_comments (
-            id INTEGER PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            chapter_id INTEGER NOT NULL,
-            parent_id INTEGER, -- For nested replies
-            content TEXT,
-            created_at TEXT DEFAULT (DATETIME('now')),
-            FOREIGN KEY (user_id) REFERENCES users(id),
-            FOREIGN KEY (chapter_id) REFERENCES chapters(id),
-            FOREIGN KEY (parent_id) REFERENCES chapter_comments(id)
         )
     """)
 
@@ -2359,7 +2348,7 @@ def admin_ai_summaries_clear():
 
 
 @app.post("/book/<int:id>/review")
-@login_required
+@admin_required
 def add_review(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -2390,7 +2379,7 @@ def add_review(id):
     return redirect(url_for("view_book", id=id))
 
 @app.post("/review/<int:review_id>/delete")
-@login_required
+@admin_required
 def delete_review(review_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -4238,7 +4227,7 @@ def read_manga(id):
     conn.close()
 
     return render_template(
-        "manga_reader_new.html",
+        "manga_reader.html",
         manga=manga,
         chapters=chapters,
         related_manga=related_manga,
@@ -4281,11 +4270,66 @@ def manga_reader_v2(id):
     conn.close()
 
     return render_template(
-        "manga_reader_new.html",
+        "manga_reader.html",
         manga=manga,
         chapters=chapters,
         chapter=chapters[0] if chapters else None
     )
+
+
+# ---------- Chapter Pages API ----------
+@app.route("/api/chapter/<int:chapter_id>/pages")
+def get_chapter_pages(chapter_id):
+    """Get all pages for a specific chapter."""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Get chapter info
+        c.execute("""
+            SELECT id, manga_id, chapter_num, pdf_filename, page_count
+            FROM chapters
+            WHERE id = ?
+        """, (chapter_id,))
+        chapter = c.fetchone()
+        conn.close()
+        
+        if not chapter:
+            return jsonify({"error": "Chapter not found"}), 404
+        
+        chapter_id, manga_id, chapter_num, pdf_filename, page_count = chapter
+        
+        if not pdf_filename:
+            return jsonify([])
+        
+        pages = []
+        
+        # Check if it's a PDF file (single file) or comma-separated images
+        if pdf_filename.lower().endswith('.pdf'):
+            # It's a PDF file - for now, just return the PDF path
+            # The frontend will need to handle PDF rendering
+            chapter_dir = f"manga_{manga_id}_ch{chapter_num}"
+            pages.append({
+                "page_num": 1,
+                "url": f"/static/manga/{chapter_dir}/{pdf_filename}",
+                "type": "pdf"
+            })
+        else:
+            # It's comma-separated image filenames
+            page_files = [p.strip() for p in pdf_filename.split(',') if p.strip()]
+            chapter_dir = f"manga_{manga_id}_ch{chapter_num}"
+            
+            for idx, filename in enumerate(page_files, 1):
+                pages.append({
+                    "page_num": idx,
+                    "url": f"/static/manga/{chapter_dir}/{filename}",
+                    "type": "image"
+                })
+        
+        return jsonify(pages)
+    except Exception as e:
+        print(f"Error getting chapter pages: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/manga/chat", methods=["POST"])
@@ -4325,6 +4369,358 @@ def manga_chat_api():
         return jsonify({"success": True, "reply": response_text})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ---------- Manga Comments API ----------
+@app.route("/api/manga/<int:manga_id>/comments", methods=["GET"])
+def get_manga_comments(manga_id):
+    """Get comments for a manga."""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Ensure table exists
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS manga_comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                manga_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                likes INTEGER DEFAULT 0,
+                parent_id INTEGER DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (manga_id) REFERENCES books(id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """)
+        
+        user_id = session.get("user_id")
+        
+        c.execute("""
+            SELECT mc.id, mc.content, mc.created_at, 
+                   (SELECT COUNT(*) FROM manga_comment_likes WHERE comment_id = mc.id) as likes_count,
+                   u.username, u.avatar_url, mc.user_id, mc.parent_id,
+                   EXISTS(SELECT 1 FROM manga_comment_likes WHERE comment_id = mc.id AND user_id = ?) as user_liked
+            FROM manga_comments mc
+            JOIN users u ON mc.user_id = u.id
+            WHERE mc.manga_id = ?
+            ORDER BY mc.created_at DESC
+            LIMIT 50
+        """, (user_id, manga_id))
+        comments = c.fetchall()
+        conn.close()
+        
+        return jsonify([{
+            "id": comment[0],
+            "content": comment[1],
+            "created_at": comment[2],
+            "likes": comment[3],
+            "username": comment[4],
+            "avatar": comment[5],
+            "user_id": comment[6],
+            "parent_id": comment[7],
+            "user_liked": bool(comment[8])
+        } for comment in comments])
+    except Exception as e:
+        print(f"Error getting comments: {e}")
+        return jsonify([])
+
+
+@app.route("/api/manga/<int:manga_id>/comments", methods=["POST"])
+def post_manga_comment(manga_id):
+    """Post a comment on a manga."""
+    if "user_id" not in session:
+        return jsonify({"error": "Please log in to comment"}), 401
+    
+    data = request.json
+    content = data.get("content", "").strip()
+    parent_id = data.get("parent_id")
+    
+    if not content:
+        return jsonify({"error": "Comment cannot be empty"}), 400
+    
+    if len(content) > 1000:
+        return jsonify({"error": "Comment too long (max 1000 characters)"}), 400
+    
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        c.execute("""
+            INSERT INTO manga_comments (manga_id, user_id, content, parent_id)
+            VALUES (?, ?, ?, ?)
+        """, (manga_id, session["user_id"], content, parent_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------- Comment Actions API ----------
+@app.route("/api/comment/<int:comment_id>/like", methods=["POST"])
+def like_comment(comment_id):
+    """Toggle like on a comment (unique per user)."""
+    if "user_id" not in session:
+        return jsonify({"error": "Please log in to like comments"}), 401
+    
+    user_id = session["user_id"]
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Check if already liked
+        c.execute("SELECT 1 FROM manga_comment_likes WHERE user_id = ? AND comment_id = ?", (user_id, comment_id))
+        if c.fetchone():
+            c.execute("DELETE FROM manga_comment_likes WHERE user_id = ? AND comment_id = ?", (user_id, comment_id))
+            liked = False
+        else:
+            c.execute("INSERT INTO manga_comment_likes (user_id, comment_id) VALUES (?, ?)", (user_id, comment_id))
+            liked = True
+        
+        conn.commit()
+        
+        c.execute("SELECT COUNT(*) FROM manga_comment_likes WHERE comment_id = ?", (comment_id,))
+        count = c.fetchone()[0]
+        conn.close()
+        
+        return jsonify({"likes": count, "liked": liked})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/chapter/<int:chapter_id>/rate", methods=["POST"])
+def rate_chapter(chapter_id):
+    """Rate a chapter (like/dislike)."""
+    if "user_id" not in session:
+        return jsonify({"error": "Please log in to rate chapters"}), 401
+    
+    user_id = session["user_id"]
+    data = request.json
+    rating = data.get("rating") # 1 for like, -1 for dislike, 0 to remove
+    
+    if rating not in [1, -1, 0]:
+        return jsonify({"error": "Invalid rating"}), 400
+        
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        if rating == 0:
+            c.execute("DELETE FROM manga_chapter_ratings WHERE user_id = ? AND chapter_id = ?", (user_id, chapter_id))
+        else:
+            c.execute("""
+                INSERT INTO manga_chapter_ratings (user_id, chapter_id, rating)
+                VALUES (?, ?, ?)
+                ON CONFLICT(user_id, chapter_id) DO UPDATE SET rating = excluded.rating
+            """, (user_id, chapter_id, rating))
+        
+        conn.commit()
+        
+        # Get new counts
+        c.execute("SELECT COUNT(*) FROM manga_chapter_ratings WHERE chapter_id = ? AND rating = 1", (chapter_id,))
+        likes = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM manga_chapter_ratings WHERE chapter_id = ? AND rating = -1", (chapter_id,))
+        dislikes = c.fetchone()[0]
+        
+        conn.close()
+        return jsonify({"likes": likes, "dislikes": dislikes, "user_rating": rating})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/chapter/<int:chapter_id>/rating", methods=["GET"])
+def get_chapter_rating(chapter_id):
+    """Get rating counts and current user's rating for a chapter."""
+    user_id = session.get("user_id")
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        c.execute("SELECT COUNT(*) FROM manga_chapter_ratings WHERE chapter_id = ? AND rating = 1", (chapter_id,))
+        likes = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM manga_chapter_ratings WHERE chapter_id = ? AND rating = -1", (chapter_id,))
+        dislikes = c.fetchone()[0]
+        
+        user_rating = 0
+        if user_id:
+            c.execute("SELECT rating FROM manga_chapter_ratings WHERE user_id = ? AND chapter_id = ?", (user_id, chapter_id))
+            result = c.fetchone()
+            if result:
+                user_rating = result[0]
+                
+        conn.close()
+        return jsonify({"likes": likes, "dislikes": dislikes, "user_rating": user_rating})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/comment/<int:comment_id>", methods=["PUT"])
+def edit_comment(comment_id):
+    """Edit a comment (owner only)."""
+    if "user_id" not in session:
+        return jsonify({"error": "Please log in to edit comments"}), 401
+    
+    data = request.json
+    content = data.get("content", "").strip()
+    
+    if not content:
+        return jsonify({"error": "Comment cannot be empty"}), 400
+    
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Check ownership
+        c.execute("SELECT user_id FROM manga_comments WHERE id = ?", (comment_id,))
+        result = c.fetchone()
+        
+        if not result:
+            conn.close()
+            return jsonify({"error": "Comment not found"}), 404
+        
+        if result[0] != session["user_id"] and session.get("role") != "admin":
+            conn.close()
+            return jsonify({"error": "You can only edit your own comments"}), 403
+        
+        c.execute("UPDATE manga_comments SET content = ? WHERE id = ?", (content, comment_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/comment/<int:comment_id>", methods=["DELETE"])
+def delete_comment(comment_id):
+    """Delete a comment (owner or admin only)."""
+    if "user_id" not in session:
+        return jsonify({"error": "Please log in to delete comments"}), 401
+    
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Check ownership
+        c.execute("SELECT user_id FROM manga_comments WHERE id = ?", (comment_id,))
+        result = c.fetchone()
+        
+        if not result:
+            conn.close()
+            return jsonify({"error": "Comment not found"}), 404
+        
+        if result[0] != session["user_id"] and session.get("role") != "admin":
+            conn.close()
+            return jsonify({"error": "You can only delete your own comments"}), 403
+        
+        c.execute("DELETE FROM manga_comments WHERE id = ?", (comment_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------- Manga Reviews API ----------
+@app.route("/api/manga/<int:manga_id>/reviews", methods=["GET"])
+def get_manga_reviews(manga_id):
+    """Get reviews for a manga."""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Ensure table exists
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS manga_reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                manga_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                rating INTEGER DEFAULT 5,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (manga_id) REFERENCES books(id),
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE(manga_id, user_id)
+            )
+        """)
+        
+        c.execute("""
+            SELECT mr.id, mr.content, mr.rating, mr.created_at,
+                   u.username, u.avatar_url
+            FROM manga_reviews mr
+            JOIN users u ON mr.user_id = u.id
+            WHERE mr.manga_id = ?
+            ORDER BY mr.created_at DESC
+            LIMIT 20
+        """, (manga_id,))
+        reviews = c.fetchall()
+        conn.close()
+        
+        return jsonify([{
+            "id": review[0],
+            "content": review[1],
+            "rating": review[2],
+            "created_at": review[3],
+            "username": review[4],
+            "avatar": review[5]
+        } for review in reviews])
+    except Exception as e:
+        print(f"Error getting reviews: {e}")
+        return jsonify([])
+
+@app.route("/api/manga/<int:manga_id>/reviews", methods=["POST"])
+def post_manga_review(manga_id):
+    """Post a review on a manga."""
+    if "user_id" not in session:
+        return jsonify({"error": "Please log in to review"}), 401
+    
+    data = request.json
+    content = data.get("content", "").strip()
+    rating = data.get("rating", 5)
+    
+    if not content:
+        return jsonify({"error": "Review cannot be empty"}), 400
+    
+    if not isinstance(rating, int) or rating < 1 or rating > 5:
+        return jsonify({"error": "Rating must be 1-5"}), 400
+    
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Ensure table exists
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS manga_reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                manga_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                rating INTEGER DEFAULT 5,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (manga_id) REFERENCES books(id),
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE(manga_id, user_id)
+            )
+        """)
+        
+        # Upsert - update if exists, insert if not
+        c.execute("""
+            INSERT INTO manga_reviews (manga_id, user_id, content, rating)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(manga_id, user_id) DO UPDATE SET
+                content = excluded.content,
+                rating = excluded.rating,
+                created_at = CURRENT_TIMESTAMP
+        """, (manga_id, session["user_id"], content, rating))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ---------- Upload Chapter (For Existing Manga) ----------
@@ -4791,51 +5187,6 @@ def view_chapter(manga_id, chapter_id):
         chapter=chapter,
         chapters=chapters
     )
-
-
-# API endpoint to fetch chapter pages
-@app.route('/api/chapter/<int:chapter_id>/pages', methods=['GET'])
-@admin_required
-def get_chapter_pages(chapter_id):
-    """Fetch list of pages for a chapter."""
-    if 'user_id' not in session:
-        return jsonify({'error': 'login required'}), 401
-    
-    conn = get_conn()
-    c = conn.cursor()
-    
-    # Get chapter info
-    c.execute("""
-        SELECT id, manga_id, chapter_num, pdf_filename, page_count
-        FROM chapters
-        WHERE id = ?
-    """, (chapter_id,))
-    chapter = c.fetchone()
-    conn.close()
-    
-    if not chapter:
-        return jsonify({'error': 'chapter not found'}), 404
-    
-    chapter_id, manga_id, chapter_num, pdf_filename, page_count = chapter
-    
-    # Get list of image files in chapter directory
-    chapter_dir = os.path.join(UPLOAD_FOLDER_MANGA, f"manga_{manga_id}_ch{chapter_num}")
-    pages = []
-    
-    if os.path.exists(chapter_dir):
-        # Get all image files
-        image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
-        files = sorted([f for f in os.listdir(chapter_dir) 
-                       if os.path.splitext(f)[1].lower() in image_extensions],
-                      key=lambda x: int(''.join(filter(str.isdigit, x)) or '0'))
-        
-        for idx, filename in enumerate(files, 1):
-            pages.append({
-                'page_num': idx,
-                'url': f'/static/manga/manga_{manga_id}_ch{chapter_num}/{filename}'
-            })
-    
-    return jsonify(pages)
 
 
 # API endpoint to get chapters for a manga
@@ -8018,79 +8369,6 @@ def api_post_comment():
     conn.commit()
     conn.close()
     
-    return jsonify({"success": True})
-    
-@app.route("/api/manga/<int:manga_id>/reviews")
-def api_get_manga_reviews(manga_id):
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("""
-        SELECT r.id, r.content, r.rating, r.created_at,
-               u.username, u.avatar_url, u.id
-        FROM reviews r
-        JOIN users u ON u.id = r.user_id
-        WHERE r.book_id = ?
-        ORDER BY datetime(r.created_at) DESC
-    """, (manga_id,))
-    reviews = []
-    for row in c.fetchall():
-        reviews.append({
-            "id": row[0],
-            "content": row[1],
-            "rating": row[2],
-            "created_at": row[3],
-            "username": row[4],
-            "avatar_url": row[5],
-            "user_id": row[6]
-        })
-    conn.close()
-    return jsonify(reviews)
-
-@app.route("/api/chapter/<int:chapter_id>/comments")
-def api_get_chapter_comments(chapter_id):
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("""
-        SELECT cc.id, cc.content, cc.created_at,
-               u.username, u.avatar_url, u.id, cc.parent_id
-        FROM chapter_comments cc
-        JOIN users u ON u.id = cc.user_id
-        WHERE cc.chapter_id = ?
-        ORDER BY datetime(cc.created_at) ASC
-    """, (chapter_id,))
-    comments = []
-    for row in c.fetchall():
-        comments.append({
-            "id": row[0],
-            "content": row[1],
-            "created_at": row[2],
-            "username": row[3],
-            "avatar_url": row[4],
-            "user_id": row[5],
-            "parent_id": row[6]
-        })
-    conn.close()
-    return jsonify(comments)
-
-@app.post("/api/chapter/<int:chapter_id>/comment")
-@login_required
-def api_post_chapter_comment(chapter_id):
-    user_id = session["user_id"]
-    data = request.json
-    content = (data.get("content") or "").strip()
-    parent_id = data.get("parent_id")
-
-    if not content:
-        return jsonify({"error": "Content is required"}), 400
-
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO chapter_comments (user_id, chapter_id, content, parent_id)
-        VALUES (?, ?, ?, ?)
-    """, (user_id, chapter_id, content, parent_id))
-    conn.commit()
-    conn.close()
     return jsonify({"success": True})
 
 @app.route("/api/media/search")
