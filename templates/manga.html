@@ -4,7 +4,7 @@
 {% block content %}
 <div class="manga-page">
 
-  <!-- ================= HERO (use the one you already like) ================= -->
+  <!-- ================= HERO ================= -->
   <section class="manga-hero-shell">
     <div class="manga-hero">
       <div class="manga-hero-text">
@@ -18,18 +18,12 @@
           <a href="#manga-latest" class="btn-manga-primary">Explore Series</a>
           <a href="{{ url_for('home') }}" class="btn-manga-ghost">Back to Library</a>
         </div>
-
-        <p class="manga-hero-footnote">
-          Books. Audiobooks. <span>Manga.</span> Each with its own atmosphere.
-        </p>
       </div>
 
       <div class="manga-hero-orbit">
-  <div class="manga-hero-orbit-ring"></div>
-  <div class="manga-hero-orbit-core"></div>
-</div>
-
-
+        <div class="manga-hero-orbit-ring"></div>
+        <div class="manga-hero-orbit-core">🌀</div>
+      </div>
     </div>
   </section>
 
@@ -49,111 +43,103 @@
     </div>
 
     <form class="mv-search" method="get" action="{{ url_for('manga') }}">
-      <input
-        type="text"
-        name="q"
-        placeholder="Search manga title or author..."
-        value="{{ request.args.get('q', '') }}"
-      />
       <button type="submit">
         <i class="fas fa-search"></i>
       </button>
+      <input type="text" name="q" placeholder="Search series or creators..." value="{{ request.args.get('q', '') }}" />
     </form>
   </section>
-
-  <!-- ================= CONTINUE READING ================= -->
-
 
   <!-- ================= MAIN GRID + SIDEBAR ================= -->
   <section class="manga-main container" id="manga-latest">
     <!-- LEFT: MANGA CARDS -->
     <div class="manga-grid-col">
-      <h2 class="manga-section-title">Featured Manga Worlds</h2>
+      <h2 class="manga-section-title">Dimensional Portals</h2>
       <p class="manga-section-subtitle">
         {% if mangas %}
-          Explore our collection of manga series.
+        Discover paths to new worlds and legendary heroics.
         {% else %}
-          No manga available yet. Check back soon!
+        The universe is currently quiet. Check back soon for new arrivals.
         {% endif %}
       </p>
 
       <div class="manga-card-grid">
         {% if mangas %}
-          {% for m in mangas %}
-          <article class="manga-card">
-            <div class="manga-card-cover" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-              {% if m[6] %}
-                <img src="{{ url_for('static', filename=m[6]) }}" alt="{{ m[1] }}" style="width: 100%; height: 100%; object-fit: cover;">
-              {% else %}
-                <div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 50px;">📖</div>
-              {% endif %}
-            </div>
-            <div class="manga-card-body">
-              <h3 class="manga-card-title">{{ m[1] }}</h3>
-              <p class="manga-card-desc">
-                By {{ m[2] or 'Unknown Author' }}
-              </p>
-              <div class="manga-card-meta">
-                <span>{{ m[3] }}</span>
-                <span>•</span>
-                <span>{{ m[7] }} Chapters</span>
-              </div>
-              <a href="{{ url_for('read_manga', id=m[0]) }}" class="btn-manga-card">Read Now</a>
-            </div>
-          </article>
-          {% endfor %}
-        {% else %}
-          <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #999;">
-            <p style="font-size: 18px; margin-bottom: 10px;">No manga found</p>
-            <p>Start by uploading a manga from the "Add New Book" section!</p>
+        {% for m in mangas %}
+        <article class="manga-card">
+          <div class="manga-card-cover">
+            {% if m[6] %}
+            <img src="{{ url_for('static', filename=m[6]) }}" alt="{{ m[1] }}" loading="lazy">
+            {% else %}
+            <div class="empty-cover">📖</div>
+            {% endif %}
           </div>
+          <div class="manga-card-body">
+            <h3 class="manga-card-title">{{ m[1] }}</h3>
+            <p class="manga-card-desc">
+              {{ m[2] or 'Unknown Author' }}
+            </p>
+            <div class="manga-card-meta">
+              <span class="manga-type-pill">{{ m[3] }}</span>
+              <span>•</span>
+              <span>{{ m[7] }} Chapters</span>
+            </div>
+            <a href="{{ url_for('read_manga', id=m[0]) }}" class="btn-manga-card">Read Now</a>
+          </div>
+        </article>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+          <p class="empty-title">Unknown Sector</p>
+          <p class="empty-sub">No manga found in this dimension. Try adjusting your coordinates.</p>
+        </div>
         {% endif %}
       </div>
     </div>
 
     <!-- RIGHT: FILTER SIDEBAR -->
     <aside class="manga-filter-col">
-      <!-- Categories -->
       <div class="manga-filter-card">
-        <h3 class="filter-title">Categories</h3>
+        <h3 class="filter-title">Filter by Realm</h3>
         <div class="chip-row">
-          <a href="{{ url_for('manga') }}" class="chip {% if not selected_category %}chip-active{% endif %}">All</a>
+          <a href="{{ url_for('manga') }}" class="chip {% if not selected_category %}chip-active{% endif %}">All
+            Worlds</a>
           {% for cat in categories %}
-          <a href="{{ url_for('manga', category=cat) }}" class="chip {% if cat == selected_category %}chip-active{% endif %}">{{ cat }}</a>
+          <a href="{{ url_for('manga', category=cat) }}"
+            class="chip {% if cat == selected_category %}chip-active{% endif %}">{{ cat }}</a>
           {% endfor %}
         </div>
       </div>
     </aside>
   </section>
-  
-  <!-- ================= CONTINUE READING (Bottom) ================= -->
+
+  <!-- ================= CONTINUE READING ================= -->
   {% if continue_reading %}
-  <section class="container" style="margin-top: 40px; margin-bottom: 60px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 40px;">
-    <h2 class="manga-section-title">Continue Reading</h2>
-    <div class="manga-card-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+  <section class="manga-continue container">
+    <h2 class="manga-section-title">Resume Journey</h2>
+    <div class="manga-card-grid">
       {% for item in continue_reading %}
       <article class="manga-card">
-         <div class="manga-card-cover" style="background: linear-gradient(135deg, #2a2a4e 0%, #16213e 100%);">
-            {% if item[2] %}
-              <img src="{{ url_for('static', filename=item[2]) }}" alt="{{ item[1] }}" style="width: 100%; height: 100%; object-fit: cover;">
-            {% else %}
-               <div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 40px;">🔖</div>
-            {% endif %}
-            <div class="manga-card-overlay" style="background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;">
-                 <a href="{{ url_for('read_manga', id=item[0]) }}?chapter_id={{ item[3] }}&page={{ item[4] }}" class="btn-manga-card" style="width: auto; padding: 10px 20px;">Resume</a>
-            </div>
-         </div>
-         <div class="manga-card-body">
-           <h3 class="manga-card-title">{{ item[1] }}</h3>
-           <div class="manga-card-meta">
-              <span style="color: #00d4ff;">Chapter {{ item[5] }}</span>
-              <span>•</span>
-              <span>Page {{ item[4] + 1 }}</span>
-           </div>
-           <div style="width: 100%; height: 4px; background: #333; margin-top: 10px; border-radius: 2px;">
-              <div style="width: 60%; height: 100%; background: #00d4ff; border-radius: 2px;"></div>
-           </div>
-         </div>
+        <div class="manga-card-cover">
+          {% if item[2] %}
+          <img src="{{ url_for('static', filename=item[2]) }}" alt="{{ item[1] }}" loading="lazy">
+          {% else %}
+          <div class="empty-cover">🔖</div>
+          {% endif %}
+        </div>
+        <div class="manga-card-body">
+          <h3 class="manga-card-title">{{ item[1] }}</h3>
+          <div class="manga-card-meta">
+            <span class="accent-text">Ch. {{ item[5] }}</span>
+            <span>•</span>
+            <span>Page {{ item[4] + 1 }}</span>
+          </div>
+          <div class="manga-progress-shell">
+            <div class="manga-progress-bar" style="width: 60%;"></div>
+          </div>
+          <a href="{{ url_for('read_manga', id=item[0]) }}?chapter_id={{ item[3] }}&page={{ item[4] }}"
+            class="btn-manga-card">Resume</a>
+        </div>
       </article>
       {% endfor %}
     </div>

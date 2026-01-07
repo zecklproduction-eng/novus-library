@@ -149,8 +149,11 @@
   .manga-pages {
     flex: 1;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    /* Start with column to prevent slivers */
     align-items: center;
+    justify-content: flex-start;
+    /* Align to top */
     gap: 20px;
     overflow: auto;
     margin-bottom: 20px;
@@ -178,11 +181,17 @@
   }
 
   .manga-page {
-    max-height: 100%;
-    max-width: 45%;
+    /* Use width: 100% or auto and cap with max-width */
+    width: auto;
+    max-width: 100%;
+    height: auto;
     object-fit: contain;
     border-radius: 4px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    display: block;
+    margin: 0 auto;
+    flex-shrink: 0;
+    /* Prevent shrinking in flex layouts */
   }
 
   .manga-page-single {
@@ -1645,9 +1654,11 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-  let currentChapterId = parseInt("{{ chapter[0] if chapter else (chapters[0][0] if chapters else 0) }}");
-  let chapters = {{ chapters | tojson | safe }};
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  var currentChapterId = parseInt("{{ chapter[0] if chapter else (chapters[0][0] if chapters else 0) }}") || 0;
+  var chapters = {{ chapters | tojson | safe if chapters else '[]' }};
   let currentPageIndex = 0;
   let totalPages = 1;
   let readingMode = 'single';
@@ -1732,7 +1743,7 @@
   // Apply reading mode
   function applyReadingMode() {
     const container = document.getElementById('mangaPages');
-    const images = container.querySelectorAll('img');
+    const images = container.querySelectorAll('img, canvas');
     const navBar = document.querySelector('.reader-nav-bar');
 
     // Reset container styles
@@ -1744,7 +1755,7 @@
     if (readingMode === 'vertical') {
       // Vertical scroll - pages stacked vertically
       container.style.flexDirection = 'column';
-      if (navBar) navBar.style.display = 'none';
+      if (navBar) navBar.style.display = 'flex'; // Keep nav bar visible for autoscroll access
     } else if (readingMode === 'horizontal') {
       // Horizontal scroll - pages in a row
       container.style.flexDirection = 'row';
@@ -1765,18 +1776,29 @@
     }
 
     images.forEach(img => {
+      img.style.maxHeight = 'none';
+      img.style.flexShrink = '0';
+      img.style.display = 'block';
+      img.style.margin = '0 auto';
+
       if (readingMode === 'double') {
+        img.style.width = 'auto';
         img.style.maxWidth = '48%';
         img.style.height = 'auto';
       } else if (readingMode === 'vertical') {
-        img.style.maxWidth = '100%';
+        img.style.width = '100%';
+        img.style.maxWidth = '1200px';
         img.style.height = 'auto';
       } else if (readingMode === 'horizontal') {
+        img.style.width = 'auto';
         img.style.maxWidth = 'none';
         img.style.height = '100%';
-        img.style.flexShrink = '0';
+        img.style.maxHeight = '100%';
+        img.style.margin = '0'; // No auto margin in horizontal
       } else {
-        img.style.maxWidth = '90%';
+        // Single page view (default)
+        img.style.width = '100%';
+        img.style.maxWidth = '1000px';
         img.style.height = 'auto';
       }
     });
@@ -1827,6 +1849,7 @@
       currentPageIndex--;
       document.getElementById('progressSlider').value = (currentPageIndex / Math.max(totalPages - 1, 1)) * 100;
       updatePageCounter();
+      scrollToCurrentPage();
     }
   }
 
@@ -1835,6 +1858,15 @@
       currentPageIndex++;
       document.getElementById('progressSlider').value = (currentPageIndex / Math.max(totalPages - 1, 1)) * 100;
       updatePageCounter();
+      scrollToCurrentPage();
+    }
+  }
+
+  function scrollToCurrentPage() {
+    const container = document.getElementById('mangaPages');
+    const images = container.querySelectorAll('.manga-page');
+    if (images.length > 0 && images[currentPageIndex]) {
+      images[currentPageIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 
@@ -1959,6 +1991,8 @@
   // Load chapter pages
   async function loadChapter(chapterId, chapterNum) {
     const mangaPages = document.getElementById('mangaPages');
+    mangaPages.scrollTop = 0;
+    mangaPages.scrollLeft = 0;
     mangaPages.innerHTML = '<div class="manga-loading"><i class="fas fa-spinner"></i><p>Loading chapter...</p></div>';
 
     try {
@@ -1976,20 +2010,15 @@
       }
 
       // Check if it's a PDF chapter
-      if (pages.length === 1 && pages[0].type === 'pdf') {
-        // Render PDF in an iframe with hidden toolbar and sidebar
-        const iframe = document.createElement('iframe');
-        iframe.src = pages[0].url + '#toolbar=0&navpanes=0&scrollbar=1&view=FitH';
-        iframe.className = 'manga-pdf-viewer';
-        iframe.style.cssText = 'width: 100%; height: 85vh; border: none; border-radius: 8px; background: #1a1a2e;';
-        mangaPages.appendChild(iframe);
-        totalPages = 1;
-        updatePageCounter();
+      if (pages.length === 1 && (pages[0].type === 'pdf' || pages[0].url.toLowerCase().endsWith('.pdf'))) {
+        console.log('PDF chapter detected, forwarding to renderPdf');
+        renderPdf(pages[0].url);
         return;
       }
 
       // Load images
       let loadedCount = 0;
+      totalPages = pages.length; // Set total pages for images
 
       for (const [index, page] of pages.entries()) {
         const img = document.createElement('img');
@@ -2118,6 +2147,56 @@
     } catch (error) {
       console.error('Error loading chapter:', error);
       mangaPages.innerHTML = '<div class="manga-loading"><i class="fas fa-exclamation-circle"></i><p>Error loading chapter pages</p></div>';
+    }
+  }
+
+  async function renderPdf(url) {
+    if (typeof pdfjsLib === 'undefined') {
+      console.warn('PDF.js not ready, retrying...');
+      setTimeout(() => renderPdf(url), 500);
+      return;
+    }
+
+    const mangaPages = document.getElementById('mangaPages');
+    mangaPages.scrollTop = 0;
+    mangaPages.scrollLeft = 0;
+    mangaPages.innerHTML = '<div class="manga-loading"><i class="fas fa-spinner"></i><p>Rendering PDF...</p></div>';
+
+    console.log('Fetching PDF document:', url);
+    try {
+      const pdf = await pdfjsLib.getDocument(url).promise;
+      console.log('PDF document loaded. Total pages:', pdf.numPages);
+      mangaPages.innerHTML = '';
+      totalPages = pdf.numPages;
+      updatePageCounter();
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 2.0 });
+
+        const canvas = document.createElement('canvas');
+        canvas.className = 'manga-page';
+        canvas.dataset.originalIndex = pageNum - 1;
+
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+
+        await page.render(renderContext).promise;
+        mangaPages.appendChild(canvas);
+      }
+
+      console.log('PDF rendering finished successfully');
+      applyReadingMode();
+      recalcTotalPages();
+    } catch (error) {
+      console.error('PDF rendering error:', error);
+      mangaPages.innerHTML = '<div class="manga-loading"><i class="fas fa-exclamation-circle"></i><p>Error rendering PDF: ' + error.message + '</p></div>';
     }
   }
 
@@ -2464,15 +2543,27 @@
       if (autoScrollEnabled) {
         if (readingMode === 'horizontal') {
           container.scrollLeft += autoScrollSpeed;
-          // Stop at end
-          if (container.scrollLeft >= container.scrollWidth - container.clientWidth) {
+          // Stop at end with 15px buffer
+          if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 15) {
+            toggleAutoScroll();
+          }
+        } else if (readingMode === 'vertical') {
+          container.scrollTop += autoScrollSpeed;
+          // Stop at end with 15px buffer
+          if (container.scrollTop >= container.scrollHeight - container.clientHeight - 15) {
             toggleAutoScroll();
           }
         } else {
+          // Paginated modes (Single/Double)
+          // Scroll within current view, then trigger nextPage
           container.scrollTop += autoScrollSpeed;
-          // Stop at end
-          if (container.scrollTop >= container.scrollHeight - container.clientHeight) {
-            toggleAutoScroll();
+          if (container.scrollTop >= container.scrollHeight - container.clientHeight - 15) {
+            if (currentPageIndex < totalPages - 1) {
+              nextPage();
+              container.scrollTop = 0; // Reset scroll for new page
+            } else {
+              toggleAutoScroll();
+            }
           }
         }
       }
