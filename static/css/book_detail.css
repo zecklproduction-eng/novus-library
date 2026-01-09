@@ -127,6 +127,11 @@
     padding: 10px 20px;
     font-weight: 600;
     border-radius: 10px;
+    font-size: 0.9rem;
+}
+
+.btn-glass i {
+    font-size: 0.85rem;
 }
 
 .btn-glass:hover {
@@ -172,7 +177,7 @@
 }
 
 .ai-header i {
-    font-size: 1.2rem;
+    font-size: 1rem;
     animation: aiPulse 2s infinite;
 }
 
@@ -260,10 +265,25 @@
 }
 
 .bc-review-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.9rem !important;
     background: linear-gradient(135deg, var(--neon-blue), #667eea) !important;
     color: #000 !important;
     font-weight: 800 !important;
     box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+/* Override style.css list constraints */
+.bc-reviews-list {
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-right: 0 !important;
+}
+
+.bc-review-stars {
+    font-size: 0.8rem;
+    opacity: 0.8;
 }
 
 /* Dropdown styling */
