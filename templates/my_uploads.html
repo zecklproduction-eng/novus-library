@@ -3,279 +3,298 @@
 
 {% block content %}
 <style>
-    :root {
-        --neon-blue: #00d4ff;
-        --neon-purple: #9d50bb;
-        --glass-bg: rgba(255, 255, 255, 0.03);
-        --glass-border: rgba(255, 255, 255, 0.08);
-        --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+  :root {
+    --neon-blue: #00d4ff;
+    --neon-purple: #9d50bb;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+  }
+
+  body {
+    background-color: #0a0a0c;
+    color: #e4e4e7;
+  }
+
+  .uploads-page-container {
+    padding: 40px 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+    animation: fadeIn 0.8s ease-out;
+  }
+
+  /* Glass Header */
+  .uploads-header {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 40px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .uploads-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .page-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+  }
+
+  /* Search System */
+  .search-section {
+    margin-bottom: 40px;
+  }
+
+  .search-box-premium {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 6px;
+    display: flex;
+    gap: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .search-box-premium:focus-within {
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+  }
+
+  .search-input-premium {
+    background: transparent;
+    border: none;
+    color: #fff;
+    padding: 12px 20px;
+    width: 100%;
+    outline: none;
+    font-size: 1rem;
+  }
+
+  .btn-search-premium {
+    background: var(--neon-blue);
+    color: #000;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 12px;
+    font-weight: 700;
+    transition: all 0.3s ease;
+  }
+
+  .btn-search-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3);
+  }
+
+  /* Uploads Grid */
+  .uploads-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+  }
+
+  .upload-card-premium {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .upload-card-premium:hover {
+    transform: translateY(-10px);
+    border-color: rgba(0, 212, 255, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .card-poster-wrapper {
+    position: relative;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+  }
+
+  .card-poster {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+  }
+
+  .upload-card-premium:hover .card-poster {
+    transform: scale(1.1);
+  }
+
+  .type-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    backdrop-filter: blur(10px);
+    z-index: 2;
+  }
+
+  .badge-manga {
+    background: rgba(157, 80, 187, 0.2);
+    border: 1px solid rgba(157, 80, 187, 0.4);
+    color: #d8b4fe;
+  }
+
+  .badge-book {
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    color: #7dd3fc;
+  }
+
+  .card-content {
+    padding: 25px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .item-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #fff;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .item-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    color: #a1a1aa;
+  }
+
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .meta-row i {
+    width: 16px;
+    color: var(--neon-blue);
+  }
+
+  /* Actions Bar */
+  .card-actions-premium {
+    display: flex;
+    gap: 10px;
+    padding-top: 20px;
+    border-top: 1px solid var(--glass-border);
+    margin-top: auto;
+  }
+
+  .btn-action-sm {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    text-decoration: none;
+  }
+
+  .btn-view {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+
+  .btn-view:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-edit {
+    background: rgba(0, 212, 255, 0.1);
+    color: var(--neon-blue);
+  }
+
+  .btn-edit:hover {
+    background: rgba(0, 212, 255, 0.2);
+  }
+
+  .btn-delete-card {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: none;
+    transition: all 0.2s ease;
+  }
+
+  .btn-delete-card:hover {
+    background: #ef4444;
+    color: #fff;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
     }
 
-    body {
-        background-color: #0a0a0c;
-        color: #e4e4e7;
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
+  }
 
-    .uploads-page-container {
-        padding: 40px 20px;
-        max-width: 1400px;
-        margin: 0 auto;
-        animation: fadeIn 0.8s ease-out;
-    }
-
-    /* Glass Header */
-    .uploads-header {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
-        backdrop-filter: blur(20px);
-        border: 1px solid var(--glass-border);
-        border-radius: 24px;
-        padding: 40px;
-        margin-bottom: 40px;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .uploads-header::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
-        pointer-events: none;
-    }
-
-    .page-title {
-        font-size: 2.5rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: -0.02em;
-    }
-
-    /* Search System */
-    .search-section {
-        margin-bottom: 40px;
-    }
-
-    .search-box-premium {
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid var(--glass-border);
-        border-radius: 16px;
-        padding: 6px;
-        display: flex;
-        gap: 10px;
-        transition: all 0.3s ease;
-    }
-
-    .search-box-premium:focus-within {
-        border-color: var(--neon-blue);
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
-    }
-
-    .search-input-premium {
-        background: transparent;
-        border: none;
-        color: #fff;
-        padding: 12px 20px;
-        width: 100%;
-        outline: none;
-        font-size: 1rem;
-    }
-
-    .btn-search-premium {
-        background: var(--neon-blue);
-        color: #000;
-        border: none;
-        padding: 12px 30px;
-        border-radius: 12px;
-        font-weight: 700;
-        transition: all 0.3s ease;
-    }
-
-    .btn-search-premium:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3);
-    }
-
-    /* Uploads Grid */
-    .uploads-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 30px;
-    }
-
-    .upload-card-premium {
-        background: var(--glass-bg);
-        backdrop-filter: blur(10px);
-        border: 1px solid var(--glass-border);
-        border-radius: 20px;
-        overflow: hidden;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .upload-card-premium:hover {
-        transform: translateY(-10px);
-        border-color: rgba(0, 212, 255, 0.3);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    }
-
-    .card-poster-wrapper {
-        position: relative;
-        aspect-ratio: 16/9;
-        overflow: hidden;
-    }
-
-    .card-poster {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.6s ease;
-    }
-
-    .upload-card-premium:hover .card-poster {
-        transform: scale(1.1);
-    }
-
-    .type-badge {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        padding: 6px 14px;
-        border-radius: 10px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        backdrop-filter: blur(10px);
-        z-index: 2;
-    }
-
-    .badge-manga {
-        background: rgba(157, 80, 187, 0.2);
-        border: 1px solid rgba(157, 80, 187, 0.4);
-        color: #d8b4fe;
-    }
-
-    .badge-book {
-        background: rgba(0, 212, 255, 0.2);
-        border: 1px solid rgba(0, 212, 255, 0.4);
-        color: #7dd3fc;
-    }
-
-    .card-content {
-        padding: 25px;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .item-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        margin-bottom: 12px;
-        color: #fff;
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        line-clamp: 1;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .item-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-bottom: 20px;
-        font-size: 0.9rem;
-        color: #a1a1aa;
-    }
-
-    .meta-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .meta-row i {
-        width: 16px;
-        color: var(--neon-blue);
-    }
-
-    /* Actions Bar */
-    .card-actions-premium {
-        display: flex;
-        gap: 10px;
-        padding-top: 20px;
-        border-top: 1px solid var(--glass-border);
-        margin-top: auto;
-    }
-
-    .btn-action-sm {
-        flex: 1;
-        padding: 10px;
-        border-radius: 10px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        transition: all 0.2s ease;
-        text-decoration: none;
-    }
-
-    .btn-view { background: rgba(255, 255, 255, 0.05); color: #fff; }
-    .btn-view:hover { background: rgba(255, 255, 255, 0.1); }
-    
-    .btn-edit { background: rgba(0, 212, 255, 0.1); color: var(--neon-blue); }
-    .btn-edit:hover { background: rgba(0, 212, 255, 0.2); }
-
-    .btn-delete-card {
-        width: 42px;
-        height: 42px;
-        border-radius: 10px;
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        border: none;
-        transition: all 0.2s ease;
-    }
-
-    .btn-delete-card:hover {
-        background: #ef4444;
-        color: #fff;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .empty-state-premium {
-        text-align: center;
-        padding: 100px 40px;
-        background: var(--glass-bg);
-        border: 1px dashed var(--glass-border);
-        border-radius: 24px;
-        color: #a1a1aa;
-    }
+  .empty-state-premium {
+    text-align: center;
+    padding: 100px 40px;
+    background: var(--glass-bg);
+    border: 1px dashed var(--glass-border);
+    border-radius: 24px;
+    color: #a1a1aa;
+  }
 </style>
 <div class="uploads-page-container">
-  
+
   <!-- PREMIUM HEADER -->
   <header class="uploads-header animate-in">
     <h2 class="page-title mb-2">My Uploads</h2>
     <p class="text-zinc-400 mb-0">
       {% if is_admin %}
-        Manage all books and manga in the Novus catalog from this administrative view.
+      Manage all books and manga in the Novus catalog from this administrative view.
       {% else %}
-        Review and manage the books and manga you've shared with the community.
+      Review and manage the books and manga you've shared with the community.
       {% endif %}
     </p>
   </header>
@@ -284,14 +303,15 @@
   <section class="search-section animate-in delay-1">
     <form action="{{ url_for('my_uploads') }}" method="get">
       <div class="search-box-premium">
-        <input type="text" name="q" class="search-input-premium" placeholder="Search by title, author, or genre..." value="{{ q }}">
+        <input type="text" name="q" class="search-input-premium" placeholder="Search by title, author, or genre..."
+          value="{{ q }}">
         <button type="submit" class="btn-search-premium">
           <i class="fas fa-search me-2"></i>Search
         </button>
         {% if q %}
-          <a href="{{ url_for('my_uploads') }}" class="btn-action-sm btn-view px-4" title="Clear search">
-            <i class="fas fa-times"></i>
-          </a>
+        <a href="{{ url_for('my_uploads') }}" class="btn-action-sm btn-view px-4" title="Clear search">
+          <i class="fas fa-times"></i>
+        </a>
         {% endif %}
       </div>
     </form>
@@ -318,13 +338,14 @@
         <!-- Thumb/Poster -->
         <div class="card-poster-wrapper">
           {% if b[6] %}
-            <img src="{{ url_for('static', filename=b[6]) }}" alt="{{ b[1] }}" class="card-poster">
+          <img src="{{ url_for('static', filename=b[6]) }}" alt="{{ b[1] }}" class="card-poster">
           {% else %}
-            <div class="card-poster d-flex align-items-center justify-content-center bg-zinc-900">
-               <i class="fas {% if b[8] == 'manga' %}fa-paint-brush{% else %}fa-book-open{% endif %} fa-3x text-zinc-800"></i>
-            </div>
+          <div class="card-poster d-flex align-items-center justify-content-center bg-zinc-900">
+            <i
+              class="fas {% if b[8] == 'manga' %}fa-paint-brush{% else %}fa-book-open{% endif %} fa-3x text-zinc-800"></i>
+          </div>
           {% endif %}
-          
+
           {% if b[9] %}
           <div class="position-absolute top-15 start-15 z-2">
             <i class="fas fa-heart text-danger shadow-lg"></i>
@@ -335,7 +356,7 @@
         <!-- Content -->
         <div class="card-content">
           <h3 class="item-title">{{ b[1] }}</h3>
-          
+
           <div class="item-meta">
             <div class="meta-row">
               <i class="fas fa-user-edit"></i>
@@ -359,7 +380,8 @@
 
           <!-- Actions -->
           <div class="card-actions-premium">
-            <a href="{% if b[8] == 'manga' %}{{ url_for('read_manga', id=b[0]) }}{% else %}{{ url_for('view_book', id=b[0]) }}{% endif %}" class="btn-action-sm btn-view" title="View Details">
+            <a href="{% if b[8] == 'manga' %}{{ url_for('manga_detail', id=b[0]) }}{% else %}{{ url_for('view_book', id=b[0]) }}{% endif %}"
+              class="btn-action-sm btn-view" title="View Details">
               <i class="fas fa-external-link-alt"></i><span>View</span>
             </a>
 
@@ -368,12 +390,14 @@
             </a>
 
             {% if b[8] == 'manga' %}
-              <a href="{{ url_for('upload_chapter', manga_id=b[0]) }}" class="btn-action-sm btn-view border-purple-900/30" title="Upload Chapter">
-                <i class="fas fa-plus"></i><span>Ch</span>
-              </a>
+            <a href="{{ url_for('upload_chapter', manga_id=b[0]) }}" class="btn-action-sm btn-view border-purple-900/30"
+              title="Upload Chapter">
+              <i class="fas fa-plus"></i><span>Ch</span>
+            </a>
             {% endif %}
 
-            <form method="POST" action="{{ url_for('delete_book', id=b[0]) }}" onsubmit="return confirm('Permanently delete this item?');" class="m-0">
+            <form method="POST" action="{{ url_for('delete_book', id=b[0]) }}"
+              onsubmit="return confirm('Permanently delete this item?');" class="m-0">
               <button type="submit" class="btn-delete-card" title="Delete Permanent">
                 <i class="fas fa-trash-alt"></i>
               </button>
@@ -390,15 +414,15 @@
     <h3 class="text-white">Nothing Found</h3>
     <p class="mb-4">
       {% if is_admin %}
-        The catalog is currently empty or no results match your query.
+      The catalog is currently empty or no results match your query.
       {% else %}
-        You haven't uploaded anything to Novus yet. Start sharing today!
+      You haven't uploaded anything to Novus yet. Start sharing today!
       {% endif %}
     </p>
     {% if not is_admin %}
-      <a href="{{ url_for('add_book') }}" class="btn-search-premium d-inline-block text-decoration-none">
-        <i class="fas fa-plus me-2"></i>Upload Now
-      </a>
+    <a href="{{ url_for('add_book') }}" class="btn-search-premium d-inline-block text-decoration-none">
+      <i class="fas fa-plus me-2"></i>Upload Now
+    </a>
     {% endif %}
   </div>
   {% endif %}

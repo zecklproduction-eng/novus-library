@@ -20,9 +20,26 @@
         </div>
       </div>
 
-      <div class="manga-hero-orbit">
-        <div class="manga-hero-orbit-ring"></div>
-        <div class="manga-hero-orbit-core">🌀</div>
+      <div class="manga-hero-portal">
+        <div class="portal-outer-ring"></div>
+        <div class="portal-ring-1"></div>
+        <div class="portal-ring-2"></div>
+
+        <div class="portal-core">
+          <div class="vortex-container">
+            <img src="{{ url_for('static', filename='img/manga_vortex.png') }}" alt="Dimensional Portal"
+              class="portal-vortex">
+            <div class="vortex-glass"></div>
+          </div>
+          <div class="vortex-glint"></div>
+        </div>
+
+        <div class="portal-particles">
+          <div class="p1"></div>
+          <div class="p2"></div>
+          <div class="p3"></div>
+          <div class="p4"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -67,24 +84,53 @@
         {% if mangas %}
         {% for m in mangas %}
         <article class="manga-card">
-          <div class="manga-card-cover">
-            {% if m[6] %}
-            <img src="{{ url_for('static', filename=m[6]) }}" alt="{{ m[1] }}" loading="lazy">
-            {% else %}
-            <div class="empty-cover">📖</div>
-            {% endif %}
-          </div>
+          <a href="{{ url_for('manga_detail', id=m[0]) }}" class="manga-card-link">
+            <div class="manga-card-cover">
+              {% if m[6] %}
+              <img src="{{ url_for('static', filename=m[6]) }}" alt="{{ m[1] }}" loading="lazy">
+              {% else %}
+              <div class="empty-cover">📖</div>
+              {% endif %}
+            </div>
+          </a>
           <div class="manga-card-body">
-            <h3 class="manga-card-title">{{ m[1] }}</h3>
+            <a href="{{ url_for('manga_detail', id=m[0]) }}" class="manga-card-title-link">
+              <h3 class="manga-card-title">{{ m[1] }}</h3>
+            </a>
             <p class="manga-card-desc">
               {{ m[2] or 'Unknown Author' }}
             </p>
             <div class="manga-card-meta">
-              <span class="manga-type-pill">{{ m[3] }}</span>
-              <span>•</span>
-              <span>{{ m[7] }} Chapters</span>
+              {% set categories = m[3].split(',') if m[3] else [] %}
+              <div class="manga-tags-wrapper">
+                <div class="manga-tags-row">
+                  {% for cat in categories[:2] %}
+                  <span class="manga-type-pill">{{ cat|trim }}</span>
+                  {% endfor %}
+                  {% if categories|length > 2 %}
+                  <span class="manga-type-pill manga-more-btn"
+                    onclick="this.closest('.manga-tags-wrapper').classList.toggle('expanded')">+{{ categories|length - 2
+                    }}</span>
+                  {% endif %}
+                </div>
+                {% if categories|length > 2 %}
+                <div class="manga-tags-expanded">
+                  {% for cat in categories[2:] %}
+                  <span class="manga-type-pill">{{ cat|trim }}</span>
+                  {% endfor %}
+                  <span class="manga-type-pill manga-less-btn"
+                    onclick="this.closest('.manga-tags-wrapper').classList.remove('expanded')">−</span>
+                </div>
+                {% endif %}
+              </div>
             </div>
-            <a href="{{ url_for('read_manga', id=m[0]) }}" class="btn-manga-card">Read Now</a>
+            <div class="manga-chapter-row">
+              <span class="manga-type-pill manga-chapter-tag">CH.{{ m[7] }}</span>
+            </div>
+            <div class="manga-card-actions">
+              <a href="{{ url_for('manga_detail', id=m[0]) }}" class="btn-manga-card btn-manga-detail">View Details</a>
+              <a href="{{ url_for('read_manga', id=m[0]) }}" class="btn-manga-card btn-manga-read">Read Now</a>
+            </div>
           </div>
         </article>
         {% endfor %}

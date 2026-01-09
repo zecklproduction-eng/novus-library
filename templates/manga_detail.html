@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}{{ manga[1] }} | NOVUS Manga{% endblock %}
+
+{% block content %}
+<div class="manga-detail-page">
+
+    <!-- BREADCRUMB -->
+    <nav class="manga-detail-breadcrumb">
+        <a href="{{ url_for('home') }}">Home</a>
+        <span class="breadcrumb-sep">•</span>
+        <a href="{{ url_for('manga') }}">Manga</a>
+        <span class="breadcrumb-sep">•</span>
+        <span class="breadcrumb-current">{{ manga[1] }}</span>
+    </nav>
+
+    <!-- MAIN CONTENT GRID -->
+    <div class="manga-detail-container">
+
+        <!-- LEFT SECTION: Cover + Info -->
+        <div class="manga-detail-main">
+
+            <!-- Hero Section -->
+            <div class="manga-detail-hero">
+
+                <!-- Cover Image -->
+                <div class="manga-detail-cover-wrapper">
+                    <div class="manga-detail-cover">
+                        {% if manga[6] %}
+                        <img src="{{ url_for('static', filename=manga[6]) }}" alt="{{ manga[1] }}">
+                        {% else %}
+                        <div class="manga-detail-cover-placeholder">📖</div>
+                        {% endif %}
+                    </div>
+                    <div class="watch-together-badge">
+                        <i class="fas fa-users"></i>
+                        <span>ReadTogether</span>
+                    </div>
+                </div>
+
+                <!-- Info Section -->
+                <div class="manga-detail-info">
+                    <h1 class="manga-detail-title">{{ manga[1] }}</h1>
+
+                    <!-- Badges Row -->
+                    <div class="manga-detail-badges">
+                        {% if avg_rating %}
+                        <span class="detail-badge badge-rating">★ {{ "%.1f"|format(avg_rating) }}</span>
+                        {% endif %}
+                        <span class="detail-badge badge-hd">HD</span>
+                        <span class="detail-badge badge-type">Manga</span>
+                        {% if chapter_count %}
+                        <span class="detail-badge badge-chapters">{{ chapter_count }} Ch</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Read Now Button -->
+                    <a href="{{ url_for('read_manga', id=manga[0]) }}" class="btn-read-now">
+                        <i class="fas fa-play"></i>
+                        <span>Read now</span>
+                    </a>
+
+                    <!-- Description -->
+                    <div class="manga-detail-description">
+                        <p id="mangaDescription"
+                            class="description-text {% if manga[7] and manga[7]|length > 300 %}collapsed{% endif %}">
+                            {{ manga[7] or 'No description available for this manga series.' }}
+                        </p>
+                        {% if manga[7] and manga[7]|length > 300 %}
+                        <button class="description-toggle" onclick="toggleDescription()">
+                            <span class="toggle-text">+ More</span>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- RECOMMENDED FOR YOU SECTION -->
+            <section class="manga-rec-section">
+                <h2 class="manga-rec-title">Recommended for you</h2>
+                <div class="manga-rec-slider">
+                    {% if recommendations %}
+                    {% for rec in recommendations %}
+                    <a href="{{ url_for('manga_detail', id=rec[0]) }}" class="manga-rec-card">
+                        <div class="manga-rec-cover">
+                            {% if rec[6] %}
+                            <img src="{{ url_for('static', filename=rec[6]) }}" alt="{{ rec[1] }}" loading="lazy">
+                            {% else %}
+                            <div class="manga-rec-placeholder">📖</div>
+                            {% endif %}
+                        </div>
+                        <div class="manga-rec-info">
+                            <h4 class="manga-rec-name">{{ rec[1][:25] }}{% if rec[1]|length > 25 %}...{% endif %}</h4>
+                            <div class="manga-rec-meta">
+                                <span>Manga</span>
+                                <span class="meta-dot">•</span>
+                                <span>{{ rec[7] or 0 }} Ch</span>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                    {% else %}
+                    <div class="manga-rec-empty">
+                        <p>No recommendations available yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+        </div>
+
+        <!-- RIGHT SIDEBAR: Metadata + Most Popular -->
+        <aside class="manga-detail-sidebar">
+
+            <!-- Metadata Card -->
+            <div class="manga-meta-card">
+                {% if avg_rating %}
+                <div class="meta-item">
+                    <span class="meta-label">Score:</span>
+                    <span class="meta-value meta-score">{{ "%.2f"|format(avg_rating) }}</span>
+                </div>
+                {% endif %}
+
+                <div class="meta-item">
+                    <span class="meta-label">Chapters:</span>
+                    <span class="meta-value">{{ chapter_count or 0 }}</span>
+                </div>
+
+                <div class="meta-item">
+                    <span class="meta-label">Genres:</span>
+                    <div class="meta-genres">
+                        {% set categories = manga[3].split(',') if manga[3] else ['Unknown'] %}
+                        {% for cat in categories %}
+                        <a href="{{ url_for('manga', category=cat|trim) }}" class="genre-tag">{{ cat|trim }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% if manga[2] %}
+                <div class="meta-item">
+                    <span class="meta-label">Author:</span>
+                    <span class="meta-value meta-author">{{ manga[2] }}</span>
+                </div>
+                {% endif %}
+
+                {% if manga[8] %}
+                <div class="meta-item">
+                    <span class="meta-label">Publisher:</span>
+                    <span class="meta-value meta-publisher">{{ manga[8] }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- MOST POPULAR SECTION -->
+            <div class="manga-popular-section">
+                <h3 class="manga-popular-title">Most Popular</h3>
+                <div class="manga-popular-list">
+                    {% if popular_manga %}
+                    {% for pop in popular_manga %}
+                    <a href="{{ url_for('manga_detail', id=pop[0]) }}" class="manga-popular-item">
+                        <div class="popular-cover">
+                            {% if pop[6] %}
+                            <img src="{{ url_for('static', filename=pop[6]) }}" alt="{{ pop[1] }}" loading="lazy">
+                            {% else %}
+                            <div class="popular-placeholder">📖</div>
+                            {% endif %}
+                        </div>
+                        <div class="popular-info">
+                            <h4 class="popular-name">{{ pop[1][:22] }}{% if pop[1]|length > 22 %}...{% endif %}</h4>
+                            <div class="popular-stats">
+                                <span class="stat-item"><i class="fas fa-eye"></i> {{ pop[8] or 0 }}</span>
+                                <span class="stat-item"><i class="fas fa-heart"></i> {{ pop[9] or 0 }}</span>
+                                <span class="stat-item">{{ pop[7] or 0 }} Ch</span>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                    {% else %}
+                    <p class="popular-empty">No data available</p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </aside>
+
+    </div>
+
+</div>
+
+<script>
+    function toggleDescription() {
+        const desc = document.getElementById('mangaDescription');
+        const btn = document.querySelector('.description-toggle .toggle-text');
+
+        if (desc.classList.contains('collapsed')) {
+            desc.classList.remove('collapsed');
+            btn.textContent = '- Less';
+        } else {
+            desc.classList.add('collapsed');
+            btn.textContent = '+ More';
+        }
+    }
+</script>
+{% endblock %}

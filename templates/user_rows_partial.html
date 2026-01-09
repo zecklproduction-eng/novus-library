@@ -1,0 +1,79 @@
+{% for u in users %}
+<tr>
+    <!-- Profile Column -->
+    <td>
+        <div class="user-avatar-group">
+            {% if u[5] %}
+            {% if u[5].startswith('http') %}
+            <img src="{{ u[5] }}" alt="{{ u[1] }}" class="avatar-circle">
+            {% else %}
+            <img src="{{ url_for('static', filename=u[5]) }}" alt="{{ u[1] }}" class="avatar-circle">
+            {% endif %}
+            {% else %}
+            <div class="avatar-circle d-flex align-items-center justify-content-center bg-secondary">
+                <span class="fw-bold">{{ u[1][:1]|upper }}</span>
+            </div>
+            {% endif %}
+            <div class="user-info-text">
+                <h6>{{ u[1] }}</h6>
+                <small>{{ u[7] or 'No email' }}</small>
+            </div>
+        </div>
+    </td>
+
+    <!-- Role Column -->
+    <td>
+        <span class="role-badge {% if u[2] == 'admin' %}admin{% endif %}">
+            {{ u[2]|capitalize }}
+        </span>
+    </td>
+
+    <!-- Plan Column -->
+    <td>
+        {% if u[2] == 'admin' %}
+        <span class="text-muted small">N/A</span>
+        {% else %}
+        <form method="post" action="/admin/users/{{ u[0] }}/plan" class="plan-select-wrapper">
+            <select name="plan" class="plan-select">
+                <option value="basic" {% if u[6]=='basic' %}selected{% endif %}>Basic</option>
+                <option value="pro" {% if u[6]=='pro' %}selected{% endif %}>Pro</option>
+                <option value="ultimate" {% if u[6]=='ultimate' %}selected{% endif %}>Ultimate</option>
+            </select>
+            <button class="btn-set-plan" type="submit" title="Save Plan">OK</button>
+        </form>
+        {% endif %}
+    </td>
+
+    <!-- Status Column -->
+    <td>
+        {% if u[3] == 1 %}
+        <span class="status-badge banned">Banned</span>
+        {% else %}
+        <span class="status-badge active">Active</span>
+        {% endif %}
+    </td>
+
+    <!-- Actions Column -->
+    <td class="text-end">
+        <button class="btn-action info"
+            onclick="openUserInfoModal('{{ u[0] }}', '{{ u[1] }}', '{{ u[7] or '' }}', '{{ u[8] }}')"
+            title="View Details">
+            <i class="fas fa-info-circle"></i>
+        </button>
+
+        {% if u[2] != 'admin' %}
+        {% if u[3] == 1 %}
+        <form method="post" action="{{ url_for('user_unban', user_id=u[0]) }}" class="d-inline">
+            <button class="btn-action active" title="Unban User"><i class="fas fa-undo"></i></button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('user_ban', user_id=u[0]) }}" class="d-inline">
+            <button class="btn-action ban" title="Ban User"
+                onclick="return confirm('Are you sure you want to ban {{ u[1] }}?');"><i
+                    class="fas fa-ban"></i></button>
+        </form>
+        {% endif %}
+        {% endif %}
+    </td>
+</tr>
+{% endfor %}

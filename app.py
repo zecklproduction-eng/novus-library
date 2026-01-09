@@ -8,6 +8,7 @@ from datetime import timedelta
 from collections import Counter
 import os
 import logging
+import traceback
 from logging.handlers import RotatingFileHandler
 from werkzeug.utils import secure_filename
 UPLOAD_FOLDER = os.path.join("static", "uploads", "avatars")
@@ -82,44 +83,48 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 # Context Processor to make animations available globally (for banner in base/index)
 @app.context_processor
 def inject_animations():
-    active_animations = {}
-    animation_styles = {
-        'login': 'standard',
-        'manga': 'classic',
-        'dashboard': 'none',
-        'logout': 'fade'
-    }
-    
-    # Avoid DB calls if not needed or if session missing
-    if "user_id" in session:
-        try:
-            conn = get_conn()
-            c = conn.cursor()
-            # Get active custom animations
-            c.execute("SELECT animation_type, file_path, name, COALESCE(has_animated, 0), category FROM custom_animations WHERE user_id = ? AND is_active = 1", (session["user_id"],))
-            rows = c.fetchall()
-            for row in rows:
-                active_animations[row[0]] = {
-                    'path': row[1], 
-                    'name': row[2],
-                    'has_animated': row[3],
-                    'category': row[4]
-                }
+    try:
+        active_animations = {}
+        animation_styles = {
+            'login': 'standard',
+            'manga': 'classic',
+            'dashboard': 'none',
+            'logout': 'fade'
+        }
+        
+        # Avoid DB calls if not needed or if session missing
+        if "user_id" in session:
+            try:
+                conn = get_conn()
+                c = conn.cursor()
+                # Get active custom animations
+                c.execute("SELECT animation_type, file_path, name, COALESCE(has_animated, 0), category FROM custom_animations WHERE user_id = ? AND is_active = 1", (session["user_id"],))
+                rows = c.fetchall()
+                for row in rows:
+                    active_animations[row[0]] = {
+                        'path': row[1], 
+                        'name': row[2],
+                        'has_animated': row[3],
+                        'category': row[4]
+                    }
+                
+                # Get animation style settings
+                c.execute("SELECT setting_key, setting_value FROM animation_settings WHERE user_id = ?", (session["user_id"],))
+                settings_rows = c.fetchall()
+                for row in settings_rows:
+                    if row[0] in animation_styles:
+                        animation_styles[row[0]] = row[1]
+                conn.close()
+            except Exception as db_err:
+                logger.error(f"DB Error in inject_animations: {str(db_err)}")
             
-            # Get animation style settings
-            c.execute("SELECT setting_key, setting_value FROM animation_settings WHERE user_id = ?", (session["user_id"],))
-            settings_rows = c.fetchall()
-            for row in settings_rows:
-                if row[0] in animation_styles:
-                    animation_styles[row[0]] = row[1]
-            
-            conn.close()
-        except Exception as e:
-            # Silently fail so we don't crash the whole app if DB is locked/missing
-            pass
-            
-    # We inject 'animations' as the active set and 'anim_styles' for style settings
-    return dict(animations=active_animations, anim_styles=animation_styles)
+        # We inject 'animations' as the active set and 'anim_styles' for style settings
+        return dict(animations=active_animations, anim_styles=animation_styles)
+    except Exception as e:
+        logger.error(f"Error in inject_animations processor: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return {'animations': {}, 'anim_styles': {}}
 
 # OAuth Configuration
 if AUTHLIB_AVAILABLE:
@@ -173,6 +178,8 @@ def not_found_error(error):
 
 @app.errorhandler(500)
 def internal_error(error):
+    import traceback
+    logger.error(f"500 Error: {error}\n{traceback.format_exc()}")
     if request.path.startswith('/api/') or request.is_json:
         return jsonify({"error": "Internal server error"}), 500
     return "Internal Server Error", 500
@@ -334,64 +341,83 @@ def apply_default_banner_if_needed(user_id):
     Apply the Novus Blue preset banner as default if user has no active banner.
     This is called after successful login to ensure new users have a banner.
     """
-    conn = get_conn()
-    c = conn.cursor()
-    
-    # Check if user already has an active banner
-    c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND animation_type = 'banner' AND is_active = 1", (user_id,))
-    existing_banner = c.fetchone()
-    
-    if not existing_banner:
-        # User has no active banner, apply the Novus Blue banner as default (Animation #2)
-        preset_path = 'img/banner_option_novus_blue.png'
+    try:
+        conn = get_conn()
+        c = conn.cursor()
         
-        # Check if this preset already exists for the user (inactive)
-        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path = ?", (user_id, preset_path))
-        existing_preset = c.fetchone()
+        # Check if user already has an active banner
+        c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND animation_type = 'banner' AND is_active = 1", (user_id,))
+        existing_banner = c.fetchone()
         
-        if existing_preset:
-            # Activate existing preset
-            c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (existing_preset[0],))
-        else:
-            # Insert new preset banner
-            c.execute("""
-                INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name, category)
-                VALUES (?, 'banner', ?, 1, 'Novus Blue', 'animation')
-            """, (user_id, preset_path))
+        if not existing_banner:
+            # User has no active banner, apply the Novus Blue banner as default (Animation #2)
+            preset_path = 'img/banner_option_novus_blue.png'
+            
+            # Check if this preset already exists for the user (inactive)
+            c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path = ?", (user_id, preset_path))
+            existing_preset = c.fetchone()
+            
+            if existing_preset:
+                # Activate existing preset
+                c.execute("UPDATE custom_animations SET is_active = 1 WHERE id = ?", (existing_preset[0],))
+            else:
+                # Insert new preset banner
+                c.execute("""
+                    INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name, category)
+                    VALUES (?, 'banner', ?, 1, 'Novus Blue', 'animation')
+                """, (user_id, preset_path))
+            
+            conn.commit()
         
-        conn.commit()
-    
-    conn.close()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error in apply_default_banner_if_needed for user {user_id}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
 
 @app.before_request
 def check_banned():
-    uid = session.get("user_id")
-    if not uid:
-        return
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("SELECT COALESCE(is_banned,0), COALESCE(status,'active') FROM users WHERE id=?", (uid,))
-    row = c.fetchone()
-    conn.close()
-    if row:
-        is_banned, status = row
-        if int(is_banned) == 1 or status == "banned":
-            session.clear()
-            flash("Your account has been banned.", "danger")
-            return redirect(url_for("login"))
+    try:
+        uid = session.get("user_id")
+        if not uid:
+            return
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT COALESCE(is_banned,0), COALESCE(status,'active') FROM users WHERE id=?", (uid,))
+        row = c.fetchone()
+        conn.close()
+        if row:
+            is_banned, status = row
+            try:
+                if int(is_banned) == 1 or status == "banned":
+                    session.clear()
+                    flash("Your account has been banned.", "danger")
+                    return redirect(url_for("login"))
+            except (ValueError, TypeError) as e:
+                 logger.error(f"Type conversion error for banned status for user {uid}: {e}")
+    except Exception as e:
+        logger.error(f"Error in check_banned: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
 
 
 # Context processor to make user avatar available globally
 @app.context_processor
 def inject_user_avatar():
-    avatar_url = session.get('avatar_url')
-    # Add /static/ prefix if needed
-    if avatar_url and not avatar_url.startswith('http') and not avatar_url.startswith('/'):
-        avatar_url = '/static/' + avatar_url
-    return {
-        'user_avatar': avatar_url,
-        'user_id': session.get('user_id')
-    }
+    try:
+        avatar_url = session.get('avatar_url')
+        # Add /static/ prefix if needed
+        if avatar_url and not avatar_url.startswith('http') and not avatar_url.startswith('/'):
+            avatar_url = '/static/' + avatar_url
+        return {
+            'user_avatar': avatar_url,
+            'user_id': session.get('user_id')
+        }
+    except Exception as e:
+        logger.error(f"Error in inject_user_avatar context processor: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return {'user_avatar': None, 'user_id': None}
 
 
 def allowed(filename, allowed_set):
@@ -402,10 +428,17 @@ def admin_required(f):
     """Allow only admin to access the route."""
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if session.get("role") != "admin":
-            flash("Admin access required.", "danger")
-            return redirect(url_for("logout"))
-        return f(*args, **kwargs)
+        try:
+            if session.get("role") != "admin":
+                flash("Admin access required.", "danger")
+                return redirect(url_for("logout"))
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error in admin_required decorator: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            flash("An unexpected error occurred.", "danger")
+            return redirect(url_for("home"))
     return wrapper
 
 
@@ -413,10 +446,17 @@ def login_required(f):
     """Allow any logged in user to access the route."""
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if "user_id" not in session:
-            flash("Please log in to access this page.", "info")
-            return redirect(url_for("login"))
-        return f(*args, **kwargs)
+        try:
+            if "user_id" not in session:
+                flash("Please log in to access this page.", "info")
+                return redirect(url_for("login"))
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error in login_required decorator: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            flash("An unexpected error occurred.", "danger")
+            return redirect(url_for("home"))
     return wrapper
 
 
@@ -425,10 +465,17 @@ def role_required(*roles):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            if session.get("role") not in roles:
-                flash("You do not have permission to access this page.", "danger")
+            try:
+                if session.get("role") not in roles:
+                    flash("You do not have permission to access this page.", "danger")
+                    return redirect(url_for("home"))
+                return f(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Error in role_required decorator: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
+                flash("An unexpected error occurred.", "danger")
                 return redirect(url_for("home"))
-            return f(*args, **kwargs)
         return wrapper
     return decorator
 
@@ -628,6 +675,18 @@ def init_db():
             FOREIGN KEY(manga_id) REFERENCES books(id)
         )
     """)
+
+    # Ensure reading_history has updated_at and page_index (migration)
+    try:
+        c.execute("ALTER TABLE reading_history ADD COLUMN updated_at TIMESTAMP")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute("ALTER TABLE reading_history ADD COLUMN page_index INTEGER DEFAULT 0")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
     
     # image summaries cache table
     c.execute("""
@@ -976,8 +1035,10 @@ def init_db():
             manga_id INTEGER, -- For chapter requests
             author TEXT,
             notes TEXT,
+
             status TEXT DEFAULT 'Requested',
             vote_count INTEGER DEFAULT 0,
+            fulfilled_by INTEGER,
             created_at TEXT DEFAULT (DATETIME('now')),
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (manga_id) REFERENCES books(id),
@@ -1563,33 +1624,40 @@ def oauth_callback(provider):
 
 @app.before_request
 def refresh_plan():
-    uid = session.get("user_id")
-    if not uid:
-        return
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("SELECT COALESCE(plan,'basic'), plan_expires_at FROM users WHERE id=?", (uid,))
-    row = c.fetchone()
-    conn.close()
-    if row:
-        session["plan"] = row[0] or "basic"
-        session["plan_expires_at"] = row[1]
-        # compute days left if expiry exists and plan is not ultimate
-        session["plan_days_left"] = None
-        try:
-            if session.get("plan_expires_at") and session.get("plan") != "ultimate":
-                exp = session.get("plan_expires_at")
-                # parse ISO timestamps
-                try:
-                    exp_dt = datetime.fromisoformat(exp)
-                except Exception:
-                    # fallback if stored as plain date
-                    exp_dt = datetime.strptime(exp, "%Y-%m-%d")
-                delta = exp_dt - datetime.utcnow()
-                days_left = max(0, delta.days)
-                session["plan_days_left"] = days_left
-        except Exception:
+    try:
+        uid = session.get("user_id")
+        if not uid:
+            return
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT COALESCE(plan,'basic'), plan_expires_at FROM users WHERE id=?", (uid,))
+        row = c.fetchone()
+        conn.close()
+        if row:
+            session["plan"] = row[0] or "basic"
+            session["plan_expires_at"] = row[1]
+            # compute days left if expiry exists and plan is not ultimate
             session["plan_days_left"] = None
+            try:
+                if session.get("plan_expires_at") and session.get("plan") != "ultimate":
+                    exp_str = session.get("plan_expires_at")
+                    if exp_str:
+                        # Try parsing as ISO format first, then fallback to date only
+                        try:
+                            exp_dt = datetime.fromisoformat(exp_str)
+                        except ValueError:
+                            exp_dt = datetime.strptime(exp_str, "%Y-%m-%d")
+                        now = datetime.utcnow()
+                        delta = exp_dt - now
+                        session["plan_days_left"] = max(0, delta.days)
+            except Exception as e:
+                logger.error(f"Error computing plan days left for user {uid}: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
+    except Exception as e:
+        logger.error(f"Error in refresh_plan: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -1632,11 +1700,9 @@ def register():
             return redirect(url_for("register"))
 
         # Determine role based on account_type
-        # use 'reader' as the standard non-publisher role (was 'student' previously)
-        if account_type == "publisher":
-            role = "publisher"
-        else:
-            role = "reader"
+        # Default all new users to 'reader'. If 'publisher' is requested, we create a role_request.
+        role = "reader"
+        requested_publisher = (account_type == "publisher")
 
         # Insert into DB
         conn = get_conn()
@@ -1646,17 +1712,38 @@ def register():
                 "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
                 (username, email, password, role)
             )
+            new_user_id = c.lastrowid
+            
+            # Create role request if publisher was selected
+            if requested_publisher:
+                c.execute(
+                    "INSERT INTO role_requests (user_id, requested_role, status) VALUES (?, 'publisher', 'pending')",
+                    (new_user_id,)
+                )
+            
             conn.commit()
         except sqlite3.IntegrityError as e:
             # Check which field caused the duplicate
             conn.close()
             if "username" in str(e):
-                flash("That username is already taken. Choose another.", "danger")
+                flash("That username is already taken.", "danger")
             elif "email" in str(e):
-                flash("That email is already registered. Use another or login.", "danger")
+                flash("That email is already registered.", "danger")
             else:
-                flash("Registration failed. Please try again.", "danger")
+                flash(f"Error registering user: {e}", "danger")
             return redirect(url_for("register"))
+        finally:
+            if conn:
+                conn.close()
+
+        # Flash appropriate message
+        if requested_publisher:
+             flash("Account created! Your publisher access request has been sent to admins for approval. You can login as a reader in the meantime.", "info")
+        else:
+             flash("Account created successfully! Please login.", "success")
+        
+        return redirect(url_for("login"))
+
 
         # Get the user id we just created
         c.execute("SELECT id, role FROM users WHERE username=?", (username,))
@@ -2047,85 +2134,137 @@ def community_reviews():
     conn = get_conn()
     c = conn.cursor()
     
+    manga_id_filter = request.args.get('manga_id', type=int)
+
     # 1. Fetch all reviews with user and book info
-    c.execute("""
+    # Book Reviews
+    book_query = """
         SELECT r.id, r.user_id, r.book_id, r.rating, r.content, r.created_at, r.has_spoilers, r.status,
                u.username, u.avatar_url,
-               b.title, b.cover_path, b.book_type, b.category
+               b.title, b.cover_path, b.book_type, b.category,
+               NULL as chapter_num
         FROM reviews r
         JOIN users u ON u.id = r.user_id
         JOIN books b ON b.id = r.book_id
-        ORDER BY r.created_at DESC
-    """)
-    reviews_raw = c.fetchall()
+    """
+    if manga_id_filter:
+        book_query += " WHERE b.id = ?"
+        c.execute(book_query, (manga_id_filter,))
+    else:
+        c.execute(book_query)
+        
+    book_reviews = c.fetchall()
+
+    # Manga Reviews
+    manga_query = """
+        SELECT mr.id, mr.user_id, mr.manga_id, mr.rating, mr.content, mr.created_at, mr.has_spoilers, mr.status,
+               u.username, u.avatar_url,
+               b.title, b.cover_path, b.book_type, b.category,
+               ch.chapter_num
+        FROM manga_reviews mr
+        JOIN users u ON u.id = mr.user_id
+        JOIN books b ON b.id = mr.manga_id
+        LEFT JOIN chapters ch ON mr.chapter_id = ch.id
+    """
+    if manga_id_filter:
+        manga_query += " WHERE b.id = ?"
+        c.execute(manga_query, (manga_id_filter,))
+    else:
+        c.execute(manga_query)
+        
+    manga_reviews = c.fetchall()
+
+    # Combine and sort by created_at DESC
+    # We prefix manga IDs with 'm_' and book IDs with 'b_' to avoid collisions in the combined list
+    # and to help the like/comment APIs later if we want to fix them.
+    # Actually, for now let's just combine them.
+    
+    combined_raw = []
+    for r in book_reviews:
+        combined_raw.append(list(r) + ['book'])
+    for r in manga_reviews:
+        combined_raw.append(list(r) + ['manga'])
+
+    # Sort DESC by created_at (index 5)
+    combined_raw.sort(key=lambda x: x[5], reverse=True)
+    
+    reviews_raw = combined_raw
     
     reviews = []
     for row in reviews_raw:
         review_id = row[0]
+        review_type = row[15]
         
         # 2. Fetch likes count and if current user liked it
-        c.execute("SELECT COUNT(*) FROM review_likes WHERE review_id = ?", (review_id,))
-        likes_count = c.fetchone()[0]
+        # Note: We current only have likes tables for 'book' reviews.
+        # For manga reviews, we'll default to 0 for now unless we add tables.
+        likes_count = 0
+        is_liked = False
         
-        c.execute("SELECT 1 FROM review_likes WHERE review_id = ? AND user_id = ?", (review_id, session['user_id']))
-        is_liked = c.fetchone() is not None
+        if review_type == 'book':
+            c.execute("SELECT COUNT(*) FROM review_likes WHERE review_id = ?", (review_id,))
+            likes_count = c.fetchone()[0]
+            if session.get('user_id'):
+                c.execute("SELECT 1 FROM review_likes WHERE review_id = ? AND user_id = ?", (review_id, session['user_id']))
+                is_liked = c.fetchone() is not None
         
         # 3. Fetch comments
-        c.execute("""
-            SELECT rc.id, rc.user_id, rc.content, rc.created_at, rc.parent_id,
-                   u.username, u.avatar_url
-            FROM review_comments rc
-            JOIN users u ON u.id = rc.user_id
-            WHERE rc.review_id = ?
-            ORDER BY rc.created_at ASC
-        """, (review_id,))
-        comments_raw = c.fetchall()
-        
-        # Organize comments and replies
-        comments_map = {}
-        for c_row in comments_raw:
-            c_id = c_row[0]
-            comment_obj = {
-                'id': str(c_id),
-                'userId': str(c_row[1]),
-                'user': {
-                    'id': str(c_row[1]),
-                    'username': c_row[5],
-                    'avatarUrl': c_row[6] or 'https://picsum.photos/seed/you/100/100'
-                },
-                'body': c_row[2],
-                'createdAt': c_row[3],
-                'parent_id': c_row[4],
-                'likesCount': 0, # fetched inside loop now
-                'isLiked': False,
-                'replies': []
-            }
+        comments_list = []
+        if review_type == 'book':
+            c.execute("""
+                SELECT rc.id, rc.user_id, rc.content, rc.created_at, rc.parent_id,
+                       u.username, u.avatar_url
+                FROM review_comments rc
+                JOIN users u ON u.id = rc.user_id
+                WHERE rc.review_id = ?
+                ORDER BY rc.created_at ASC
+            """, (review_id,))
+            comments_raw = c.fetchall()
             
-            # Fetch likes for comment
-            c.execute("SELECT COUNT(*) FROM comment_likes WHERE comment_id = ?", (c_id,))
-            comment_obj['likesCount'] = c.fetchone()[0]
-            
-            user_id = session.get('user_id')
-            if user_id:
-                c.execute("SELECT 1 FROM comment_likes WHERE comment_id = ? AND user_id = ?", (c_id, user_id))
-                comment_obj['isLiked'] = c.fetchone() is not None
-            else:
-                comment_obj['isLiked'] = False
-            
-            comments_map[c_id] = comment_obj
-            
-        final_comments = []
-        for c_id, c_obj in comments_map.items():
-            parent_id = c_obj['parent_id']
-            if parent_id and parent_id in comments_map:
-                comments_map[parent_id]['replies'].append(c_obj)
-            else:
-                final_comments.append(c_obj)
+            # Organize comments and replies
+            comments_map = {}
+            for c_row in comments_raw:
+                c_id = c_row[0]
+                comment_obj = {
+                    'id': str(c_id),
+                    'userId': str(c_row[1]),
+                    'user': {
+                        'id': str(c_row[1]),
+                        'username': c_row[5],
+                        'avatarUrl': c_row[6] or 'https://picsum.photos/seed/you/100/100'
+                    },
+                    'body': c_row[2],
+                    'createdAt': c_row[3],
+                    'parent_id': c_row[4],
+                    'likesCount': 0,
+                    'isLiked': False,
+                    'replies': []
+                }
+                
+                # Fetch likes for comment
+                c.execute("SELECT COUNT(*) FROM comment_likes WHERE comment_id = ?", (c_id,))
+                comment_obj['likesCount'] = c.fetchone()[0]
+                
+                user_id = session.get('user_id')
+                if user_id:
+                    c.execute("SELECT 1 FROM comment_likes WHERE comment_id = ? AND user_id = ?", (c_id, user_id))
+                    comment_obj['isLiked'] = c.fetchone() is not None
+                
+                comments_map[c_id] = comment_obj
+                
+            for c_id, c_obj in comments_map.items():
+                parent_id = c_obj['parent_id']
+                if parent_id and parent_id in comments_map:
+                    comments_map[parent_id]['replies'].append(c_obj)
+                else:
+                    comments_list.append(c_obj)
         
         tags = [tag.strip() for tag in row[13].split(',')] if row[13] else []
         
         reviews.append({
-            'id': str(review_id),
+            'id': f"{review_type}_{review_id}",
+            'raw_id': review_id,
+            'type': review_type,
             'userId': str(row[1]),
             'user': {
                 'id': str(row[1]),
@@ -2137,7 +2276,8 @@ def community_reviews():
                 'title': row[10],
                 'coverUrl': (f"/static/{row[11]}" if row[11] and not row[11].startswith(('http', 'https')) else (row[11] or 'https://picsum.photos/seed/cs/200/300')),
                 'type': (row[12] or 'BOOK').upper(),
-                'tags': tags
+                'tags': tags,
+                'chapter_num': row[14]
             },
             'rating': float(row[3]) if row[3] else 0.0,
             'body': row[4],
@@ -2146,7 +2286,7 @@ def community_reviews():
             'status': row[7] or 'Reading',
             'likesCount': likes_count,
             'isLiked': is_liked,
-            'comments': final_comments
+            'comments': comments_list
         })
     
     conn.close()
@@ -2504,7 +2644,7 @@ def delete_chapter_review(review_id):
 
 # ---------- Add Book (Admin + Publisher) ----------
 @app.route("/add", methods=["GET", "POST"])
-@admin_required
+@role_required("admin", "publisher")
 def add_book():
     if request.method == "GET":
 
@@ -3766,7 +3906,7 @@ def favorites():
     favorite_books = c.execute("""
         SELECT b.id, b.title, b.author, COALESCE(b.category, 'General') AS category,
                b.pdf_filename, b.audio_filename, b.cover_path,
-               f.created_at
+               f.created_at, b.book_type
         FROM favorites f
         JOIN books b ON b.id = f.book_id
         WHERE f.user_id = ?
@@ -3780,7 +3920,7 @@ def favorites():
     recently_read = c.execute("""
         SELECT b.id, b.title, b.author, COALESCE(b.category, 'General'),
                b.pdf_filename, b.audio_filename, b.cover_path,
-               h.date_read
+               h.date_read, b.book_type
         FROM history h
         JOIN books b ON b.id = h.book_id
         WHERE h.user_id = ?
@@ -3793,7 +3933,7 @@ def favorites():
     # Format data for template
     favorite_books_formatted = []
     for r in favorite_books:
-        book_id, title, author, category, pdf, audio, cover_path, date_added = r
+        book_id, title, author, category, pdf, audio, cover_path, date_added, book_type = r
         
         # Handle cover image path
         if cover_path:
@@ -3810,12 +3950,13 @@ def favorites():
             "author": author, 
             "category": category, 
             "cover": image_url,
-            "date_added": date_added
+            "date_added": date_added,
+            "type": book_type
         })
     
     recently_read_books = []
     for r in recently_read:
-        b_id, b_title, b_author, b_cat, b_pdf, b_audio, b_cover, b_date = r
+        b_id, b_title, b_author, b_cat, b_pdf, b_audio, b_cover, b_date, b_type = r
         if b_cover:
             img_url = b_cover if b_cover.startswith(('http://', 'https://')) else f"/static/{b_cover}"
         else:
@@ -3827,7 +3968,8 @@ def favorites():
             "author": b_author, 
             "category": b_cat, 
             "cover": img_url, 
-            "date_read": b_date
+            "date_read": b_date,
+            "type": b_type
         })
     
     return render_template("favorites.html", 
@@ -4029,80 +4171,173 @@ def api_favorites_toggle():
 @app.route("/manga")
 @login_required
 def manga():
+    try:
+        if "user_id" not in session:
+            return redirect(url_for("login"))
+
+        selected = (request.args.get("category") or "").strip()
+        q = (request.args.get("q") or "").strip()
+
+        conn = get_conn()
+        c = conn.cursor()
+
+        # Get manga categories
+        c.execute("""
+            SELECT DISTINCT COALESCE(category,'General')
+            FROM books
+            WHERE COALESCE(book_type,'book')='manga'
+        """)
+        raw_cats = [row[0] for row in c.fetchall()]
+        categories_set = set()
+        for rc in raw_cats:
+            for cat in rc.split(','):
+                 cleaned = cat.strip()
+                 if cleaned:
+                     categories_set.add(cleaned)
+        categories = sorted(list(categories_set))
+
+        # Updated query with chapter count
+        base_sql = """
+            SELECT b.id, b.title, b.author, COALESCE(b.category,'General') AS category,
+                   b.pdf_filename, b.audio_filename, b.cover_path,
+                   COUNT(ch.id) as chapter_count
+            FROM books b
+            LEFT JOIN chapters ch ON b.id = ch.manga_id
+            WHERE COALESCE(b.book_type,'book')='manga'
+        """
+        params = []
+
+        if selected:
+            base_sql += " AND ',' || REPLACE(COALESCE(b.category,'General'), ' ', '') || ',' LIKE ?"
+            params.append(f"%,{selected.replace(' ', '')},%")
+
+        if q:
+            base_sql += " AND (b.title LIKE ? OR b.author LIKE ?)"
+            search_term = f"%{q}%"
+            params.extend([search_term, search_term])
+
+        base_sql += " GROUP BY b.id ORDER BY datetime(b.created_at) DESC"
+
+        c.execute(base_sql, params)
+        mangas = c.fetchall()
+
+        # Fetch Continue Reading for logged-in user
+        continue_reading = []
+        if session.get("user_id"):
+            uid = session["user_id"]
+            c.execute("""
+                SELECT b.id, b.title, b.cover_path, rh.chapter_id, rh.page_index, c.chapter_num
+                FROM reading_history rh
+                JOIN books b ON rh.manga_id = b.id
+                JOIN chapters c ON rh.chapter_id = c.id
+                WHERE rh.user_id = ?
+                ORDER BY rh.updated_at DESC
+                LIMIT 5
+            """, (uid,))
+            continue_reading = c.fetchall()
+
+        conn.close()
+
+        return render_template(
+            "manga.html",
+            mangas=mangas,
+            categories=categories,
+            selected_category=selected,
+            q=q,
+            body_class="manga-theme",
+            continue_reading=continue_reading
+        )
+
+    except Exception as e:
+        logger.error(f"Error in manga route: {e}\n{traceback.format_exc()}")
+        flash("An error occurred while loading the manga library.", "danger")
+        try:
+            if 'conn' in locals() and conn:
+                conn.close()
+        except:
+            pass
+        return redirect(url_for("home"))
+
+
+
+# ---------- Manga Detail Page ----------
+@app.route("/manga/detail/<int:id>")
+@login_required
+def manga_detail(id):
+    """Display detailed view of a manga series."""
     if "user_id" not in session:
         return redirect(url_for("login"))
-
-    selected = (request.args.get("category") or "").strip()
-    q = (request.args.get("q") or "").strip()
 
     conn = get_conn()
     c = conn.cursor()
 
-    # Get manga categories
+    # Fetch manga details with extended info and uploader
     c.execute("""
-        SELECT DISTINCT COALESCE(category,'General')
-        FROM books
-        WHERE COALESCE(book_type,'book')='manga'
-    """)
-    raw_cats = [row[0] for row in c.fetchall()]
-    categories_set = set()
-    for rc in raw_cats:
-        for cat in rc.split(','):
-             cleaned = cat.strip()
-             if cleaned:
-                 categories_set.add(cleaned)
-    categories = sorted(list(categories_set))
-
-    # Updated query with chapter count
-    base_sql = """
         SELECT b.id, b.title, b.author, COALESCE(b.category,'General') AS category,
-               b.pdf_filename, b.audio_filename, b.cover_path,
-               COUNT(ch.id) as chapter_count
+               b.pdf_filename, b.audio_filename, b.cover_path, b.description,
+               u.username as publisher_name
         FROM books b
-        LEFT JOIN chapters ch ON b.id = ch.manga_id
+        LEFT JOIN users u ON b.uploader_id = u.id
+        WHERE b.id = ? AND COALESCE(b.book_type,'book')='manga'
+    """, (id,))
+    manga = c.fetchone()
+
+    if not manga:
+        conn.close()
+        flash("Manga not found.", "danger")
+        return redirect(url_for("manga"))
+
+    # Get chapter count
+    c.execute("SELECT COUNT(*) FROM chapters WHERE manga_id = ?", (id,))
+    chapter_count = c.fetchone()[0]
+
+    # Get average rating
+    c.execute("""
+        SELECT AVG(rating) FROM reviews WHERE book_id = ?
+    """, (id,))
+    avg_rating_row = c.fetchone()
+    avg_rating = avg_rating_row[0] if avg_rating_row and avg_rating_row[0] else None
+
+    # Get recommendations (same category, excluding current)
+    categories = manga[3].split(',') if manga[3] else []
+    first_category = categories[0].strip() if categories else 'General'
+    
+    c.execute("""
+        SELECT b.id, b.title, b.author, COALESCE(b.category,'General'),
+               b.pdf_filename, b.audio_filename, b.cover_path,
+               (SELECT COUNT(*) FROM chapters WHERE manga_id = b.id) as chapter_count
+        FROM books b
         WHERE COALESCE(b.book_type,'book')='manga'
-    """
-    params = []
+          AND b.id != ?
+          AND b.category LIKE ?
+        ORDER BY datetime(b.created_at) DESC
+        LIMIT 10
+    """, (id, f"%{first_category}%"))
+    recommendations = c.fetchall()
 
-    if selected:
-        base_sql += " AND ',' || REPLACE(COALESCE(b.category,'General'), ' ', '') || ',' LIKE ?"
-        params.append(f"%,{selected.replace(' ', '')},%")
-
-    if q:
-        base_sql += " AND (b.title LIKE ? OR b.author LIKE ?)"
-        search_term = f"%{q}%"
-        params.extend([search_term, search_term])
-
-    base_sql += " GROUP BY b.id ORDER BY datetime(b.created_at) DESC"
-
-    c.execute(base_sql, params)
-    mangas = c.fetchall()
-
-    # Fetch Continue Reading for logged-in user
-    continue_reading = []
-    if session.get("user_id"):
-        uid = session["user_id"]
-        c.execute("""
-            SELECT b.id, b.title, b.cover_path, rh.chapter_id, rh.page_index, c.chapter_num
-            FROM reading_history rh
-            JOIN books b ON rh.manga_id = b.id
-            JOIN chapters c ON rh.chapter_id = c.id
-            WHERE rh.user_id = ?
-            ORDER BY rh.updated_at DESC
-            LIMIT 5
-        """, (uid,))
-        continue_reading = c.fetchall()
+    # Get most popular manga (by view count from manga_progress)
+    c.execute("""
+        SELECT b.id, b.title, b.author, COALESCE(b.category,'General'),
+               b.pdf_filename, b.audio_filename, b.cover_path,
+               (SELECT COUNT(*) FROM chapters WHERE manga_id = b.id) as chapter_count,
+               (SELECT COUNT(*) FROM manga_progress WHERE manga_id = b.id) as view_count,
+               (SELECT COUNT(*) FROM favorites WHERE book_id = b.id) as fav_count
+        FROM books b
+        WHERE COALESCE(b.book_type,'book')='manga'
+        ORDER BY view_count DESC, fav_count DESC
+        LIMIT 5
+    """)
+    popular_manga = c.fetchall()
 
     conn.close()
 
     return render_template(
-        "manga.html",
-        mangas=mangas,
-        categories=categories,
-        selected_category=selected,
-        q=q,
-        body_class="manga-theme",
-        continue_reading=continue_reading
+        "manga_detail.html",
+        manga=manga,
+        chapter_count=chapter_count,
+        avg_rating=avg_rating,
+        recommendations=recommendations,
+        popular_manga=popular_manga
     )
 
 
@@ -4638,24 +4873,39 @@ def get_manga_reviews(manga_id):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 manga_id INTEGER NOT NULL,
                 user_id INTEGER NOT NULL,
+                chapter_id INTEGER,
                 content TEXT NOT NULL,
                 rating INTEGER DEFAULT 5,
+                has_spoilers BOOLEAN DEFAULT 0,
+                status TEXT DEFAULT 'Reading',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (manga_id) REFERENCES books(id),
                 FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (chapter_id) REFERENCES chapters(id),
                 UNIQUE(manga_id, user_id)
             )
         """)
         
+        # Add columns if they don't exist
+        for col, col_type in [("chapter_id", "INTEGER"), ("has_spoilers", "BOOLEAN DEFAULT 0"), ("status", "TEXT DEFAULT 'Reading'")]:
+            try:
+                c.execute(f"ALTER TABLE manga_reviews ADD COLUMN {col} {col_type}")
+            except:
+                pass
+            
+        limit = request.args.get("limit", 20, type=int)
+        
         c.execute("""
             SELECT mr.id, mr.content, mr.rating, mr.created_at,
-                   u.username, u.avatar_url
+                   u.username, u.avatar_url,
+                   ch.chapter_num, mr.has_spoilers, mr.status
             FROM manga_reviews mr
             JOIN users u ON mr.user_id = u.id
+            LEFT JOIN chapters ch ON mr.chapter_id = ch.id
             WHERE mr.manga_id = ?
             ORDER BY mr.created_at DESC
-            LIMIT 20
-        """, (manga_id,))
+            LIMIT ?
+        """, (manga_id, limit))
         reviews = c.fetchall()
         conn.close()
         
@@ -4665,7 +4915,10 @@ def get_manga_reviews(manga_id):
             "rating": review[2],
             "created_at": review[3],
             "username": review[4],
-            "avatar": review[5]
+            "avatar": review[5],
+            "chapter_num": review[6],
+            "has_spoilers": bool(review[7]),
+            "status": review[8]
         } for review in reviews])
     except Exception as e:
         print(f"Error getting reviews: {e}")
@@ -4697,24 +4950,42 @@ def post_manga_review(manga_id):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 manga_id INTEGER NOT NULL,
                 user_id INTEGER NOT NULL,
+                chapter_id INTEGER,
                 content TEXT NOT NULL,
                 rating INTEGER DEFAULT 5,
+                has_spoilers BOOLEAN DEFAULT 0,
+                status TEXT DEFAULT 'Reading',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (manga_id) REFERENCES books(id),
                 FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (chapter_id) REFERENCES chapters(id),
                 UNIQUE(manga_id, user_id)
             )
         """)
         
+        # Add columns if they don't exist
+        for col, col_type in [("chapter_id", "INTEGER"), ("has_spoilers", "BOOLEAN DEFAULT 0"), ("status", "TEXT DEFAULT 'Reading'")]:
+            try:
+                c.execute(f"ALTER TABLE manga_reviews ADD COLUMN {col} {col_type}")
+            except:
+                pass
+
+        chapter_id = data.get("chapter_id")
+        has_spoilers = data.get("has_spoilers", False)
+        status = data.get("status", "Reading")
+        
         # Upsert - update if exists, insert if not
         c.execute("""
-            INSERT INTO manga_reviews (manga_id, user_id, content, rating)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO manga_reviews (manga_id, user_id, content, rating, chapter_id, has_spoilers, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(manga_id, user_id) DO UPDATE SET
                 content = excluded.content,
                 rating = excluded.rating,
+                chapter_id = excluded.chapter_id,
+                has_spoilers = excluded.has_spoilers,
+                status = excluded.status,
                 created_at = CURRENT_TIMESTAMP
-        """, (manga_id, session["user_id"], content, rating))
+        """, (manga_id, session["user_id"], content, rating, chapter_id, has_spoilers, status))
         conn.commit()
         conn.close()
         
@@ -5786,69 +6057,77 @@ def about():
 @app.route("/my_uploads")
 @role_required("admin", "publisher")
 def my_uploads():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+    try:
+        if "user_id" not in session:
+            return redirect(url_for("login"))
 
-    user_id = session["user_id"]
-    role = session.get("role")
+        user_id = session["user_id"]
+        role = session.get("role")
 
-    q = request.args.get("q", "").strip()
+        q = request.args.get("q", "").strip()
 
-    conn = get_conn()
-    c = conn.cursor()
+        conn = get_conn()
+        c = conn.cursor()
 
-    base_query = """
-        SELECT id, title, author,
-               COALESCE(category,'General') AS category,
-               pdf_filename,
-               audio_filename,
-               cover_path,
-               created_at,
-               COALESCE(book_type, 'book') AS book_type
-        FROM books
-        WHERE 1=1
-    """
-    params = []
+        base_query = """
+            SELECT id, title, author,
+                   COALESCE(category,'General') AS category,
+                   pdf_filename,
+                   audio_filename,
+                   cover_path,
+                   created_at,
+                   COALESCE(book_type, 'book') AS book_type
+            FROM books
+            WHERE 1=1
+        """
+        params = []
 
-    if role != "admin":
-        base_query += " AND uploader_id = ?"
-        params.append(user_id)
+        if role != "admin":
+            base_query += " AND uploader_id = ?"
+            params.append(user_id)
 
-    if q:
-        base_query += " AND (title LIKE ? OR author LIKE ?)"
-        wildcard_q = f"%{q}%"
-        params.extend([wildcard_q, wildcard_q])
+        if q:
+            base_query += " AND (title LIKE ? OR author LIKE ?)"
+            wildcard_q = f"%{q}%"
+            params.extend([wildcard_q, wildcard_q])
 
-    base_query += " ORDER BY datetime(created_at) DESC"
+        base_query += " ORDER BY datetime(created_at) DESC"
 
-    c.execute(base_query, tuple(params))
-    books_raw = c.fetchall()
+        c.execute(base_query, tuple(params))
+        books_raw = c.fetchall()
 
-    # Get user's favorite book IDs for showing heart icons
-    user_favorites = set()
-    if "user_id" in session:
-        c.execute("SELECT book_id FROM favorites WHERE user_id = ?", (session["user_id"],))
-        user_favorites = {row[0] for row in c.fetchall()}
-    
-    # Add favorite status to each book (as a boolean flag)
-    books = []
-    for book in books_raw:
-        is_favorited = book[0] in user_favorites
-        books.append(list(book) + [is_favorited])
+        # Get user's favorite book IDs for showing heart icons
+        user_favorites = set()
+        if "user_id" in session:
+            c.execute("SELECT book_id FROM favorites WHERE user_id = ?", (session["user_id"],))
+            user_favorites = {row[0] for row in c.fetchall()}
+        
+        # Add favorite status to each book (as a boolean flag)
+        books = []
+        for book in books_raw:
+            is_favorited = book[0] in user_favorites
+            books.append(list(book) + [is_favorited])
 
-    # Fetch chapter counts for manga
-    manga_chapters = {}
-    for book in books:
-        if book[8] == 'manga':  # book_type
-            c.execute("""
-                SELECT COUNT(*) FROM chapters WHERE manga_id = ?
-            """, (book[0],))
-            count = c.fetchone()[0]
-            manga_chapters[book[0]] = count
+        # Fetch chapter counts for manga
+        manga_chapters = {}
+        for book in books:
+            if book[8] == 'manga':  # book_type
+                c.execute("""
+                    SELECT COUNT(*) FROM chapters WHERE manga_id = ?
+                """, (book[0],))
+                count_row = c.fetchone()
+                count = count_row[0] if count_row else 0
+                manga_chapters[book[0]] = count
 
-    conn.close()
+        conn.close()
 
-    return render_template("my_uploads.html", books=books, is_admin=(role == "admin"), manga_chapters=manga_chapters, q=q)
+        return render_template("my_uploads.html", books=books, is_admin=(role == "admin"), manga_chapters=manga_chapters, q=q)
+    except Exception as e:
+        logger.error(f"Error in my_uploads: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        flash("An error occurred while loading your uploads.", "danger")
+        return redirect(url_for("home"))
 
 
 # ---------- Team Admin ----------
@@ -5860,7 +6139,12 @@ def admin_users():
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute("SELECT id, username, role, COALESCE(is_banned,0) as is_banned, COALESCE(status,'active') as status, COALESCE(avatar_url, NULL) as avatar_url, COALESCE(plan,'basic') as plan, email, password FROM users ORDER BY username")
+    # Get total count
+    c.execute("SELECT COUNT(*) FROM users")
+    total_users = c.fetchone()[0]
+
+    # Get first 20 users
+    c.execute("SELECT id, username, role, COALESCE(is_banned,0) as is_banned, COALESCE(status,'active') as status, COALESCE(avatar_url, NULL) as avatar_url, COALESCE(plan,'basic') as plan, email, password FROM users ORDER BY username LIMIT 20")
     users = c.fetchall()
 
     c.execute("""
@@ -5873,7 +6157,22 @@ def admin_users():
     pending = c.fetchall()
 
     conn.close()
-    return render_template("user_management.html", users=users, pending=pending)
+    return render_template("user_management.html", users=users, pending=pending, total_users=total_users)
+
+
+@app.route("/admin/users/load_more")
+@admin_required
+def load_more_users():
+    offset = request.args.get("offset", 0, type=int)
+    limit = 20
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT id, username, role, COALESCE(is_banned,0) as is_banned, COALESCE(status,'active') as status, COALESCE(avatar_url, NULL) as avatar_url, COALESCE(plan,'basic') as plan, email, password FROM users ORDER BY username LIMIT ? OFFSET ?", (limit, offset))
+    users = c.fetchall()
+    conn.close()
+    
+    return render_template("user_rows_partial.html", users=users)
 
 
 @app.post("/admin/users/<int:user_id>/plan")

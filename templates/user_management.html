@@ -2,225 +2,575 @@
 {% block title %}User Management | NOVUS{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<style>
+  :root {
+    --glass-bg: rgba(13, 17, 23, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --neon-blue: #00d4ff;
+    --neon-purple: #bc13fe;
+    --neon-green: #00ff9d;
+    --danger-red: #ff3366;
+  }
+
+  /* Page Layout & Typography */
+  .admin-dashboard {
+    padding: 2rem 0;
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+
+  .page-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    background: linear-gradient(135deg, #fff 0%, var(--neon-blue) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+  }
+
+  /* Glass Cards */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+  }
+
+  .glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .card-header-custom {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0;
+    color: #e6edf3;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Modern Tables */
+  .custom-table-wrapper {
+    overflow-x: auto;
+    border-radius: 8px;
+  }
+
+  .custom-table {
+    width: 100%;
+    color: #e6edf3;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+  }
+
+  .custom-table thead th {
+    background: transparent;
+    color: #8b949e;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0 1rem 1rem 1rem;
+    border: none;
+    font-weight: 500;
+  }
+
+  .custom-table tbody tr {
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.2s ease;
+  }
+
+  .custom-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(4px);
+    box-shadow: -4px 0 0 var(--neon-blue);
+  }
+
+  .custom-table td {
+    padding: 1rem;
+    vertical-align: middle;
+    border: none;
+  }
+
+  .custom-table tbody tr td:first-child {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+  }
+
+  .custom-table tbody tr td:last-child {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+  }
+
+  /* User Avatar */
+  .user-avatar-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .avatar-circle {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  }
+
+  .user-info-text h6 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .user-info-text small {
+    color: #8b949e;
+    font-size: 0.8rem;
+  }
+
+  /* Badges */
+  .status-badge {
+    padding: 0.4em 0.8em;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .status-badge.active {
+    background: rgba(0, 255, 157, 0.15);
+    color: var(--neon-green);
+    border: 1px solid rgba(0, 255, 157, 0.3);
+    box-shadow: 0 0 10px rgba(0, 255, 157, 0.1);
+  }
+
+  .status-badge.banned {
+    background: rgba(255, 51, 102, 0.15);
+    color: var(--danger-red);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+  }
+
+  .role-badge {
+    padding: 0.25em 0.6em;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: #c9d1d9;
+  }
+
+  .role-badge.admin {
+    background: rgba(188, 19, 254, 0.2);
+    color: #d2a8ff;
+    border: 1px solid rgba(188, 19, 254, 0.3);
+  }
+
+  /* Action Buttons */
+  .btn-action {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #c9d1d9;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    margin-right: 4px;
+  }
+
+  .btn-action:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .btn-action.info:hover {
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+  }
+
+  .btn-action.ban:hover {
+    border-color: var(--danger-red);
+    color: var(--danger-red);
+    box-shadow: 0 0 10px rgba(255, 51, 102, 0.2);
+  }
+
+  /* Plan Select */
+  .plan-select-wrapper {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 2px 4px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .plan-select {
+    background: transparent;
+    border: none;
+    color: #e6edf3;
+    font-size: 0.85rem;
+    padding: 4px 8px;
+  }
+
+  .plan-select:focus {
+    outline: none;
+    background: #0d1117;
+  }
+
+  .btn-set-plan {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    margin-left: 4px;
+    border-radius: 4px;
+    background: var(--neon-blue);
+    color: #000;
+    font-weight: 700;
+    border: none;
+    text-transform: uppercase;
+  }
+
+  .btn-set-plan:hover {
+    box-shadow: 0 0 10px var(--neon-blue);
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Nav Tabs custom */
+  .nav-pills .nav-link {
+    background: rgba(255, 255, 255, 0.05);
+    color: #8b949e;
+    margin-right: 10px;
+    border: 1px solid transparent;
+    border-radius: 50px;
+    padding: 0.5rem 1.2rem;
+    transition: all 0.3s;
+  }
+
+  .nav-pills .nav-link.active {
+    background: rgba(0, 212, 255, 0.15);
+    color: var(--neon-blue);
+    border-color: rgba(0, 212, 255, 0.4);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+  }
+
+  .nav-pills .nav-link:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+</style>
+
+<div class="container admin-dashboard">
+
   <!-- Admin Navigation -->
-  <div class="row mb-4">
+  <div class="row mb-5">
     <div class="col-12">
-      <nav class="nav nav-pills">
+      <nav class="nav nav-pills justify-content-center">
         <a class="nav-link active" href="/admin/users">
-          <i class="fas fa-users me-1"></i> User Management
+          <i class="fas fa-users me-2"></i> User Management
         </a>
         <a class="nav-link" href="/admin/ai_summaries">
-          <i class="fas fa-brain me-1"></i> AI Summaries
+          <i class="fas fa-brain me-2"></i> AI Summaries
         </a>
         <a class="nav-link" href="/admin/system_logs">
-          <i class="fas fa-list-alt me-1"></i> System Logs
+          <i class="fas fa-list-alt me-2"></i> System Logs
+        </a>
+        <!-- Add Book Link for quick access -->
+        <a class="nav-link" href="{{ url_for('add_book') }}">
+          <i class="fas fa-plus-circle me-2"></i> Add Content
         </a>
       </nav>
     </div>
   </div>
 
-  <h2 class="mb-4" style="color: var(--text-primary)">
-    <i class="fas fa-users-cog me-2" style="color: var(--neon-blue)"></i>
-    User Management
-  </h2>
+  <div class="page-header">
+    <h2 class="page-title">
+      <i class="fas fa-users-cog me-3"></i>User Management
+    </h2>
+    <div class="stats-pill px-3 py-2 rounded-pill border border-secondary text-light"
+      style="background: rgba(255,255,255,0.05)">
+      <i class="fas fa-users me-2 text-info"></i> {{ users|length }} Total Users
+    </div>
+  </div>
 
-    <!-- Section 1: Publisher Role Requests -->
-    <div class="section-container mb-4">
-        <h5 class="section-title text-info">Publisher Requests</h5>
-        <table class="table table-dark table-sm align-middle mb-0">
+  <!-- PENDING REQUESTS SECTION -->
+  <div class="row">
+    <!-- Publisher Requests -->
+    <div class="col-md-6">
+      <div class="glass-card">
+        <div class="card-header-custom">
+          <h5 class="section-title" style="color: var(--neon-blue)">
+            <i class="fas fa-user-tie"></i> Publisher Requests
+          </h5>
+        </div>
+        <div class="custom-table-wrapper">
+          <table class="custom-table">
             <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Username</th>
-                    <th>Requested Role</th>
-                    <th>Requested At</th>
-                    <th style="width: 140px;">Action</th>
-                </tr>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
             </thead>
             <tbody>
-                {% set ns = namespace(found=false) %}
-                {% for r in pending if r.2 == 'publisher' %}
-                    {% set ns.found = true %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ r[1] }}</td>
-                        <td class="text-capitalize">{{ r[2] }}</td>
-                        <td>{{ r[3] }}</td>
-                        <td>
-                            <form method="post" action="{{ url_for('approve_role_request') }}" class="d-inline">
-                                <input type="hidden" name="request_id" value="{{ r[0] }}">
-                                <button type="submit" name="action" value="approve" class="btn btn-sm btn-info me-1" onclick="return confirm('Approve publisher request for {{ r[1] }}?');">Approve</button>
-                                <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger" onclick="return confirm('Reject for {{ r[1] }}?');">Reject</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-                {% if not ns.found %}
-                    <tr><td colspan="5" class="text-muted text-center py-3">No pending publisher role requests.</td></tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Section 2: Monetization Requests -->
-    <div class="section-container mb-4">
-        <h5 class="section-title text-success">Monetization Requests</h5>
-        <table class="table table-dark table-sm align-middle mb-0">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Username</th>
-                    <th>Type</th>
-                    <th>Requested At</th>
-                    <th style="width: 140px;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% set ns_mon = namespace(found=false) %}
-                {% for r in pending if r.2 == 'monetization' %}
-                    {% set ns_mon.found = true %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ r[1] }}</td>
-                        <td class="text-capitalize"><span class="badge bg-success bg-opacity-25 text-success border border-success">Monetization</span></td>
-                        <td>{{ r[3] }}</td>
-                        <td>
-                            <form method="post" action="{{ url_for('approve_role_request') }}" class="d-inline">
-                                <input type="hidden" name="request_id" value="{{ r[0] }}">
-                                <button type="submit" name="action" value="approve" class="btn btn-sm btn-success me-1" onclick="return confirm('Approve monetization for {{ r[1] }}?');">Approve</button>
-                                <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger" onclick="return confirm('Reject for {{ r[1] }}?');">Reject</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-                {% if not ns_mon.found %}
-                    <tr><td colspan="5" class="text-muted text-center py-3">No pending monetization requests.</td></tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
-
-</div>
-
-<div class="container py-4">
-  <h2 class="mb-3">User Management</h2>
-
-  <div class="table-responsive">
-    <table class="table table-dark table-hover align-middle">
-      <thead>
-        <tr>
-          <th>Username</th>
-          <th>Role</th>
-           <th>Avatar</th>
-          <th>Status</th>
-          <th style="width: 220px;">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for u in users %}
-        <tr>
-          <td>{{ u[1] }}</td>
-          <td>
-            <span class="badge bg-secondary">{{ u[2] }}</span>
-          </td>
-           <td>
-             {% if u[5] %}
-               <img src="{{ u[5] }}" alt="{{ u[1] }}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-             {% else %}
-               <span class="text-muted">—</span>
-             {% endif %}
-           </td>
-          <td>
-            {% if u[3] == 1 %}
-              <span class="badge bg-danger">Banned</span>
-            {% else %}
-              <span class="badge bg-success">Active</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if u[2] == 'admin' %}
-              <span class="text-muted">Protected</span>
-            {% else %}
-              <!-- Plan selector form -->
-              <form method="post" action="/admin/users/{{ u[0] }}/plan" style="display:inline-flex; gap:8px; align-items:center; margin-right:8px;">
-                <select name="plan" class="form-select form-select-sm" style="width:140px;">
-                  <option value="basic" {% if u[6] == 'basic' %}selected{% endif %}>Basic</option>
-                  <option value="pro" {% if u[6] == 'pro' %}selected{% endif %}>Pro</option>
-                  <option value="ultimate" {% if u[6] == 'ultimate' %}selected{% endif %}>Ultimate</option>
-                </select>
-                <button class="btn btn-sm btn-neon" type="submit">Set Plan</button>
-              </form>
-
-                <button class="btn btn-sm btn-info" 
-                        data-bs-toggle="modal" 
-                        data-bs-target="#userInfoModal{{ u[0] }}">
-                  <i class="fas fa-info-circle"></i> Info
-                </button>
-
-                <!-- User Info Modal -->
-                <div class="modal fade" id="userInfoModal{{ u[0] }}" tabindex="-1" aria-hidden="true">
-                  <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0" style="background: rgba(10, 20, 35, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(0, 212, 255, 0.3) !important; border-radius: 15px; box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);">
-                      <div class="modal-header border-0 pb-0">
-                        <h5 class="modal-title text-white" style="font-family: 'Orbitron', sans-serif;">User Details: {{ u[1] }}</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                      </div>
-                      <div class="modal-body py-4">
-                        <div class="mb-3">
-                          <label class="form-label text-muted small text-uppercase" style="letter-spacing: 1px;">Email Address</label>
-                          <div class="p-3 rounded" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
-                            <code class="text-info fs-6">{{ u[7] or 'No email provided' }}</code>
-                          </div>
-                        </div>
-                        <div>
-                          <label class="form-label text-muted small text-uppercase" style="letter-spacing: 1px;">Current Password</label>
-                          <div class="p-3 rounded d-flex justify-content-between align-items-center" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
-                            <code class="text-warning fs-6" id="pass{{ u[0] }}">••••••••</code>
-                            <button class="btn btn-sm btn-outline-secondary border-0" onclick="togglePass({{ u[0] }}, '{{ u[8] }}')">
-                              <i class="fas fa-eye" id="eye{{ u[0] }}"></i>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="modal-footer border-0 pt-0">
-                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
-                      </div>
+              {% set ns = namespace(found=false) %}
+              {% for r in pending if r.2 == 'publisher' %}
+              {% set ns.found = true %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="user-info-text">
+                      <h6>{{ r[1] }}</h6>
+                      <small>{{ r[3][:10] }}</small>
                     </div>
                   </div>
-                </div>
-
-                {% if u[3] == 1 %}
-                <form method="post" action="{{ url_for('user_unban', user_id=u[0]) }}" class="d-inline">
-                  <button class="btn btn-sm btn-success">Unban</button>
-                </form>
-              {% else %}
-                <form method="post" action="{{ url_for('user_ban', user_id=u[0]) }}" class="d-inline">
-                  <button class="btn btn-sm btn-danger">Ban</button>
-                </form>
+                </td>
+                <td><span class="badge bg-info bg-opacity-25 text-info border border-info">{{ r[2] }}</span></td>
+                <td>
+                  <form method="post" action="{{ url_for('approve_role_request') }}" class="d-flex gap-2">
+                    <input type="hidden" name="request_id" value="{{ r[0] }}">
+                    <button type="submit" name="action" value="approve" class="btn btn-sm btn-success"
+                      title="Approve"><i class="fas fa-check"></i></button>
+                    <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger"
+                      title="Reject"><i class="fas fa-times"></i></button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if not ns.found %}
+              <tr>
+                <td colspan="3" class="text-center text-muted py-4">No pending publisher requests</td>
+              </tr>
               {% endif %}
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monetization Requests -->
+    <div class="col-md-6">
+      <div class="glass-card">
+        <div class="card-header-custom">
+          <h5 class="section-title" style="color: var(--neon-green)">
+            <i class="fas fa-coins"></i> Monetization Requests
+          </h5>
+        </div>
+        <div class="custom-table-wrapper">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Type</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set ns_mon = namespace(found=false) %}
+              {% for r in pending if r.2 == 'monetization' %}
+              {% set ns_mon.found = true %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="user-info-text">
+                      <h6>{{ r[1] }}</h6>
+                      <small>{{ r[3][:10] }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge bg-success bg-opacity-25 text-success border border-success">Monetization</span>
+                </td>
+                <td>
+                  <form method="post" action="{{ url_for('approve_role_request') }}" class="d-flex gap-2">
+                    <input type="hidden" name="request_id" value="{{ r[0] }}">
+                    <button type="submit" name="action" value="approve" class="btn btn-sm btn-success"
+                      title="Approve"><i class="fas fa-check"></i></button>
+                    <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger"
+                      title="Reject"><i class="fas fa-times"></i></button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if not ns_mon.found %}
+              <tr>
+                <td colspan="3" class="text-center text-muted py-4">No pending monetization requests</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN USER TABLE -->
+  <div class="glass-card">
+    <div class="card-header-custom">
+      <h5 class="section-title">
+        <i class="fas fa-users"></i> Registered Users
+      </h5>
+      <div class="ms-auto">
+        <input type="text" id="userUnknownSearch"
+          class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Quick find user..."
+          onkeyup="filterUsers()">
+      </div>
+    </div>
+
+    <div class="custom-table-wrapper">
+      <table class="custom-table" id="usersTable">
+        <thead>
+          <tr>
+            <th>User Profile</th>
+            <th>Role</th>
+            <th>Subscription</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% include 'user_rows_partial.html' %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Load More Button -->
+    {% if total_users > 20 %}
+    <div class="text-center mt-4">
+      <button id="loadMoreBtn" class="btn btn-outline-info" onclick="loadMoreUsers()">
+        Load More Users
+      </button>
+    </div>
+    {% endif %}
   </div>
 </div>
-  <script>
-    function togglePass(uid, actualPass) {
-      const passElem = document.getElementById('pass' + uid);
-      const eyeElem = document.getElementById('eye' + uid);
-      
-      if (passElem.textContent === '••••••••') {
-        passElem.textContent = actualPass;
-        eyeElem.classList.remove('fa-eye');
-        eyeElem.classList.add('fa-eye-slash');
-      } else {
-        passElem.textContent = '••••••••';
-        eyeElem.classList.remove('fa-eye-slash');
-        eyeElem.classList.add('fa-eye');
+
+<!-- SINGLE GENERIC MODAL FOR USER INFO -->
+<div class="modal fade" id="genericUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: #161b22; border: 1px solid var(--neon-blue);">
+      <div class="modal-header border-bottom border-secondary">
+        <h5 class="modal-title text-light" id="genericModalTitle">User Details</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-start">
+        <p><strong>ID:</strong> <span id="modalUserId"></span></p>
+        <p><strong>Email:</strong> <span id="modalUserEmail" class="text-info"></span></p>
+        <p>
+          <strong>Password:</strong>
+          <span id="modalUserPass" class="text-muted blur-text" onclick="this.classList.toggle('blur-text')"
+            style="cursor: pointer;"></span>
+          <small class="d-block text-secondary">(Click to reveal)</small>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentOffset = 20;
+  const totalUsers = {{ total_users }};
+
+  function loadMoreUsers() {
+    const btn = document.getElementById('loadMoreBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+    btn.disabled = true;
+
+    fetch(`/admin/users/load_more?offset=${currentOffset}`)
+      .then(response => response.text())
+      .then(html => {
+        if (html.trim()) {
+          const tbody = document.querySelector('#usersTable tbody');
+          tbody.insertAdjacentHTML('beforeend', html);
+          currentOffset += 20;
+
+          if (currentOffset >= totalUsers) {
+            btn.style.display = 'none';
+          } else {
+            btn.innerHTML = 'Load More Users';
+            btn.disabled = false;
+          }
+        } else {
+          btn.style.display = 'none';
+        }
+      })
+      .catch(err => {
+        console.error('Error loading users:', err);
+        btn.innerHTML = 'Error loading';
+      });
+  }
+
+  function openUserInfoModal(id, username, email, password) {
+    document.getElementById('genericModalTitle').textContent = 'User: ' + username;
+    document.getElementById('modalUserId').textContent = id;
+    document.getElementById('modalUserEmail').textContent = email;
+    document.getElementById('modalUserPass').textContent = password;
+
+    // Reset blur
+    const passElem = document.getElementById('modalUserPass');
+    passElem.classList.add('blur-text');
+
+    const myModal = new bootstrap.Modal(document.getElementById('genericUserModal'));
+    myModal.show();
+  }
+
+  function filterUsers() {
+    var input, filter, table, tr, td, i, txtValue;
+    input = document.getElementById("userUnknownSearch");
+    filter = input.value.toUpperCase();
+    table = document.getElementById("usersTable");
+    tr = table.getElementsByTagName("tr");
+    for (i = 0; i < tr.length; i++) {
+      // Search by Username (col 0)
+      td = tr[i].getElementsByTagName("td")[0]; // Profile column
+      if (td) {
+        // Look for h6 inside the profile column which contains the username
+        const h6 = td.querySelector("h6");
+        txtValue = h6 ? (h6.textContent || h6.innerText) : "";
+        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+          tr[i].style.display = "";
+        } else {
+          tr[i].style.display = "none";
+        }
       }
     }
-  </script>
+  }
+
+  // Style for password blur
+  document.head.insertAdjacentHTML("beforeend", `<style>.blur-text { filter: blur(4px); user-select: none; }</style>`)
+</script>
 {% endblock %}

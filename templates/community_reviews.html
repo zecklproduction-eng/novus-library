@@ -13,18 +13,28 @@
     .main-content {
         padding: 0 !important;
     }
-    
+
     :root {
         --cr-bg: #f8fafc;
         --cr-card-bg: #ffffff;
-        --cr-card-border: #e2e8f0; /* slate-200 */
-        --cr-text-main: #0f172a; /* slate-900 */
-        --cr-text-muted: #64748b; /* slate-500 */
-        --cr-input-bg: #f1f5f9; /* slate-100 */
-        --cr-accent: #4f46e5; /* indigo-600 */
+        --cr-card-border: #e2e8f0;
+        /* slate-200 */
+        --cr-text-main: #0f172a;
+        /* slate-900 */
+        --cr-text-muted: #64748b;
+        /* slate-500 */
+        --cr-input-bg: #f1f5f9;
+        /* slate-100 */
+        --cr-accent: #4f46e5;
+        /* indigo-600 */
     }
 
-    body.theme-dark, body.theme-midnight, body.theme-blue, body.theme-purple, body.theme-nebula, body.theme-demonic {
+    body.theme-dark,
+    body.theme-midnight,
+    body.theme-blue,
+    body.theme-purple,
+    body.theme-nebula,
+    body.theme-demonic {
         --cr-bg: var(--bg-main);
         --cr-card-bg: var(--bg-card);
         --cr-card-border: var(--border-subtle);
@@ -41,7 +51,8 @@
         --cr-text-main: #5c4b37;
         --cr-text-muted: #8d7b68;
         --cr-input-bg: #fdf6e3;
-        --cr-accent: #d4af37; /* Goldish */
+        --cr-accent: #d4af37;
+        /* Goldish */
     }
 
     body {
@@ -51,19 +62,20 @@
         transition: background-color 0.3s ease, color 0.3s ease;
         font-size: inherit;
     }
-    
+
     /* Density overrides */
     body.density-compact .community-reviews-container {
         gap: 1.5rem !important;
         padding-top: 1rem !important;
     }
+
     body.density-spacious .community-reviews-container {
         gap: 4rem !important;
         padding-top: 4rem !important;
     }
 
 
-    
+
     /* Card-level blur for heavy spoilers */
     .spoiler-blur-container {
         filter: blur(16px);
@@ -71,7 +83,7 @@
         pointer-events: none;
         transition: filter 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    
+
     .spoilers-revealed .spoiler-blur-container {
         filter: blur(0);
         user-select: auto;
@@ -80,7 +92,8 @@
 
     /* Inline spoiler spans identification - Premium Refinement */
     .spoiler {
-        background-color: #f1f5f9; /* slate-100 */
+        background-color: #f1f5f9;
+        /* slate-100 */
         color: transparent !important;
         filter: blur(12px);
         border-radius: 8px;
@@ -136,35 +149,69 @@
         width: 6px;
         height: 6px;
     }
+
     .custom-scrollbar::-webkit-scrollbar-track {
         background: transparent;
     }
+
     .custom-scrollbar::-webkit-scrollbar-thumb {
         background: #cbd5e1;
         border-radius: 10px;
     }
+
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
     }
 
     /* World-Class Like Button Animations */
     @keyframes like-heart-pop {
-        0% { transform: scale(1); }
-        15% { transform: scale(0.7); }
-        35% { transform: scale(1.6) rotate(-15deg); }
-        55% { transform: scale(0.9) rotate(10deg); }
-        75% { transform: scale(1.1) rotate(-5deg); }
-        100% { transform: scale(1) rotate(0deg); }
+        0% {
+            transform: scale(1);
+        }
+
+        15% {
+            transform: scale(0.7);
+        }
+
+        35% {
+            transform: scale(1.6) rotate(-15deg);
+        }
+
+        55% {
+            transform: scale(0.9) rotate(10deg);
+        }
+
+        75% {
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        100% {
+            transform: scale(1) rotate(0deg);
+        }
     }
 
     @keyframes count-number-jump {
-        0% { opacity: 0; transform: translateY(12px); }
-        100% { opacity: 1; transform: translateY(0); }
+        0% {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     @keyframes shockwave {
-        0% { transform: scale(1); opacity: 1; }
-        100% { transform: scale(3); opacity: 0; }
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        100% {
+            transform: scale(3);
+            opacity: 0;
+        }
     }
 
     .animate-like-pop {
@@ -314,8 +361,8 @@
                     <div className="p-10 overflow-y-auto custom-scrollbar space-y-8">
                         <div className="relative">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Search Media</label>
-                            <input 
-                                type="text" value={title} onChange={(e) => { setTitle(e.target.value); if(!initialData) setShowResults(true); }}
+                            <input
+                                type="text" value={title} onChange={(e) => { setTitle(e.target.value); if (!initialData) setShowResults(true); }}
                                 onFocus={() => !initialData && setShowResults(true)}
                                 placeholder="Search for a title..."
                                 disabled={!!initialData}
@@ -364,8 +411,8 @@
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Community Tags</label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     value={tagInput}
                                     onChange={(e) => setTagInput(e.target.value)}
                                     onKeyDown={(e) => {
@@ -402,7 +449,7 @@
                             </button>
                             <div className="flex gap-4">
                                 <button onClick={onClose} className="px-6 py-3 text-xs font-black text-slate-400 uppercase">Discard</button>
-                                <button 
+                                <button
                                     onClick={() => {
                                         if (rating === 0) {
                                             alert("Please add a rating!");
@@ -412,15 +459,15 @@
                                             alert("Review must be at least 10 characters long.");
                                             return;
                                         }
-                                        
+
                                         const reviewData = { title, rating, status, body, hasSpoilers, type, tags };
                                         if (initialData) {
                                             reviewData.reviewId = initialData.id;
                                         }
-                                        
+
                                         onSubmit(reviewData, !!initialData);
                                         onClose();
-                                    }} 
+                                    }}
                                     className="px-10 py-3 bg-[var(--cr-accent)] text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all"
                                 >
                                     {initialData ? 'Save Changes' : 'Publish'}
@@ -527,7 +574,7 @@
                             </button>
                             <button onClick={() => setIsReplying(!isReplying)} className="text-[10px] font-black text-[var(--cr-text-muted)] uppercase tracking-widest hover:text-[var(--cr-accent)]">Reply</button>
                         </div>
-                        
+
                         {isReplying && (
                             <div className="mt-4 flex gap-3 animate-in slide-in-from-top-2">
                                 <img src={CURRENT_USER.avatarUrl} className="w-6 h-6 rounded-full" />
@@ -567,9 +614,9 @@
                 <div className="flex items-center gap-3">
                     <img src={CURRENT_USER.avatarUrl} className="w-10 h-10 rounded-full border-2 border-white shadow-md" />
                     <div className="flex-grow relative group/input">
-                        <textarea 
+                        <textarea
                             value={text} onChange={(e) => setText(e.target.value)}
-                            placeholder="What are your thoughts on this review?" 
+                            placeholder="What are your thoughts on this review?"
                             rows={1}
                             className="w-full px-6 py-3.5 bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-[1.5rem] text-sm font-medium focus:ring-4 focus:ring-[var(--cr-accent)]/10 focus:bg-[var(--cr-card-bg)] focus:border-[var(--cr-accent)]/30 transition-all resize-none outline-none pr-24 shadow-inner text-[var(--cr-text-main)]"
                         />
@@ -596,7 +643,7 @@
         const isSafetyShieldActive = review.hasSpoilers && hideSpoilers && !showLocalSpoiler;
 
         const createMarkup = (html) => ({ __html: html });
-        const sentiment = review.rating >= 4.5 ? {emoji: '🤩', label: 'Exceptional'} : review.rating >= 4.0 ? {emoji: '😊', label: 'Great'} : {emoji: '😐', label: 'Average'};
+        const sentiment = review.rating >= 4.5 ? { emoji: '🤩', label: 'Exceptional' } : review.rating >= 4.0 ? { emoji: '😊', label: 'Great' } : { emoji: '😐', label: 'Average' };
 
         return (
             <article className="bg-[var(--cr-card-bg)] rounded-[2.5rem] border border-[var(--cr-card-border)] shadow-sm overflow-hidden hover:border-[var(--cr-accent)] hover:shadow-2xl transition-all duration-500 relative group/card">
@@ -646,7 +693,14 @@
                             </div>
                         </div>
                         <div className="flex justify-between items-center mb-3">
-                            <h3 className="text-2xl md:text-3xl font-black text-[var(--cr-text-main)] tracking-tighter leading-none group-hover/card:translate-x-1 transition-transform">{review.media.title}</h3>
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-2xl md:text-3xl font-black text-[var(--cr-text-main)] tracking-tighter leading-none group-hover/card:translate-x-1 transition-transform">{review.media.title}</h3>
+                                {review.media.chapter_num && (
+                                    <span className="shrink-0 px-2 py-0.5 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-md shadow-sm">
+                                        Ch. {review.media.chapter_num}
+                                    </span>
+                                )}
+                            </div>
                             {onEdit && (
                                 <button onClick={() => onEdit(review)} className="shrink-0 ml-4 px-4 py-1.5 text-white bg-indigo-600 hover:bg-indigo-700 rounded-full transition-all text-[11px] font-black uppercase tracking-widest shadow-lg shadow-indigo-200 hover:shadow-indigo-300 flex items-center gap-2" title="Edit Review">
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -660,9 +714,9 @@
                             ))}
                         </div>
                         <div className="relative mb-6">
-                            <p 
-                                className={`text-[var(--cr-text-muted)] text-sm leading-relaxed font-medium transition-all ${!isExpanded ? 'line-clamp-3' : 'animate-in fade-in slide-in-from-top-2'}`} 
-                                dangerouslySetInnerHTML={createMarkup(review.body)} 
+                            <p
+                                className={`text-[var(--cr-text-muted)] text-sm leading-relaxed font-medium transition-all ${!isExpanded ? 'line-clamp-3' : 'animate-in fade-in slide-in-from-top-2'}`}
+                                dangerouslySetInnerHTML={createMarkup(review.body)}
                             />
                             {!isExpanded && (
                                 <button onClick={() => setIsExpanded(true)} className="text-indigo-600 text-[10px] font-black uppercase tracking-[0.25em] mt-3 hover:translate-x-2 transition-transform flex items-center group/more">
@@ -673,8 +727,8 @@
                         </div>
                         <div className="mt-auto pt-6 border-t border-[var(--cr-card-border)] flex items-center justify-between">
                             <div className="flex items-center gap-6">
-                                <button 
-                                    onClick={() => { onLike(review.id); setLikeWave(true); setTimeout(() => setLikeWave(false), 500); }} 
+                                <button
+                                    onClick={() => { onLike(review.id); setLikeWave(true); setTimeout(() => setLikeWave(false), 500); }}
                                     className={`group/btn flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${review.isLiked ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-800'}`}
                                 >
                                     <div className="relative p-2 rounded-full group-hover/btn:bg-[var(--cr-input-bg)] transition-colors">
@@ -738,10 +792,10 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    setReviews(prev => prev.map(r => r.id === id ? { 
-                        ...r, 
-                        isLiked: result.action === 'liked', 
-                        likesCount: result.action === 'liked' ? r.likesCount + 1 : r.likesCount - 1 
+                    setReviews(prev => prev.map(r => r.id === id ? {
+                        ...r,
+                        isLiked: result.action === 'liked',
+                        likesCount: result.action === 'liked' ? r.likesCount + 1 : r.likesCount - 1
                     } : r));
                     showToast(result.action === 'liked' ? 'Marked as helpful!' : 'Rating removed', 'success');
                 }
@@ -749,7 +803,7 @@
                 showToast('Failed to update reaction', 'error');
             }
         };
-        
+
         const handleAddComment = async (reviewId, text) => {
             try {
                 const response = await fetch('/api/reviews/comment', {
@@ -794,7 +848,7 @@
                     body: JSON.stringify({ commentId })
                 });
                 const result = await response.json();
-                
+
                 if (result.success) {
                     // Update state to reflect like toggle without reload
                     setReviews(prev => prev.map(r => ({
@@ -874,23 +928,23 @@
         return (
             <div className="min-h-screen bg-[var(--cr-bg)] pb-24 pt-10 px-6 community-reviews-container">
 
-                <PostReviewModal 
-                    isOpen={isPosting || !!editingReview} 
-                    onClose={() => { setIsPosting(false); setEditingReview(null); }} 
+                <PostReviewModal
+                    isOpen={isPosting || !!editingReview}
+                    onClose={() => { setIsPosting(false); setEditingReview(null); }}
                     onSubmit={handlePostReview}
                     initialData={editingReview}
                 />
                 <ReportModal isOpen={!!reportingReview} onClose={() => setReportingReview(null)} onSubmit={handleReportSubmit} targetTitle={reportingReview?.media.title} />
                 {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-                
+
                 <div className="max-w-5xl mx-auto">
                     {/* Header Controls */}
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
                         <div className="text-left">
                             <div className="flex items-center gap-6 mb-3">
-                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.MANGA}))} className={`text-xs font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.MANGA ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>MANGA</button>
-                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.ANIME}))} className={`text-xs font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.ANIME ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>ANIME</button>
-                                <button onClick={() => setFilters(f => ({...f, mode: MediaType.BOOK}))} className={`text-xs font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.BOOK ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>BOOKS</button>
+                                <button onClick={() => setFilters(f => ({ ...f, mode: MediaType.MANGA }))} className={`text-xs font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.MANGA ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>MANGA</button>
+                                <button onClick={() => setFilters(f => ({ ...f, mode: MediaType.ANIME }))} className={`text-xs font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.ANIME ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>ANIME</button>
+                                <button onClick={() => setFilters(f => ({ ...f, mode: MediaType.BOOK }))} className={`text-xs font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2 ${filters.mode === MediaType.BOOK ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>BOOKS</button>
                             </div>
                             <h1 className="text-3xl md:text-4xl font-black text-[var(--cr-text-main)] tracking-tighter mb-2">Recent User Reviews</h1>
                             <p className="text-[var(--cr-text-muted)] font-bold uppercase text-[10px] tracking-[0.2em]">See what the community is saying about the latest releases.</p>
@@ -904,22 +958,22 @@
                             <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </span>
-                            <input 
-                                type="text" value={filters.search} onChange={(e) => setFilters(f => ({...f, search: e.target.value}))}
-                                placeholder="Search media or users..." 
+                            <input
+                                type="text" value={filters.search} onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
+                                placeholder="Search media or users..."
                                 className="w-full pl-14 pr-6 py-3 bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-2xl text-sm font-bold focus:ring-4 focus:ring-[var(--cr-accent)]/10 focus:bg-[var(--cr-card-bg)] transition-all outline-none text-[var(--cr-text-main)]"
                             />
                         </div>
                         <div className="flex flex-wrap items-center gap-8">
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sort By</label>
-                                <select value={filters.sort} onChange={(e) => setFilters(f => ({...f, sort: e.target.value}))} className="bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-xl px-4 py-2.5 text-xs font-black text-[var(--cr-text-main)] outline-none hover:bg-[var(--cr-card-bg)] transition-all appearance-none cursor-pointer">
+                                <select value={filters.sort} onChange={(e) => setFilters(f => ({ ...f, sort: e.target.value }))} className="bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-xl px-4 py-2.5 text-xs font-black text-[var(--cr-text-main)] outline-none hover:bg-[var(--cr-card-bg)] transition-all appearance-none cursor-pointer">
                                     {Object.values(SortOption).map(o => <option key={o} value={o}>{o}</option>)}
                                 </select>
                             </div>
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rating</label>
-                                <select value={filters.ratingMin} onChange={(e) => setFilters(f => ({...f, ratingMin: Number(e.target.value)}))} className="bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-xl px-4 py-2.5 text-xs font-black text-[var(--cr-text-main)] outline-none hover:bg-[var(--cr-card-bg)] transition-all cursor-pointer">
+                                <select value={filters.ratingMin} onChange={(e) => setFilters(f => ({ ...f, ratingMin: Number(e.target.value) }))} className="bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-xl px-4 py-2.5 text-xs font-black text-[var(--cr-text-main)] outline-none hover:bg-[var(--cr-card-bg)] transition-all cursor-pointer">
                                     <option value={0}>Any Rating</option>
                                     <option value={4.5}>4.5★ +</option>
                                     <option value={4.0}>4.0★ +</option>
@@ -928,12 +982,12 @@
                             </div>
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                                <select value={filters.status} onChange={(e) => setFilters(f => ({...f, status: e.target.value}))} className="bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-xl px-4 py-2.5 text-xs font-black text-[var(--cr-text-main)] outline-none hover:bg-[var(--cr-card-bg)] transition-all cursor-pointer">
+                                <select value={filters.status} onChange={(e) => setFilters(f => ({ ...f, status: e.target.value }))} className="bg-[var(--cr-input-bg)] border border-[var(--cr-card-border)] rounded-xl px-4 py-2.5 text-xs font-black text-[var(--cr-text-main)] outline-none hover:bg-[var(--cr-card-bg)] transition-all cursor-pointer">
                                     <option value="Any">Any Status</option>
                                     {Object.values(MediaStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
-                            <div className="lg:border-l lg:border-slate-100 lg:pl-8 flex items-center gap-4 cursor-pointer group" onClick={() => setFilters(f => ({...f, hideSpoilers: !f.hideSpoilers}))}>
+                            <div className="lg:border-l lg:border-slate-100 lg:pl-8 flex items-center gap-4 cursor-pointer group" onClick={() => setFilters(f => ({ ...f, hideSpoilers: !f.hideSpoilers }))}>
                                 <div className={`w-14 h-8 rounded-full transition-all flex items-center p-1 ${filters.hideSpoilers ? 'bg-[var(--cr-accent)]' : 'bg-[var(--cr-input-bg)]'}`}>
                                     <div className={`w-6 h-6 bg-white rounded-full transition-transform ${filters.hideSpoilers ? 'translate-x-6' : 'translate-x-0'}`} />
                                 </div>
@@ -946,10 +1000,10 @@
                     <div className="space-y-10">
                         {filteredReviews.length > 0 ? (
                             filteredReviews.map(r => (
-                                <ReviewCard 
-                                    key={r.id} review={r} 
-                                    hideSpoilers={filters.hideSpoilers} 
-                                    onLike={handleLike} 
+                                <ReviewCard
+                                    key={r.id} review={r}
+                                    hideSpoilers={filters.hideSpoilers}
+                                    onLike={handleLike}
                                     onAddComment={handleAddComment}
                                     onAddReply={handleAddReply}
                                     onLikeComment={handleLikeComment}

@@ -2,184 +2,317 @@
 {% block title %}Edit {{ book.title }} | NOVUS{% endblock %}
 
 {% block content %}
-<div class="container mt-4 mb-5">
+<style>
+  :root {
+    --neon-blue: #00d4ff;
+    --neon-purple: #9d4edd;
+    --neon-green: #00ff9d;
+    --glass-bg: rgba(22, 27, 34, 0.85);
+    --glass-border: 1px solid rgba(0, 212, 255, 0.2);
+  }
 
+  body {
+    background-color: #0d1117;
+    color: #e6edf3;
+  }
+
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: var(--glass-border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .section-title {
+    color: var(--neon-blue);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid var(--neon-blue);
+    padding-bottom: 10px;
+    margin-bottom: 24px;
+    font-size: 1.25rem;
+  }
+
+  /* Form Controls */
+  .form-control,
+  .form-select {
+    background: rgba(13, 17, 23, 0.6);
+    border: 1px solid #30363d;
+    color: #e6edf3;
+    border-radius: 8px;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    background: #0d1117;
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+    color: #fff;
+  }
+
+  .form-label {
+    color: #8b949e;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  /* Buttons */
+  .btn-neon {
+    background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+    border: none;
+    color: white;
+    font-weight: 700;
+    padding: 10px 24px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+  }
+
+  .btn-neon:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(157, 78, 221, 0.5);
+    color: white;
+  }
+
+  .btn-outline-neon {
+    background: transparent;
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .btn-outline-neon:hover {
+    background: var(--neon-blue);
+    color: #000;
+    box-shadow: 0 0 15px var(--neon-blue);
+  }
+
+  /* Checkbox Grid */
+  .categories-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background: rgba(13, 17, 23, 0.3);
+    border-radius: 8px;
+    border: 1px solid #30363d;
+  }
+
+  .category-checkbox {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+    color: #c9d1d9;
+  }
+
+  .category-checkbox:hover {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: var(--neon-blue);
+    color: #fff;
+  }
+
+  .category-checkbox input {
+    margin-right: 8px;
+    accent-color: var(--neon-blue);
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0d1117;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--neon-blue);
+  }
+
+  .back-link {
+    color: var(--neon-blue);
+    text-decoration: none;
+    font-weight: 600;
+    transition: margin-left 0.2s;
+  }
+
+  .back-link:hover {
+    margin-left: -5px;
+    text-shadow: 0 0 8px var(--neon-blue);
+    color: #fff;
+  }
+
+  .description-area {
+    min-height: 120px;
+    white-space: pre-wrap;
+    background: rgba(13, 17, 23, 0.6);
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .description-area:focus {
+    outline: none;
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+  }
+
+  .file-preview-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+</style>
+
+<div class="container mt-4 mb-5">
   <a href="{{ url_for('view_book', id=book.id) }}" class="back-link mb-3 d-inline-block">
-    ← Back to book
+    <i class="fas fa-arrow-left me-2"></i> Back to View
   </a>
 
-  <div class="section-container">
-    <div class="row">
-      <!-- LEFT: basic info -->
-      <div class="col-md-7">
-        <h2 class="section-title mb-4">Edit Book Details</h2>
+  <form method="POST" enctype="multipart/form-data">
+    <div class="row g-4">
+      <!-- LEFT COLUMN: EDIT DETAILS -->
+      <div class="col-lg-7">
+        <div class="glass-card h-100">
+          <h2 class="section-title"><i class="fas fa-edit me-2"></i> Edit Book Details</h2>
 
-        <form method="POST" enctype="multipart/form-data">
-          <div class="mb-3">
-            <label class="form-label">Title</label>
-            <input
-              type="text"
-              name="title"
-              class="form-control"
-              value="{{ book.title }}"
-              required
-            />
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Title</label>
+              <input type="text" name="title" class="form-control" value="{{ book.title }}" required />
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Author</label>
+              <input type="text" name="author" class="form-control" value="{{ book.author }}" />
+            </div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Author</label>
-            <input
-              type="text"
-              name="author"
-              class="form-control"
-              value="{{ book.author }}"
-            />
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Category</label>
-            <div id="bookCategoriesContainer" class="categories-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
+            <label class="form-label">Categories</label>
+            <div id="bookCategoriesContainer" class="categories-checkbox-grid">
               {% set selected = selected_categories or [] %}
-              {% for cat in ["Action", "Adventure", "Biography", "Business", "Children", "Comedy", "Cooking", "Crime", "Cyberpunk", "Documentary", "Drama", "Dystopian", "Fantasy", "General", "Graphic Novel", "Health", "Historical", "Horror", "Isekai", "Josei", "Lifestyle", "Magic", "Martial Arts", "Mecha", "Memoir", "Mystery", "Philosophy", "Poetry", "Politics", "Psychological", "Religion", "Romance", "School Life", "Science", "Science Fiction", "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports", "Supernatural", "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western", "Young Adult"] %}
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease; margin-right: 0;">
-                  <input type="checkbox" name="categories" value="{{ cat }}" {% if cat in selected %}checked{% endif %}> {{ cat }}
-                </label>
+              {% for cat in ["Action", "Adventure", "Biography", "Business", "Children", "Comedy", "Cooking", "Crime",
+              "Cyberpunk", "Documentary", "Drama", "Dystopian", "Fantasy", "General", "Graphic Novel", "Health",
+              "Historical", "Horror", "Isekai", "Josei", "Lifestyle", "Magic", "Martial Arts", "Mecha", "Memoir",
+              "Mystery", "Philosophy", "Poetry", "Politics", "Psychological", "Religion", "Romance", "School Life",
+              "Science", "Science Fiction", "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports", "Supernatural",
+              "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western", "Young Adult"] %}
+              <label class="category-checkbox">
+                <input type="checkbox" name="categories" value="{{ cat }}" {% if cat in selected %}checked{% endif %}>
+                {{ cat }}
+              </label>
               {% endfor %}
             </div>
-            <div class="form-text">Select one or more categories.</div>
+            <div class="form-text text-muted mt-1"><i class="fas fa-info-circle"></i> Select multiple categories that
+              apply.</div>
           </div>
 
-          <div class="mb-3">
+          <div class="mb-4">
             <label class="form-label">Description</label>
             <div class="description-editor-container">
-              <div id="description" class="form-control description-area" contenteditable="true" style="min-height:120px;">{{ book.description or '' }}</div>
+              <div id="description" class="description-area" contenteditable="true">{{ book.description or '' }}</div>
               <textarea id="description_hidden" name="description" hidden></textarea>
             </div>
           </div>
 
-          <!-- MOBILE submit button -->
-          <button type="submit" class="btn btn-neon d-md-none w-100 mt-3">
-            Save Changes
-          </button>
-
+          <div class="d-grid d-md-block">
+            <button type="submit" class="btn btn-neon w-100"><i class="fas fa-save me-2"></i> Save Changes</button>
+          </div>
+        </div>
       </div>
 
-      <!-- RIGHT: files -->
-      <div class="col-md-5">
-        <h2 class="section-title mb-4">Files & Media</h2>
+      <!-- RIGHT COLUMN: FILES & MEDIA -->
+      <div class="col-lg-5">
+        <div class="glass-card mb-4">
+          <h2 class="section-title"><i class="fas fa-photo-video me-2"></i> Files & Media</h2>
 
-        <!-- COVER -->
-        <div class="mb-4">
-          <h6 class="text-muted mb-2">Cover image</h6>
-          {% if book.cover_path %}
-            <div class="mb-2">
-              <img
-                src="{{ url_for('static', filename=book.cover_path) }}"
-                alt="Cover"
-                class="img-fluid rounded"
-                style="max-height: 220px; object-fit: cover;"
-              />
-              <div class="small text-muted mt-1">
-                Current: <code>{{ book.cover_path }}</code>
-              </div>
+          <!-- Cover Image -->
+          <div class="file-preview-card">
+            <h6 class="text-light mb-3"><i class="fas fa-image text-info me-2"></i> Cover Image</h6>
+            {% if book.cover_path %}
+            <div class="text-center mb-3">
+              <img src="{{ url_for('static', filename=book.cover_path) }}" alt="Cover"
+                class="img-fluid rounded border border-secondary shadow-sm"
+                style="max-height: 200px; object-fit: cover;">
+              <div class="small text-muted mt-2">Current: <code>{{ book.cover_path }}</code></div>
             </div>
-          {% else %}
+            {% else %}
+            <div class="text-center text-muted mb-3 py-3 border border-dashed border-secondary rounded">
+              <i class="fas fa-image fa-2x mb-2"></i><br>No cover uploaded
+            </div>
+            {% endif %}
+            <input type="file" name="cover_file" accept="image/*" class="form-control form-control-sm" />
+            <div class="form-text text-muted">Leave empty to keep current cover.</div>
+          </div>
+
+          <!-- PDF File -->
+          <div class="file-preview-card">
+            <h6 class="text-light mb-3"><i class="fas fa-file-pdf text-danger me-2"></i> E-Book File (PDF)</h6>
             <div class="small text-muted mb-2">
-              No cover uploaded yet.
+              {% if book.pdf_filename %}
+              Current: <code class="text-light">{{ book.pdf_filename }}</code>
+              {% else %}
+              <span class="text-secondary">No PDF uploaded yet.</span>
+              {% endif %}
             </div>
-          {% endif %}
-
-          <input
-            type="file"
-            name="cover_file"
-            accept="image/*"
-            class="form-control form-control-sm"
-          />
-          <div class="form-text">Leave empty to keep current cover.</div>
-        </div>
-
-        <!-- PDF -->
-        <div class="mb-4">
-          <h6 class="text-muted mb-1">E-Book file (PDF)</h6>
-          <div class="small text-muted mb-1">
-            {% if book.pdf_filename %}
-              Current: <code>{{ book.pdf_filename }}</code>
-            {% else %}
-              No PDF uploaded yet.
-            {% endif %}
+            <input type="file" name="pdf_file" accept=".pdf" class="form-control form-control-sm" />
           </div>
 
-          <input
-            type="file"
-            name="pdf_file"
-            accept=".pdf"
-            class="form-control form-control-sm"
-          />
-          <div class="form-text">Upload a new PDF to replace the current one.</div>
-        </div>
-
-        <!-- AUDIO -->
-        <div class="mb-4">
-          <h6 class="text-muted mb-1">Audiobook (MP3)</h6>
-          <div class="small text-muted mb-1">
-            {% if book.audio_filename %}
-              Current: <code>{{ book.audio_filename }}</code>
-            {% else %}
-              No audio uploaded yet.
-            {% endif %}
-          </div>
-
-          <input
-            type="file"
-            name="audio_file"
-            accept=".mp3"
-            class="form-control form-control-sm"
-          />
-          <div class="form-text">Upload a new MP3 to replace the current one.</div>
-        </div>
-
-        <!-- CHAPTER MANAGEMENT (for Manga) -->
-        {% if book.book_type == 'manga' %}
-        <div class="mb-4 p-4" style="background: #f8f9fa; border-radius: 6px; border: 1px solid #667eea; color: #000;">
-          <h5 style="color: #667eea; margin-bottom: 15px;">
-            <i class="fas fa-book-open"></i> Manage Chapters
-          </h5>
-          <p class="text-muted small mb-3">Edit, delete, or rename chapters.</p>
-          
-          <div id="chaptersList" style="margin-bottom: 15px; max-height: 400px; overflow-y: auto;">
-            <!-- Chapters will be loaded here by JavaScript -->
-          </div>
-        </div>
-        {% endif %}
-
-        <!-- CHARACTER MANAGEMENT (for Manga) -->
-        {% if book.book_type == 'manga' %}
-        <div class="mb-4 p-4" style="background: #f8f9fa; border-radius: 6px; border: 1px solid #00d4ff; color: #000;">
-          <h5 style="color: #00d4ff; margin-bottom: 15px;">
-            <i class="fas fa-users"></i> Add Character Info
-          </h5>
-          <p class="text-muted small mb-3">Add and manage character profiles that will appear in the manga reader.</p>
-          
-          <div id="charactersList" style="margin-bottom: 15px;">
-            <!-- Characters will be loaded here by JavaScript -->
-          </div>
-
-          <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #ddd;">
-            <h6 style="margin-bottom: 12px;">Add New Character</h6>
-            
-            <div class="mb-3">
-              <label class="form-label form-label-sm">Character Name *</label>
-              <input
-                type="text"
-                id="charName"
-                class="form-control form-control-sm"
-                placeholder="e.g., Tanjiro Kamado"
-              />
+          <!-- Audio File -->
+          <div class="file-preview-card">
+            <h6 class="text-light mb-3"><i class="fas fa-music text-warning me-2"></i> Audiobook (MP3)</h6>
+            <div class="small text-muted mb-2">
+              {% if book.audio_filename %}
+              Current: <code class="text-light">{{ book.audio_filename }}</code>
+              {% else %}
+              <span class="text-secondary">No audio uploaded yet.</span>
+              {% endif %}
             </div>
+            <input type="file" name="audio_file" accept=".mp3" class="form-control form-control-sm" />
+          </div>
+        </div>
 
-            <div class="mb-3">
-              <label class="form-label form-label-sm">Role</label>
-              <select id="charRole" class="form-select form-select-sm">
+        {% if book.book_type == 'manga' %}
+        <!-- CHAPTER MANAGEMENT -->
+        <div class="glass-card mb-4">
+          <h2 class="section-title"><i class="fas fa-book-open me-2"></i> Chapters</h2>
+          <p class="text-muted small mb-3">Manage chapters specifically for this manga.</p>
+          <div id="chaptersList" style="max-height: 300px; overflow-y: auto; padding-right: 5px;"></div>
+        </div>
+
+        <!-- CHARACTER MANAGEMENT -->
+        <div class="glass-card">
+          <h2 class="section-title"><i class="fas fa-users me-2"></i> Characters</h2>
+          <div id="charactersList" class="mb-4"></div>
+
+          <div class="p-3 rounded border border-secondary" style="background: rgba(255,255,255,0.03);">
+            <h6 class="text-info mb-3"><i class="fas fa-plus-circle me-1"></i> Add New Character</h6>
+            <div class="mb-2">
+              <input type="text" id="charName" class="form-control form-control-sm mb-2"
+                placeholder="Character Name *" />
+              <select id="charRole" class="form-select form-select-sm mb-2">
                 <option value="" disabled selected>Select Role...</option>
                 <option value="Main Character">Main Character</option>
                 <option value="Supporting Character">Supporting Character</option>
@@ -189,461 +322,421 @@
                 <option value="Side Character">Side Character</option>
                 <option value="Extra">Extra</option>
               </select>
-            </div>
+              <textarea id="charDescription" class="form-control form-control-sm mb-2" rows="2"
+                placeholder="Brief Description..."></textarea>
+              <label class="small text-muted mb-1">Character Photo</label>
+              <input type="file" id="charAvatar" class="form-control form-control-sm mb-2" accept="image/*" />
 
-            <div class="mb-3">
-              <label class="form-label form-label-sm">Description</label>
-              <textarea
-                id="charDescription"
-                class="form-control form-control-sm"
-                rows="3"
-                placeholder="Brief character description..."
-              ></textarea>
+              <button type="button" id="addCharBtn" class="btn btn-outline-neon btn-sm w-100 mt-2">
+                <i class="fas fa-plus"></i> Add Character
+              </button>
             </div>
-
-            <div class="mb-3">
-              <label class="form-label form-label-sm">Character Photo</label>
-              <input
-                type="file"
-                id="charAvatar"
-                class="form-control form-control-sm"
-                accept="image/*"
-              />
-              <small class="form-text text-muted">Optional: Upload a character image</small>
-            </div>
-
-            <button type="button" id="addCharBtn" class="btn btn-sm" style="background: #00d4ff; color: #000; border: none; font-weight: 600;">
-              <i class="fas fa-plus"></i> Add Character
-            </button>
           </div>
         </div>
         {% endif %}
 
-        <!-- DESKTOP submit button -->
-        <button type="submit" class="btn btn-neon w-100 d-none d-md-block">
-          Save Changes
-        </button>
-
-        </form>
       </div>
     </div>
-  </div>
-  <script>
-    // copy editable description into hidden textarea before submit
-    document.querySelector('form')?.addEventListener('submit', function(e){
-      const hidden = document.getElementById('description_hidden');
-      if (hidden){ hidden.value = document.getElementById('description').innerText.trim(); }
-    });
-
-    // Character management for manga
-    {% if book.book_type == 'manga' %}
-    const mangaId = {{ book.id }};
-    let characters = [];
-    let chapters = [];
-
-    // Load chapters from server
-    async function loadChapters() {
-      try {
-        const response = await fetch(`/api/manga/${mangaId}/chapters`);
-        if (!response.ok) throw new Error('Failed to load chapters');
-        
-        chapters = await response.json();
-        renderChaptersList();
-      } catch (error) {
-        console.error('Error loading chapters:', error);
-      }
-    }
-
-    // Render chapters list
-    function renderChaptersList() {
-      const container = document.getElementById('chaptersList');
-      
-      if (chapters.length === 0) {
-        container.innerHTML = '<p class="text-muted small">No chapters added yet</p>';
-        return;
-      }
-
-      let html = '<div style="margin-bottom: 15px;"><h6 class="mb-3">Chapters (' + chapters.length + ')</h6>';
-      chapters.forEach((ch, idx) => {
-        html += `
-          <div style="background: white; padding: 12px; border-radius: 4px; border-left: 3px solid #667eea; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: start;">
-            <div style="flex: 1;">
-              <strong style="color: #667eea;">Ch. ${ch.chapter_num}: ${escapeHtml(ch.title || 'Untitled')}</strong>
-              <div class="small text-muted">${ch.page_count || 0} pages</div>
-            </div>
-            <div style="display: flex; gap: 5px;">
-              <button type="button" class="btn btn-sm btn-warning" onclick="editChapter(${ch.id}, ${idx})" style="padding: 3px 10px; font-size: 12px;">Edit</button>
-              <button type="button" class="btn btn-sm btn-danger" onclick="deleteChapter(${ch.id})" style="padding: 3px 10px; font-size: 12px;">Delete</button>
-            </div>
-          </div>
-        `;
-      });
-      html += '</div>';
-      container.innerHTML = html;
-    }
-
-    // Edit chapter
-    function editChapter(chapterId, idx) {
-      const chapter = chapters[idx];
-      const newTitle = prompt('Edit Chapter Title:', chapter.title || '');
-      
-      if (newTitle === null) return; // User cancelled
-      
-      if (!newTitle.trim()) {
-        alert('Chapter title cannot be empty');
-        return;
-      }
-
-      updateChapter(chapterId, newTitle.trim());
-    }
-
-    // Update chapter
-    async function updateChapter(chapterId, newTitle) {
-      try {
-        const response = await fetch(`/api/chapter/${chapterId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: newTitle })
-        });
-
-        if (!response.ok) {
-          alert('Failed to update chapter');
-          return;
-        }
-
-        const idx = chapters.findIndex(c => c.id === chapterId);
-        if (idx !== -1) {
-          chapters[idx].title = newTitle;
-          renderChaptersList();
-          alert('Chapter updated!');
-        }
-      } catch (error) {
-        console.error('Error updating chapter:', error);
-        alert('Failed to update chapter');
-      }
-    }
-
-    // Delete chapter
-    async function deleteChapter(chapterId) {
-      if (!confirm('Delete this chapter? This cannot be undone.')) return;
-
-      try {
-        const response = await fetch(`/api/chapter/${chapterId}`, {
-          method: 'DELETE'
-        });
-
-        if (!response.ok) {
-          alert('Failed to delete chapter');
-          return;
-        }
-
-        chapters = chapters.filter(c => c.id !== chapterId);
-        renderChaptersList();
-        alert('Chapter deleted!');
-      } catch (error) {
-        console.error('Error deleting chapter:', error);
-        alert('Failed to delete chapter');
-      }
-    }
-
-    // Load characters from server
-    async function loadCharacters() {
-      try {
-        const response = await fetch(`/api/manga/${mangaId}/characters`);
-        if (!response.ok) throw new Error('Failed to load characters');
-        
-        characters = await response.json();
-        renderCharactersList();
-      } catch (error) {
-        console.error('Error loading characters:', error);
-      }
-    }
-
-    // Render characters list
-    function renderCharactersList() {
-      const container = document.getElementById('charactersList');
-      
-      if (characters.length === 0) {
-        container.innerHTML = '<p class="text-muted small">No characters added yet</p>';
-        return;
-      }
-
-      // Collapsible Header
-      let html = `
-        <div style="margin-bottom: 5px;">
-          <div onclick="toggleCharactersList()" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #f1f3f5; padding: 10px 15px; border-radius: 4px; border: 1px solid #dee2e6;">
-            <h6 class="mb-0" style="color: #495057;">Characters (${characters.length})</h6>
-            <i id="charListIcon" class="fas fa-chevron-down" style="transition: transform 0.2s;"></i>
-          </div>
-        </div>
-        <div id="charactersListContent" style="display: none; margin-top: 10px;">
-      `;
-
-      characters.forEach(char => {
-        html += `
-          <div style="background: white; padding: 12px; border-radius: 4px; border-left: 3px solid #00d4ff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: start;">
-            <div style="flex: 1; display: flex; gap: 10px;">
-              ${char.avatar_url ? `<img src="${escapeHtml(char.avatar_url)}" alt="${escapeHtml(char.name)}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">` : `<div style="width: 50px; height: 50px; border-radius: 50%; background: #00d4ff; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">${char.name.charAt(0).toUpperCase()}</div>`}
-              <div style="flex: 1;">
-                <strong style="color: #00d4ff;">${escapeHtml(char.name)}</strong>
-                <div class="small text-muted">${escapeHtml(char.role || 'Supporting Role')}</div>
-                
-                ${char.description ? `
-                  <div style="margin-top: 5px;">
-                    <button type="button" class="btn btn-sm btn-outline-info" style="font-size: 11px; padding: 2px 8px; border-radius: 12px;" onclick="toggleDescription(${char.id})">
-                      Description <i id="descIcon-${char.id}" class="fas fa-chevron-down"></i>
-                    </button>
-                    <div id="desc-${char.id}" style="display: none; margin-top: 8px; font-size: 0.85rem; color: #555; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e9ecef;">
-                      ${escapeHtml(char.description)}
-                    </div>
-                  </div>
-                ` : ''}
-
-              </div>
-            </div>
-            <div style="display: flex; gap: 5px;">
-              <button type="button" class="btn btn-sm btn-warning" onclick="editCharacter(${char.id})" style="padding: 3px 10px; font-size: 12px;">Edit</button>
-              <button type="button" class="btn btn-sm btn-danger" onclick="deleteCharacter(${char.id})" style="padding: 3px 10px; font-size: 12px;">Delete</button>
-            </div>
-          </div>
-        `;
-      });
-      html += '</div>'; // Close content container
-      container.innerHTML = html;
-    }
-
-    // Toggle character list visibility
-    function toggleCharactersList() {
-      const content = document.getElementById('charactersListContent');
-      const icon = document.getElementById('charListIcon');
-      if (content.style.display === 'none') {
-        content.style.display = 'block';
-        icon.style.transform = 'rotate(180deg)';
-      } else {
-        content.style.display = 'none';
-        icon.style.transform = 'rotate(0deg)';
-      }
-    }
-
-    // Toggle description visibility
-    function toggleDescription(charId) {
-      const descDiv = document.getElementById(`desc-${charId}`);
-      const icon = document.getElementById(`descIcon-${charId}`);
-      
-      if (descDiv.style.display === 'none') {
-        descDiv.style.display = 'block';
-        icon.style.transform = 'rotate(180deg)';
-      } else {
-        descDiv.style.display = 'none';
-        icon.style.transform = 'rotate(0deg)';
-      }
-    }
-
-    // Edit character - show modal
-    function editCharacter(charId) {
-      const char = characters.find(c => c.id === charId);
-      if (!char) return;
-
-      // Create modal
-      const modal = document.createElement('div');
-      modal.style.cssText = `
-        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.7); display: flex; align-items: center;
-        justify-content: center; z-index: 9999;
-      `;
-      
-      modal.innerHTML = `
-        <div style="background: white; border-radius: 8px; padding: 25px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
-          <h5 style="margin-bottom: 20px; color: #00d4ff;"><i class="fas fa-edit"></i> Edit Character</h5>
-          
-          <div class="mb-3">
-            <label class="form-label form-label-sm">Character Name *</label>
-            <input type="text" id="editCharName" class="form-control form-control-sm" value="${escapeHtml(char.name)}" />
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label form-label-sm">Role</label>
-            <select id="editCharRole" class="form-select form-select-sm">
-              <option value="Main Character" ${char.role === 'Main Character' ? 'selected' : ''}>Main Character</option>
-              <option value="Supporting Character" ${char.role === 'Supporting Character' ? 'selected' : ''}>Supporting Character</option>
-              <option value="Protagonist" ${char.role === 'Protagonist' ? 'selected' : ''}>Protagonist</option>
-              <option value="Antagonist" ${char.role === 'Antagonist' ? 'selected' : ''}>Antagonist</option>
-              <option value="Villain" ${char.role === 'Villain' ? 'selected' : ''}>Villain</option>
-              <option value="Side Character" ${char.role === 'Side Character' ? 'selected' : ''}>Side Character</option>
-              <option value="Extra" ${char.role === 'Extra' ? 'selected' : ''}>Extra</option>
-               ${!['Main Character', 'Supporting Character', 'Protagonist', 'Antagonist', 'Villain', 'Side Character', 'Extra'].includes(char.role) && char.role ? `<option value="${escapeHtml(char.role)}" selected>${escapeHtml(char.role)}</option>` : ''}
-            </select>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label form-label-sm">Description</label>
-            <textarea id="editCharDescription" class="form-control form-control-sm" rows="3">${escapeHtml(char.description || '')}</textarea>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label form-label-sm">Character Photo</label>
-            ${char.avatar_url ? `<div style="margin-bottom: 10px;"><img src="${escapeHtml(char.avatar_url)}" alt="${escapeHtml(char.name)}" style="max-width: 150px; max-height: 150px; border-radius: 6px;"></div>` : ''}
-            <input type="file" id="editCharAvatar" class="form-control form-control-sm" accept="image/*" />
-            <small class="form-text text-muted">Upload a new photo to replace the current one</small>
-          </div>
-
-          <div style="display: flex; gap: 10px;">
-            <button type="button" class="btn btn-sm" style="background: #00d4ff; color: #000; border: none; font-weight: 600; flex: 1;" onclick="updateCharacter(${charId})">
-              <i class="fas fa-save"></i> Save Changes
-            </button>
-            <button type="button" class="btn btn-sm btn-secondary" style="flex: 1;" onclick="document.body.removeChild(this.closest('div').parentElement)">
-              Cancel
-            </button>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(modal);
-      modal.onclick = (e) => {
-        if (e.target === modal) {
-          document.body.removeChild(modal);
-        }
-      };
-    }
-
-    // Update character
-    async function updateCharacter(charId) {
-      const name = document.getElementById('editCharName').value.trim();
-      const role = document.getElementById('editCharRole').value.trim();
-      const description = document.getElementById('editCharDescription').value.trim();
-      const avatarFile = document.getElementById('editCharAvatar').files[0];
-
-      if (!name) {
-        alert('Character name cannot be empty');
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('role', role);
-      formData.append('description', description);
-      if (avatarFile) {
-        formData.append('avatar', avatarFile);
-      }
-
-      try {
-        const response = await fetch(`/api/manga/character/${charId}`, {
-          method: 'PUT',
-          body: formData
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          alert('Error: ' + (error.error || 'Failed to update character'));
-          return;
-        }
-
-        const updated = await response.json();
-        const idx = characters.findIndex(c => c.id === charId);
-        if (idx !== -1) {
-          characters[idx] = updated;
-          renderCharactersList();
-          
-          // Close modal
-          document.querySelector('[style*="position: fixed"]')?.parentElement?.removeChild(document.querySelector('[style*="position: fixed"]'));
-          alert('Character updated successfully!');
-        }
-      } catch (error) {
-        console.error('Error updating character:', error);
-        alert('Failed to update character');
-      }
-    }
-
-    // Add character
-    document.getElementById('addCharBtn')?.addEventListener('click', async () => {
-      const name = document.getElementById('charName').value.trim();
-      const role = document.getElementById('charRole').value.trim();
-      const description = document.getElementById('charDescription').value.trim();
-      const avatarFile = document.getElementById('charAvatar').files[0];
-
-      if (!name) {
-        alert('Please enter a character name');
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('role', role);
-      formData.append('description', description);
-      if (avatarFile) {
-        formData.append('avatar', avatarFile);
-      }
-
-      try {
-        const response = await fetch(`/api/manga/${mangaId}/characters`, {
-          method: 'POST',
-          body: formData
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          alert('Error: ' + (error.error || 'Failed to add character'));
-          return;
-        }
-
-        const result = await response.json();
-        characters.push(result);
-        
-        // Clear inputs
-        document.getElementById('charName').value = '';
-        document.getElementById('charRole').value = '';
-        document.getElementById('charDescription').value = '';
-        document.getElementById('charAvatar').value = '';
-        
-        renderCharactersList();
-        alert('Character added successfully!');
-      } catch (error) {
-        console.error('Error adding character:', error);
-        alert('Failed to add character');
-      }
-    });
-
-    // Delete character
-    async function deleteCharacter(charId) {
-      if (!confirm('Delete this character?')) return;
-
-      try {
-        const response = await fetch(`/api/manga/character/${charId}`, {
-          method: 'DELETE'
-        });
-
-        if (!response.ok) {
-          alert('Failed to delete character');
-          return;
-        }
-
-        characters = characters.filter(c => c.id !== charId);
-        renderCharactersList();
-        alert('Character deleted!');
-      } catch (error) {
-        console.error('Error deleting character:', error);
-        alert('Failed to delete character');
-      }
-    }
-
-    // Escape HTML
-    function escapeHtml(text) {
-      const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-      };
-      return text.replace(/[&<>"']/g, m => map[m]);
-    }
-
-    // Load characters and chapters on page load
-    document.addEventListener('DOMContentLoaded', () => {
-      loadChapters();
-      loadCharacters();
-    });
-    {% endif %}
-  </script>
+  </form>
 </div>
+
+<script>
+  // copy editable description into hidden textarea before submit
+  document.querySelector('form')?.addEventListener('submit', function (e) {
+    const hidden = document.getElementById('description_hidden');
+    const editable = document.getElementById('description');
+    if (hidden && editable) { hidden.value = editable.innerText.trim(); }
+  });
+
+  // Character management for manga
+  {% if book.book_type == 'manga' %}
+  const mangaId = {{ book.id }};
+  let characters = [];
+  let chapters = [];
+
+  // Load chapters from server
+  async function loadChapters() {
+    try {
+      const response = await fetch(`/api/manga/${mangaId}/chapters`);
+      if (!response.ok) throw new Error('Failed to load chapters');
+
+      chapters = await response.json();
+      renderChaptersList();
+    } catch (error) {
+      console.error('Error loading chapters:', error);
+    }
+  }
+
+  // Render chapters list
+  function renderChaptersList() {
+    const container = document.getElementById('chaptersList');
+
+    if (chapters.length === 0) {
+      container.innerHTML = '<div class="text-center text-muted p-3">No chapters added yet</div>';
+      return;
+    }
+
+    let html = '<div class="list-group list-group-flush">';
+    chapters.forEach((ch, idx) => {
+      html += `
+        <div class="list-group-item bg-transparent border-secondary text-light d-flex justify-content-between align-items-center py-2 px-0">
+          <div>
+            <span class="text-info fw-bold">Ch. ${ch.chapter_num}</span>: 
+            <span class="text-light">${escapeHtml(ch.title || 'Untitled')}</span>
+            <div class="small text-muted">${ch.page_count || 0} pages</div>
+          </div>
+          <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-outline-warning" onclick="editChapter(${ch.id}, ${idx})" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteChapter(${ch.id})" title="Delete"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  // Edit chapter
+  function editChapter(chapterId, idx) {
+    const chapter = chapters[idx];
+    const newTitle = prompt('Edit Chapter Title:', chapter.title || '');
+
+    if (newTitle === null) return; // User cancelled
+
+    if (!newTitle.trim()) {
+      alert('Chapter title cannot be empty');
+      return;
+    }
+
+    updateChapter(chapterId, newTitle.trim());
+  }
+
+  // Update chapter
+  async function updateChapter(chapterId, newTitle) {
+    try {
+      const response = await fetch(`/api/chapter/${chapterId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle })
+      });
+
+      if (!response.ok) {
+        alert('Failed to update chapter');
+        return;
+      }
+
+      const idx = chapters.findIndex(c => c.id === chapterId);
+      if (idx !== -1) {
+        chapters[idx].title = newTitle;
+        renderChaptersList();
+        // alert('Chapter updated!');
+      }
+    } catch (error) {
+      console.error('Error updating chapter:', error);
+      alert('Failed to update chapter');
+    }
+  }
+
+  // Delete chapter
+  async function deleteChapter(chapterId) {
+    if (!confirm('Delete this chapter? This cannot be undone.')) return;
+
+    try {
+      const response = await fetch(`/api/chapter/${chapterId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        alert('Failed to delete chapter');
+        return;
+      }
+
+      chapters = chapters.filter(c => c.id !== chapterId);
+      renderChaptersList();
+    } catch (error) {
+      console.error('Error deleting chapter:', error);
+      alert('Failed to delete chapter');
+    }
+  }
+
+  // Load characters from server
+  async function loadCharacters() {
+    try {
+      const response = await fetch(`/api/manga/${mangaId}/characters`);
+      if (!response.ok) throw new Error('Failed to load characters');
+
+      characters = await response.json();
+      renderCharactersList();
+    } catch (error) {
+      console.error('Error loading characters:', error);
+    }
+  }
+
+  // Render characters list
+  function renderCharactersList() {
+    const container = document.getElementById('charactersList');
+
+    if (characters.length === 0) {
+      container.innerHTML = '<div class="text-center text-muted p-2 mb-3">No characters added yet</div>';
+      return;
+    }
+
+    // Collapsible Header
+    let html = `
+      <div class="mb-2">
+        <div onclick="toggleCharactersList()" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px; border: 1px solid #30363d;">
+          <h6 class="mb-0 text-light">Character List (${characters.length})</h6>
+          <i id="charListIcon" class="fas fa-chevron-down text-info" style="transition: transform 0.2s;"></i>
+        </div>
+      </div>
+      <div id="charactersListContent" style="display: none; margin-top: 10px;">
+    `;
+
+    characters.forEach(char => {
+      html += `
+        <div class="p-3 mb-2 rounded d-flex justify-content-between align-items-start" style="background: rgba(0,0,0,0.2); border: 1px solid #30363d; border-left: 3px solid var(--neon-blue);">
+          <div class="d-flex gap-3 align-items-center">
+            ${char.avatar_url ? `<img src="${escapeHtml(char.avatar_url)}" alt="${escapeHtml(char.name)}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #30363d;">` : `<div style="width: 48px; height: 48px; border-radius: 50%; background: #21262d; display: flex; align-items: center; justify-content: center; color: var(--neon-blue); font-weight: bold; border: 2px solid #30363d;">${char.name.charAt(0).toUpperCase()}</div>`}
+            <div>
+              <strong class="text-light d-block">${escapeHtml(char.name)}</strong>
+              <small class="text-muted d-block">${escapeHtml(char.role || 'Supporting Role')}</small>
+              
+              ${char.description ? `
+                <div class="mt-1">
+                  <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-info" style="font-size: 0.75rem;" onclick="toggleDescription(${char.id})">
+                    Show Desc <i id="descIcon-${char.id}" class="fas fa-chevron-down"></i>
+                  </button>
+                  <div id="desc-${char.id}" style="display: none; margin-top: 5px; font-size: 0.8rem; color: #8b949e; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;">
+                    ${escapeHtml(char.description)}
+                  </div>
+                </div>
+              ` : ''}
+
+            </div>
+          </div>
+          <div class="d-flex gap-1 flex-column">
+            <button type="button" class="btn btn-xs btn-outline-warning" onclick="editCharacter(${char.id})" style="padding: 2px 6px; font-size: 10px;"><i class="fas fa-edit"></i></button>
+            <button type="button" class="btn btn-xs btn-outline-danger" onclick="deleteCharacter(${char.id})" style="padding: 2px 6px; font-size: 10px;"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>'; // Close content container
+    container.innerHTML = html;
+  }
+
+  // Toggle character list visibility
+  function toggleCharactersList() {
+    const content = document.getElementById('charactersListContent');
+    const icon = document.getElementById('charListIcon');
+    if (content.style.display === 'none') {
+      content.style.display = 'block';
+      icon.style.transform = 'rotate(180deg)';
+    } else {
+      content.style.display = 'none';
+      icon.style.transform = 'rotate(0deg)';
+    }
+  }
+
+  // Toggle description visibility
+  function toggleDescription(charId) {
+    const descDiv = document.getElementById(`desc-${charId}`);
+    const icon = document.getElementById(`descIcon-${charId}`);
+
+    if (descDiv.style.display === 'none') {
+      descDiv.style.display = 'block';
+      icon.style.transform = 'rotate(180deg)';
+    } else {
+      descDiv.style.display = 'none';
+      icon.style.transform = 'rotate(0deg)';
+    }
+  }
+
+  // Edit character - show modal
+  function editCharacter(charId) {
+    const char = characters.find(c => c.id === charId);
+    if (!char) return;
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: flex; align-items: center;
+      justify-content: center; z-index: 9999;
+    `;
+
+    modal.innerHTML = `
+      <div class="glass-card" style="width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+        <h5 class="section-title text-light mb-4"><i class="fas fa-edit me-2"></i> Edit Character</h5>
+        
+        <div class="mb-3">
+          <label class="form-label">Character Name *</label>
+          <input type="text" id="editCharName" class="form-control" value="${escapeHtml(char.name)}" />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Role</label>
+          <select id="editCharRole" class="form-select">
+            <option value="Main Character" ${char.role === 'Main Character' ? 'selected' : ''}>Main Character</option>
+            <option value="Supporting Character" ${char.role === 'Supporting Character' ? 'selected' : ''}>Supporting Character</option>
+            <option value="Protagonist" ${char.role === 'Protagonist' ? 'selected' : ''}>Protagonist</option>
+            <option value="Antagonist" ${char.role === 'Antagonist' ? 'selected' : ''}>Antagonist</option>
+            <option value="Villain" ${char.role === 'Villain' ? 'selected' : ''}>Villain</option>
+            <option value="Side Character" ${char.role === 'Side Character' ? 'selected' : ''}>Side Character</option>
+            <option value="Extra" ${char.role === 'Extra' ? 'selected' : ''}>Extra</option>
+             ${!['Main Character', 'Supporting Character', 'Protagonist', 'Antagonist', 'Villain', 'Side Character', 'Extra'].includes(char.role) && char.role ? `<option value="${escapeHtml(char.role)}" selected>${escapeHtml(char.role)}</option>` : ''}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea id="editCharDescription" class="form-control" rows="3">${escapeHtml(char.description || '')}</textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">Character Photo</label>
+          ${char.avatar_url ? `<div class="mb-2"><img src="${escapeHtml(char.avatar_url)}" alt="${escapeHtml(char.name)}" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover;"></div>` : ''}
+          <input type="file" id="editCharAvatar" class="form-control" accept="image/*" />
+          <small class="form-text text-muted">Upload a new photo to replace the current one</small>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-neon flex-grow-1" onclick="updateCharacter(${charId})">
+            <i class="fas fa-save me-2"></i> Save
+          </button>
+          <button type="button" class="btn btn-outline-secondary flex-grow-1" onclick="document.body.removeChild(this.closest('div').parentElement)">
+            Cancel
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    };
+  }
+
+  // Update character logic (remains same, just calls renderCharactersList)
+  window.updateCharacter = async function (charId) {
+    const name = document.getElementById('editCharName').value.trim();
+    const role = document.getElementById('editCharRole').value.trim();
+    const description = document.getElementById('editCharDescription').value.trim();
+    const avatarFile = document.getElementById('editCharAvatar').files[0];
+
+    if (!name) {
+      alert('Character name cannot be empty');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('role', role);
+    formData.append('description', description);
+    if (avatarFile) {
+      formData.append('avatar', avatarFile);
+    }
+
+    try {
+      const response = await fetch(`/api/manga/character/${charId}`, {
+        method: 'PUT',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert('Error: ' + (error.error || 'Failed to update character'));
+        return;
+      }
+
+      const updated = await response.json();
+      const idx = characters.findIndex(c => c.id === charId);
+      if (idx !== -1) {
+        characters[idx] = updated;
+        renderCharactersList();
+
+        // Remove modal
+        const modal = document.querySelector('[style*="position: fixed"]'); // safe enough for now
+        if (modal) document.body.removeChild(modal);
+
+        // alert('Character updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating character:', error);
+      alert('Failed to update character');
+    }
+  };
+
+  // Add character
+  document.getElementById('addCharBtn')?.addEventListener('click', async () => {
+    const name = document.getElementById('charName').value.trim();
+    const role = document.getElementById('charRole').value.trim();
+    const description = document.getElementById('charDescription').value.trim();
+    const avatarFile = document.getElementById('charAvatar').files[0];
+
+    if (!name) {
+      alert('Please enter a character name');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('role', role);
+    formData.append('description', description);
+    if (avatarFile) {
+      formData.append('avatar', avatarFile);
+    }
+
+    try {
+      const response = await fetch(`/api/manga/${mangaId}/characters`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert('Error: ' + (error.error || 'Failed to add character'));
+        return;
+      }
+
+      const result = await response.json();
+      characters.push(result);
+
+      // Clear inputs
+      document.getElementById('charName').value = '';
+      document.getElementById('charRole').value = '';
+      document.getElementById('charDescription').value = '';
+      document.getElementById('charAvatar').value = '';
+
+      renderCharactersList();
+      // alert('Character added successfully!');
+    } catch (error) {
+      console.error('Error adding character:', error);
+      alert('Failed to add character');
+    }
+  });
+
+  // Delete character logic (remains same)
+
+  // Escape HTML
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  }
+
+  // Load characters and chapters on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    loadChapters();
+    loadCharacters();
+  });
+  {% endif %}
+</script>
 {% endblock %}
