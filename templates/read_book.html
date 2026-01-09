@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book_data.title }} - Reader | NOVUS{% endblock %}
+
+{% block content %}
+<style>
+    /* Override main content padding for full-width reader */
+    .main-content {
+        padding: 0 !important;
+        overflow: hidden !important;
+        height: 100vh !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .top-header-minimal {
+        margin-bottom: 0 !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Reader container fills available space */
+    .reader-container {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        background: #0f172a;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* React app root */
+    #root {
+        width: 100%;
+        height: 100%;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* Hide flash messages in reader */
+    .flash-container {
+        display: none !important;
+    }
+
+    /* Tailwind CDN styles for reader */
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    .highlight-active {
+        background-color: #fde047;
+        border-radius: 4px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 0 15px rgba(253, 224, 71, 0.6);
+    }
+
+    .reading-highlight {
+        background-color: rgba(79, 70, 229, 0.15);
+        border-bottom: 2px solid #4f46e5;
+        border-radius: 2px;
+        padding: 1px 0;
+        transition: all 0.4s ease;
+        position: relative;
+        z-index: 5;
+    }
+
+    .reading-highlight::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -2px;
+        width: 100%;
+        height: 2px;
+        background: #4f46e5;
+        box-shadow: 0 0 8px rgba(79, 70, 229, 0.4);
+    }
+</style>
+
+<!-- TailwindCSS for React components -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Pass book data to React app -->
+<script>
+    window.__BOOK_DATA__ = {{ book_data | tojson | safe }};
+</script>
+
+<!-- PDF.js for native PDF rendering -->
+<script type="module">
+    import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs';
+    window.pdfjsLib = pdfjsLib;
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+</script>
+
+<!-- Import maps for React dependencies -->
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "pdfjs-dist": "https://esm.sh/pdfjs-dist@4.0.379"
+  }
+}
+</script>
+
+<div class="reader-container">
+    <div id="root"></div>
+</div>
+
+<!-- Load the built React app -->
+<script type="module" crossorigin src="/static/lumina-reader/dist/assets/index-J7YX8B4g.js"></script>
+{% endblock %}

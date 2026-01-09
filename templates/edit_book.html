@@ -237,6 +237,23 @@
             </div>
           </div>
 
+          <!-- Metadata Fields (Transcript & TOC) -->
+          <div id="audioMetadataFields" style="display: {{ 'block' if book.audio_filename else 'none' }};"
+            class="mt-4 animate-in">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label text-white">Transcript for summary</label>
+                <textarea name="transcript" class="form-control bg-dark text-white border-secondary" rows="4"
+                  placeholder="Paste the audio transcript here...">{{ book.transcript or '' }}</textarea>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label text-white">Table of Content</label>
+                <textarea name="toc" class="form-control bg-dark text-white border-secondary" rows="4"
+                  placeholder="Enter the table of contents...">{{ book.toc or '' }}</textarea>
+              </div>
+            </div>
+          </div>
+
           <div class="d-grid d-md-block">
             <button type="submit" class="btn btn-neon w-100"><i class="fas fa-save me-2"></i> Save Changes</button>
           </div>
@@ -282,7 +299,8 @@
 
           <!-- Audio File -->
           <div class="file-preview-card">
-            <h6 class="text-light mb-3"><i class="fas fa-music text-warning me-2"></i> Audiobook (MP3)</h6>
+            <h6 class="text-light mb-3"><i class="fas fa-headphones text-warning me-2"></i> Audio summary (Optional)
+            </h6>
             <div class="small text-muted mb-2">
               {% if book.audio_filename %}
               Current: <code class="text-light">{{ book.audio_filename }}</code>
@@ -290,7 +308,10 @@
               <span class="text-secondary">No audio uploaded yet.</span>
               {% endif %}
             </div>
-            <input type="file" name="audio_file" accept=".mp3" class="form-control form-control-sm" />
+            <input type="file" name="audio_file" id="bookAudio" accept=".mp3" class="form-control form-control-sm"
+              onchange="handleAudioUpload(this)" />
+            <div class="form-text text-muted">Leave empty to keep current audio summary.</div>
+
           </div>
         </div>
 
@@ -347,6 +368,13 @@
     const editable = document.getElementById('description');
     if (hidden && editable) { hidden.value = editable.innerText.trim(); }
   });
+
+  window.handleAudioUpload = function (input) {
+    const metadataFields = document.getElementById('audioMetadataFields');
+    if (metadataFields) {
+      metadataFields.style.display = input.files[0] ? 'block' : 'none';
+    }
+  };
 
   // Character management for manga
   {% if book.book_type == 'manga' %}

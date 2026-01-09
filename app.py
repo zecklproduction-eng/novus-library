@@ -1975,6 +1975,53 @@ def view_book(id):
     )
 
 
+# ---------- Read Book (React PDF Reader) ----------
+@app.route("/read/<int:id>")
+@login_required
+def read_book(id):
+    """Serve the React PDF reader for a specific book."""
+    conn = get_conn()
+    c = conn.cursor()
+
+    # Fetch book details
+    c.execute(
+        """SELECT id, title, author, category, pdf_filename, audio_filename, 
+                  cover_path, description, transcript, toc FROM books WHERE id=?""",
+        (id,),
+    )
+    book = c.fetchone()
+    conn.close()
+
+    if not book:
+        flash("Book not found.", "danger")
+        return redirect(url_for("home"))
+
+    # Prepare URLs - PDFs are in /static/books/, audio in /static/audio/
+    pdf_url = f"/static/books/{book[4]}" if book[4] else ""
+    audio_url = f"/static/audio/{book[5]}" if book[5] else ""
+    
+    cover_path = book[6]
+    if cover_path:
+        cover_url = cover_path if cover_path.startswith(('http://', 'https://')) else f"/static/{cover_path}"
+    else:
+        cover_url = "/static/images/default-cover.png"
+
+    # Prepare book data for React app
+    book_data = {
+        "id": str(book[0]),
+        "title": book[1] or "Untitled",
+        "author": book[2] or "Unknown Author",
+        "description": book[7] or "",
+        "pdfUrl": pdf_url,
+        "audioUrl": audio_url,
+        "coverUrl": cover_url,
+        "transcript": book[8] or "",
+        "toc": book[9] or ""
+    }
+
+    return render_template("read_book.html", book=book, book_data=book_data)
+
+
 # ---------- AI Summary Endpoint ----------
 @app.route('/ai_summary', methods=['POST'])
 @admin_required
@@ -2782,14 +2829,18 @@ def add_book():
             cover_file.save(os.path.join(UPLOAD_FOLDER_COVERS, fname))
             cover_path = f"covers/{fname}"
 
+        # Metadata
+        transcript = (request.form.get("transcript") or "").strip()
+        toc = (request.form.get("toc") or "").strip()
+
         conn = get_conn()
         c = conn.cursor()
         # record uploader_id so the user who created the book can edit it later
         uploader_id = session.get('user_id')
         c.execute("""
-        INSERT INTO books (title, author, category, pdf_filename, audio_filename, cover_path, book_type, uploader_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (title, author, category, pdf_filename, audio_filename, cover_path, book_type, uploader_id))
+        INSERT INTO books (title, author, category, pdf_filename, audio_filename, cover_path, book_type, uploader_id, description, transcript, toc)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (title, author, category, pdf_filename, audio_filename, cover_path, book_type, uploader_id, (request.form.get("description") or ""), transcript, toc))
         conn.commit()
         conn.close()
 
@@ -3021,7 +3072,8 @@ def edit_book(id):
         # pull everything we need, including description and uploader
         c.execute("""
             SELECT id, title, author, category, description,
-                   pdf_filename, audio_filename, cover_path, uploader_id, book_type
+                   pdf_filename, audio_filename, cover_path, uploader_id, book_type,
+                   transcript, toc
             FROM books
             WHERE id = ?
         """, (id,))
@@ -3043,6 +3095,8 @@ def edit_book(id):
             "cover_path": row[7],
             "uploader_id": row[8],
             "book_type": row[9],
+            "transcript": row[10],
+            "toc": row[11],
         }
 
         # --- permission: only admin or the publisher who uploaded it ---
@@ -3065,6 +3119,8 @@ def edit_book(id):
                 category = (request.form.get("category") or "").strip()
 
             description = (request.form.get('description') or '').strip()
+            transcript = (request.form.get('transcript') or '').strip()
+            toc = (request.form.get('toc') or '').strip()
 
             if not title:
                 flash("Title is required.", "danger")
@@ -3112,9 +3168,11 @@ def edit_book(id):
                        description = ?,
                        pdf_filename = ?,
                        audio_filename = ?,
-                       cover_path = ?
+                       cover_path = ?,
+                       transcript = ?,
+                       toc = ?
                  WHERE id = ?
-            """, (title, author, category, description, pdf_filename, audio_filename, cover_path, id))
+            """, (title, author, category, description, pdf_filename, audio_filename, cover_path, transcript, toc, id))
 
             conn.commit()
             conn.close()

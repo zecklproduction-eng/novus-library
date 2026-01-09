@@ -10,7 +10,7 @@
             </h1>
             <p class="upload-header-subtitle">Share your books and manga with the world</p>
         </div>
-        
+
         {% if request_data %}
         <div class="request-badge-premium">
             <div class="d-flex align-items-center gap-3">
@@ -31,11 +31,13 @@
 
     <!-- TYPE SELECTOR TABS -->
     <div class="upload-tabs animate-in delay-1">
-        <button class="type-tab {% if not request_data or request_data.type != 'manga' %}active{% endif %}" onclick="switchTab('book')">
+        <button class="type-tab {% if not request_data or request_data.type != 'manga' %}active{% endif %}"
+            onclick="switchTab('book')">
             <i class="fas fa-book"></i>
             <span>Book</span>
         </button>
-        <button class="type-tab {% if request_data and request_data.type == 'manga' %}active{% endif %}" onclick="switchTab('manga')">
+        <button class="type-tab {% if request_data and request_data.type == 'manga' %}active{% endif %}"
+            onclick="switchTab('manga')">
             <i class="fas fa-images"></i>
             <span>Manga</span>
         </button>
@@ -43,9 +45,10 @@
 
     <!-- ===== BOOK UPLOAD FORM ===== -->
     <div id="bookTab" class="tab-content {% if not request_data or request_data.type != 'manga' %}active{% endif %}">
-        <form method="POST" action="{{ url_for('add_book') }}" enctype="multipart/form-data" id="addBookForm" onsubmit="return simulatePublish(event)">
+        <form method="POST" action="{{ url_for('add_book') }}" enctype="multipart/form-data" id="addBookForm"
+            onsubmit="return simulatePublish(event)">
             {% if request_data %}<input type="hidden" name="request_id" value="{{ request_data.id }}">{% endif %}
-            
+
             <div class="row g-4">
                 <!-- LEFT COLUMN: Primary Details -->
                 <div class="col-lg-8">
@@ -59,13 +62,17 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label text-white">Title</label>
-                                    <input type="text" class="form-input" name="title" value="{% if request_data %}{{ request_data.title }}{% endif %}" placeholder="e.g. The Great Adventure" required>
+                                    <input type="text" class="form-input" name="title"
+                                        value="{% if request_data %}{{ request_data.title }}{% endif %}"
+                                        placeholder="e.g. The Great Adventure" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label text-white">Author</label>
-                                    <input type="text" class="form-input" name="author" value="{% if request_data %}{{ request_data.author }}{% endif %}" placeholder="Author name" required>
+                                    <input type="text" class="form-input" name="author"
+                                        value="{% if request_data %}{{ request_data.author }}{% endif %}"
+                                        placeholder="Author name" required>
                                 </div>
                             </div>
                         </div>
@@ -77,9 +84,17 @@
                                 Genres & Categories
                             </label>
                             <div id="bookCategoriesContainer" class="categories-grid">
-                                {% for cat in ["Action", "Adventure", "Biography", "Business", "Children", "Comedy", "Cooking", "Crime", "Cyberpunk", "Documentary", "Drama", "Dystopian", "Fantasy", "General", "Graphic Novel", "Health", "Historical", "Horror", "Isekai", "Josei", "Lifestyle", "Magic", "Martial Arts", "Mecha", "Memoir", "Mystery", "Philosophy", "Poetry", "Politics", "Psychological", "Religion", "Romance", "School Life", "Science", "Science Fiction", "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports", "Supernatural", "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western", "Young Adult"] %}
+                                {% for cat in ["Action", "Adventure", "Biography", "Business", "Children", "Comedy",
+                                "Cooking", "Crime", "Cyberpunk", "Documentary", "Drama", "Dystopian", "Fantasy",
+                                "General", "Graphic Novel", "Health", "Historical", "Horror", "Isekai", "Josei",
+                                "Lifestyle", "Magic", "Martial Arts", "Mecha", "Memoir", "Mystery", "Philosophy",
+                                "Poetry", "Politics", "Psychological", "Religion", "Romance", "School Life", "Science",
+                                "Science Fiction", "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports",
+                                "Supernatural", "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western",
+                                "Young Adult"] %}
                                 <label class="category-item">
-                                    <input type="checkbox" name="categories" value="{{ cat }}" onchange="updateBookCategoryCount()"> {{ cat }}
+                                    <input type="checkbox" name="categories" value="{{ cat }}"
+                                        onchange="updateBookCategoryCount()"> {{ cat }}
                                 </label>
                                 {% endfor %}
                             </div>
@@ -92,14 +107,40 @@
                             <label class="form-label text-white">Description</label>
                             <div class="description-editor-container">
                                 <div class="toolbar mb-2" id="editor-toolbar">
-                                    <button type="button" class="btn btn-sm btn-ghost" onclick="formatText('bold')"><i class="fas fa-bold"></i></button>
-                                    <button type="button" class="btn btn-sm btn-ghost" onclick="formatText('italic')"><i class="fas fa-italic"></i></button>
-                                    <button type="button" class="btn btn-sm btn-ghost" onclick="formatText('underline')"><i class="fas fa-underline"></i></button>
+                                    <button type="button" class="btn btn-sm btn-ghost" onclick="formatText('bold')"><i
+                                            class="fas fa-bold"></i></button>
+                                    <button type="button" class="btn btn-sm btn-ghost" onclick="formatText('italic')"><i
+                                            class="fas fa-italic"></i></button>
+                                    <button type="button" class="btn btn-sm btn-ghost"
+                                        onclick="formatText('underline')"><i class="fas fa-underline"></i></button>
                                     <span class="mx-2 text-muted">|</span>
-                                    <button type="button" class="btn btn-sm btn-ghost" onclick="formatText('insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+                                    <button type="button" class="btn btn-sm btn-ghost"
+                                        onclick="formatText('insertUnorderedList')"><i
+                                            class="fas fa-list-ul"></i></button>
                                 </div>
-                                <div id="description" class="form-textarea" contenteditable="true" data-placeholder="Tell us about this book..." style="min-height: 200px;"></div>
+                                <div id="description" class="form-textarea" contenteditable="true"
+                                    data-placeholder="Tell us about this book..." style="min-height: 200px;"></div>
                                 <textarea id="description_hidden" name="description" hidden></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Metadata Fields (Transcript & TOC) -->
+                        <div id="audioMetadataFields" style="display: none;" class="mt-4 animate-in">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label text-white">Transcript for summary</label>
+                                        <textarea name="transcript" class="form-textarea" rows="4"
+                                            placeholder="Paste the audio transcript here..."></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label text-white">Table of Content</label>
+                                        <textarea name="toc" class="form-textarea" rows="4"
+                                            placeholder="Enter the table of contents..."></textarea>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -113,16 +154,21 @@
                             <i class="fas fa-image"></i>
                             Cover Art
                         </h5>
-                        <div class="drop-zone" id="cover-drop-zone" onclick="document.getElementById('bookCover').click()">
-                            <input type="file" name="cover_image" id="bookCover" accept="image/*" style="display:none" onchange="previewImage(this, 'coverImagePreview')">
+                        <div class="drop-zone" id="cover-drop-zone"
+                            onclick="document.getElementById('bookCover').click()">
+                            <input type="file" name="cover_image" id="bookCover" accept="image/*" style="display:none"
+                                onchange="previewImage(this, 'coverImagePreview')">
                             <div id="cover-upload-text-overlay" class="d-flex flex-column align-items-center">
                                 <i class="fas fa-image upload-icon-lg"></i>
                                 <p>Cover Art</p>
                                 <small>JPG, PNG (Max 5MB)</small>
                             </div>
-                            <img id="coverImagePreview" src="#" alt="Preview" style="display:none; max-width:100%; max-height:220px; object-fit:contain; border-radius:12px;">
+                            <img id="coverImagePreview" src="#" alt="Preview"
+                                style="display:none; max-width:100%; max-height:220px; object-fit:contain; border-radius:12px;">
                         </div>
-                        <button type="button" id="remove-coverImagePreview" class="btn btn-sm btn-outline-danger w-100 mt-2" style="display:none" onclick="removePreview('coverImagePreview', 'bookCover', 'cover-upload-text-overlay'); event.stopPropagation();">
+                        <button type="button" id="remove-coverImagePreview"
+                            class="btn btn-sm btn-outline-danger w-100 mt-2" style="display:none"
+                            onclick="removePreview('coverImagePreview', 'bookCover', 'cover-upload-text-overlay'); event.stopPropagation();">
                             Remove Image
                         </button>
                     </div>
@@ -133,24 +179,28 @@
                             <i class="fas fa-file-upload"></i>
                             Content Files
                         </h5>
-                        
+
                         <div class="form-group">
                             <label class="form-label text-white">Main PDF File</label>
                             <div class="drop-zone p-4" onclick="document.getElementById('bookPdf').click()">
                                 <input type="file" name="pdf_file" id="bookPdf" accept=".pdf" style="display:none">
                                 <i class="fas fa-file-pdf upload-icon-lg"></i>
-                                <div id="bookPdfName" class="mt-2 small font-weight-bold" style="color: #71717a;">Upload PDF</div>
+                                <div id="bookPdfName" class="mt-2 small font-weight-bold" style="color: #71717a;">Upload
+                                    PDF</div>
                             </div>
                         </div>
 
                         <div class="form-group mb-0">
-                            <label class="form-label text-white">Audio (Optional)</label>
+                            <label class="form-label text-white">Audio summary (Optional)</label>
                             <div class="drop-zone p-4" onclick="document.getElementById('bookAudio').click()">
-                                <input type="file" name="audio_file" id="bookAudio" accept=".mp3" style="display:none">
+                                <input type="file" name="audio_file" id="bookAudio" accept=".mp3" style="display:none"
+                                    onchange="handleAudioUpload(this)">
                                 <i class="fas fa-headphones upload-icon-lg"></i>
-                                <div id="bookAudioName" class="mt-2 small font-weight-bold" style="color: #71717a;">Upload MP3</div>
+                                <div id="bookAudioName" class="mt-2 small font-weight-bold" style="color: #71717a;">
+                                    Upload MP3</div>
                             </div>
                         </div>
+
                     </div>
 
                     <!-- Publishing Area -->
@@ -159,9 +209,10 @@
                             <i class="fas fa-paper-plane"></i>
                             Publish
                         </h5>
-                        
+
                         <div id="initial-status" class="text-center py-2">
-                            <p class="small text-muted mb-3">Ensure all required fields are filled before publishing.</p>
+                            <p class="small text-muted mb-3">Ensure all required fields are filled before publishing.
+                            </p>
                             <button type="submit" id="publish-btn" class="btn-publish mb-3">
                                 <i class="fas fa-rocket me-2"></i>
                                 Publish Book
@@ -195,7 +246,7 @@
     <div id="mangaTab" class="tab-content {% if request_data and request_data.type == 'manga' %}active{% endif %}">
         <form method="POST" action="{{ url_for('add_book') }}" enctype="multipart/form-data" id="mangaForm">
             {% if request_data %}<input type="hidden" name="request_id" value="{{ request_data.id }}">{% endif %}
-            
+
             <div class="row g-4">
                 <!-- LEFT COLUMN -->
                 <div class="col-lg-8">
@@ -209,13 +260,17 @@
                             <div class="col-md-7">
                                 <div class="form-group">
                                     <label class="form-label text-white">Manga Title</label>
-                                    <input type="text" class="form-input" name="title" value="{% if request_data %}{{ request_data.title }}{% endif %}" placeholder="Series Title" required>
+                                    <input type="text" class="form-input" name="title"
+                                        value="{% if request_data %}{{ request_data.title }}{% endif %}"
+                                        placeholder="Series Title" required>
                                 </div>
                             </div>
                             <div class="col-md-5">
                                 <div class="form-group">
                                     <label class="form-label text-white">Author/Artist</label>
-                                    <input type="text" class="form-input" name="author" value="{% if request_data %}{{ request_data.author }}{% endif %}" placeholder="Creator name" required>
+                                    <input type="text" class="form-input" name="author"
+                                        value="{% if request_data %}{{ request_data.author }}{% endif %}"
+                                        placeholder="Creator name" required>
                                 </div>
                             </div>
                         </div>
@@ -239,9 +294,17 @@
                                 Genres
                             </label>
                             <div id="mangaCategoriesContainer" class="categories-grid">
-                                {% for cat in ["Action", "Adventure", "Biography", "Business", "Children", "Comedy", "Cooking", "Crime", "Cyberpunk", "Documentary", "Drama", "Dystopian", "Fantasy", "General", "Graphic Novel", "Health", "Historical", "Horror", "Isekai", "Josei", "Lifestyle", "Magic", "Martial Arts", "Mecha", "Memoir", "Mystery", "Philosophy", "Poetry", "Politics", "Psychological", "Religion", "Romance", "School Life", "Science", "Science Fiction", "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports", "Supernatural", "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western", "Young Adult"] %}
+                                {% for cat in ["Action", "Adventure", "Biography", "Business", "Children", "Comedy",
+                                "Cooking", "Crime", "Cyberpunk", "Documentary", "Drama", "Dystopian", "Fantasy",
+                                "General", "Graphic Novel", "Health", "Historical", "Horror", "Isekai", "Josei",
+                                "Lifestyle", "Magic", "Martial Arts", "Mecha", "Memoir", "Mystery", "Philosophy",
+                                "Poetry", "Politics", "Psychological", "Religion", "Romance", "School Life", "Science",
+                                "Science Fiction", "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports",
+                                "Supernatural", "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western",
+                                "Young Adult"] %}
                                 <label class="category-item">
-                                    <input type="checkbox" name="categories" value="{{ cat }}" onchange="updateMangaCategoryCount()"> {{ cat }}
+                                    <input type="checkbox" name="categories" value="{{ cat }}"
+                                        onchange="updateMangaCategoryCount()"> {{ cat }}
                                 </label>
                                 {% endfor %}
                             </div>
@@ -252,7 +315,8 @@
 
                         <div class="form-group mb-0">
                             <label class="form-label text-white">Description</label>
-                            <textarea class="form-textarea" name="description" rows="5" placeholder="Short synopsis of the series..."></textarea>
+                            <textarea class="form-textarea" name="description" rows="5"
+                                placeholder="Short synopsis of the series..."></textarea>
                         </div>
                     </div>
 
@@ -268,11 +332,13 @@
                             <label class="form-label text-white">Chapter Format</label>
                             <div class="d-flex gap-4">
                                 <label class="category-item px-4">
-                                    <input type="radio" name="chapter_format" value="images" checked onchange="toggleChapterFormat()"> 
+                                    <input type="radio" name="chapter_format" value="images" checked
+                                        onchange="toggleChapterFormat()">
                                     Image Sequence
                                 </label>
                                 <label class="category-item px-4">
-                                    <input type="radio" name="chapter_format" value="pdf" onchange="toggleChapterFormat()"> 
+                                    <input type="radio" name="chapter_format" value="pdf"
+                                        onchange="toggleChapterFormat()">
                                     Single PDF
                                 </label>
                             </div>
@@ -281,14 +347,16 @@
                         <!-- Images Section -->
                         <div id="imagesSection" class="form-group">
                             <div class="drop-zone p-4" onclick="document.getElementById('chapterPages').click()">
-                                <input type="file" name="chapter_pages" id="chapterPages" accept="image/jpeg,image/png" multiple style="display:none">
+                                <input type="file" name="chapter_pages" id="chapterPages" accept="image/jpeg,image/png"
+                                    multiple style="display:none">
                                 <i class="fas fa-images upload-icon-lg"></i>
                                 <p>Select Chapter Pages</p>
                                 <small>JPG, PNG (Order preserved by filename)</small>
                                 <div id="chapterPagesCount" class="badge bg-primary mt-2" style="display: none;"></div>
                             </div>
                             <!-- Page Preview Container -->
-                            <div id="pagePreviewContainer" class="mt-4 p-3 bg-black rounded" style="display: none; max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05);">
+                            <div id="pagePreviewContainer" class="mt-4 p-3 bg-black rounded"
+                                style="display: none; max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05);">
                                 <div id="pagesList" class="row g-2"></div>
                             </div>
                         </div>
@@ -296,10 +364,12 @@
                         <!-- PDF Section -->
                         <div id="pdfSection" class="form-group" style="display: none;">
                             <div class="drop-zone p-4" onclick="document.getElementById('chapterPdf').click()">
-                                <input type="file" name="chapter_pdf" id="chapterPdf" accept="application/pdf" style="display:none">
+                                <input type="file" name="chapter_pdf" id="chapterPdf" accept="application/pdf"
+                                    style="display:none">
                                 <i class="fas fa-file-pdf upload-icon-lg"></i>
                                 <p>Upload Chapter PDF</p>
-                                <div id="chapterPdfName" class="small mt-2 font-weight-bold" style="color: var(--neon-blue); display: none;"></div>
+                                <div id="chapterPdfName" class="small mt-2 font-weight-bold"
+                                    style="color: var(--neon-blue); display: none;"></div>
                             </div>
                         </div>
                     </div>
@@ -312,14 +382,17 @@
                             <i class="fas fa-image"></i>
                             Series Poster
                         </h5>
-                        <div class="drop-zone" style="height: 350px;" id="manga-drop-zone" onclick="document.getElementById('mangaCover').click()">
-                            <input type="file" name="cover_image" id="mangaCover" accept="image/*" style="display:none" onchange="previewImage(this, 'mangaCoverPreview')">
+                        <div class="drop-zone" style="height: 350px;" id="manga-drop-zone"
+                            onclick="document.getElementById('mangaCover').click()">
+                            <input type="file" name="cover_image" id="mangaCover" accept="image/*" style="display:none"
+                                onchange="previewImage(this, 'mangaCoverPreview')">
                             <div id="mangaCoverOverlay" class="d-flex flex-column align-items-center">
                                 <i class="fas fa-image upload-icon-lg"></i>
                                 <p>Series Poster</p>
                                 <small>JPG, PNG (Max 5MB)</small>
                             </div>
-                            <img id="mangaCoverPreview" src="#" alt="Preview" style="display:none; max-width:100%; max-height:300px; object-fit:contain; border-radius:12px;">
+                            <img id="mangaCoverPreview" src="#" alt="Preview"
+                                style="display:none; max-width:100%; max-height:300px; object-fit:contain; border-radius:12px;">
                         </div>
                     </div>
 
@@ -329,9 +402,12 @@
                             Guidelines
                         </h5>
                         <ul class="list-unstyled small text-muted mb-4">
-                            <li class="mb-2"><i class="fas fa-check text-info me-2"></i> High quality covers attract more readers.</li>
-                            <li class="mb-2"><i class="fas fa-check text-info me-2"></i> Ensure pages are in correct reading order.</li>
-                            <li class="mb-2"><i class="fas fa-check text-info me-2"></i> Descriptive titles reach more users.</li>
+                            <li class="mb-2"><i class="fas fa-check text-info me-2"></i> High quality covers attract
+                                more readers.</li>
+                            <li class="mb-2"><i class="fas fa-check text-info me-2"></i> Ensure pages are in correct
+                                reading order.</li>
+                            <li class="mb-2"><i class="fas fa-check text-info me-2"></i> Descriptive titles reach more
+                                users.</li>
                         </ul>
                         <button type="submit" class="btn-publish">
                             <i class="fas fa-plus-circle me-2"></i>
@@ -346,758 +422,782 @@
 </div>
 
 <style>
-/* ===== Upload Page Premium Styles ===== */
-:root {
-    --neon-blue: #00d4ff;
-    --neon-purple: #9d50bb;
-    --glass-bg: rgba(20, 20, 25, 0.6);
-    --glass-border: rgba(255, 255, 255, 0.08);
-}
-
-.upload-page-container {
-    max-width: 1300px;
-    margin: 40px auto;
-    padding: 0 40px;
-    animation: fadeIn 0.8s ease-out;
-}
-
-/* Premium Page Header */
-.upload-header-section {
-    position: relative;
-    padding: 40px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    margin-bottom: 40px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.upload-header-section::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -20%;
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
-    filter: blur(40px);
-    z-index: 0;
-}
-
-.upload-header-content {
-    position: relative;
-    z-index: 1;
-}
-
-.upload-header-title {
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin: 0;
-    background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.upload-header-subtitle {
-    color: #a1a1aa;
-    margin-top: 8px;
-    font-size: 1.1rem;
-}
-
-/* Tabs Styling */
-.upload-tabs {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 40px;
-    padding: 5px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 16px;
-    width: fit-content;
-}
-
-.type-tab {
-    background: transparent;
-    border: none;
-    color: #71717a;
-    padding: 12px 30px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: 12px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.type-tab:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.type-tab.active {
-    background: linear-gradient(135deg, #00d4ff, #0ea5e9);
-    color: #000;
-    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
-}
-
-/* Card Styling */
-.upload-card {
-    background: rgba(20, 20, 25, 0.6);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-    padding: 30px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    transition: transform 0.3s ease, border-color 0.3s ease;
-}
-
-.upload-card:hover {
-    border-color: rgba(0, 212, 255, 0.2);
-}
-
-.upload-card-title {
-    font-size: 1.2rem;
-    font-weight: 800;
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-bottom: 25px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.upload-card-title i {
-    color: #00d4ff;
-}
-
-/* Form Controls */
-.form-group {
-    margin-bottom: 24px;
-}
-
-.form-label {
-    display: block;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #a1a1aa;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 10px;
-}
-
-.form-input, .form-select, .form-textarea {
-    width: 100%;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 14px 18px;
-    color: #fff;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-}
-
-.form-input:focus, .form-select:focus, .form-textarea:focus {
-    outline: none;
-    border-color: #00d4ff;
-    background: rgba(0, 212, 255, 0.02);
-    box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.1);
-}
-
-/* Drop Zone */
-.drop-zone {
-    border: 2px dashed rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 35px 20px;
-    min-height: 180px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.02);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-}
-
-.drop-zone:hover {
-    border-color: #00d4ff;
-    background: rgba(0, 212, 255, 0.04);
-}
-
-.drop-zone i {
-    font-size: 2.5rem;
-    color: #00d4ff;
-    transition: transform 0.3s ease;
-}
-
-.drop-zone:hover i {
-    transform: translateY(-5px);
-}
-
-/* Categories Grid */
-.categories-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 10px;
-    max-height: 250px;
-    overflow-y: auto;
-    padding-right: 10px;
-}
-
-.category-item {
-    display: flex;
-    align-items: center;
-    padding: 10px 15px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-    color: #a1a1aa;
-}
-
-.category-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
-}
-
-.category-item input {
-    margin-right: 10px;
-}
-
-.category-item.selected {
-    border-color: #00d4ff;
-    background: rgba(0, 212, 255, 0.1);
-    color: #00d4ff;
-}
-
-/* Custom Scrollbar */
-.categories-grid::-webkit-scrollbar {
-    width: 6px;
-}
-
-.categories-grid::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.categories-grid::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-}
-
-/* Publishing Status */
-.status-card {
-    background: rgba(0, 212, 255, 0.03);
-    border: 1px solid rgba(0, 212, 255, 0.15);
-}
-
-.progress-container {
-    height: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    overflow: hidden;
-    margin: 15px 0;
-}
-
-.progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #00d4ff, #0ea5e9);
-    width: 0%;
-    transition: width 0.3s ease;
-    box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
-}
-
-/* Buttons */
-.btn-publish {
-    background: linear-gradient(135deg, #00d4ff, #0ea5e9);
-    color: #000;
-    border: none;
-    padding: 16px;
-    border-radius: 14px;
-    font-size: 1.1rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    width: 100%;
-}
-
-.btn-publish:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0, 212, 255, 0.4);
-}
-
-.highlight-card {
-    border: 1px solid rgba(0, 212, 255, 0.2);
-    background: linear-gradient(135deg, rgba(20, 20, 25, 0.8) 0%, rgba(0, 212, 255, 0.05) 100%);
-}
-
-/* Premium Request Badge */
-.request-badge-premium {
-    background: rgba(0, 212, 255, 0.05);
-    border: 1px solid rgba(0, 212, 255, 0.2);
-    border-radius: 20px;
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
-}
-
-.request-badge-premium::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: var(--neon-blue);
-    box-shadow: 0 0 10px var(--neon-blue);
-}
-
-.request-icon-glow {
-    width: 40px;
-    height: 40px;
-    background: rgba(0, 212, 255, 0.1);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--neon-blue);
-    font-size: 1.2rem;
-    box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
-}
-
-.btn-close-mini {
-    width: 28px;
-    height: 28px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #71717a;
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.btn-close-mini:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-}
-
-/* Category Chips */
-.category-item {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px 18px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #a1a1aa;
-    text-align: center;
-    user-select: none;
-}
-
-.category-item input {
-    position: absolute;
-    opacity: 0;
-    cursor: pointer;
-    height: 0;
-    width: 0;
-}
-
-.category-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: #fff;
-    transform: translateY(-2px);
-}
-
-.category-item.selected {
-    background: rgba(0, 212, 255, 0.08);
-    border-color: var(--neon-blue);
-    color: var(--neon-blue);
-    box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
-}
-
-.category-item.selected::before {
-    content: '\f00c';
-    font-family: 'Font Awesome 5 Free';
-    font-weight: 900;
-    margin-right: 8px;
-    font-size: 0.8rem;
-}
-
-/* Description Editor */
-.description-editor-container {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.description-editor-container:focus-within {
-    border-color: var(--neon-blue);
-    box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.1);
-}
-
-.description-editor-container .toolbar {
-    background: rgba(255, 255, 255, 0.03);
-    padding: 10px 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.btn-ghost {
-    background: transparent;
-    border: none;
-    color: #71717a;
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.btn-ghost:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
-}
-
-.btn-ghost.active {
-    background: rgba(0, 212, 255, 0.1);
-    color: var(--neon-blue);
-}
-
-.form-textarea[contenteditable="true"] {
-    padding: 20px;
-    min-height: 250px;
-    outline: none;
-    border: none;
-    background: transparent;
-    line-height: 1.6;
-    color: #e4e4e7;
-}
-
-.form-textarea[contenteditable="true"]:empty:before {
-    content: attr(data-placeholder);
-    color: #52525b;
-}
-
-/* Drop Zone Polish */
-.drop-zone .upload-icon-lg {
-    font-size: 2.8rem;
-    margin-bottom: 5px;
-    background: linear-gradient(135deg, #00d4ff, #0ea5e9);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.drop-zone p {
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 0px;
-    font-size: 1rem;
-}
-
-.drop-zone small {
-    font-size: 0.75rem;
-    color: #71717a;
-    letter-spacing: 0.5px;
-}
-
-/* Tabs and Content */
-.tab-content {
-    display: none;
-    animation: fadeIn 0.4s ease-out;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 992px) {
-    .upload-page-container {
-        padding: 0 20px;
+    /* ===== Upload Page Premium Styles ===== */
+    :root {
+        --neon-blue: #00d4ff;
+        --neon-purple: #9d50bb;
+        --glass-bg: rgba(20, 20, 25, 0.6);
+        --glass-border: rgba(255, 255, 255, 0.08);
     }
-}
+
+    .upload-page-container {
+        max-width: 1300px;
+        margin: 40px auto;
+        padding: 0 40px;
+        animation: fadeIn 0.8s ease-out;
+    }
+
+    /* Premium Page Header */
+    .upload-header-section {
+        position: relative;
+        padding: 40px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 40px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .upload-header-section::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -20%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+        filter: blur(40px);
+        z-index: 0;
+    }
+
+    .upload-header-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .upload-header-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0;
+        background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .upload-header-subtitle {
+        color: #a1a1aa;
+        margin-top: 8px;
+        font-size: 1.1rem;
+    }
+
+    /* Tabs Styling */
+    .upload-tabs {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 40px;
+        padding: 5px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        width: fit-content;
+    }
+
+    .type-tab {
+        background: transparent;
+        border: none;
+        color: #71717a;
+        padding: 12px 30px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 12px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .type-tab:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .type-tab.active {
+        background: linear-gradient(135deg, #00d4ff, #0ea5e9);
+        color: #000;
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+    }
+
+    /* Card Styling */
+    .upload-card {
+        background: rgba(20, 20, 25, 0.6);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .upload-card:hover {
+        border-color: rgba(0, 212, 255, 0.2);
+    }
+
+    .upload-card-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .upload-card-title i {
+        color: #00d4ff;
+    }
+
+    /* Form Controls */
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #a1a1aa;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px 18px;
+        color: #fff;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+        outline: none;
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.02);
+        box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.1);
+    }
+
+    /* Drop Zone */
+    .drop-zone {
+        border: 2px dashed rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 35px 20px;
+        min-height: 180px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.02);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .drop-zone:hover {
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.04);
+    }
+
+    .drop-zone i {
+        font-size: 2.5rem;
+        color: #00d4ff;
+        transition: transform 0.3s ease;
+    }
+
+    .drop-zone:hover i {
+        transform: translateY(-5px);
+    }
+
+    /* Categories Grid */
+    .categories-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 10px;
+        max-height: 250px;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+
+    .category-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+        color: #a1a1aa;
+    }
+
+    .category-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+    }
+
+    .category-item input {
+        margin-right: 10px;
+    }
+
+    .category-item.selected {
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.1);
+        color: #00d4ff;
+    }
+
+    /* Custom Scrollbar */
+    .categories-grid::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .categories-grid::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .categories-grid::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+
+    /* Publishing Status */
+    .status-card {
+        background: rgba(0, 212, 255, 0.03);
+        border: 1px solid rgba(0, 212, 255, 0.15);
+    }
+
+    .progress-container {
+        height: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 15px 0;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00d4ff, #0ea5e9);
+        width: 0%;
+        transition: width 0.3s ease;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+    }
+
+    /* Buttons */
+    .btn-publish {
+        background: linear-gradient(135deg, #00d4ff, #0ea5e9);
+        color: #000;
+        border: none;
+        padding: 16px;
+        border-radius: 14px;
+        font-size: 1.1rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%;
+    }
+
+    .btn-publish:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 212, 255, 0.4);
+    }
+
+    .highlight-card {
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        background: linear-gradient(135deg, rgba(20, 20, 25, 0.8) 0%, rgba(0, 212, 255, 0.05) 100%);
+    }
+
+    /* Premium Request Badge */
+    .request-badge-premium {
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 20px;
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+    }
+
+    .request-badge-premium::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--neon-blue);
+        box-shadow: 0 0 10px var(--neon-blue);
+    }
+
+    .request-icon-glow {
+        width: 40px;
+        height: 40px;
+        background: rgba(0, 212, 255, 0.1);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--neon-blue);
+        font-size: 1.2rem;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+    }
+
+    .btn-close-mini {
+        width: 28px;
+        height: 28px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #71717a;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-close-mini:hover {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    /* Category Chips */
+    .category-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 18px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #a1a1aa;
+        text-align: center;
+        user-select: none;
+    }
+
+    .category-item input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+    }
+
+    .category-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        transform: translateY(-2px);
+    }
+
+    .category-item.selected {
+        background: rgba(0, 212, 255, 0.08);
+        border-color: var(--neon-blue);
+        color: var(--neon-blue);
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+    }
+
+    .category-item.selected::before {
+        content: '\f00c';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        margin-right: 8px;
+        font-size: 0.8rem;
+    }
+
+    /* Description Editor */
+    .description-editor-container {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .description-editor-container:focus-within {
+        border-color: var(--neon-blue);
+        box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.1);
+    }
+
+    .description-editor-container .toolbar {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 10px 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .btn-ghost {
+        background: transparent;
+        border: none;
+        color: #71717a;
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .btn-ghost:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+
+    .btn-ghost.active {
+        background: rgba(0, 212, 255, 0.1);
+        color: var(--neon-blue);
+    }
+
+    .form-textarea[contenteditable="true"] {
+        padding: 20px;
+        min-height: 250px;
+        outline: none;
+        border: none;
+        background: transparent;
+        line-height: 1.6;
+        color: #e4e4e7;
+    }
+
+    .form-textarea[contenteditable="true"]:empty:before {
+        content: attr(data-placeholder);
+        color: #52525b;
+    }
+
+    /* Drop Zone Polish */
+    .drop-zone .upload-icon-lg {
+        font-size: 2.8rem;
+        margin-bottom: 5px;
+        background: linear-gradient(135deg, #00d4ff, #0ea5e9);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .drop-zone p {
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 0px;
+        font-size: 1rem;
+    }
+
+    .drop-zone small {
+        font-size: 0.75rem;
+        color: #71717a;
+        letter-spacing: 0.5px;
+    }
+
+    /* Tabs and Content */
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 992px) {
+        .upload-page-container {
+            padding: 0 20px;
+        }
+    }
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Update category count for book
-  window.updateBookCategoryCount = function() {
-    const countDiv = document.getElementById('bookCategoryCount');
-    const checkboxes = document.querySelectorAll('#bookCategoriesContainer input[type="checkbox"]:checked');
-    
-    // Toggle 'selected' class on parent label for visual feedback
-    document.querySelectorAll('#bookCategoriesContainer .category-item').forEach(label => {
-        const cb = label.querySelector('input');
-        if (cb.checked) label.classList.add('selected');
-        else label.classList.remove('selected');
-    });
+    document.addEventListener('DOMContentLoaded', function () {
+        // Update category count for book
+        window.updateBookCategoryCount = function () {
+            const countDiv = document.getElementById('bookCategoryCount');
+            const checkboxes = document.querySelectorAll('#bookCategoriesContainer input[type="checkbox"]:checked');
 
-    if (checkboxes.length === 0) {
-      countDiv.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>Select at least one category';
-      countDiv.style.color = '#71717a';
-    } else {
-      countDiv.innerHTML = `<i class="fas fa-check-circle me-1"></i>${checkboxes.length} categories selected`;
-      countDiv.style.color = 'var(--neon-blue)';
-    }
-  };
+            // Toggle 'selected' class on parent label for visual feedback
+            document.querySelectorAll('#bookCategoriesContainer .category-item').forEach(label => {
+                const cb = label.querySelector('input');
+                if (cb.checked) label.classList.add('selected');
+                else label.classList.remove('selected');
+            });
 
-  // Update category count for manga
-  window.updateMangaCategoryCount = function() {
-    const countDiv = document.getElementById('mangaCategoryCount');
-    const checkboxes = document.querySelectorAll('#mangaCategoriesContainer input[type="checkbox"]:checked');
-    
-    document.querySelectorAll('#mangaCategoriesContainer .category-item').forEach(label => {
-        const cb = label.querySelector('input');
-        if (cb.checked) label.classList.add('selected');
-        else label.classList.remove('selected');
-    });
+            if (checkboxes.length === 0) {
+                countDiv.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>Select at least one category';
+                countDiv.style.color = '#71717a';
+            } else {
+                countDiv.innerHTML = `<i class="fas fa-check-circle me-1"></i>${checkboxes.length} categories selected`;
+                countDiv.style.color = 'var(--neon-blue)';
+            }
+        };
 
-    if (checkboxes.length === 0) {
-      countDiv.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>Select at least one genre';
-      countDiv.style.color = '#71717a';
-    } else {
-      countDiv.innerHTML = `<i class="fas fa-check-circle me-1"></i>${checkboxes.length} genres selected`;
-      countDiv.style.color = 'var(--neon-blue)';
-    }
-  };
+        // Update category count for manga
+        window.updateMangaCategoryCount = function () {
+            const countDiv = document.getElementById('mangaCategoryCount');
+            const checkboxes = document.querySelectorAll('#mangaCategoriesContainer input[type="checkbox"]:checked');
 
-  function switchTab(tab) {
-    const bookTab = document.getElementById('bookTab');
-    const mangaTab = document.getElementById('mangaTab');
-    const tabs = document.querySelectorAll('.type-tab');
-    
-    if (tab === 'book') {
-      bookTab.style.display = 'block';
-      mangaTab.style.display = 'none';
-      tabs[0].classList.add('active');
-      tabs[1].classList.remove('active');
-    } else {
-      bookTab.style.display = 'none';
-      mangaTab.style.display = 'block';
-      tabs[1].classList.add('active');
-      tabs[0].classList.remove('active');
-    }
-  }
+            document.querySelectorAll('#mangaCategoriesContainer .category-item').forEach(label => {
+                const cb = label.querySelector('input');
+                if (cb.checked) label.classList.add('selected');
+                else label.classList.remove('selected');
+            });
 
-  window.switchTab = switchTab;
+            if (checkboxes.length === 0) {
+                countDiv.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>Select at least one genre';
+                countDiv.style.color = '#71717a';
+            } else {
+                countDiv.innerHTML = `<i class="fas fa-check-circle me-1"></i>${checkboxes.length} genres selected`;
+                countDiv.style.color = 'var(--neon-blue)';
+            }
+        };
 
-  function formatText(cmd) {
-    document.getElementById('description').focus();
-    try {
-      document.execCommand(cmd, false, null);
-    } catch (e) {
-      console.warn('Formatting command failed', cmd, e);
-    }
-  }
+        function switchTab(tab) {
+            const bookTab = document.getElementById('bookTab');
+            const mangaTab = document.getElementById('mangaTab');
+            const tabs = document.querySelectorAll('.type-tab');
 
-  function previewImage(input, previewId) {
-    if (input.files && input.files[0]) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const preview = document.getElementById(previewId);
-        if (!preview) return;
-        
-        preview.src = e.target.result;
-        preview.style.display = 'block';
-        
-        // Hide relative overlay
-        const overlayId = previewId.includes('manga') ? 'mangaCoverOverlay' : 'cover-upload-text-overlay';
-        const overlay = document.getElementById(overlayId);
-        if (overlay) overlay.style.display = 'none';
-        
-        // Show remove button for book cover
-        if (previewId === 'coverImagePreview') {
-          const removeBtn = document.getElementById('remove-coverImagePreview');
-          if (removeBtn) removeBtn.style.display = 'block';
+            if (tab === 'book') {
+                bookTab.style.display = 'block';
+                mangaTab.style.display = 'none';
+                tabs[0].classList.add('active');
+                tabs[1].classList.remove('active');
+            } else {
+                bookTab.style.display = 'none';
+                mangaTab.style.display = 'block';
+                tabs[1].classList.add('active');
+                tabs[0].classList.remove('active');
+            }
         }
-      };
-      reader.readAsDataURL(input.files[0]);
-    }
-  }
 
-  function removePreview(imgId, inputId, overlayId) {
-    const img = document.getElementById(imgId);
-    const input = document.getElementById(inputId);
-    const overlay = document.getElementById(overlayId);
-    if (img) {
-      img.src = '#';
-      img.style.display = 'none';
-    }
-    if (input) input.value = null;
-    if (overlay) overlay.style.display = 'flex';
-    
-    const removeBtn = document.getElementById('remove-coverImagePreview');
-    if (removeBtn) removeBtn.style.display = 'none';
-  }
+        window.switchTab = switchTab;
 
-  function simulatePublish(e) {
-    e.preventDefault();
-    const form = document.getElementById('addBookForm');
-    const desc = document.getElementById('description');
-    const descHidden = document.getElementById('description_hidden');
-    const initial = document.getElementById('initial-status');
-    const progressArea = document.getElementById('progress-area');
-    const progressBar = document.getElementById('progressBarFill');
-    const progressText = document.getElementById('progress-text');
-    const progressPercent = document.getElementById('progress-percentage');
-    const btn = document.getElementById('publish-btn');
+        function formatText(cmd) {
+            document.getElementById('description').focus();
+            try {
+                document.execCommand(cmd, false, null);
+            } catch (e) {
+                console.warn('Formatting command failed', cmd, e);
+            }
+        }
 
-    if (desc && descHidden) {
-      descHidden.value = desc.innerHTML.trim();
-    }
+        function previewImage(input, previewId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const preview = document.getElementById(previewId);
+                    if (!preview) return;
 
-    if (btn) btn.disabled = true;
-    if (initial) initial.style.display = 'none';
-    if (progressArea) progressArea.style.display = 'block';
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
 
-    let val = 0;
-    progressText.textContent = 'Uploading files...';
+                    // Hide relative overlay
+                    const overlayId = previewId.includes('manga') ? 'mangaCoverOverlay' : 'cover-upload-text-overlay';
+                    const overlay = document.getElementById(overlayId);
+                    if (overlay) overlay.style.display = 'none';
 
-    const interval = setInterval(function() {
-      val += Math.floor(Math.random() * 8) + 2; 
-      if (val > 100) val = 100;
-      
-      if (progressBar) progressBar.style.width = val + '%';
-      if (progressPercent) progressPercent.textContent = val + '%';
+                    // Show remove button for book cover
+                    if (previewId === 'coverImagePreview') {
+                        const removeBtn = document.getElementById('remove-coverImagePreview');
+                        if (removeBtn) removeBtn.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
 
-      if (val >= 100) {
-        clearInterval(interval);
-        progressText.textContent = 'Finalizing...';
-        setTimeout(() => form.submit(), 800);
-      } else if (val > 70) {
-        progressText.textContent = 'Processing metadata...';
-      }
-    }, 150);
+        function removePreview(imgId, inputId, overlayId) {
+            const img = document.getElementById(imgId);
+            const input = document.getElementById(inputId);
+            const overlay = document.getElementById(overlayId);
+            if (img) {
+                img.src = '#';
+                img.style.display = 'none';
+            }
+            if (input) input.value = null;
+            if (overlay) overlay.style.display = 'flex';
 
-    return false;
-  }
+            const removeBtn = document.getElementById('remove-coverImagePreview');
+            if (removeBtn) removeBtn.style.display = 'none';
+        }
 
-  window.formatText = formatText;
-  window.previewImage = previewImage;
-  window.removePreview = removePreview;
-  window.simulatePublish = simulatePublish;
+        function simulatePublish(e) {
+            e.preventDefault();
+            const form = document.getElementById('addBookForm');
+            const desc = document.getElementById('description');
+            const descHidden = document.getElementById('description_hidden');
+            const initial = document.getElementById('initial-status');
+            const progressArea = document.getElementById('progress-area');
+            const progressBar = document.getElementById('progressBarFill');
+            const progressText = document.getElementById('progress-text');
+            const progressPercent = document.getElementById('progress-percentage');
+            const btn = document.getElementById('publish-btn');
 
-  // File Name Displays
-  const pdfInput = document.getElementById('bookPdf');
-  if (pdfInput) pdfInput.addEventListener('change', function() {
-    const display = document.getElementById('bookPdfName');
-    if (display) {
-        display.textContent = this.files[0] ? `✓ ${this.files[0].name}` : 'Upload PDF';
-        display.style.color = this.files[0] ? 'var(--neon-blue)' : '#71717a';
-    }
-  });
+            if (desc && descHidden) {
+                descHidden.value = desc.innerHTML.trim();
+            }
 
-  const audioInput = document.getElementById('bookAudio');
-  if (audioInput) audioInput.addEventListener('change', function() {
-    const display = document.getElementById('bookAudioName');
-    if (display) {
-        display.textContent = this.files[0] ? `✓ ${this.files[0].name}` : 'Upload MP3';
-        display.style.color = this.files[0] ? 'var(--neon-blue)' : '#71717a';
-    }
-  });
+            if (btn) btn.disabled = true;
+            if (initial) initial.style.display = 'none';
+            if (progressArea) progressArea.style.display = 'block';
 
-  const mangaPagesInput = document.getElementById('chapterPages');
-  if (mangaPagesInput) {
-    mangaPagesInput.addEventListener('change', function() {
-      const files = this.files;
-      const countBadge = document.getElementById('chapterPagesCount');
-      const previewCont = document.getElementById('pagePreviewContainer');
-      const list = document.getElementById('pagesList');
-      
-      if (files.length > 0) {
-        countBadge.textContent = `${files.length} pages selected`;
-        countBadge.style.display = 'inline-block';
-        previewCont.style.display = 'block';
-        list.innerHTML = '';
-        
-        Array.from(files).slice(0, 12).forEach((file, idx) => {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const div = document.createElement('div');
-            div.className = 'col-3 col-md-2';
-            div.innerHTML = `
+            let val = 0;
+            progressText.textContent = 'Uploading files...';
+
+            const interval = setInterval(function () {
+                val += Math.floor(Math.random() * 8) + 2;
+                if (val > 100) val = 100;
+
+                if (progressBar) progressBar.style.width = val + '%';
+                if (progressPercent) progressPercent.textContent = val + '%';
+
+                if (val >= 100) {
+                    clearInterval(interval);
+                    progressText.textContent = 'Finalizing...';
+                    setTimeout(() => form.submit(), 800);
+                } else if (val > 70) {
+                    progressText.textContent = 'Processing metadata...';
+                }
+            }, 150);
+
+            return false;
+        }
+
+        window.formatText = formatText;
+        window.previewImage = previewImage;
+        window.removePreview = removePreview;
+        window.simulatePublish = simulatePublish;
+
+        // File Name Displays
+        const pdfInput = document.getElementById('bookPdf');
+        if (pdfInput) pdfInput.addEventListener('change', function () {
+            const display = document.getElementById('bookPdfName');
+            if (display) {
+                display.textContent = this.files[0] ? `✓ ${this.files[0].name}` : 'Upload PDF';
+                display.style.color = this.files[0] ? 'var(--neon-blue)' : '#71717a';
+            }
+        });
+
+        const audioInput = document.getElementById('bookAudio');
+        if (audioInput) audioInput.addEventListener('change', function () {
+            const display = document.getElementById('bookAudioName');
+            const metadataFields = document.getElementById('audioMetadataFields');
+
+            if (display) {
+                display.textContent = this.files[0] ? `✓ ${this.files[0].name}` : 'Upload MP3';
+                display.style.color = this.files[0] ? 'var(--neon-blue)' : '#71717a';
+            }
+
+            if (metadataFields) {
+                metadataFields.style.display = this.files[0] ? 'block' : 'none';
+            }
+        });
+
+        window.handleAudioUpload = function (input) {
+            const metadataFields = document.getElementById('audioMetadataFields');
+            if (metadataFields) {
+                metadataFields.style.display = input.files[0] ? 'block' : 'none';
+            }
+        };
+
+        const mangaPagesInput = document.getElementById('chapterPages');
+        if (mangaPagesInput) {
+            mangaPagesInput.addEventListener('change', function () {
+                const files = this.files;
+                const countBadge = document.getElementById('chapterPagesCount');
+                const previewCont = document.getElementById('pagePreviewContainer');
+                const list = document.getElementById('pagesList');
+
+                if (files.length > 0) {
+                    countBadge.textContent = `${files.length} pages selected`;
+                    countBadge.style.display = 'inline-block';
+                    previewCont.style.display = 'block';
+                    list.innerHTML = '';
+
+                    Array.from(files).slice(0, 12).forEach((file, idx) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const div = document.createElement('div');
+                            div.className = 'col-3 col-md-2';
+                            div.innerHTML = `
                 <div style="position:relative; aspect-ratio: 2/3; background: #111; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
                     <img src="${e.target.result}" style="width:100%; height:100%; object-fit:cover;">
-                    <span style="position:absolute; bottom:0; right:0; background:var(--neon-blue); color:#000; font-size:10px; padding:2px 5px; font-weight:bold;">${idx+1}</span>
+                    <span style="position:absolute; bottom:0; right:0; background:var(--neon-blue); color:#000; font-size:10px; padding:2px 5px; font-weight:bold;">${idx + 1}</span>
                 </div>
             `;
-            list.appendChild(div);
-          };
-          reader.readAsDataURL(file);
-        });
-        if (files.length > 12) {
-            const more = document.createElement('div');
-            more.className = 'col-3 col-md-2 d-flex align-items-center justify-content-center text-muted small';
-            more.innerHTML = `+${files.length - 12} more`;
-            list.appendChild(more);
+                            list.appendChild(div);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                    if (files.length > 12) {
+                        const more = document.createElement('div');
+                        more.className = 'col-3 col-md-2 d-flex align-items-center justify-content-center text-muted small';
+                        more.innerHTML = `+${files.length - 12} more`;
+                        list.appendChild(more);
+                    }
+                } else {
+                    countBadge.style.display = 'none';
+                    previewCont.style.display = 'none';
+                }
+            });
         }
-      } else {
-        countBadge.style.display = 'none';
-        previewCont.style.display = 'none';
-      }
+
+        const mangaPdfInput = document.getElementById('chapterPdf');
+        if (mangaPdfInput) mangaPdfInput.addEventListener('change', function () {
+            const display = document.getElementById('chapterPdfName');
+            if (display) {
+                display.textContent = this.files[0] ? `✓ ${this.files[0].name}` : '';
+                display.style.display = this.files[0] ? 'block' : 'none';
+            }
+        });
+
+        window.toggleChapterFormat = function () {
+            const format = document.querySelector('input[name="chapter_format"]:checked').value;
+            const imgSec = document.getElementById('imagesSection');
+            const pdfSec = document.getElementById('pdfSection');
+            if (format === 'images') {
+                imgSec.style.display = 'block';
+                pdfSec.style.display = 'none';
+            } else {
+                imgSec.style.display = 'none';
+                pdfSec.style.display = 'block';
+            }
+        };
     });
-  }
-
-  const mangaPdfInput = document.getElementById('chapterPdf');
-  if (mangaPdfInput) mangaPdfInput.addEventListener('change', function() {
-    const display = document.getElementById('chapterPdfName');
-    if (display) {
-        display.textContent = this.files[0] ? `✓ ${this.files[0].name}` : '';
-        display.style.display = this.files[0] ? 'block' : 'none';
-    }
-  });
-
-  window.toggleChapterFormat = function() {
-    const format = document.querySelector('input[name="chapter_format"]:checked').value;
-    const imgSec = document.getElementById('imagesSection');
-    const pdfSec = document.getElementById('pdfSection');
-    if (format === 'images') {
-      imgSec.style.display = 'block';
-      pdfSec.style.display = 'none';
-    } else {
-      imgSec.style.display = 'none';
-      pdfSec.style.display = 'block';
-    }
-  };
-});
 </script>
 {% endblock %}
