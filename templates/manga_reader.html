@@ -2019,6 +2019,7 @@
 
   // Load chapter pages
   async function loadChapter(chapterId, chapterNum) {
+    currentChapterId = chapterId;
     const mangaPages = document.getElementById('mangaPages');
     mangaPages.scrollTop = 0;
     mangaPages.scrollLeft = 0;

@@ -2,151 +2,127 @@
 {% block title %}{{ book[1] }} | NOVUS{% endblock %}
 
 {% block content %}
-<div class="reading-page">
-  <div class="container mt-3 mb-5">
+<div class="book-detail-wrapper">
+  <!-- Cinematic Background -->
+  <div class="book-hero-bg">
+    <img src="{{ cover_url if cover_url else 'https://picsum.photos/seed/' ~ book[0] ~ '/400/600' }}" alt="background">
+  </div>
 
+  <div class="container mt-3 mb-5">
     <a href="{{ url_for('home') }}" class="reading-back-link">
       <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
     </a>
 
     <!-- MAIN BOOK PANEL -->
-    <div class="section-container reading-hero mt-3">
+    <div class="glass-panel reading-hero mt-3">
       <div class="row g-4 align-items-center">
         <!-- Cover -->
-      <div class="col-md-4 text-center">
-        <img
-          src="{{ cover_url if cover_url else 'https://picsum.photos/seed/' ~ book[0] ~ '/400/600' }}"
-          alt="{{ book[1] }} cover"
-          class="img-fluid rounded shadow-sm"
-          style="max-height: 260px; object-fit: cover;"
-        >
-</div>
-
+        <div class="col-md-4 text-center">
+          <div class="hero-cover-container">
+            <img src="{{ cover_url if cover_url else 'https://picsum.photos/seed/' ~ book[0] ~ '/400/600' }}"
+              alt="{{ book[1] }} cover" class="hero-cover-img">
+          </div>
+        </div>
 
         <!-- Text / actions -->
         <div class="col-md-8">
           <h1 class="reading-title">{{ book[1] }}</h1>
-          <h4 class="reading-author text-muted mb-2">
+          <h4 class="reading-author mb-2">
             By {{ book[2] or "Unknown Author" }}
           </h4>
           <span class="badge badge-category">{{ book[3] }}</span>
- 
-          <!-- Description + AI summary -->
-          <div class="mt-3">
-            <h5>Description</h5>
-            <p id="bookDescription">{{ book[7] or 'No description available.' }}</p>
 
-            <div class="mt-2" style="display:flex; gap:8px; align-items:center;">
-              <button id="bookAiBtn" class="btn btn-outline-light btn-sm"><i class="fas fa-robot me-2"></i>AI Summary</button>
-              <button id="bookAiForceBtn" class="btn btn-outline-light btn-sm" style="display:none">Regenerate</button>
-              <button id="bookAiCopy" class="btn btn-ghost btn-sm" style="display:none;">Copy</button>
+          <!-- Description + AI tools -->
+          <div class="mt-4">
+            <h5 class="text-white opacity-75">Description</h5>
+            <p id="bookDescription" class="text-white-50">{{ book[7] or 'No description available for this masterpiece.'
+              }}</p>
+
+            <div class="action-bar">
+              <button id="bookAiBtn" class="btn-glass"><i class="fas fa-robot me-2"></i>AI Summary</button>
+              <button id="bookAiForceBtn" class="btn-glass" style="display:none">Regenerate</button>
+              <button id="coverAiBtn" class="btn-glass"><i class="fas fa-image me-2"></i>Analyze Cover</button>
+              <button id="bookAiCopy" class="btn-glass" style="display:none;"><i class="fas fa-copy"></i></button>
             </div>
 
-            <div id="bookAiResult" class="mt-3" style="display:none; background: rgba(255,255,255,0.03); padding:12px; border-radius:8px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                <strong id="bookAiMeta" style="font-size:12px; color:#ccc;">&nbsp;</strong>
+            <!-- AI Results placeholders -->
+            <div id="bookAiResult" class="ai-glass-box" style="display:none;">
+              <div class="ai-header">
+                <i class="fas fa-brain"></i>
+                <strong id="bookAiMeta">AI Summary</strong>
               </div>
-              <p id="bookAiText" style="margin:6px 0"></p>
+              <p id="bookAiText" class="text-white-50 mb-0"></p>
             </div>
-            <div id="bookAiSpinner" style="display:none; margin-top:8px;"><small>Generating summary…</small></div>
-          
-            <div class="mt-2" style="display:flex; gap:8px; align-items:center;">
-          
-              <button id="coverAiBtn" class="btn btn-outline-light btn-sm"><i class="fas fa-image me-2"></i>AI Analyze Cover</button>
-          
+
+            <div id="coverAiResult" class="ai-glass-box" style="display:none;">
+              <div class="ai-header">
+                <i class="fas fa-eye"></i>
+                <strong>Cover Analysis</strong>
+              </div>
+              <p id="coverAiText" class="text-white-50 mb-0"></p>
             </div>
-          
-            <div id="coverAiResult" class="mt-3" style="display:none; background: rgba(255,255,255,0.03); padding:12px; border-radius:8px;">
-          
-              <strong>Cover Analysis</strong>
-          
-              <p id="coverAiText" style="margin:6px 0"></p>
-          
+
+            <div id="bookAiSpinner" style="display:none; margin-top:8px;" class="text-info">
+              <i class="fas fa-spinner fa-spin me-2"></i><small>Generating magical summary…</small>
             </div>
-          
           </div>
 
-          
-<!-- Watchlist and Favorites actions -->
-<div class="mt-3 d-flex align-items-center gap-2 flex-wrap">
-  <span class="text-muted me-2">My List:</span>
-  <form method="post" action="{{ url_for('watchlist_book', book_id=book[0]) }}">
-    <div class="dropdown">
-      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
-              data-bs-toggle="dropdown" aria-expanded="false">
-        {% if current_status %}
-          {{ status_labels.get(current_status, 'Add to List') }}
-        {% else %}
-          + Add to List
-        {% endif %}
-      </button>
-      <ul class="dropdown-menu dropdown-menu-dark">
-        <li>
-          <button class="dropdown-item" type="submit" name="status" value="reading">
-            Reading
-          </button>
-        </li>
-        <li>
-          <button class="dropdown-item" type="submit" name="status" value="on_hold">
-            On-Hold
-          </button>
-        </li>
-        <li>
-          <button class="dropdown-item" type="submit" name="status" value="planned">
-            Plan to Watch
-          </button>
-        </li>
-        <li>
-          <button class="dropdown-item" type="submit" name="status" value="dropped">
-            Dropped
-          </button>
-        </li>
-        <li>
-          <button class="dropdown-item" type="submit" name="status" value="completed">
-            Completed
-          </button>
-        </li>
-        {% if current_status %}
-        <li><hr class="dropdown-divider"></li>
-        <li>
-          <button class="dropdown-item text-danger" type="submit" name="status" value="remove">
-            Remove from List
-          </button>
-        </li>
-        {% endif %}
-      </ul>
-    </div>
-  </form>
+          <!-- Watchlist and Favorites actions -->
+          <div class="mt-4 d-flex align-items-center gap-3 flex-wrap">
+            <div class="dropdown">
+              <button class="btn-glass dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                {% if current_status %}
+                <i class="fas fa-list-check me-2"></i>{{ status_labels.get(current_status, 'Add to List') }}
+                {% else %}
+                <i class="fas fa-plus me-2"></i>Add to List
+                {% endif %}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-glass">
+                <li><button class="dropdown-item dropdown-item-glass" type="submit" form="watchlistForm" name="status"
+                    value="reading">Reading</button></li>
+                <li><button class="dropdown-item dropdown-item-glass" type="submit" form="watchlistForm" name="status"
+                    value="on_hold">On-Hold</button></li>
+                <li><button class="dropdown-item dropdown-item-glass" type="submit" form="watchlistForm" name="status"
+                    value="planned">Plan to Watch</button></li>
+                <li><button class="dropdown-item dropdown-item-glass" type="submit" form="watchlistForm" name="status"
+                    value="dropped">Dropped</button></li>
+                <li><button class="dropdown-item dropdown-item-glass" type="submit" form="watchlistForm" name="status"
+                    value="completed">Completed</button></li>
+                {% if current_status %}
+                <li>
+                  <hr class="dropdown-divider opacity-10">
+                </li>
+                <li><button class="dropdown-item dropdown-item-glass text-danger" type="submit" form="watchlistForm"
+                    name="status" value="remove">Remove from List</button></li>
+                {% endif %}
+              </ul>
+            </div>
 
-  <!-- Favorite button -->
-  <button id="favoriteBtn" class="btn btn-sm {% if is_favorited %}btn-danger{% else %}btn-outline-danger{% endif %}" onclick="toggleFavoriteDetail({{ book[0] }})">
-    <i id="favoriteIcon" class="fas fa-heart {% if not is_favorited %}fa-regular{% else %}fa-solid{% endif %} me-1"></i>
-    <span id="favoriteText">{% if is_favorited %}Favorited{% else %}Add to Favorites{% endif %}</span>
-  </button>
-</div><br>
+            <form id="watchlistForm" method="post" action="{{ url_for('watchlist_book', book_id=book[0]) }}"
+              style="display:none;"></form>
 
+            <button id="favoriteBtn" class="btn-glass {% if is_favorited %}btn-favorite-active{% endif %}"
+              onclick="toggleFavoriteDetail({{ book[0] }})">
+              <i id="favoriteIcon"
+                class="fas fa-heart {% if not is_favorited %}fa-regular{% else %}fa-solid{% endif %} me-2"></i>
+              <span id="favoriteText">{% if is_favorited %}Favorited{% else %}Favorite{% endif %}</span>
+            </button>
+          </div>
 
-          <div class="d-flex flex-wrap gap-2">
+          <div class="d-flex flex-wrap gap-2 mt-4 pt-3 border-top border-white border-opacity-10">
             {% if book[4] %}
-            <a
-              href="{{ url_for('static', filename='books/' + book[4]) }}"
-              target="_blank"
-              class="btn btn-neon"
-            >
-              <i class="fas fa-file-pdf me-2"></i>Read E-Book (PDF)
+            <a href="{{ url_for('static', filename='books/' + book[4]) }}" target="_blank" class="btn btn-neon px-4">
+              <i class="fas fa-file-pdf me-2"></i>Read E-Book
             </a>
             {% else %}
             <button class="btn btn-ghost" disabled>
-              <i class="fas fa-file-pdf me-2"></i>No PDF Available
+              <i class="fas fa-file-pdf me-2"></i>PDF Unavailable
             </button>
             {% endif %}
 
             {% if book[5] %}
-            <a
-              href="#audio-player"
-              class="btn btn-neon-outline"
-            >
-              <i class="fas fa-headphones me-2"></i>Jump to Audiobook
+            <a href="#audio-player" class="btn btn-glass px-4">
+              <i class="fas fa-headphones me-2"></i>Audiobook
             </a>
             {% endif %}
           </div>
@@ -155,23 +131,23 @@
 
       {% if book[5] %}
       <!-- Audiobook block -->
-      <div id="audio-player" class="reading-audio mt-4">
-        <label class="text-success mb-2">
-          🎧 <strong>Audiobook Player</strong>
+      <div id="audio-player" class="glass-panel reading-audio mt-4">
+        <label class="text-success mb-3 d-flex align-items-center gap-2">
+          <i class="fas fa-play-circle"></i> <strong>Audiobook Player</strong>
         </label>
         <audio controls style="width: 100%;">
-          <source
-            src="{{ url_for('static', filename='audio/' + book[5]) }}"
-            type="audio/mpeg"
-          />
+          <source src="{{ url_for('static', filename='audio/' + book[5]) }}" type="audio/mpeg" />
           Your browser does not support audio.
         </audio>
       </div>
       {% endif %}
-    </div>
+    </div> <!-- end glass-panel reading-hero -->
+  </div> <!-- end container -->
+</div> <!-- end book-detail-wrapper -->
 
-   {# --- COMMUNITY & DISCOVERY --- #}
-<section class="book-community">
+
+{# --- COMMUNITY & DISCOVERY --- #}
+<section class="book-community container">
 
   <!-- Title -->
   <div class="bc-main-title">
@@ -179,7 +155,7 @@
   </div>
 
   <!-- ===== READER REVIEWS (FULL WIDTH CARD) ===== -->
-  <div class="bc-reviews-card">
+  <div class="bc-reviews-card glass-panel mb-5">
     <div class="bc-reviews-header">
       <div>
         <h3>Reader Reviews</h3>
@@ -200,30 +176,31 @@
       <!-- LEFT: list of reviews -->
       <div class="bc-reviews-list">
         {% if reviews %}
-          {% for r in reviews %}
-          <article class="bc-review-item" onclick="openUserCard(event, '{{ r[4] }}', {{ r[5] }}, '{{ r[6] or '' }}')" style="cursor: pointer;">
-            <div class="bc-review-avatar">
-              {{ r[4][0]|upper }}
-            </div>
-            <div class="bc-review-content">
-              <div class="bc-review-topline">
-                <span class="bc-review-user">{{ r[4] }}</span>
-                <span class="bc-review-stars">
-                  {% for _ in range((r[2] or 0)|int) %}★{% endfor %}
-                  {% for _ in range(5 - (r[2] or 0)|int) %}☆{% endfor %}
-                </span>
-              </div>
-              <p class="bc-review-text">{{ r[1] }}</p>
-              <span class="bc-review-date">
-                {{ r[3] or '' }}
+        {% for r in reviews %}
+        <article class="bc-review-item" onclick="openUserCard(event, '{{ r[4] }}', {{ r[5] }}, '{{ r[6] or '' }}')"
+          style="cursor: pointer;">
+          <div class="bc-review-avatar">
+            {{ r[4][0]|upper }}
+          </div>
+          <div class="bc-review-content">
+            <div class="bc-review-topline">
+              <span class="bc-review-user">{{ r[4] }}</span>
+              <span class="bc-review-stars">
+                {% for _ in range((r[2] or 0)|int) %}★{% endfor %}
+                {% for _ in range(5 - (r[2] or 0)|int) %}☆{% endfor %}
               </span>
             </div>
-          </article>
-          {% endfor %}
+            <p class="bc-review-text">{{ r[1] }}</p>
+            <span class="bc-review-date">
+              {{ r[3] or '' }}
+            </span>
+          </div>
+        </article>
+        {% endfor %}
         {% else %}
-          <p class="bc-empty-state">
-            No reviews yet. Be the first to share what you think about this book.
-          </p>
+        <p class="bc-empty-state">
+          No reviews yet. Be the first to share what you think about this book.
+        </p>
         {% endif %}
       </div>
 
@@ -243,12 +220,8 @@
           </select>
 
           <label class="bc-field-label mt-3">Your thoughts</label>
-          <textarea
-            name="content"
-            rows="4"
-            class="form-control bc-textarea"
-            placeholder="What stood out to you? Characters, pacing, vibes..."
-          ></textarea>
+          <textarea name="content" rows="4" class="form-control bc-textarea"
+            placeholder="What stood out to you? Characters, pacing, vibes..."></textarea>
 
           <button type="submit" class="btn btn-orange w-100 mt-3">
             Post review
@@ -263,8 +236,8 @@
     </div>
   </div>
 
-  <!-- ===== TOP RECOMMENDATIONS (FULL-WIDTH STRIP AT BOTTOM) ===== -->
-  <div class="bc-top-rec-strip">
+  <!-- ===== TOP RECOMMENDATIONS ===== -->
+  <div class="bc-top-rec-strip glass-panel">
     <div class="bc-strip-header">
       <div>
         <h3>Top Recommendations</h3>
@@ -274,180 +247,189 @@
 
     <div class="bc-rec-row">
       {% if recommendations and recommendations|length > 0 %}
-        {% for rec in recommendations %}
-        <div class="bc-rec-card">
-          <div class="bc-rec-cover">
-            {% if rec[4] %}
-            <img
-              src="{{ rec[4] }}"
-              alt="{{ rec[1] }} cover"
-            />
-            {% else %}
-            <div style="font-size: 50px;">📖</div>
-            {% endif %}
-          </div>
-          <div class="bc-rec-info">
-            <div class="bc-rec-title">{{ rec[1] }}</div>
-            <div class="bc-rec-meta">{{ rec[3] or 'Category' }}</div>
-            <a href="{{ url_for('view_book', id=rec[0]) }}" class="bc-rec-btn">View details</a>
-          </div>
+      {% for rec in recommendations %}
+      <div class="bc-rec-card">
+        <div class="bc-rec-cover">
+          {% if rec[4] %}
+          <img src="{{ rec[4] }}" alt="{{ rec[1] }} cover" />
+          {% else %}
+          <div style="font-size: 50px;">📖</div>
+          {% endif %}
         </div>
-        {% endfor %}
+        <div class="bc-rec-info">
+          <div class="bc-rec-title">{{ rec[1] }}</div>
+          <div class="bc-rec-meta">{{ rec[3] or 'Category' }}</div>
+          <a href="{{ url_for('view_book', id=rec[0]) }}" class="bc-rec-btn">View details</a>
+        </div>
+      </div>
+      {% endfor %}
       {% else %}
-        <!-- Static placeholders -->
-        <div class="bc-rec-card">
-          <div class="bc-rec-cover">
-            <div style="font-size: 50px;">📖</div>
-          </div>
-          <div class="bc-rec-info">
-            <div class="bc-rec-title">Cyber Samurai Saga</div>
-            <div class="bc-rec-meta">Sci-Fi • Action</div>
-            <button class="bc-rec-btn" type="button" disabled>Coming soon</button>
-          </div>
+      <!-- Static placeholders -->
+      <div class="bc-rec-card">
+        <div class="bc-rec-cover">
+          <div style="font-size: 50px;">📖</div>
         </div>
+        <div class="bc-rec-info">
+          <div class="bc-rec-title">Cyber Samurai Saga</div>
+          <div class="bc-rec-meta">Sci-Fi • Action</div>
+          <button class="bc-rec-btn" type="button" disabled>Coming soon</button>
+        </div>
+      </div>
 
-        <div class="bc-rec-card">
-          <div class="bc-rec-cover">
-            <div style="font-size: 50px;">📖</div>
-          </div>
-          <div class="bc-rec-info">
-            <div class="bc-rec-title">Voyage of Stardust</div>
-            <div class="bc-rec-meta">Fantasy • Adventure</div>
-            <button class="bc-rec-btn" type="button" disabled>Coming soon</button>
-          </div>
+      <div class="bc-rec-card">
+        <div class="bc-rec-cover">
+          <div style="font-size: 50px;">📖</div>
         </div>
+        <div class="bc-rec-info">
+          <div class="bc-rec-title">Voyage of Stardust</div>
+          <div class="bc-rec-meta">Fantasy • Adventure</div>
+          <button class="bc-rec-btn" type="button" disabled>Coming soon</button>
+        </div>
+      </div>
       {% endif %}
     </div>
   </div>
 </section>
 
 <script>
-const bookAiBtn = document.getElementById('bookAiBtn');
-const bookAiForceBtn = document.getElementById('bookAiForceBtn');
-const bookAiSpinner = document.getElementById('bookAiSpinner');
-const bookAiMeta = document.getElementById('bookAiMeta');
+  const bookAiBtn = document.getElementById('bookAiBtn');
+  const bookAiForceBtn = document.getElementById('bookAiForceBtn');
+  const bookAiSpinner = document.getElementById('bookAiSpinner');
+  const bookAiMeta = document.getElementById('bookAiMeta');
 
-async function fetchBookSummary(force=false){
-  const btn = bookAiBtn;
-  const text = document.getElementById('bookDescription')?.textContent || '';
-  if (!text.trim()) return alert('No description available to summarize.');
+  async function fetchBookSummary(force = false) {
+    const btn = bookAiBtn;
+    const text = document.getElementById('bookDescription')?.textContent || '';
+    if (!text.trim()) return alert('No description available to summarize.');
 
-  try {
-    btn.disabled = true; btn.textContent = 'Generating...';
-    bookAiSpinner.style.display = 'inline-block';
-    const resp = await fetch('/ai_summary', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text, max_sentences: 3, item_type: 'book', item_id: {{ book[0] }}, force: force })
-    });
-    const data = await resp.json();
-    if (data.summary) {
-      document.getElementById('bookAiText').textContent = data.summary;
-      document.getElementById('bookAiResult').style.display = 'block';
-      document.getElementById('bookAiCopy').style.display = 'inline-block';
-      // show meta
-      const model = data.model || 'unknown';
-      const cached = data.cached ? ' (cached)' : '';
-      bookAiMeta.textContent = `Model: ${model}${cached}`;
-      if (data.cached){
-        bookAiForceBtn.style.display = 'inline-block';
+    try {
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+      bookAiSpinner.style.display = 'inline-block';
+      const resp = await fetch('/ai_summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: text,
+          max_sentences: 3,
+          item_type: 'book',
+          item_id: parseInt("{{ book[0]|default(0) }}"),
+          force: force
+        })
+      });
+      const data = await resp.json();
+      if (data.summary) {
+        document.getElementById('bookAiText').textContent = data.summary;
+        document.getElementById('bookAiResult').style.display = 'block';
+        document.getElementById('bookAiCopy').style.display = 'inline-block';
+        // show meta
+        const model = data.model || 'unknown';
+        const cached = data.cached ? ' (cached)' : '';
+        bookAiMeta.textContent = `Model: ${model}${cached}`;
+        if (data.cached) {
+          bookAiForceBtn.style.display = 'inline-block';
+        } else {
+          bookAiForceBtn.style.display = 'none';
+        }
+        // show toast
+        showToast('Summary generated' + (data.cached ? ' (cached)' : ''), 'success');
       } else {
-        bookAiForceBtn.style.display = 'none';
+        alert('No summary returned.');
       }
-      // show toast
-      showToast('Summary generated'+(data.cached? ' (cached)':'') , 'success');
-    } else {
-      alert('No summary returned.');
+    } catch (e) {
+      console.error(e);
+      showToast('Error generating summary', 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-robot me-2"></i>AI Summary';
+      bookAiSpinner.style.display = 'none';
     }
-  } catch (e) {
-    console.error(e);
-    showToast('Error generating summary', 'danger');
-  } finally {
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-robot me-2"></i>AI Summary';
-    bookAiSpinner.style.display = 'none';
   }
-}
 
-bookAiBtn?.addEventListener('click', function(){ fetchBookSummary(false); });
-bookAiForceBtn?.addEventListener('click', function(){ fetchBookSummary(true); });
+  bookAiBtn?.addEventListener('click', function () { fetchBookSummary(false); });
+  bookAiForceBtn?.addEventListener('click', function () { fetchBookSummary(true); });
 
-document.getElementById('bookAiCopy')?.addEventListener('click', function() {
-  const txt = document.getElementById('bookAiText')?.textContent || '';
-  if (!txt) return;
-  navigator.clipboard?.writeText(txt).then(()=>{
-    this.textContent = 'Copied'; setTimeout(()=> this.style.display='none', 1200);
+  document.getElementById('bookAiCopy')?.addEventListener('click', function () {
+    const txt = document.getElementById('bookAiText')?.textContent || '';
+    if (!txt) return;
+    navigator.clipboard?.writeText(txt).then(() => {
+      this.textContent = 'Copied';
+      setTimeout(() => this.style.display = 'none', 1200);
+    });
   });
-});
 
-document.getElementById('coverAiBtn')?.addEventListener('click', async function() {
-  const btn = this;
-  try {
-    btn.disabled = true; btn.textContent = 'Analyzing...';
-    const resp = await fetch('/api/book/{{ book[0] }}/cover/analyze', { method: 'POST' });
-    const data = await resp.json();
-    if (data.success) {
-      document.getElementById('coverAiText').textContent = data.analysis;
-      document.getElementById('coverAiResult').style.display = 'block';
-    } else {
-      alert('Error: ' + data.error);
+  document.getElementById('coverAiBtn')?.addEventListener('click', async function () {
+    const btn = this;
+    try {
+      btn.disabled = true;
+      btn.textContent = 'Analyzing...';
+      const resp = await fetch('/api/book/{{ book[0] }}/cover/analyze', { method: 'POST' });
+      const data = await resp.json();
+      if (data.success) {
+        document.getElementById('coverAiText').textContent = data.analysis;
+        document.getElementById('coverAiResult').style.display = 'block';
+      } else {
+        alert('Error: ' + data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error analyzing cover');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-image me-2"></i>AI Analyze Cover';
     }
-  } catch (e) {
-    console.error(e);
-    alert('Error analyzing cover');
-  } finally {
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-image me-2"></i>AI Analyze Cover';
-  }
-});
+  });
 
-async function toggleFavoriteDetail(bookId) {
+  async function toggleFavoriteDetail(bookId) {
     const btn = document.getElementById('favoriteBtn');
     const icon = document.getElementById('favoriteIcon');
     const text = document.getElementById('favoriteText');
-    
+
     if (!btn) return;
 
     try {
-        btn.disabled = true;
-        const resp = await fetch('/api/favorites/toggle', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ book_id: bookId })
-        });
-        
-        const data = await resp.json();
-        
-        if (data.success) {
-            if (data.status === 'added') {
-                btn.classList.remove('btn-outline-danger');
-                btn.classList.add('btn-danger');
-                icon.classList.remove('fa-regular');
-                icon.classList.add('fa-solid');
-                text.textContent = 'Favorited';
-                showToast('Added to favorites!', 'success');
-            } else {
-                btn.classList.remove('btn-danger');
-                btn.classList.add('btn-outline-danger');
-                icon.classList.remove('fa-solid');
-                icon.classList.add('fa-regular');
-                text.textContent = 'Add to Favorites';
-                showToast('Removed from favorites.', 'info');
-            }
+      btn.disabled = true;
+      const resp = await fetch('/api/favorites/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ book_id: bookId })
+      });
+
+      const data = await resp.json();
+
+      if (data.success) {
+        if (data.status === 'added') {
+          btn.classList.remove('btn-outline-danger');
+          btn.classList.add('btn-danger');
+          icon.classList.remove('fa-regular');
+          icon.classList.add('fa-solid');
+          text.textContent = 'Favorited';
+          showToast('Added to favorites!', 'success');
         } else {
-            if (resp.status === 401 || data.error === 'Please log in') {
-                window.location.href = '/login';
-            } else {
-                showToast('Error: ' + (data.error || 'Unknown error'), 'danger');
-            }
+          btn.classList.remove('btn-danger');
+          btn.classList.add('btn-outline-danger');
+          icon.classList.remove('fa-solid');
+          icon.classList.add('fa-regular');
+          text.textContent = 'Add to Favorites';
+          showToast('Removed from favorites.', 'info');
         }
+      } else {
+        if (resp.status === 401 || data.error === 'Please log in') {
+          window.location.href = '/login';
+        } else {
+          showToast('Error: ' + (data.error || 'Unknown error'), 'danger');
+        }
+      }
     } catch (e) {
-        console.error(e);
-        showToast('Network error', 'danger');
+      console.error(e);
+      showToast('Network error', 'danger');
     } finally {
-        btn.disabled = false;
+      btn.disabled = false;
     }
-}
+  }
 </script>
 
-  </div>
+</div>
 </div>
 <!-- USER INTERACTION MODAL -->
 <div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
@@ -455,22 +437,24 @@ async function toggleFavoriteDetail(bookId) {
     <div class="modal-content bg-dark border-secondary">
       <div class="modal-body text-center pt-4">
         <div class="mb-3 position-relative d-inline-block">
-             <div id="modalUserAvatar" class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto border border-info p-1" style="width: 80px; height: 80px; font-size: 30px; overflow: hidden;">
-                <!-- img or text injected via js -->
-             </div>
+          <div id="modalUserAvatar"
+            class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto border border-info p-1"
+            style="width: 80px; height: 80px; font-size: 30px; overflow: hidden;">
+            <!-- img or text injected via js -->
+          </div>
         </div>
         <h5 id="modalUserName" class="text-white mb-1"></h5>
         <p id="modalUserRole" class="text-muted small mb-3">Reader</p>
 
         <div class="d-grid gap-2">
-            <a id="modalProfileLink" href="#" class="btn btn-outline-light btn-sm">
-                <i class="fas fa-user-circle me-2"></i>View Profile
-            </a>
-            {% if session.get('user_id') %}
-            <button id="modalReportBtn" class="btn btn-outline-danger btn-sm">
-                <i class="fas fa-flag me-2"></i>Report User
-            </button>
-            {% endif %}
+          <a id="modalProfileLink" href="#" class="btn btn-outline-light btn-sm">
+            <i class="fas fa-user-circle me-2"></i>View Profile
+          </a>
+          {% if session.get('user_id') %}
+          <button id="modalReportBtn" class="btn btn-outline-danger btn-sm">
+            <i class="fas fa-flag me-2"></i>Report User
+          </button>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -486,16 +470,18 @@ async function toggleFavoriteDetail(bookId) {
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p class="text-muted small">Why are you reporting <strong id="reportTargetName" class="text-white"></strong>?</p>
+        <p class="text-muted small">Why are you reporting <strong id="reportTargetName" class="text-white"></strong>?
+        </p>
         <form id="reportForm">
-            <input type="hidden" id="reportTargetId">
-            <div class="mb-3">
-                <textarea class="form-control bg-black text-white border-secondary" id="reportReason" rows="4" placeholder="Describe the issue..." required></textarea>
-            </div>
-            <div class="d-flex justify-content-end">
-                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-danger">Submit Report</button>
-            </div>
+          <input type="hidden" id="reportTargetId">
+          <div class="mb-3">
+            <textarea class="form-control bg-black text-white border-secondary" id="reportReason" rows="4"
+              placeholder="Describe the issue..." required></textarea>
+          </div>
+          <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger">Submit Report</button>
+          </div>
         </form>
       </div>
     </div>
@@ -503,71 +489,70 @@ async function toggleFavoriteDetail(bookId) {
 </div>
 
 <script>
-let userModal;
-let reportModal;
+  let userModal;
+  let reportModal;
 
-document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     userModal = new bootstrap.Modal(document.getElementById('userModal'));
     reportModal = new bootstrap.Modal(document.getElementById('reportModal'));
-});
+  });
 
-function openUserCard(event, username, userId, avatarUrl) {
+  function openUserCard(event, username, userId, avatarUrl) {
     if (event) event.stopPropagation(); // prevent triggering other clicks if any
 
     document.getElementById('modalUserName').textContent = username;
     document.getElementById('modalProfileLink').href = '/u/' + username;
-    
+
     const avatarContainer = document.getElementById('modalUserAvatar');
     if (avatarUrl && avatarUrl !== 'None' && avatarUrl !== '') {
-        avatarContainer.innerHTML = `<img src="${avatarUrl}" style="width:100%; height:100%; object-fit:cover;">`;
+      avatarContainer.innerHTML = `<img src="${avatarUrl}" style="width:100%; height:100%; object-fit:cover;">`;
     } else {
-        avatarContainer.innerHTML = username.charAt(0).toUpperCase();
+      avatarContainer.innerHTML = username.charAt(0).toUpperCase();
     }
 
     // Report button setup
     const reportBtn = document.getElementById('modalReportBtn');
     if (reportBtn) {
-        reportBtn.onclick = function() {
-            userModal.hide();
-            setTimeout(() => {
-                openReportModal(userId, username);
-            }, 500);
-        };
+      reportBtn.onclick = function () {
+        userModal.hide();
+        setTimeout(() => {
+          openReportModal(userId, username);
+        }, 500);
+      };
     }
-    
-    userModal.show();
-}
 
-function openReportModal(userId, username) {
+    userModal.show();
+  }
+
+  function openReportModal(userId, username) {
     document.getElementById('reportTargetId').value = userId;
     document.getElementById('reportTargetName').textContent = username;
     document.getElementById('reportReason').value = '';
     reportModal.show();
-}
+  }
 
-document.getElementById('reportForm')?.addEventListener('submit', async function(e) {
+  document.getElementById('reportForm')?.addEventListener('submit', async function (e) {
     e.preventDefault();
     const userId = document.getElementById('reportTargetId').value;
     const reason = document.getElementById('reportReason').value;
-    
+
     try {
-        const resp = await fetch('/report_user', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ reported_user_id: userId, reason: reason })
-        });
-        const data = await resp.json();
-        
-        if (data.success) {
-            alert('Report submitted. Thank you.');
-            reportModal.hide();
-        } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
-        }
-    } catch(e) {
-        alert('Network error. Please try again.');
+      const resp = await fetch('/report_user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reported_user_id: userId, reason: reason })
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        alert('Report submitted. Thank you.');
+        reportModal.hide();
+      } else {
+        alert('Error: ' + (data.error || 'Unknown error'));
+      }
+    } catch (e) {
+      alert('Network error. Please try again.');
     }
-});
+  });
 </script>
 {% endblock %}
-

@@ -1257,6 +1257,32 @@ def init_db():
             ))
         conn.commit()
 
+    # manga_reviews table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS manga_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            manga_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            chapter_id INTEGER,
+            content TEXT NOT NULL,
+            rating INTEGER DEFAULT 5,
+            has_spoilers BOOLEAN DEFAULT 0,
+            status TEXT DEFAULT 'Reading',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (manga_id) REFERENCES books(id),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (chapter_id) REFERENCES chapters(id),
+            UNIQUE(manga_id, user_id)
+        )
+    """)
+    # Migration for existing manga_reviews table
+    for col, col_type in [("chapter_id", "INTEGER"), ("has_spoilers", "BOOLEAN DEFAULT 0"), ("status", "TEXT DEFAULT 'Reading'")]:
+        try:
+            c.execute(f"ALTER TABLE manga_reviews ADD COLUMN {col} {col_type}")
+        except sqlite3.OperationalError:
+            pass
+    conn.commit()
+
     # default users
     try:
         c.execute("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
@@ -2133,6 +2159,31 @@ def community_reviews():
     
     conn = get_conn()
     c = conn.cursor()
+    
+    # Ensure manga_reviews table and columns exist (lazy migration)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS manga_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            manga_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            chapter_id INTEGER,
+            content TEXT NOT NULL,
+            rating INTEGER DEFAULT 5,
+            has_spoilers BOOLEAN DEFAULT 0,
+            status TEXT DEFAULT 'Reading',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (manga_id) REFERENCES books(id),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (chapter_id) REFERENCES chapters(id),
+            UNIQUE(manga_id, user_id)
+        )
+    """)
+    for col, col_type in [("chapter_id", "INTEGER"), ("has_spoilers", "BOOLEAN DEFAULT 0"), ("status", "TEXT DEFAULT 'Reading'")]:
+        try:
+            c.execute(f"ALTER TABLE manga_reviews ADD COLUMN {col} {col_type}")
+        except:
+            pass
+    conn.commit()
     
     manga_id_filter = request.args.get('manga_id', type=int)
 

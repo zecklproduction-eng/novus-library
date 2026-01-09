@@ -679,7 +679,12 @@
                                     <a href="#" onClick={(e) => window.openUserInteractionModal(review.user.id, review.user.username, 'Reader', review.user.avatarUrl, e, 'review')} className="text-sm font-black text-[var(--cr-text-main)] group-hover/card:text-[var(--cr-accent)] transition-colors uppercase tracking-tight hover:underline">
                                         {review.user.username}
                                     </a>
-                                    <span className="text-[10px] text-[var(--cr-text-muted)] font-black uppercase tracking-[0.2em] mt-0.5 block">2 hours ago</span>
+                                    <span className="text-[10px] text-[var(--cr-text-muted)] font-black uppercase tracking-[0.2em] mt-0.5 block">
+                                        {new Date(review.createdAt).toLocaleDateString()}
+                                        {review.media.chapter_num !== null && review.media.chapter_num !== undefined && (
+                                            <span className="text-indigo-400 ml-2">• CHAPTER {review.media.chapter_num}</span>
+                                        )}
+                                    </span>
                                 </div>
                             </div>
                             <div className="flex flex-col items-end">
@@ -695,7 +700,7 @@
                         <div className="flex justify-between items-center mb-3">
                             <div className="flex items-center gap-3">
                                 <h3 className="text-2xl md:text-3xl font-black text-[var(--cr-text-main)] tracking-tighter leading-none group-hover/card:translate-x-1 transition-transform">{review.media.title}</h3>
-                                {review.media.chapter_num && (
+                                {review.media.chapter_num !== null && review.media.chapter_num !== undefined && (
                                     <span className="shrink-0 px-2 py-0.5 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-md shadow-sm">
                                         Ch. {review.media.chapter_num}
                                     </span>
