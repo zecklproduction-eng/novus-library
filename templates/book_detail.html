@@ -2,6 +2,76 @@
 {% block title %}{{ book[1] }} | NOVUS{% endblock %}
 
 {% block content %}
+<script>
+  // Description Toggle & Transcript Parsing
+  document.addEventListener('DOMContentLoaded', () => {
+    // 1. Description Read More
+    const desc = document.getElementById('bookDescription');
+    const btn = document.getElementById('readMoreBtn');
+    if (desc && btn) {
+      const lineHeight = parseInt(window.getComputedStyle(desc).lineHeight) || 24;
+      const height = desc.scrollHeight;
+      if (height > lineHeight * 10) {
+        btn.style.display = 'inline-block';
+      }
+    }
+
+    // 2. Parse Transcript
+    const rawTranscript = document.getElementById('rawTranscript')?.value;
+    const display = document.getElementById('transcriptDisplay');
+    if (rawTranscript && display) {
+      try {
+        const items = JSON.parse(rawTranscript);
+        if (Array.isArray(items)) {
+          let html = '<ul class="list-unstyled">';
+          items.forEach(item => {
+            html += `
+                        <li class="mb-2">
+                            <span class="badge bg-secondary me-2">${formatTime(item.startTime)}</span>
+                            <span class="text-white-50">${escapeHtml(item.text)}</span>
+                        </li>`;
+          });
+          html += '</ul>';
+          display.innerHTML = html;
+        }
+      } catch (e) {
+        display.innerHTML = `<p class="text-white-50">${escapeHtml(rawTranscript)}</p>`;
+      }
+    }
+  });
+
+  function toggleDescription() {
+    const desc = document.getElementById('bookDescription');
+    const btn = document.getElementById('readMoreBtn');
+    if (desc.classList.contains('collapsed')) {
+      desc.classList.remove('collapsed');
+      btn.textContent = 'Read Less';
+    } else {
+      desc.classList.add('collapsed');
+      btn.textContent = 'Read More';
+    }
+  }
+
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+</script>
+
+<style>
+  .description-text.collapsed {
+    display: -webkit-box;
+    -webkit-line-clamp: 10;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
 <div class="book-detail-wrapper">
   <!-- Cinematic Background -->
   <div class="book-hero-bg">
@@ -35,8 +105,12 @@
           <!-- Description + AI tools -->
           <div class="mt-4">
             <h5 class="text-white opacity-75">Description</h5>
-            <p id="bookDescription" class="text-white-50">{{ book[7] or 'No description available for this masterpiece.'
-              }}</p>
+            <div class="description-container">
+              <p id="bookDescription" class="text-white-50 description-text collapsed">{{ book[7] or 'No description
+                available for this masterpiece.' }}</p>
+              <button id="readMoreBtn" class="btn btn-link btn-sm text-info p-0" style="display:none;"
+                onclick="toggleDescription()">Read More</button>
+            </div>
 
             <div class="action-bar">
               <button id="bookAiBtn" class="btn-glass"><i class="fas fa-robot me-2"></i>AI Summary</button>
@@ -142,153 +216,157 @@
       </div>
       {% endif %}
     </div> <!-- end glass-panel reading-hero -->
+
+    <!-- Audio Metadata Section (Transcript & Summary) removed -->
   </div> <!-- end container -->
-</div> <!-- end book-detail-wrapper -->
+</div> <!--end book - detail - wrapper-- >
 
 
-{# --- COMMUNITY & DISCOVERY --- #}
-<section class="book-community container">
 
-  <!-- Title -->
-  <div class="bc-main-title">
-    <h2>Community &amp; Discovery</h2>
-  </div>
 
-  <!-- ===== READER REVIEWS (FULL WIDTH CARD) ===== -->
-  <div class="bc-reviews-card glass-panel mb-5">
-    <div class="bc-reviews-header">
-      <div>
-        <h3>Reader Reviews</h3>
-        <p class="bc-subtitle">The latest thoughts from NOVUS readers.</p>
-      </div>
+      {# --- COMMUNITY & DISCOVERY --- #}
+      < section class="book-community container" >
 
-      {% if review_count %}
-      <div class="bc-rating-pill">
-        ★ {{ "%.1f"|format(avg_rating or 0) }}
-        <span class="bc-rating-count">
-          • {{ review_count }} review{{ 's' if review_count != 1 else '' }}
-        </span>
-      </div>
-      {% endif %}
+  < !--Title -->
+<div class="bc-main-title">
+  <h2>Community &amp; Discovery</h2>
+</div>
+
+<!-- ===== READER REVIEWS(FULL WIDTH CARD) ===== -->
+<div class="bc-reviews-card glass-panel mb-5">
+  <div class="bc-reviews-header">
+    <div>
+      <h3>Reader Reviews</h3>
+      <p class="bc-subtitle">The latest thoughts from NOVUS readers.</p>
     </div>
 
-    <div class="bc-reviews-layout">
-      <!-- LEFT: list of reviews -->
-      <div class="bc-reviews-list">
-        {% if reviews %}
-        {% for r in reviews %}
-        <article class="bc-review-item" onclick="openUserCard(event, '{{ r[4] }}', {{ r[5] }}, '{{ r[6] or '' }}')"
-          style="cursor: pointer;">
-          <div class="bc-review-avatar">
-            {{ r[4][0]|upper }}
-          </div>
-          <div class="bc-review-content">
-            <div class="bc-review-topline">
-              <span class="bc-review-user">{{ r[4] }}</span>
-              <span class="bc-review-stars">
-                {% for _ in range((r[2] or 0)|int) %}★{% endfor %}
-                {% for _ in range(5 - (r[2] or 0)|int) %}☆{% endfor %}
-              </span>
-            </div>
-            <p class="bc-review-text">{{ r[1] }}</p>
-            <span class="bc-review-date">
-              {{ r[3] or '' }}
+    {% if review_count %}
+    <div class="bc-rating-pill">
+      ★ {{ "%.1f"|format(avg_rating or 0) }}
+      <span class="bc-rating-count">
+        • {{ review_count }} review{{ 's' if review_count != 1 else '' }}
+      </span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="bc-reviews-layout">
+    <!-- LEFT: list of reviews -->
+    <div class="bc-reviews-list">
+      {% if reviews %}
+      {% for r in reviews %}
+      <article class="bc-review-item" onclick="openUserCard(event, '{{ r[4] }}', {{ r[5] }}, '{{ r[6] or '' }}')"
+        style="cursor: pointer;">
+        <div class="bc-review-avatar">
+          {{ r[4][0]|upper }}
+        </div>
+        <div class="bc-review-content">
+          <div class="bc-review-topline">
+            <span class="bc-review-user">{{ r[4] }}</span>
+            <span class="bc-review-stars">
+              {% for _ in range((r[2] or 0)|int) %}★{% endfor %}
+              {% for _ in range(5 - (r[2] or 0)|int) %}☆{% endfor %}
             </span>
           </div>
-        </article>
-        {% endfor %}
-        {% else %}
-        <p class="bc-empty-state">
-          No reviews yet. Be the first to share what you think about this book.
-        </p>
-        {% endif %}
-      </div>
-
-      <!-- RIGHT: leave a comment -->
-      <div class="bc-review-form">
-        <h4>Leave a comment</h4>
-
-        {% if session.get('user_id') %}
-        <form action="{{ url_for('add_review', id=book[0]) }}" method="post">
-          <label class="bc-field-label">Your rating</label>
-          <select name="rating" class="form-select bc-select">
-            <option value="5">★★★★★ – Loved it</option>
-            <option value="4">★★★★☆ – Great</option>
-            <option value="3">★★★☆☆ – Good</option>
-            <option value="2">★★☆☆☆ – Meh</option>
-            <option value="1">★☆☆☆☆ – Not for me</option>
-          </select>
-
-          <label class="bc-field-label mt-3">Your thoughts</label>
-          <textarea name="content" rows="4" class="form-control bc-textarea"
-            placeholder="What stood out to you? Characters, pacing, vibes..."></textarea>
-
-          <button type="submit" class="btn btn-orange w-100 mt-3">
-            Post review
-          </button>
-        </form>
-        {% else %}
-        <p class="bc-login-note">
-          <a href="{{ url_for('login') }}">Log in</a> to leave a review and join the discussion.
-        </p>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== TOP RECOMMENDATIONS ===== -->
-  <div class="bc-top-rec-strip glass-panel">
-    <div class="bc-strip-header">
-      <div>
-        <h3>Top Recommendations</h3>
-        <p class="bc-subtitle">Our weekly picks from the NOVUS universe.</p>
-      </div>
-    </div>
-
-    <div class="bc-rec-row">
-      {% if recommendations and recommendations|length > 0 %}
-      {% for rec in recommendations %}
-      <div class="bc-rec-card">
-        <div class="bc-rec-cover">
-          {% if rec[4] %}
-          <img src="{{ rec[4] }}" alt="{{ rec[1] }} cover" />
-          {% else %}
-          <div style="font-size: 50px;">📖</div>
-          {% endif %}
+          <p class="bc-review-text">{{ r[1] }}</p>
+          <span class="bc-review-date">
+            {{ r[3] or '' }}
+          </span>
         </div>
-        <div class="bc-rec-info">
-          <div class="bc-rec-title">{{ rec[1] }}</div>
-          <div class="bc-rec-meta">{{ rec[3] or 'Category' }}</div>
-          <a href="{{ url_for('view_book', id=rec[0]) }}" class="bc-rec-btn">View details</a>
-        </div>
-      </div>
+      </article>
       {% endfor %}
       {% else %}
-      <!-- Static placeholders -->
-      <div class="bc-rec-card">
-        <div class="bc-rec-cover">
-          <div style="font-size: 50px;">📖</div>
-        </div>
-        <div class="bc-rec-info">
-          <div class="bc-rec-title">Cyber Samurai Saga</div>
-          <div class="bc-rec-meta">Sci-Fi • Action</div>
-          <button class="bc-rec-btn" type="button" disabled>Coming soon</button>
-        </div>
-      </div>
+      <p class="bc-empty-state">
+        No reviews yet. Be the first to share what you think about this book.
+      </p>
+      {% endif %}
+    </div>
 
-      <div class="bc-rec-card">
-        <div class="bc-rec-cover">
-          <div style="font-size: 50px;">📖</div>
-        </div>
-        <div class="bc-rec-info">
-          <div class="bc-rec-title">Voyage of Stardust</div>
-          <div class="bc-rec-meta">Fantasy • Adventure</div>
-          <button class="bc-rec-btn" type="button" disabled>Coming soon</button>
-        </div>
-      </div>
+    <!-- RIGHT: leave a comment -->
+    <div class="bc-review-form">
+      <h4>Leave a comment</h4>
+
+      {% if session.get('user_id') %}
+      <form action="{{ url_for('add_review', id=book[0]) }}" method="post">
+        <label class="bc-field-label">Your rating</label>
+        <select name="rating" class="form-select bc-select">
+          <option value="5">★★★★★ – Loved it</option>
+          <option value="4">★★★★☆ – Great</option>
+          <option value="3">★★★☆☆ – Good</option>
+          <option value="2">★★☆☆☆ – Meh</option>
+          <option value="1">★☆☆☆☆ – Not for me</option>
+        </select>
+
+        <label class="bc-field-label mt-3">Your thoughts</label>
+        <textarea name="content" rows="4" class="form-control bc-textarea"
+          placeholder="What stood out to you? Characters, pacing, vibes..."></textarea>
+
+        <button type="submit" class="btn btn-orange w-100 mt-3">
+          Post review
+        </button>
+      </form>
+      {% else %}
+      <p class="bc-login-note">
+        <a href="{{ url_for('login') }}">Log in</a> to leave a review and join the discussion.
+      </p>
       {% endif %}
     </div>
   </div>
+</div>
+
+<!-- ===== TOP RECOMMENDATIONS ===== -->
+<div class="bc-top-rec-strip glass-panel">
+  <div class="bc-strip-header">
+    <div>
+      <h3>Top Recommendations</h3>
+      <p class="bc-subtitle">Our weekly picks from the NOVUS universe.</p>
+    </div>
+  </div>
+
+  <div class="bc-rec-row">
+    {% if recommendations and recommendations|length > 0 %}
+    {% for rec in recommendations %}
+    <div class="bc-rec-card">
+      <div class="bc-rec-cover">
+        {% if rec[4] %}
+        <img src="{{ rec[4] }}" alt="{{ rec[1] }} cover" />
+        {% else %}
+        <div style="font-size: 50px;">📖</div>
+        {% endif %}
+      </div>
+      <div class="bc-rec-info">
+        <div class="bc-rec-title">{{ rec[1] }}</div>
+        <div class="bc-rec-meta">{{ rec[3] or 'Category' }}</div>
+        <a href="{{ url_for('view_book', id=rec[0]) }}" class="bc-rec-btn">View details</a>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <!-- Static placeholders -->
+    <div class="bc-rec-card">
+      <div class="bc-rec-cover">
+        <div style="font-size: 50px;">📖</div>
+      </div>
+      <div class="bc-rec-info">
+        <div class="bc-rec-title">Cyber Samurai Saga</div>
+        <div class="bc-rec-meta">Sci-Fi • Action</div>
+        <button class="bc-rec-btn" type="button" disabled>Coming soon</button>
+      </div>
+    </div>
+
+    <div class="bc-rec-card">
+      <div class="bc-rec-cover">
+        <div style="font-size: 50px;">📖</div>
+      </div>
+      <div class="bc-rec-info">
+        <div class="bc-rec-title">Voyage of Stardust</div>
+        <div class="bc-rec-meta">Fantasy • Adventure</div>
+        <button class="bc-rec-btn" type="button" disabled>Coming soon</button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
 </section>
 
 <script>

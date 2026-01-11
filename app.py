@@ -595,6 +595,13 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    # Add custom_summary column if it doesn't exist (migration)
+    try:
+        c.execute("ALTER TABLE books ADD COLUMN custom_summary TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
     # Add email column if it doesn't exist
     try:
         c.execute("ALTER TABLE users ADD COLUMN email TEXT")
@@ -1814,7 +1821,7 @@ def view_book(id):
 
     # fetch book
     c.execute(
-        "SELECT id, title, author, category, pdf_filename, audio_filename, cover_path, description FROM books WHERE id=?",
+        "SELECT id, title, author, category, pdf_filename, audio_filename, cover_path, description, transcript, toc, custom_summary FROM books WHERE id=?",
         (id,),
     )
     book = c.fetchone()
@@ -1981,45 +1988,83 @@ def view_book(id):
 def read_book(id):
     """Serve the React PDF reader for a specific book."""
     conn = get_conn()
-    c = conn.cursor()
-
-    # Fetch book details
-    c.execute(
-        """SELECT id, title, author, category, pdf_filename, audio_filename, 
-                  cover_path, description, transcript, toc FROM books WHERE id=?""",
-        (id,),
-    )
-    book = c.fetchone()
+    conn.row_factory = sqlite3.Row
+    book = conn.execute('SELECT id, title, author, cover_path, audio_filename, transcript, custom_summary, pdf_filename, toc, uploader_id FROM books WHERE id = ?', (id,)).fetchone()
     conn.close()
 
-    if not book:
+    if book is None:
         flash("Book not found.", "danger")
         return redirect(url_for("home"))
 
-    # Prepare URLs - PDFs are in /static/books/, audio in /static/audio/
-    pdf_url = f"/static/books/{book[4]}" if book[4] else ""
-    audio_url = f"/static/audio/{book[5]}" if book[5] else ""
-    
-    cover_path = book[6]
-    if cover_path:
-        cover_url = cover_path if cover_path.startswith(('http://', 'https://')) else f"/static/{cover_path}"
-    else:
-        cover_url = "/static/images/default-cover.png"
+    # Check if the current user is the publisher or an admin
+    user_id = session.get('user_id')
+    user_role = session.get('role')
+    is_editor = (user_id == book['uploader_id']) or (user_role == 'admin')
 
-    # Prepare book data for React app
+    # Prepare URLs - PDFs are in /static/books/, audio in /static/audio/
+    pdf_url = f"/static/books/{book['pdf_filename']}" if book['pdf_filename'] else ""
+    
+    # Fix cover path
+    cover_path = book['cover_path']
+    if cover_path and cover_path.startswith('http'):
+         cover_url = cover_path
+    elif cover_path:
+         cover_url = url_for('static', filename=cover_path)
+    else:
+         cover_url = None
+
     book_data = {
-        "id": str(book[0]),
-        "title": book[1] or "Untitled",
-        "author": book[2] or "Unknown Author",
-        "description": book[7] or "",
+        'id': book['id'],
+        'title': book['title'],
+        'author': book['author'],
+        'coverUrl': cover_url,
+        'audioUrl': url_for('static', filename='audio/' + book['audio_filename']) if book['audio_filename'] else None,
+        'transcript': book['transcript'],
+        'custom_summary': book['custom_summary'],
         "pdfUrl": pdf_url,
-        "audioUrl": audio_url,
-        "coverUrl": cover_url,
-        "transcript": book[8] or "",
-        "toc": book[9] or ""
+        "toc": book['toc'] if book['toc'] else "",
+        "is_editor": is_editor,
+        "user_plan": session.get('plan', 'basic')  # Pass user plan for AI Assistant restriction
     }
 
-    return render_template("read_book.html", book=book, book_data=book_data)
+    return render_template("read_book.html", book=book, book_data=book_data, is_editor=is_editor)
+
+@app.route("/api/books/<int:book_id>/update_content", methods=["POST"])
+@login_required
+def update_book_content(book_id):
+    """API endpoint to update book summary and TOC (Publisher/Admin only)."""
+    data = request.json
+    custom_summary = data.get('custom_summary')
+    toc = data.get('toc')
+
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    book = conn.execute('SELECT uploader_id FROM books WHERE id = ?', (book_id,)).fetchone()
+
+    if not book:
+        conn.close()
+        return jsonify({"success": False, "error": "Book not found"}), 404
+
+    user_id = session.get('user_id')
+    user_role = session.get('role')
+    if user_id != book['uploader_id'] and user_role != 'admin':
+        conn.close()
+        return jsonify({"success": False, "error": "Unauthorized"}), 403
+
+    try:
+        if toc is not None and not isinstance(toc, str):
+            import json
+            toc = json.dumps(toc)
+
+        conn.execute('UPDATE books SET custom_summary = ?, toc = ? WHERE id = ?', 
+                     (custom_summary, toc, book_id))
+        conn.commit()
+    except Exception as e:
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+    conn.close()
+    return jsonify({"success": True})
 
 
 # ---------- AI Summary Endpoint ----------
@@ -2832,15 +2877,16 @@ def add_book():
         # Metadata
         transcript = (request.form.get("transcript") or "").strip()
         toc = (request.form.get("toc") or "").strip()
+        custom_summary = (request.form.get("custom_summary") or "").strip()
 
         conn = get_conn()
         c = conn.cursor()
         # record uploader_id so the user who created the book can edit it later
         uploader_id = session.get('user_id')
         c.execute("""
-        INSERT INTO books (title, author, category, pdf_filename, audio_filename, cover_path, book_type, uploader_id, description, transcript, toc)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (title, author, category, pdf_filename, audio_filename, cover_path, book_type, uploader_id, (request.form.get("description") or ""), transcript, toc))
+        INSERT INTO books (title, author, category, pdf_filename, audio_filename, cover_path, book_type, uploader_id, description, transcript, toc, custom_summary)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (title, author, category, pdf_filename, audio_filename, cover_path, book_type, uploader_id, (request.form.get("description") or ""), transcript, toc, custom_summary))
         conn.commit()
         conn.close()
 
@@ -3073,7 +3119,7 @@ def edit_book(id):
         c.execute("""
             SELECT id, title, author, category, description,
                    pdf_filename, audio_filename, cover_path, uploader_id, book_type,
-                   transcript, toc
+                   transcript, toc, custom_summary
             FROM books
             WHERE id = ?
         """, (id,))
@@ -3097,6 +3143,7 @@ def edit_book(id):
             "book_type": row[9],
             "transcript": row[10],
             "toc": row[11],
+            "custom_summary": row[12],
         }
 
         # --- permission: only admin or the publisher who uploaded it ---
@@ -3119,6 +3166,7 @@ def edit_book(id):
                 category = (request.form.get("category") or "").strip()
 
             description = (request.form.get('description') or '').strip()
+            custom_summary = (request.form.get('custom_summary') or '').strip()
             transcript = (request.form.get('transcript') or '').strip()
             toc = (request.form.get('toc') or '').strip()
 
@@ -3170,9 +3218,10 @@ def edit_book(id):
                        audio_filename = ?,
                        cover_path = ?,
                        transcript = ?,
-                       toc = ?
+                       toc = ?,
+                       custom_summary = ?
                  WHERE id = ?
-            """, (title, author, category, description, pdf_filename, audio_filename, cover_path, transcript, toc, id))
+            """, (title, author, category, description, pdf_filename, audio_filename, cover_path, transcript, toc, custom_summary, id))
 
             conn.commit()
             conn.close()
@@ -4488,6 +4537,46 @@ def record_manga_view():
         conn.commit()
         
         return jsonify({"success": True, "message": "Engaged view recorded"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route("/api/books/record_view", methods=["POST"])
+def record_book_view():
+    """Record a book view after 1 minute of engagement."""
+    if not session.get("user_id"):
+        return jsonify({"success": False, "error": "Login required"}), 401
+    
+    data = request.json
+    uid = session["user_id"]
+    book_id = data.get("book_id")
+
+    if not book_id:
+        return jsonify({"success": False, "error": "Missing book_id"}), 400
+
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        # For books, we use manga_progress as well since the ranking query joins on it.
+        # We use a dummy chapter_id (e.g. 0 or -1) if it's not a manga with chapters.
+        # The ranking query counts DISTINCT user_id per manga_id.
+        c.execute("""
+            INSERT INTO manga_progress (user_id, manga_id, chapter_id, updated_at)
+            VALUES (?, ?, 0, datetime('now'))
+            ON CONFLICT(user_id, manga_id) DO NOTHING
+        """, (uid, book_id))
+        conn.commit()
+        
+        # Also log this as an activity
+        c.execute("""
+            INSERT INTO activity_log (user_id, book_id, activity_type, timestamp)
+            VALUES (?, ?, 'book_view_engaged', datetime('now'))
+        """, (uid, book_id))
+        conn.commit()
+        
+        return jsonify({"success": True, "message": "Book view recorded"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
     finally:

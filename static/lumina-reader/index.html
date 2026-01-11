@@ -1,6 +1,6 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,25 +12,31 @@
       font-family: 'Inter', sans-serif;
       background-color: #f8fafc;
     }
+
     ::-webkit-scrollbar {
       width: 6px;
     }
+
     ::-webkit-scrollbar-track {
       background: transparent;
     }
+
     ::-webkit-scrollbar-thumb {
       background: #cbd5e1;
       border-radius: 10px;
     }
+
     ::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
+
     .highlight-active {
       background-color: #fde047;
       border-radius: 4px;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 0 15px rgba(253, 224, 71, 0.6);
     }
+
     .reading-highlight {
       background-color: rgba(79, 70, 229, 0.15);
       border-bottom: 2px solid #4f46e5;
@@ -40,6 +46,7 @@
       position: relative;
       z-index: 5;
     }
+
     .reading-highlight::after {
       content: '';
       position: absolute;
@@ -50,8 +57,59 @@
       background: #4f46e5;
       box-shadow: 0 0 8px rgba(79, 70, 229, 0.4);
     }
+
+    /* Rich Content Styles for Summary */
+    .rich-content h1 {
+      font-size: 1.875rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 1.5rem;
+      margin-top: 2rem;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 0.75rem;
+    }
+
+    .rich-content h1:first-child {
+      margin-top: 0;
+    }
+
+    .rich-content h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .rich-content h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 0.75rem;
+      margin-top: 1.25rem;
+    }
+
+    .rich-content p {
+      margin-bottom: 1rem;
+      line-height: 1.75;
+    }
+
+    .rich-content ul,
+    .rich-content ol {
+      margin-bottom: 1rem;
+      padding-left: 1.5rem;
+    }
+
+    .rich-content li {
+      margin-bottom: 0.5rem;
+    }
+
+    .rich-content strong {
+      font-weight: 700;
+      color: #1e293b;
+    }
   </style>
-<script type="importmap">
+  <script type="importmap">
 {
   "imports": {
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
@@ -62,10 +120,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
+
 <body class="overflow-hidden">
   <div id="root"></div>
-<script type="module" src="/index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

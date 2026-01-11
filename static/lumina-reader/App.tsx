@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'; // v1.0.1 - Force rebuild
 import {
   BookOpen,
   FileText,
@@ -47,7 +47,6 @@ import {
   Keyboard,
   Command,
   Copy,
-  CheckCircle2,
   VolumeX,
   Loader2,
   Timer,
@@ -55,7 +54,9 @@ import {
   FileJson,
   FileCode,
   FileEdit,
-  Link2
+  Home,
+  Link2,
+  Upload
 } from 'lucide-react';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { MOCK_BOOK, MOCK_PAGES } from './constants';
@@ -162,7 +163,7 @@ const PDFCanvasPage: React.FC<{
 
         setIsLoading(true);
         const page = await pdfDoc.getPage(pageNumber);
-        const scale = (zoom / 100) * 1.5;
+        const scale = zoom / 100;
         const viewport = page.getViewport({ scale });
 
         const canvas = canvasRef.current;
@@ -236,6 +237,33 @@ const PDFCanvasPage: React.FC<{
 };
 
 // Page Component
+const highlightInHtml = (html: string, query: string | null, id: string, className: string) => {
+  if (!query || !query.trim()) return html;
+
+  // Clean query and split into words
+  const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 0) return html;
+
+  // Escape words for regex
+  const escapedWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+  // Build a regex that allows any amount of HTML tags, whitespace, or punctuation between words
+  // and ensures we're not matching inside a tag using a negative lookahead
+  const pattern = `(${escapedWords.join('(?:<[^>]+>|\\s|[^\\w\\s])*')})(?![^<]*>)`;
+
+  try {
+    const regex = new RegExp(pattern, 'i'); // Only highlight the first/best match for that segment
+    return html.replace(regex, (match) => {
+      // Don't double highlight if already marked
+      if (match.includes('class="reading-highlight"')) return match;
+      return `<mark id="${id}" class="${className}">${match}</mark>`;
+    });
+  } catch (e) {
+    console.error("Highlight regex error:", e);
+    return html;
+  }
+};
+
 const PDFPage: React.FC<{
   page: typeof MOCK_PAGES[0];
   zoom: number;
@@ -244,8 +272,10 @@ const PDFPage: React.FC<{
   highlights: Highlight[];
   notes: Note[];
   activeTranscriptText: string | null;
+  activeTranscriptId: string | null;
   onSelectText: (e: React.MouseEvent, pageNumber: number) => void;
   onRemoveHighlight: (id: string) => void;
+  onRichContentClick: (e: React.MouseEvent) => void;
 }> = ({
   page,
   zoom,
@@ -254,8 +284,10 @@ const PDFPage: React.FC<{
   highlights,
   notes,
   activeTranscriptText,
+  activeTranscriptId,
   onSelectText,
-  onRemoveHighlight
+  onRemoveHighlight,
+  onRichContentClick
 }) => {
     const pageRef = useRef<HTMLDivElement>(null);
 
@@ -289,7 +321,8 @@ const PDFPage: React.FC<{
             newSegments.push({
               text: seg.text.substring(index, index + activeTranscriptText.length),
               search: false,
-              reading: true
+              reading: true,
+              id: activeTranscriptId || undefined
             });
             const remaining = seg.text.substring(index + activeTranscriptText.length);
             if (remaining) newSegments.push({ text: remaining, search: false, reading: false });
@@ -366,7 +399,13 @@ const PDFPage: React.FC<{
           className += " ring-1 ring-orange-400 bg-orange-100/80 rounded-sm";
         }
         return (
-          <span key={i} className={className} style={style}>
+          <span
+            key={i}
+            className={className}
+            style={style}
+            id={seg.reading && seg.id ? `transcript-${seg.id}` : undefined}
+            data-transcript-id={seg.reading ? seg.id : undefined}
+          >
             {seg.text}
             {seg.id && !seg.search && (
               <button
@@ -389,8 +428,7 @@ const PDFPage: React.FC<{
     return (
       <div
         ref={pageRef}
-        onMouseUp={(e) => onSelectText(e, page.pageNumber)}
-        className="bg-white shadow-xl rounded-sm flex flex-col p-12 transition-all duration-300 origin-top mb-8 relative border border-slate-200 select-text"
+        className="bg-white shadow-xl rounded-sm flex flex-col p-0 transition-all duration-300 origin-top mb-8 relative border border-slate-200 select-none overflow-hidden"
         id={`page-${page.pageNumber}`}
         style={{
           width: `${600 * (zoom / 100)}px`,
@@ -398,19 +436,45 @@ const PDFPage: React.FC<{
           fontSize: `${1 * (zoom / 100)}rem`
         }}
       >
-        <div className="absolute top-4 right-6 text-[10px] font-bold text-slate-300 uppercase select-none flex items-center gap-2">
+        <div className="absolute top-4 right-6 text-[10px] font-bold text-slate-300 uppercase flex items-center gap-2 select-none z-10">
           {notes.length > 0 && <StickyNote size={12} className="text-indigo-400" />}
           Page {page.pageNumber}
         </div>
-        <div className="border-b border-slate-100 pb-4 mb-6 select-none">
-          <h3 className="font-bold text-slate-900" style={{ fontSize: `${1.2 * (zoom / 100)}rem` }}>
-            {renderEnhancedText(page.title)}
-          </h3>
-        </div>
-        <div className="text-slate-700 leading-relaxed text-justify space-y-4">
-          <p>{renderEnhancedText(page.content)}</p>
-          <p>{renderEnhancedText(page.content)}</p>
-          <p>{renderEnhancedText(page.content)}</p>
+
+        {/* Isolated Selection Hitbox */}
+        <div
+          className="p-12 w-full h-full select-text cursor-text"
+          onMouseUp={(e) => onSelectText(e, page.pageNumber)}
+        >
+          <div
+            className={`text-slate-700 leading-[1.8] text-justify ${page.content.trim().startsWith('<') ? '' : 'space-y-6'}`}
+          >
+            {page.content.trim().startsWith('<') ? (
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: highlights.reduce((acc, h) => {
+                    if (!h.text.trim()) return acc;
+                    try {
+                      const parts = acc.split(/(<[^>]+>)/g);
+                      return parts.map(part => {
+                        if (part.startsWith('<')) return part;
+                        const escaped = h.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        return part.replace(new RegExp(escaped, 'gi'), match =>
+                          `<mark class="highlight-inline" style="background-color: ${h.color}40; position: relative; border-radius: 2px; padding: 0 1px;">${match}</mark>`
+                        );
+                      }).join('');
+                    } catch (e) {
+                      return acc;
+                    }
+                  }, activeTranscriptText ? highlightInHtml(page.content, activeTranscriptText, `transcript-${activeTranscriptId}`, 'reading-highlight') : page.content)
+                }}
+                className="rich-content pb-12"
+                onClick={onRichContentClick}
+              />
+            ) : (
+              <p className="pb-12">{renderEnhancedText(page.content)}</p>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -474,6 +538,8 @@ const App: React.FC = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [volume, setVolume] = useState(0.75);
+  const [isMuted, setIsMuted] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const [showResumeToast, setShowResumeToast] = useState(false);
   const [activePageNumber, setActivePageNumber] = useState(1);
@@ -491,6 +557,7 @@ const App: React.FC = () => {
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [pdfNumPages, setPdfNumPages] = useState<number>(0);
   const [pdfDoc, setPdfDoc] = useState<any>(null);
+  const [pdfOutline, setPdfOutline] = useState<any[]>([]);
 
   // PDF.js loading
   useEffect(() => {
@@ -507,6 +574,41 @@ const App: React.FC = () => {
             const pdf = await loadingTask.promise;
             setPdfDoc(pdf);
             setPdfNumPages(pdf.numPages);
+
+            // Extract PDF outline/table of contents
+            try {
+              const outline = await pdf.getOutline();
+              if (outline && outline.length > 0) {
+                // Process outline items to get page numbers
+                const processedOutline = await Promise.all(
+                  outline.map(async (item: any) => {
+                    let pageNum = 1;
+                    if (item.dest) {
+                      try {
+                        const dest = typeof item.dest === 'string'
+                          ? await pdf.getDestination(item.dest)
+                          : item.dest;
+                        if (dest && dest[0]) {
+                          const pageRef = dest[0];
+                          const pageIndex = await pdf.getPageIndex(pageRef);
+                          pageNum = pageIndex + 1;
+                        }
+                      } catch (e) {
+                        console.warn('Could not resolve destination for:', item.title);
+                      }
+                    }
+                    return {
+                      title: item.title,
+                      pageNumber: pageNum,
+                      items: item.items || []
+                    };
+                  })
+                );
+                setPdfOutline(processedOutline);
+              }
+            } catch (outlineError) {
+              console.warn('Could not extract PDF outline:', outlineError);
+            }
           }
         } catch (error) {
           console.error("Error loading PDF for page count:", error);
@@ -588,10 +690,11 @@ const App: React.FC = () => {
           break;
       }
 
-      if (e.altKey && !isNaN(parseInt(e.key)) && parseInt(e.key) >= 1 && parseInt(e.key) <= 6) {
+      if (e.altKey && !isNaN(parseInt(e.key)) && parseInt(e.key) >= 1 && parseInt(e.key) <= 7) {
         const tabs = Object.values(SidebarTab);
         const index = parseInt(e.key) - 1;
         if (tabs[index]) {
+          if (tabs[index] === SidebarTab.Edit && !MOCK_BOOK.is_editor) return;
           setCurrentTab(tabs[index]);
           if (!showSidebar) setShowSidebar(true);
         }
@@ -600,7 +703,159 @@ const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, duration, activePageNumber, showSidebar, showShortcutHelp, showExportDialog, isSearchActive, selection]);
+  }, [duration, activePageNumber, showShortcutHelp, showExportDialog, isSearchActive, selection, showSidebar]);
+
+  const [editSummary, setEditSummary] = useState<string>(typeof MOCK_BOOK.custom_summary === 'string' ? MOCK_BOOK.custom_summary : '');
+  const [editTOC, setEditTOC] = useState<string>(typeof MOCK_BOOK.toc === 'object' ? JSON.stringify(MOCK_BOOK.toc, null, 2) : (typeof MOCK_BOOK.toc === 'string' ? MOCK_BOOK.toc : ''));
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+
+  // PDF TOC Maker state
+  const [pdfTocEntries, setPdfTocEntries] = useState<{ title: string, pageNumber: number }[]>(() => {
+    // First try to load from localStorage (where PDF TOC is now saved separately)
+    try {
+      const stored = localStorage.getItem(`lumina_pdf_toc_${MOCK_BOOK.id}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item: any) => ({
+            title: item.title || '',
+            pageNumber: item.pageNumber || 1
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load PDF TOC from localStorage:', e);
+    }
+    // Fallback: Initialize empty (user can create new entries)
+    return [];
+  });
+
+
+  const addPdfTocEntry = () => {
+    setPdfTocEntries(prev => [...prev, { title: '', pageNumber: pdfNumPages > 0 ? 1 : 1 }]);
+  };
+
+  const updatePdfTocEntry = (index: number, field: 'title' | 'pageNumber', value: string | number) => {
+    setPdfTocEntries(prev => prev.map((entry, i) =>
+      i === index ? { ...entry, [field]: field === 'pageNumber' ? Number(value) : value } : entry
+    ));
+  };
+
+  const removePdfTocEntry = (index: number) => {
+    setPdfTocEntries(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // JSON file upload ref and handler for PDF TOC
+  const pdfTocFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePdfTocJsonUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const parsed = JSON.parse(content);
+
+        // Validate and transform the JSON
+        if (Array.isArray(parsed)) {
+          const entries = parsed.map((item: any, index: number) => ({
+            title: item.title || item.name || item.chapter || `Chapter ${index + 1}`,
+            pageNumber: item.pageNumber || item.page || item.startPage || 1
+          }));
+          setPdfTocEntries(entries);
+          // Also save to localStorage
+          localStorage.setItem(`lumina_pdf_toc_${MOCK_BOOK.id}`, JSON.stringify(entries));
+          alert(`Successfully imported ${entries.length} TOC entries!`);
+        } else if (parsed.chapters && Array.isArray(parsed.chapters)) {
+          // Handle nested format like { chapters: [...] }
+          const entries = parsed.chapters.map((item: any, index: number) => ({
+            title: item.title || item.name || `Chapter ${index + 1}`,
+            pageNumber: item.pageNumber || item.page || 1
+          }));
+          setPdfTocEntries(entries);
+          localStorage.setItem(`lumina_pdf_toc_${MOCK_BOOK.id}`, JSON.stringify(entries));
+          alert(`Successfully imported ${entries.length} TOC entries!`);
+        } else {
+          alert('Invalid JSON format. Expected an array of objects with "title" and "pageNumber" fields.');
+        }
+      } catch (err) {
+        console.error('Error parsing JSON:', err);
+        alert('Failed to parse JSON file. Please ensure it\'s valid JSON.');
+      }
+    };
+    reader.readAsText(file);
+
+    // Reset the input so the same file can be re-uploaded
+    event.target.value = '';
+  };
+
+  const detectedHeadings = useMemo(() => {
+    const headings: { id: string, title: string, level: number }[] = [];
+    // Matches <h1 id="...">Title</h1>, <h2 id="...">Title</h2>, etc.
+    const regex = /<h([1-3])[^>]*id=["']([^"']+)["'][^>]*>(.*?)<\/h\1>/gi;
+    let match;
+    while ((match = regex.exec(editSummary)) !== null) {
+      headings.push({
+        level: parseInt(match[1]),
+        id: match[2],
+        title: match[3].replace(/<[^>]*>/g, '').trim()
+      });
+    }
+    return headings;
+  }, [editSummary]);
+
+  const syncTOCFromSummary = () => {
+    const newTOC = detectedHeadings.map((h, i) => ({
+      id: h.id,
+      title: h.title,
+      pageNumber: i + 1,
+      level: h.level
+    }));
+    setEditTOC(JSON.stringify(newTOC, null, 2));
+  };
+
+  const handleSaveBookContent = async () => {
+    setIsSaving(true);
+    setSaveStatus('saving');
+    try {
+      // Save the Summary TOC (editTOC) - this preserves proper element IDs for Summary view navigation
+      // PDF TOC entries are stored separately in localStorage for PDF-only display
+      const response = await fetch(`/api/books/${MOCK_BOOK.id}/update_content`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          custom_summary: editSummary,
+          toc: editTOC
+        })
+      });
+
+      // Save PDF TOC entries to localStorage (separate from Summary TOC)
+      if (pdfTocEntries.length > 0) {
+        localStorage.setItem(`lumina_pdf_toc_${MOCK_BOOK.id}`, JSON.stringify(pdfTocEntries));
+      }
+
+
+      const result = await response.json();
+      if (result.success) {
+        setSaveStatus('success');
+        setTimeout(() => {
+          setSaveStatus('idle');
+          window.location.reload();
+        }, 1500);
+      } else {
+        throw new Error(result.error || 'Failed to save');
+      }
+    } catch (error) {
+      console.error('Error saving book content:', error);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Load Persistence
   useEffect(() => {
@@ -624,12 +879,25 @@ const App: React.FC = () => {
     if (savedTime) setTotalReadingTime(parseInt(savedTime, 10));
   }, []);
 
+  const [isViewRecorded, setIsViewRecorded] = useState(false);
+
   // Timer logic - tracks active focus time
   useEffect(() => {
     const interval = setInterval(() => {
       if (document.hasFocus()) {
         setTotalReadingTime(prev => {
           const next = prev + 1;
+
+          // Trigger view recording after 60 seconds of active reading
+          if (next >= 60 && !isViewRecorded) {
+            setIsViewRecorded(true);
+            fetch('/api/books/record_view', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ book_id: MOCK_BOOK.id })
+            }).catch(err => console.error("Failed to record book view:", err));
+          }
+
           // Persist every 10 seconds to storage
           if (next % 10 === 0) {
             localStorage.setItem(`lumina_time_${MOCK_BOOK.id}`, next.toString());
@@ -639,7 +907,7 @@ const App: React.FC = () => {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isViewRecorded]);
 
   useEffect(() => {
     localStorage.setItem(`lumina_highlights_${MOCK_BOOK.id}`, JSON.stringify(highlights));
@@ -685,6 +953,18 @@ const App: React.FC = () => {
       timestamp: Date.now()
     };
     setHighlights(prev => [...prev, newHighlight]);
+    setSelection(null);
+    window.getSelection()?.removeAllRanges();
+  };
+
+  const handleRemoveHighlightBySelection = () => {
+    if (!selection) return;
+    // Remove any highlights on the current page that overlap with the selection
+    setHighlights(prev => prev.filter(h =>
+      !(h.pageNumber === selection.pageNumber && (
+        h.text.includes(selection.text) || selection.text.includes(h.text)
+      ))
+    ));
     setSelection(null);
     window.getSelection()?.removeAllRanges();
   };
@@ -819,10 +1099,37 @@ const App: React.FC = () => {
     setFilterEndDate('');
   };
 
-  const scrollToPage = (pageNumber: number) => {
+  const scrollToPage = (pageNumber: number, elementId?: string) => {
+    // If we have a specific element ID (e.g., a sub-heading), try to scroll to it first
+    if (elementId) {
+      const subElement = document.getElementById(elementId);
+      if (subElement) {
+        subElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+
+    // Fallback or default: scroll to the top of the page
     const element = document.getElementById(`page-${pageNumber}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleRichContentClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    // Walk up the tree to find if an <a> tag was clicked
+    let current: HTMLElement | null = target;
+    while (current && current !== e.currentTarget) {
+      if (current.tagName === 'A') {
+        const href = current.getAttribute('href');
+        if (href) {
+          e.preventDefault();
+          window.open(href, '_blank', 'noopener,noreferrer');
+        }
+        break;
+      }
+      current = current.parentElement;
     }
   };
 
@@ -840,6 +1147,18 @@ const App: React.FC = () => {
     setCurrentTime(time);
   };
 
+  const skipBackward = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 5);
+    }
+  };
+
+  const skipForward = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 5);
+    }
+  };
+
   const onTimeUpdate = () => {
     if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
   };
@@ -848,6 +1167,30 @@ const App: React.FC = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
       audioRef.current.playbackRate = playbackSpeed;
+      audioRef.current.volume = volume;
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+    if (newVolume > 0 && isMuted) {
+      setIsMuted(false);
+    }
+  };
+
+  const toggleMute = () => {
+    if (audioRef.current) {
+      if (isMuted) {
+        audioRef.current.volume = volume;
+        setIsMuted(false);
+      } else {
+        audioRef.current.volume = 0;
+        setIsMuted(true);
+      }
     }
   };
 
@@ -886,15 +1229,54 @@ const App: React.FC = () => {
   }, [currentTime]);
 
   const activeTranscriptId = useMemo(() => {
-    if (typeof MOCK_BOOK.transcript === 'string') return null;
+    if (typeof MOCK_BOOK.transcript === 'string' || !MOCK_BOOK.transcript) return null;
     if (isPlaying && activeTranscriptItem) return activeTranscriptItem.id;
     const pageBased = MOCK_BOOK.transcript.find(
       item => item.pageNumber === activePageNumber
     );
-    return activeTranscriptItem?.id || pageBased?.id;
+    return activeTranscriptItem?.id || pageBased?.id || null;
   }, [activeTranscriptItem, activePageNumber, isPlaying]);
 
   const currentReadingText = isPlaying && activeTranscriptItem ? activeTranscriptItem.text : null;
+
+  // Auto-scroll logic for transcript
+  useEffect(() => {
+    if (activeTranscriptId && isPlaying) {
+      const element = document.getElementById(`transcript-${activeTranscriptId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      // Also scroll sidebar transcript if active
+      if (currentTab === SidebarTab.Summary) {
+        const sidebarElement = document.getElementById(`sidebar-transcript-${activeTranscriptId}`);
+        if (sidebarElement) {
+          sidebarElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  }, [activeTranscriptId, isPlaying, currentTab]);
+
+  const renderSidebarSummary = () => {
+    const text = MOCK_BOOK.custom_summary || "";
+    if (!text) return null;
+
+    if (!currentReadingText || !isPlaying) return (
+      <div
+        dangerouslySetInnerHTML={{ __html: text }}
+        className="rich-content"
+      />
+    );
+
+    const highlighted = highlightInHtml(text, currentReadingText, `sidebar-transcript-${activeTranscriptId}`, 'reading-highlight');
+
+    return (
+      <div
+        dangerouslySetInnerHTML={{ __html: highlighted }}
+        className="rich-content"
+      />
+    );
+  };
 
   const totalMatches = useMemo(() => {
     if (!searchQuery || searchQuery.length < 2) return 0;
@@ -1118,6 +1500,15 @@ const App: React.FC = () => {
                 title={`Highlight in ${color.name}`}
               />
             ))}
+            {highlights.some(h => h.pageNumber === selection.pageNumber && (h.text.includes(selection.text) || selection.text.includes(h.text))) && (
+              <button
+                onClick={handleRemoveHighlightBySelection}
+                className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white hover:scale-110 transition-transform shadow-sm active:scale-95 flex items-center justify-center text-slate-500 hover:text-rose-500 hover:bg-rose-50"
+                title="Remove Highlight"
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-1 px-1">
             <button
@@ -1150,7 +1541,7 @@ const App: React.FC = () => {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all active:scale-95 group ${isCopied ? 'bg-green-50 text-green-600' : 'hover:bg-slate-50 text-slate-600'}`}
               title="Copy to Clipboard"
             >
-              {isCopied ? <CheckCircle2 size={14} className="animate-in zoom-in duration-200" /> : <Copy size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />}
+              {isCopied ? <Check size={14} className="animate-in zoom-in duration-200" /> : <Copy size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />}
               <span>{isCopied ? 'Copied' : 'Copy'}</span>
             </button>
           </div>
@@ -1173,7 +1564,7 @@ const App: React.FC = () => {
       )}
 
       {/* Sidebar Nav - Dark Theme */}
-      <div className="w-16 bg-slate-900/90 border-r border-slate-700/50 flex flex-col items-center py-6 gap-6 shadow-xl z-20 backdrop-blur-sm">
+      <div className="w-16 bg-slate-900/90 border-r border-slate-700/50 flex flex-col items-center py-6 gap-6 shadow-xl z-20 backdrop-blur-sm overflow-y-auto custom-scrollbar overflow-x-hidden">
         <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl text-white mb-4 shadow-lg cursor-pointer" style={{ boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)' }} onClick={() => setShowSidebar(!showSidebar)}>
           <BookOpen size={24} />
         </div>
@@ -1184,6 +1575,9 @@ const App: React.FC = () => {
         <SidebarButton active={currentTab === SidebarTab.Notes && showSidebar} onClick={() => { setCurrentTab(SidebarTab.Notes); setShowSidebar(true); }} icon={<StickyNote size={22} />} label="Notes (Alt+4)" />
         <SidebarButton active={currentTab === SidebarTab.Transcript && showSidebar} onClick={() => { setCurrentTab(SidebarTab.Transcript); setShowSidebar(true); }} icon={<Music size={22} />} label="Transcript (Alt+5)" />
         <SidebarButton active={currentTab === SidebarTab.Assistant && showSidebar} onClick={() => { setCurrentTab(SidebarTab.Assistant); setShowSidebar(true); }} icon={<MessageSquare size={22} />} label="AI Tutor (Alt+6)" />
+        {MOCK_BOOK.is_editor && (
+          <SidebarButton active={currentTab === SidebarTab.Edit && showSidebar} onClick={() => { setCurrentTab(SidebarTab.Edit); setShowSidebar(true); }} icon={<FileEdit size={22} className="text-amber-400" />} label="Edit (Alt+7)" />
+        )}
 
         <div className="mt-auto">
           <SidebarButton active={showShortcutHelp} onClick={() => setShowShortcutHelp(true)} icon={<Keyboard size={22} />} label="Shortcuts (K)" />
@@ -1193,6 +1587,13 @@ const App: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-14 bg-slate-900/80 border-b border-slate-700/50 flex items-center justify-between px-6 z-10 backdrop-blur-sm flex-shrink-0">
           <div className="flex items-center gap-4 min-w-0 flex-1">
+            <button
+              onClick={() => window.location.href = '/'}
+              className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-colors flex-shrink-0"
+              title="Back to Dashboard (Alt+H)"
+            >
+              <Home size={20} />
+            </button>
             <h1 className="font-semibold text-slate-100 truncate max-w-[200px]">{MOCK_BOOK.title}</h1>
 
             {/* View Mode Tabs - Hidden when search is active */}
@@ -1318,12 +1719,14 @@ const App: React.FC = () => {
                   page={page}
                   zoom={zoom}
                   activeTranscriptText={currentReadingText}
+                  activeTranscriptId={activeTranscriptId}
                   onVisible={(n) => setActivePageNumber(n)}
                   searchQuery={searchQuery}
                   highlights={highlights.filter(h => h.pageNumber === page.pageNumber)}
                   notes={notes.filter(n => n.pageNumber === page.pageNumber)}
                   onSelectText={handleTextSelection}
                   onRemoveHighlight={(id) => setHighlights(prev => prev.filter(h => h.id !== id))}
+                  onRichContentClick={handleRichContentClick}
                 />
               ))}
               <div className="h-24 w-full flex-shrink-0" />
@@ -1381,6 +1784,7 @@ const App: React.FC = () => {
                   {currentTab === SidebarTab.Notes && <><StickyNote size={16} /> My Notes</>}
                   {currentTab === SidebarTab.Transcript && <><Music size={16} /> Transcript</>}
                   {currentTab === SidebarTab.Assistant && <><MessageSquare size={16} /> AI Assistant</>}
+                  {currentTab === SidebarTab.Edit && <><FileEdit size={16} className="text-amber-500" /> Publisher Editor</>}
                 </h3>
                 <button className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-lg transition-colors" onClick={() => setShowSidebar(false)} title="Close Sidebar (B)">
                   <X size={20} />
@@ -1424,51 +1828,160 @@ const App: React.FC = () => {
 
                 {currentTab === SidebarTab.Contents && (
                   <div className="p-4 space-y-1">
-                    {typeof MOCK_BOOK.toc === 'string' ? (
-                      <div className="p-4 bg-white border border-slate-200 rounded-xl whitespace-pre-wrap text-sm text-slate-700 leading-relaxed shadow-sm">
-                        {MOCK_BOOK.toc || "No table of contents available."}
-                      </div>
-                    ) : (
-                      MOCK_BOOK.toc.map((item) => {
-                        const isCurrent = activeTocId === item.id;
-                        const hasPassed = !isCurrent && activePageNumber >= item.pageNumber;
-
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => scrollToPage(item.pageNumber)}
-                            className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group
-                              ${item.level === 1 ? 'shadow-sm mb-2 mt-4 first:mt-0' : 'hover:bg-indigo-50/50'}
-                              ${isCurrent ? 'bg-indigo-50/80 border border-indigo-200 shadow-indigo-100/50 ring-2 ring-indigo-500/10' : 'bg-white border border-transparent'}
-                              ${isCurrent || hasPassed ? 'text-indigo-600' : 'text-slate-600'}
-                            `}
-                            style={{ paddingLeft: `${item.level * 1}rem` }}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className={`text-xs font-bold transition-all ${isCurrent || hasPassed ? 'opacity-100' : 'opacity-0'}`}>
-                                {isCurrent && isPlaying ? (
-                                  <Volume2 size={14} className="text-indigo-600 animate-pulse" />
-                                ) : (
-                                  <ChevronRight size={14} className={isCurrent ? 'text-indigo-600' : 'text-indigo-400'} />
-                                )}
-                              </span>
-                              <span className={`${item.level === 1 ? 'font-bold text-sm' : 'text-sm font-medium opacity-90'} ${isCurrent ? 'font-bold' : ''}`}>
-                                {item.title}
-                              </span>
+                    {/* PDF View Mode - Show PDF Outline */}
+                    {viewMode === 'pdf' ? (
+                      pdfOutline.length > 0 ? (
+                        <>
+                          <div className="px-4 py-2 mb-3 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl border border-cyan-100">
+                            <div className="flex items-center gap-2 text-cyan-700 font-bold text-[10px] uppercase tracking-widest">
+                              <BookOpen size={12} />
+                              <span>PDF Table of Contents</span>
                             </div>
-                            <span className={`text-[10px] font-bold tabular-nums transition-colors ${isCurrent ? 'text-indigo-500' : 'text-slate-300 group-hover:text-indigo-400'}`}>
-                              {item.pageNumber}
-                            </span>
-                          </button>
-                        );
-                      })
+                          </div>
+                          {pdfOutline.map((item, index) => {
+                            const isCurrent = activePageNumber === item.pageNumber;
+                            const hasPassed = activePageNumber > item.pageNumber;
+
+                            return (
+                              <button
+                                key={index}
+                                onClick={() => scrollToPage(item.pageNumber)}
+                                className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group
+                                  ${isCurrent ? 'bg-cyan-50/80 border border-cyan-200 shadow-cyan-100/50 ring-2 ring-cyan-500/10' : 'bg-white border border-transparent hover:bg-cyan-50/50'}
+                                  ${isCurrent || hasPassed ? 'text-cyan-600' : 'text-slate-600'}
+                                `}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className={`text-xs font-bold transition-all ${isCurrent || hasPassed ? 'opacity-100' : 'opacity-0'}`}>
+                                    <ChevronRight size={14} className={isCurrent ? 'text-cyan-600' : 'text-cyan-400'} />
+                                  </span>
+                                  <span className={`text-sm font-medium ${isCurrent ? 'font-bold text-cyan-700' : ''}`}>
+                                    {item.title}
+                                  </span>
+                                </div>
+                                <span className={`text-[10px] font-bold tabular-nums transition-colors ${isCurrent ? 'text-cyan-500' : 'text-slate-300 group-hover:text-cyan-400'}`}>
+                                  Page {item.pageNumber}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </>
+                      ) : pdfTocEntries.length > 0 ? (
+                        /* Use manually created PDF TOC entries */
+                        <>
+                          <div className="px-4 py-2 mb-3 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl border border-cyan-100">
+                            <div className="flex items-center gap-2 text-cyan-700 font-bold text-[10px] uppercase tracking-widest">
+                              <BookOpen size={12} />
+                              <span>PDF Table of Contents</span>
+                            </div>
+                          </div>
+                          {pdfTocEntries.map((entry, index) => {
+                            const isCurrent = activePageNumber === entry.pageNumber;
+                            const hasPassed = activePageNumber > entry.pageNumber;
+
+                            return (
+                              <button
+                                key={index}
+                                onClick={() => scrollToPage(entry.pageNumber)}
+                                className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group
+                                  ${isCurrent ? 'bg-cyan-50/80 border border-cyan-200 shadow-cyan-100/50 ring-2 ring-cyan-500/10' : 'bg-white border border-transparent hover:bg-cyan-50/50'}
+                                  ${isCurrent || hasPassed ? 'text-cyan-600' : 'text-slate-600'}
+                                `}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className={`text-xs font-bold transition-all ${isCurrent || hasPassed ? 'opacity-100' : 'opacity-0'}`}>
+                                    <ChevronRight size={14} className={isCurrent ? 'text-cyan-600' : 'text-cyan-400'} />
+                                  </span>
+                                  <span className={`text-sm font-medium ${isCurrent ? 'font-bold text-cyan-700' : ''}`}>
+                                    {entry.title || `Chapter ${index + 1}`}
+                                  </span>
+                                </div>
+                                <span className={`text-[10px] font-bold tabular-nums transition-colors ${isCurrent ? 'text-cyan-500' : 'text-slate-300 group-hover:text-cyan-400'}`}>
+                                  Page {entry.pageNumber}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center p-8 opacity-50 text-center">
+                          <List size={48} className="mb-2 text-slate-300" />
+                          <p className="text-sm font-medium text-slate-500">No table of contents found in this PDF.</p>
+                          <p className="text-xs text-slate-400 mt-1">The PDF doesn't contain embedded bookmarks.</p>
+                          {MOCK_BOOK.is_editor && (
+                            <p className="text-xs text-cyan-500 mt-2 font-medium">Use the Editor tab to create one!</p>
+                          )}
+                        </div>
+                      )
+                    ) : (
+                      /* Summary View Mode - Show Book TOC */
+                      typeof MOCK_BOOK.toc === 'string' ? (
+                        <div className="p-4 bg-white border border-slate-200 rounded-xl whitespace-pre-wrap text-sm text-slate-700 leading-relaxed shadow-sm">
+                          {MOCK_BOOK.toc || "No table of contents available."}
+                        </div>
+                      ) : (
+                        MOCK_BOOK.toc.map((item) => {
+                          const isCurrent = activeTocId === item.id;
+                          const hasPassed = !isCurrent && activePageNumber >= item.pageNumber;
+
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => scrollToPage(item.pageNumber, item.id)}
+                              className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group
+                                ${item.level === 1 ? 'shadow-sm mb-2 mt-4 first:mt-0' : 'hover:bg-indigo-50/50'}
+                                ${isCurrent ? 'bg-indigo-50/80 border border-indigo-200 shadow-indigo-100/50 ring-2 ring-indigo-500/10' : 'bg-white border border-transparent'}
+                                ${isCurrent || hasPassed ? 'text-indigo-600' : 'text-slate-600'}
+                              `}
+                              style={{ paddingLeft: `${item.level * 1}rem` }}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className={`text-xs font-bold transition-all ${isCurrent || hasPassed ? 'opacity-100' : 'opacity-0'}`}>
+                                  {isCurrent && isPlaying ? (
+                                    <Volume2 size={14} className="text-indigo-600 animate-pulse" />
+                                  ) : (
+                                    <ChevronRight size={14} className={isCurrent ? 'text-indigo-600' : 'text-indigo-400'} />
+                                  )}
+                                </span>
+                                <span className={`
+                                  ${item.level === 1 ? 'font-bold text-sm tracking-tight text-slate-800' : ''}
+                                  ${item.level === 2 ? 'text-xs font-semibold text-slate-600' : ''}
+                                  ${item.level === 3 ? 'text-[11px] font-medium text-slate-500' : ''}
+                                  ${isCurrent || hasPassed ? 'text-indigo-600' : ''}
+                                  ${isCurrent ? 'font-bold' : ''}
+                                `}>
+                                  {item.title}
+                                </span>
+                              </div>
+                              <span className={`text-[10px] font-bold tabular-nums transition-colors ${isCurrent ? 'text-indigo-500' : 'text-slate-300 group-hover:text-indigo-400'}`}>
+                                {item.pageNumber}
+                              </span>
+                            </button>
+                          );
+                        })
+                      )
                     )}
                   </div>
                 )}
 
                 {currentTab === SidebarTab.Summary && (
-                  <div className="p-6 prose prose-slate prose-sm italic text-slate-700 leading-relaxed border-l-4 border-indigo-100 pl-4 py-2 bg-white m-4 rounded-lg shadow-sm">
-                    "{MOCK_BOOK.preUploadedSummary}"
+                  <div className="p-6 space-y-4">
+                    {MOCK_BOOK.custom_summary ? (
+                      <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                        <div className="flex items-center gap-2 mb-2 text-amber-700 font-bold text-xs uppercase tracking-widest">
+                          <Sparkles size={14} />
+                          <span>Audio Summary</span>
+                        </div>
+                        <p className="text-sm text-slate-700 italic leading-relaxed text-justify">
+                          {renderSidebarSummary()}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-8 opacity-50 text-center">
+                        <FileText size={48} className="mb-2 text-slate-300" />
+                        <p className="text-sm font-medium text-slate-500">No summary available for this book.</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1550,9 +2063,9 @@ const App: React.FC = () => {
                                   </div>
                                 )}
                               </div>
-                              <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {editingNoteId !== note.id && <button onClick={() => setEditingNoteId(note.id)} className="p-1.5 bg-white/60 hover:bg-white text-slate-400 hover:text-indigo-600 rounded-lg transition-colors shadow-xs"><PencilLine size={14} /></button>}
-                                <button onClick={() => deleteNote(note.id)} className="p-1.5 bg-white/60 hover:bg-white text-slate-400 hover:text-red-600 rounded-lg transition-colors shadow-xs"><Trash2 size={14} /></button>
+                              <div className="flex gap-1.5">
+                                {editingNoteId !== note.id && <button onClick={() => setEditingNoteId(note.id)} className="p-1.5 bg-white/80 hover:bg-white text-slate-400 hover:text-indigo-600 rounded-lg transition-colors shadow-sm border border-slate-100"><PencilLine size={14} /></button>}
+                                <button onClick={() => deleteNote(note.id)} className="p-1.5 bg-white/80 hover:bg-white text-slate-400 hover:text-red-600 rounded-lg transition-colors shadow-sm border border-slate-100" title="Delete Note"><Trash2 size={14} /></button>
                               </div>
                             </div>
                             {note.referenceText && <div className="text-[11px] text-slate-500 italic mb-3 border-l-3 pl-3 py-1 line-clamp-3 bg-white/40 rounded-r-md" style={{ borderColor: `${note.color}40` }}>"{note.referenceText}"</div>}
@@ -1597,6 +2110,8 @@ const App: React.FC = () => {
 
                 {currentTab === SidebarTab.Transcript && (
                   <div className="p-6 space-y-4">
+                    {/* Custom Audio Summary Section */}
+
                     {typeof MOCK_BOOK.transcript === 'string' ? (
                       <div className="p-4 bg-white border border-slate-200 rounded-xl whitespace-pre-wrap text-sm text-slate-700 leading-relaxed shadow-sm">
                         {MOCK_BOOK.transcript || "No transcript available for this audio summary."}
@@ -1614,78 +2129,298 @@ const App: React.FC = () => {
 
                 {currentTab === SidebarTab.Assistant && (
                   <div className="h-full flex flex-col p-4 relative">
-                    <div className="flex items-center bg-slate-100 p-1 rounded-xl mb-4 self-center shadow-inner">
-                      <button
-                        onClick={() => setQueryScope('book')}
-                        className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${queryScope === 'book' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-                      >
-                        <BookOpen size={14} />
-                        Current Book
-                      </button>
-                      <button
-                        onClick={() => setQueryScope('general')}
-                        className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${queryScope === 'general' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-                      >
-                        <Globe size={14} />
-                        General Query
-                      </button>
-                    </div>
-
-                    <div className="flex-1 space-y-4 mb-4 overflow-y-auto custom-scrollbar pr-2">
-                      {messages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-center p-6 space-y-4 opacity-60">
-                          <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center">
-                            <Sparkles className="w-8 h-8 text-indigo-400" />
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-sm font-bold text-slate-700">How can I help you research today?</p>
-                            <p className="text-xs text-slate-500 leading-relaxed max-w-[200px]">
-                              Switch to <span className="font-bold">"Current Book"</span> to ask specific questions about the text, or <span className="font-bold">"General Query"</span> for broader research.
-                            </p>
-                          </div>
+                    {/* Plan Check: AI Assistant only for Pro and above */}
+                    {(MOCK_BOOK.user_plan === 'pro' || MOCK_BOOK.user_plan === 'ultimate') ? (
+                      <>
+                        <div className="flex items-center bg-slate-100 p-1 rounded-xl mb-4 self-center shadow-inner">
+                          <button
+                            onClick={() => setQueryScope('book')}
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${queryScope === 'book' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                          >
+                            <BookOpen size={14} />
+                            Current Book
+                          </button>
+                          <button
+                            onClick={() => setQueryScope('general')}
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${queryScope === 'general' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                          >
+                            <Globe size={14} />
+                            General Query
+                          </button>
                         </div>
-                      ) : (
-                        messages.map((msg, i) => (
-                          <div key={i} className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                            <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none shadow-sm' : 'bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200'}`}>{msg.content}</div>
-                            {msg.sources && msg.sources.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 mt-1">
-                                {msg.sources.map((source, si) => (
-                                  <a key={si} href={source.uri} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-0.5 bg-white border border-slate-200 rounded-full text-[10px] font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all"><Globe size={10} className="text-indigo-400" /><span className="truncate max-w-[120px]">{source.title}</span><ExternalLink size={8} /></a>
-                                ))}
+
+                        <div className="flex-1 space-y-4 mb-4 overflow-y-auto custom-scrollbar pr-2">
+                          {messages.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-center p-6 space-y-4 opacity-60">
+                              <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center">
+                                <Sparkles className="w-8 h-8 text-indigo-400" />
                               </div>
-                            )}
-                          </div>
-                        ))
-                      )}
-                      {isAiLoading && (
-                        <div className="flex flex-col items-start gap-2">
-                          <div className="bg-slate-100 p-3 rounded-2xl rounded-tl-none border border-slate-200 flex gap-1 animate-pulse">{showUrlInput ? 'Analyzing external content...' : 'Generating response...'}</div>
+                              <div className="space-y-2">
+                                <p className="text-sm font-bold text-slate-700">How can I help you research today?</p>
+                                <p className="text-xs text-slate-500 leading-relaxed max-w-[200px]">
+                                  Switch to <span className="font-bold">"Current Book"</span> to ask specific questions about the text, or <span className="font-bold">"General Query"</span> for broader research.
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            messages.map((msg, i) => (
+                              <div key={i} className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none shadow-sm' : 'bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200'}`}>{msg.content}</div>
+                                {msg.sources && msg.sources.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 mt-1">
+                                    {msg.sources.map((source, si) => (
+                                      <a key={si} href={source.uri} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-0.5 bg-white border border-slate-200 rounded-full text-[10px] font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all"><Globe size={10} className="text-indigo-400" /><span className="truncate max-w-[120px]">{source.title}</span><ExternalLink size={8} /></a>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          )}
+                          {isAiLoading && (
+                            <div className="flex flex-col items-start gap-2">
+                              <div className="bg-slate-100 p-3 rounded-2xl rounded-tl-none border border-slate-200 flex gap-1 animate-pulse">{showUrlInput ? 'Analyzing external content...' : 'Generating response...'}</div>
+                            </div>
+                          )}
                         </div>
-                      )}
+
+                        <div className="flex flex-col gap-2">
+                          {showUrlInput && (
+                            <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-lg animate-in slide-in-from-bottom-2 duration-200">
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Globe size={12} className="text-indigo-500" /> Web Content URL</label>
+                                <button onClick={() => setShowUrlInput(false)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
+                              </div>
+                              <div className="relative">
+                                <input autoFocus type="url" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="https://example.com/research" className="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500" />
+                                <div className="absolute right-2 top-2 text-slate-300"><LinkIcon size={14} /></div>
+                              </div>
+                            </div>
+                          )}
+
+                          <form onSubmit={handleSendMessage} className="relative flex items-center gap-2">
+                            <div className="flex-1 relative">
+                              <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder={showUrlInput ? "Add a specific question (optional)..." : `Ask about ${queryScope === 'book' ? 'the book' : 'anything'}...`} className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-900 transition-all shadow-sm" />
+                              <button type="button" onClick={() => setShowUrlInput(!showUrlInput)} className={`absolute right-3 top-2.5 p-1 rounded-lg transition-all ${showUrlInput || urlInput ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-100'}`} title="Analyze Web Link"><LinkIcon size={18} /></button>
+                            </div>
+                            <button type="submit" disabled={(!inputText.trim() && !urlInput.trim()) || isAiLoading} className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:bg-slate-300 transition-all shadow-md active:scale-95"><ChevronRight size={20} /></button>
+                          </form>
+                        </div>
+                      </>
+                    ) : (
+                      /* Paywall for Basic users */
+                      <div className="flex flex-col items-center justify-center h-full text-center p-6 space-y-6">
+                        <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl flex items-center justify-center shadow-lg">
+                          <Sparkles className="w-10 h-10 text-amber-500" />
+                        </div>
+                        <div className="space-y-3">
+                          <h3 className="text-lg font-bold text-slate-800">AI Assistant</h3>
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-md">
+                            <Zap size={12} />
+                            Pro Feature
+                          </div>
+                          <p className="text-sm text-slate-500 leading-relaxed max-w-[220px]">
+                            Get instant answers about the book, research assistance, and AI-powered insights.
+                          </p>
+                        </div>
+                        <div className="space-y-2 w-full max-w-[200px]">
+                          <a
+                            href="/upgrade"
+                            className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-[0.98]"
+                          >
+                            <Zap size={16} />
+                            Upgrade to Pro
+                          </a>
+                          <p className="text-[10px] text-slate-400">
+                            Unlock AI Assistant + more features
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {currentTab === SidebarTab.Edit && MOCK_BOOK.is_editor && (
+                  <div className="flex flex-col h-full overflow-hidden">
+                    <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6 custom-scrollbar bg-slate-50/50">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-indigo-100 rounded-lg text-indigo-600">
+                              <FileCode size={14} />
+                            </div>
+                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Summary Content</h4>
+                          </div>
+                          <span className="text-[8px] font-bold text-slate-300 bg-white border border-slate-100 px-1.5 py-0.5 rounded uppercase">HTML Enabled</span>
+                        </div>
+                        <div className="relative group">
+                          <textarea
+                            value={editSummary}
+                            onChange={(e) => setEditSummary(e.target.value)}
+                            className="w-full h-40 bg-white border border-slate-200 rounded-2xl p-4 text-xs font-mono text-slate-600 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm group-hover:border-slate-300 custom-scrollbar resize-none"
+                            placeholder="Paste your HTML summary content here..."
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-amber-100 rounded-lg text-amber-600">
+                              <FileJson size={14} />
+                            </div>
+                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Table of Contents</h4>
+                          </div>
+                          <span className="text-[8px] font-bold text-slate-300 bg-white border border-slate-100 px-1.5 py-0.5 rounded uppercase">JSON Array</span>
+                        </div>
+                        <div className="relative group">
+                          <textarea
+                            value={editTOC}
+                            onChange={(e) => setEditTOC(e.target.value)}
+                            className="w-full h-32 bg-white border border-slate-200 rounded-2xl p-4 text-xs font-mono text-slate-600 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all shadow-sm group-hover:border-slate-300 custom-scrollbar resize-none"
+                            placeholder='[{"id": "heading-1", "title": "Chapter 1", "pageNumber": 1, "level": 1}]'
+                          />
+                        </div>
+
+                        {detectedHeadings.length > 0 && (
+                          <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><List size={10} /> Detected Summary Headings</span>
+                              <button
+                                onClick={syncTOCFromSummary}
+                                className="text-[9px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 uppercase tracking-tighter transition-colors"
+                              >
+                                <Sparkles size={10} /> Sync TOC
+                              </button>
+                            </div>
+                            <div className="p-2 max-h-32 overflow-y-auto custom-scrollbar flex flex-wrap gap-1.5">
+                              {detectedHeadings.map((h, i) => (
+                                <div key={i} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] bg-slate-50 border border-slate-100 text-slate-500`}>
+                                  <span className="font-mono text-[8px] opacity-70">L{h.level}</span>
+                                  <span className="font-bold text-slate-700 max-w-[80px] truncate">{h.title}</span>
+                                  <span className="px-1 bg-white border border-slate-100 rounded text-[8px] font-mono text-indigo-500 uppercase">#{h.id}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* PDF Table of Contents Maker */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-cyan-100 rounded-lg text-cyan-600">
+                              <BookOpen size={14} />
+                            </div>
+                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">PDF Table of Contents</h4>
+                          </div>
+                          <span className="text-[8px] font-bold text-cyan-500 bg-cyan-50 border border-cyan-100 px-1.5 py-0.5 rounded uppercase">
+                            {pdfTocEntries.length} {pdfTocEntries.length === 1 ? 'Entry' : 'Entries'}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2">
+                          {pdfTocEntries.map((entry, index) => (
+                            <div key={index} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm group hover:border-cyan-200 transition-all">
+                              <span className="text-[10px] font-bold text-slate-300 w-5 text-center tabular-nums">{index + 1}</span>
+                              <input
+                                type="text"
+                                value={entry.title}
+                                onChange={(e) => updatePdfTocEntry(index, 'title', e.target.value)}
+                                className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                                placeholder="Chapter Title"
+                              />
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase">Page</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={pdfNumPages || 9999}
+                                  value={entry.pageNumber}
+                                  onChange={(e) => updatePdfTocEntry(index, 'pageNumber', e.target.value)}
+                                  className="w-16 px-2 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all text-center tabular-nums"
+                                />
+                              </div>
+                              <button
+                                onClick={() => removePdfTocEntry(index)}
+                                className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                title="Remove Entry"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          ))}
+
+                          {pdfTocEntries.length === 0 && (
+                            <div className="flex flex-col items-center justify-center py-6 text-center bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                              <List size={24} className="text-slate-300 mb-2" />
+                              <p className="text-xs font-medium text-slate-400">No chapters added yet</p>
+                              <p className="text-[10px] text-slate-300">Add chapters to create PDF navigation</p>
+                            </div>
+                          )}
+
+                          <button
+                            onClick={addPdfTocEntry}
+                            className="w-full py-2.5 border-2 border-dashed border-cyan-200 rounded-xl flex items-center justify-center gap-2 text-cyan-600 hover:text-cyan-700 hover:border-cyan-300 hover:bg-cyan-50/30 transition-all text-xs font-bold"
+                          >
+                            <Plus size={16} />
+                            Add Chapter
+                          </button>
+
+                          {/* JSON Upload Button */}
+                          <input
+                            type="file"
+                            ref={pdfTocFileInputRef}
+                            accept=".json"
+                            onChange={handlePdfTocJsonUpload}
+                            className="hidden"
+                          />
+                          <button
+                            onClick={() => pdfTocFileInputRef.current?.click()}
+                            className="w-full py-2.5 border-2 border-dashed border-amber-200 rounded-xl flex items-center justify-center gap-2 text-amber-600 hover:text-amber-700 hover:border-amber-300 hover:bg-amber-50/30 transition-all text-xs font-bold"
+                          >
+                            <Upload size={16} />
+                            Import from JSON
+                          </button>
+
+                          {/* JSON Format Help */}
+                          <div className="text-[9px] text-slate-400 bg-slate-50 rounded-lg p-2 border border-slate-100">
+                            <span className="font-bold">JSON Format:</span>
+                            <code className="block mt-1 text-[8px] font-mono bg-white rounded px-1.5 py-1 border text-slate-500">
+                              [{'{"title": "Chapter 1", "pageNumber": 1}'}]
+                            </code>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                      {showUrlInput && (
-                        <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-lg animate-in slide-in-from-bottom-2 duration-200">
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Globe size={12} className="text-indigo-500" /> Web Content URL</label>
-                            <button onClick={() => setShowUrlInput(false)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
-                          </div>
-                          <div className="relative">
-                            <input autoFocus type="url" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="https://example.com/research" className="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500" />
-                            <div className="absolute right-2 top-2 text-slate-300"><LinkIcon size={14} /></div>
-                          </div>
+                    <div className="p-5 bg-white border-t border-slate-100">
+                      <div className="flex flex-col gap-3">
+                        <button
+                          onClick={handleSaveBookContent}
+                          disabled={isSaving}
+                          className={`w-full py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2.5 transition-all shadow-lg active:scale-[0.98] ${saveStatus === 'success'
+                            ? 'bg-emerald-500 text-white shadow-emerald-500/20'
+                            : saveStatus === 'error'
+                              ? 'bg-rose-500 text-white shadow-rose-500/20'
+                              : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'
+                            }`}
+                        >
+                          {saveStatus === 'saving' ? (
+                            <><Loader2 size={20} className="animate-spin" /> Saving...</>
+                          ) : saveStatus === 'success' ? (
+                            <><Check size={20} /> Changes Published!</>
+                          ) : saveStatus === 'error' ? (
+                            <><X size={20} /> Error Occurred</>
+                          ) : (
+                            <><Sparkles size={18} className="text-amber-400" /> Update Book Content</>
+                          )}
+                        </button>
+                        <div className="flex items-center justify-center gap-2 text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                          <Info size={10} />
+                          <span>Saving will update the database and refresh the reader</span>
                         </div>
-                      )}
-
-                      <form onSubmit={handleSendMessage} className="relative flex items-center gap-2">
-                        <div className="flex-1 relative">
-                          <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder={showUrlInput ? "Add a specific question (optional)..." : `Ask about ${queryScope === 'book' ? 'the book' : 'anything'}...`} className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-900 transition-all shadow-sm" />
-                          <button type="button" onClick={() => setShowUrlInput(!showUrlInput)} className={`absolute right-3 top-2.5 p-1 rounded-lg transition-all ${showUrlInput || urlInput ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-100'}`} title="Analyze Web Link"><LinkIcon size={18} /></button>
-                        </div>
-                        <button type="submit" disabled={(!inputText.trim() && !urlInput.trim()) || isAiLoading} className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:bg-slate-300 transition-all shadow-md active:scale-95"><ChevronRight size={20} /></button>
-                      </form>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1724,10 +2459,25 @@ const App: React.FC = () => {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-3 w-32">
-              <Volume2 size={20} className="text-slate-400" />
-              <div className="flex-1 h-1.5 bg-slate-700 rounded-full relative overflow-hidden">
-                <div className="absolute inset-0 bg-cyan-500 rounded-full w-3/4" />
+            <div className="flex items-center gap-3 w-36">
+              <button onClick={toggleMute} className="text-slate-400 hover:text-cyan-400 transition-colors" title={isMuted ? "Unmute" : "Mute"}>
+                {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+              </button>
+              <div className="flex-1 h-1.5 bg-slate-700 rounded-full relative overflow-hidden group">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={isMuted ? 0 : volume}
+                  onChange={handleVolumeChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+                />
+                <div
+                  className="absolute inset-0 bg-cyan-500 rounded-full transition-all"
+                  style={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
+                />
               </div>
             </div>
           </div>
@@ -1738,10 +2488,10 @@ const App: React.FC = () => {
 };
 
 const SidebarButton: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
-  <button onClick={onClick} className={`relative group p-2.5 rounded-xl transition-all ${active ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
+  <button onClick={onClick} className={`relative group p-2.5 rounded-xl transition-all ${active ? 'bg-cyan-500/20 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}>
     {icon}
-    <div className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 font-bold uppercase tracking-tight shadow-lg">{label}</div>
-    {active && <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-indigo-600 rounded-r-full" />}
+    <div className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 font-bold uppercase tracking-tight shadow-xl border border-slate-700/50">{label}</div>
+    {active && <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-cyan-500 rounded-r-full shadow-[0_0_8px_rgba(6,182,212,0.8)]" />}
   </button>
 );
 

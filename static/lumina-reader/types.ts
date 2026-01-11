@@ -39,9 +39,12 @@ export interface BookMetadata {
   pdfUrl: string;
   audioUrl: string;
   coverUrl?: string;
+  custom_summary?: string;
   preUploadedSummary: string;
   transcript: TranscriptItem[] | string;
   toc: TOCItem[] | string;
+  is_editor?: boolean;
+  user_plan?: string;  // 'basic', 'pro', or 'ultimate'
 }
 
 export interface ChatMessage {
@@ -56,5 +59,6 @@ export enum SidebarTab {
   Summary = 'summary',
   Transcript = 'transcript',
   Assistant = 'assistant',
-  Notes = 'notes'
+  Notes = 'notes',
+  Edit = 'edit'
 }

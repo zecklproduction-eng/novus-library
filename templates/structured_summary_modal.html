@@ -1,0 +1,609 @@
+<!-- Structured Summary & Auto-TOC Modal -->
+<div class="modal fade" id="structuredSummaryModal" tabindex="-1" aria-labelledby="structuredSummaryModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content text-light" style="background-color: #1e293b; border: 1px solid #334155;">
+            <div class="modal-header" style="border-bottom: 1px solid #334155;">
+                <h5 class="modal-title" id="structuredSummaryModalLabel">
+                    <i class="fas fa-list-ol me-2 text-warning"></i>Structured Summary & Auto-TOC
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body custom-scrollbar">
+
+                <!-- STRUCTURED EDITOR -->
+                <div class="mb-3">
+                    <div class="d-flex flex-column gap-2 mb-2">
+                        <label class="form-label text-white fw-bold mb-0">Editor</label>
+
+                        <!-- Toolbar Row 1: Headings & Structure -->
+                        <div class="d-flex flex-wrap gap-1">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-warning text-white"
+                                    onclick="formatDocSummary('formatBlock', 'H1')" title="Chapter Heading (H1)">
+                                    <i class="fas fa-heading"></i> 1
+                                </button>
+                                <button type="button" class="btn btn-outline-warning text-white"
+                                    onclick="formatDocSummary('formatBlock', 'H2')" title="Section Heading (H2)">
+                                    <i class="fas fa-heading"></i> 2
+                                </button>
+                                <button type="button" class="btn btn-outline-warning text-white"
+                                    onclick="formatDocSummary('formatBlock', 'H3')" title="Sub-section (H3)">
+                                    <i class="fas fa-heading"></i> 3
+                                </button>
+                            </div>
+
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary text-white"
+                                    onclick="formatDocSummary('formatBlock', 'P')" title="Normal Paragraph">
+                                    <i class="fas fa-paragraph"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary text-white"
+                                    onclick="formatDocSummary('formatBlock', 'BLOCKQUOTE')" title="Quote Block">
+                                    <i class="fas fa-quote-left"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Toolbar Row 2: Text Formatting -->
+                        <div class="d-flex flex-wrap gap-1">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-info text-white"
+                                    onclick="formatDocSummary('bold')" title="Bold (Ctrl+B)">
+                                    <i class="fas fa-bold"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info text-white"
+                                    onclick="formatDocSummary('italic')" title="Italic (Ctrl+I)">
+                                    <i class="fas fa-italic"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info text-white"
+                                    onclick="formatDocSummary('underline')" title="Underline (Ctrl+U)">
+                                    <i class="fas fa-underline"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info text-white"
+                                    onclick="formatDocSummary('strikeThrough')" title="Strikethrough">
+                                    <i class="fas fa-strikethrough"></i>
+                                </button>
+                            </div>
+
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary text-white"
+                                    onclick="formatDocSummary('insertUnorderedList')" title="Bullet List">
+                                    <i class="fas fa-list-ul"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary text-white"
+                                    onclick="formatDocSummary('insertOrderedList')" title="Numbered List">
+                                    <i class="fas fa-list-ol"></i>
+                                </button>
+                            </div>
+
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary text-white"
+                                    onclick="insertLinkSummary()" title="Insert Link">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger text-white"
+                                    onclick="formatDocSummary('removeFormat')" title="Clear All Formatting">
+                                    <i class="fas fa-eraser"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="small text-muted mb-2">
+                        Use <strong class="text-warning">H1</strong> for Chapters, <strong
+                            class="text-warning">H2</strong> for Sections, and <strong class="text-warning">H3</strong>
+                        for Sub-sections. The TOC auto-generates from headings.
+                    </p>
+
+                    <!-- Search & Batch Styling Bar -->
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text bg-secondary border-secondary text-white">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" id="summarySearchInput"
+                            class="form-control bg-dark text-white border-secondary"
+                            placeholder="Search headings and text..." oninput="searchInEditor(this.value)">
+
+                        <!-- Selection Group -->
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-info text-white"
+                                onclick="toggleAllSelection(true)" id="selectAllBtn" title="Select All Matches"
+                                style="display: none;">
+                                <i class="fas fa-check-double"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-info text-white"
+                                onclick="toggleAllSelection(false)" id="unselectAllBtn" title="Unselect All Matches"
+                                style="display: none;">
+                                <i class="fas fa-times-circle"></i>
+                            </button>
+                        </div>
+
+                        <!-- Navigation Group -->
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary text-white"
+                                onclick="navigateSearch(-1)" title="Previous Match">
+                                <i class="fas fa-chevron-up"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary text-white"
+                                onclick="navigateSearch(1)" title="Next Match">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+
+                        <span id="searchResultCount"
+                            class="input-group-text bg-secondary border-secondary text-muted small"
+                            style="min-width: 60px;">
+                            0 found
+                        </span>
+
+                        <!-- Batch Styling Dropdown -->
+                        <div class="dropdown" id="batchStyleDropdown" style="display: none;">
+                            <button class="btn btn-warning btn-sm dropdown-toggle text-dark h-100 rounded-0"
+                                type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                title="Style Selected Matches">
+                                <i class="fas fa-magic"></i> Style
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
+                                <li>
+                                    <h6 class="dropdown-header">Apply to Selected</h6>
+                                </li>
+                                <li><button class="dropdown-item" type="button" onclick="applyBatchStyle('bold')"><i
+                                            class="fas fa-bold me-2"></i>Bold</button></li>
+                                <li><button class="dropdown-item" type="button" onclick="applyBatchStyle('italic')"><i
+                                            class="fas fa-italic me-2"></i>Italic</button></li>
+                                <li><button class="dropdown-item" type="button"
+                                        onclick="applyBatchStyle('underline')"><i
+                                            class="fas fa-underline me-2"></i>Underline</button></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li>
+                                    <h6 class="dropdown-header">Convert to Heading</h6>
+                                </li>
+                                <li><button class="dropdown-item" type="button" onclick="applyBatchStyle('H1')"><i
+                                            class="fas fa-heading me-2"></i>Heading 1 (Chapter)</button></li>
+                                <li><button class="dropdown-item" type="button" onclick="applyBatchStyle('H2')"><i
+                                            class="fas fa-heading me-2"></i>Heading 2 (Section)</button></li>
+                                <li><button class="dropdown-item" type="button" onclick="applyBatchStyle('H3')"><i
+                                            class="fas fa-heading me-2"></i>Heading 3 (Sub-section)</button></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><button class="dropdown-item text-danger" type="button"
+                                        onclick="applyBatchStyle('removeFormat')"><i
+                                            class="fas fa-eraser me-2"></i>Clear Style</button></li>
+                            </ul>
+                        </div>
+
+                        <button type="button" class="btn btn-outline-secondary text-white" onclick="clearSearch()"
+                            title="Clear Search">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div id="editor_container" class="bg-dark border border-secondary rounded">
+                        <div id="modal_structured_summary" class="form-control bg-dark text-white border-0"
+                            style="min-height: 300px; overflow-y: auto;" contenteditable="true"
+                            oninput="updateTOCPreviewSummary()">
+                            <!-- Content goes here -->
+                        </div>
+                    </div>
+                </div>
+
+                <hr style="border-color: #475569;">
+
+                <!-- TOC Preview -->
+                <div class="mb-3">
+                    <label class="small text-muted fw-bold mb-2">Table of Contents Preview</label>
+                    <div class="p-3 bg-secondary bg-opacity-10 rounded border border-secondary border-opacity-25">
+                        <div id="toc_preview_summary" class="small text-white-50 ps-2"
+                            style="max-height: 150px; overflow-y: auto;">
+                            <!-- TOC Preview Items -->
+                            <i class="fas fa-info-circle me-1"></i> Start typing headings to generate TOC...
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #334155;">
+                <button type="button" class="btn btn-ghost text-white" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning text-dark" onclick="saveStructuredSummary()">
+                    <i class="fas fa-save me-2"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Search state
+    let searchMatches = [];
+    let currentMatchIndex = -1;
+    let originalEditorContent = '';
+
+    // Format helper for Summary Modal (renamed to avoid conflict)
+    function formatDocSummary(cmd, value = null) {
+        document.execCommand(cmd, false, value);
+        document.getElementById('modal_structured_summary').focus();
+        updateTOCPreviewSummary();
+    }
+
+    // Search in editor
+    function searchInEditor(query) {
+        const editor = document.getElementById('modal_structured_summary');
+        const countDisplay = document.getElementById('searchResultCount');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const unselectAllBtn = document.getElementById('unselectAllBtn');
+        const batchStyleDropdown = document.getElementById('batchStyleDropdown');
+
+        // Restore original content first (remove highlights)
+        if (originalEditorContent) {
+            editor.innerHTML = originalEditorContent;
+        } else {
+            originalEditorContent = editor.innerHTML;
+        }
+
+        if (!query || query.length < 2) {
+            countDisplay.textContent = '0 found';
+            searchMatches = [];
+            currentMatchIndex = -1;
+            selectAllBtn.style.display = 'none';
+            unselectAllBtn.style.display = 'none';
+            batchStyleDropdown.style.display = 'none';
+            return;
+        }
+
+        // Save current content before highlighting
+        originalEditorContent = editor.innerHTML;
+
+        // Create regex for case-insensitive search
+        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+
+        // Walk through text nodes and highlight matches
+        const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null, false);
+        const textNodes = [];
+        while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+        textNodes.forEach(node => {
+            if (node.nodeValue.match(regex)) {
+                const span = document.createElement('span');
+                // Use a marker class and data attribute for selection
+                span.innerHTML = node.nodeValue.replace(regex, '<mark class="search-highlight" data-selected="false" style="background: #ffc107; color: #000; padding: 0 2px; border-radius: 2px; cursor: pointer; border: 1px solid transparent;">$1</mark>');
+                node.parentNode.replaceChild(span, node);
+            }
+        });
+
+        // Update count and collect matches
+        searchMatches = editor.querySelectorAll('.search-highlight');
+        countDisplay.textContent = `${searchMatches.length} found`;
+        currentMatchIndex = searchMatches.length > 0 ? 0 : -1;
+
+        if (searchMatches.length > 0) {
+            selectAllBtn.style.display = 'block';
+            unselectAllBtn.style.display = 'block';
+            batchStyleDropdown.style.display = 'block';
+
+            // Attach click listeners to highlights for individual selection
+            searchMatches.forEach(match => {
+                match.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const isSelected = this.getAttribute('data-selected') === 'true';
+                    toggleHighlightSelection(this, !isSelected);
+                });
+            });
+
+            highlightCurrentMatch();
+        } else {
+            selectAllBtn.style.display = 'none';
+            unselectAllBtn.style.display = 'none';
+            batchStyleDropdown.style.display = 'none';
+        }
+    }
+
+    // Toggle individual highlight selection
+    function toggleHighlightSelection(el, isSelected) {
+        el.setAttribute('data-selected', isSelected);
+        if (isSelected) {
+            el.style.border = '1px solid #fff';
+            el.style.boxShadow = '0 0 4px #fff';
+            // If it's selected, we keep its background orange/yellow depending on currentMatchIndex
+        } else {
+            el.style.border = '1px solid transparent';
+            el.style.boxShadow = 'none';
+        }
+    }
+
+    // Select/Unselect All
+    function toggleAllSelection(bool) {
+        searchMatches.forEach(match => toggleHighlightSelection(match, bool));
+    }
+
+    // Apply Batch Style
+    function applyBatchStyle(styleType) {
+        const selectedMatches = Array.from(searchMatches).filter(m => m.getAttribute('data-selected') === 'true');
+
+        if (selectedMatches.length === 0) {
+            alert('Please select at least one match first (click matches or use "Select All").');
+            return;
+        }
+
+        // We need to work backwards or use a more robust way to replace HTML
+        // Best way with execCommand is to select each range
+        const selection = window.getSelection();
+
+        // Disable highlighting temporarily so we can apply styles to the real DOM
+        // Actually, we must apply styles to the segments INSIDE the highlights
+        // or replace the highlights with styled text.
+
+        // Let's use a simpler approach: Apply to each range
+        selectedMatches.forEach(match => {
+            const range = document.createRange();
+            range.selectNodeContents(match);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            if (styleType === 'removeFormat') {
+                document.execCommand('removeFormat', false, null);
+            } else if (['H1', 'H2', 'H3'].includes(styleType)) {
+                document.execCommand('formatBlock', false, styleType);
+            } else {
+                document.execCommand(styleType, false, null);
+            }
+        });
+
+        selection.removeAllRanges();
+
+        // After batch styling, we MUST update the originalEditorContent 
+        // because the DOM has changed permanently.
+        // But wait, the highlights are part of the DOM now. 
+        // We should clear search first to get rid of highlights, then re-search?
+        // No, clearing search restores originalEditorContent.
+
+        // Correct flow:
+        // 1. Apply styles inside highlights.
+        // 2. Remove all highlight spans but KEEP their innerHTML.
+        const editor = document.getElementById('modal_structured_summary');
+        const highlights = editor.querySelectorAll('.search-highlight');
+        highlights.forEach(h => {
+            const parent = h.parentNode;
+            while (h.firstChild) parent.insertBefore(h.firstChild, h);
+            h.remove();
+        });
+
+        // 3. Update originalEditorContent with the new styled HTML
+        originalEditorContent = editor.innerHTML;
+
+        // 4. Re-run search to show remaining matches (if any)
+        const query = document.getElementById('summarySearchInput').value;
+        searchInEditor(query);
+
+        updateTOCPreviewSummary();
+    }
+
+    // Navigate between matches
+    function navigateSearch(direction) {
+        if (searchMatches.length === 0) return;
+
+        // Reset previous current match background
+        if (currentMatchIndex >= 0 && searchMatches[currentMatchIndex]) {
+            searchMatches[currentMatchIndex].style.background = '#ffc107';
+        }
+
+        // Move to next/previous
+        currentMatchIndex += direction;
+        if (currentMatchIndex >= searchMatches.length) currentMatchIndex = 0;
+        if (currentMatchIndex < 0) currentMatchIndex = searchMatches.length - 1;
+
+        highlightCurrentMatch();
+    }
+
+    // Highlight current match
+    function highlightCurrentMatch() {
+        if (currentMatchIndex >= 0 && searchMatches[currentMatchIndex]) {
+            const match = searchMatches[currentMatchIndex];
+            // Keep all current yellow, but make active match orange
+            match.style.background = '#ff6b35';
+            match.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    // Clear search
+    function clearSearch() {
+        const editor = document.getElementById('modal_structured_summary');
+        const searchInput = document.getElementById('summarySearchInput');
+        const countDisplay = document.getElementById('searchResultCount');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const unselectAllBtn = document.getElementById('unselectAllBtn');
+        const batchStyleDropdown = document.getElementById('batchStyleDropdown');
+
+        if (originalEditorContent) {
+            editor.innerHTML = originalEditorContent;
+        }
+
+        searchInput.value = '';
+        countDisplay.textContent = '0 found';
+        searchMatches = [];
+        currentMatchIndex = -1;
+        originalEditorContent = '';
+
+        selectAllBtn.style.display = 'none';
+        unselectAllBtn.style.display = 'none';
+        batchStyleDropdown.style.display = 'none';
+    }
+
+    // Insert Link helper
+    function insertLinkSummary() {
+        const url = prompt('Enter the URL:', 'https://');
+        if (url) {
+            document.execCommand('createLink', false, url);
+            document.getElementById('modal_structured_summary').focus();
+        }
+    }
+
+    // Parse Headers to Generate TOC (aligned with reader pagination and length splits)
+    function generateTOCFromEditorSummary() {
+        const editor = document.getElementById('modal_structured_summary');
+        const content = editor.innerHTML.trim();
+        const toc = [];
+
+        if (!content) return toc;
+
+        // Simulate the same splitting logic as constants.ts
+        const sections = [];
+        let remaining = content;
+
+        const firstH1Index = remaining.search(/<h1/i);
+        if (firstH1Index > 0) {
+            sections.push(remaining.substring(0, firstH1Index));
+            remaining = remaining.substring(firstH1Index);
+        }
+
+        const h1SplitRegex = /(?=<h1)/i;
+        const h1Sections = remaining.split(h1SplitRegex).filter(s => s.trim().length > 0);
+        sections.push(...h1Sections);
+
+        let globalPageNum = 1;
+        let headerCounter = 0;
+
+        sections.forEach((sectionContent) => {
+            const sectionStartPage = globalPageNum;
+
+            // Find all headers in THIS section content
+            // We need to match the DOM elements to inject IDs
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = sectionContent;
+            const headers = tempDiv.querySelectorAll('h1, h2, h3');
+
+            headers.forEach((h) => {
+                const title = h.innerText.trim();
+                const level = h.tagName === 'H1' ? 1 : (h.tagName === 'H2' ? 2 : 3);
+
+                // We need to find the ACTUAL header in the editor to inject ID
+                // This is a bit tricky because we have multiple sections now.
+                // Let's just find the nth header in the overall editor.
+                const actualHeader = editor.querySelectorAll('h1, h2, h3')[headerCounter];
+                if (actualHeader) {
+                    const headerId = `summary-heading-${headerCounter}`;
+                    actualHeader.id = headerId;
+
+                    toc.push({
+                        id: headerId,
+                        title: title,
+                        level: level,
+                        pageNumber: sectionStartPage // All headers in a split section point to the START of that section
+                    });
+                }
+                headerCounter++;
+            });
+
+            // Increment page counter based on section length (matching constants.ts)
+            if (sectionContent.length > 2500) {
+                const paragraphs = sectionContent.split(/<\/p>/i).filter(p => p.trim().length > 0);
+                let currentPageLength = 0;
+                let splits = 0;
+                paragraphs.forEach((p) => {
+                    const pLen = p.length + 7; // +7 for <p></p>
+                    if (currentPageLength + pLen > 2200 && currentPageLength > 0) {
+                        splits++;
+                        currentPageLength = 0;
+                    }
+                    currentPageLength += pLen;
+                });
+                globalPageNum += (splits + 1);
+            } else {
+                globalPageNum++;
+            }
+        });
+
+        return toc;
+    }
+
+    // Live Preview
+    function updateTOCPreviewSummary() {
+        const toc = generateTOCFromEditorSummary();
+        const previewEl = document.getElementById('toc_preview_summary');
+
+        if (toc.length === 0) {
+            previewEl.innerHTML = '<i class="fas fa-info-circle me-1"></i> Start typing headings to generate TOC...';
+            return;
+        }
+
+        let html = '<ul class="list-unstyled mb-0">';
+        toc.forEach(item => {
+            let indent = '';
+            let icon = 'fa-folder';
+            if (item.level === 2) { indent = 'ps-3'; icon = 'fa-file-alt'; }
+            else if (item.level === 3) { indent = 'ps-4'; icon = 'fa-chevron-right'; }
+            html += `<li class="${indent} mb-1"><i class="fas ${icon} text-muted me-2 small"></i>${item.title}</li>`;
+        });
+        html += '</ul>';
+        previewEl.innerHTML = html;
+    }
+
+    function saveStructuredSummary() {
+        // Update Summary (Custom Summary)
+        const summaryEditor = document.getElementById('modal_structured_summary');
+        const summaryHtml = summaryEditor.innerHTML;
+        const customSummaryInput = document.querySelector('input[name="custom_summary"], textarea[name="custom_summary"]');
+
+        if (customSummaryInput) {
+            customSummaryInput.value = summaryHtml;
+        }
+
+        // Update TOC (Auto-Generated)
+        const tocData = generateTOCFromEditorSummary();
+        const tocInput = document.querySelector('input[name="toc"], textarea[name="toc"]');
+        if (tocInput) {
+            tocInput.value = JSON.stringify(tocData);
+        }
+
+        // Show feedback
+        const btn = document.querySelector('button[onclick="saveStructuredSummary()"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check me-2"></i> Saved';
+        btn.classList.remove('btn-warning');
+        btn.classList.add('btn-success');
+        btn.classList.remove('text-dark');
+        btn.classList.add('text-white');
+
+        setTimeout(() => {
+            const modalEl = document.getElementById('structuredSummaryModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            // Reset button
+            btn.innerHTML = originalText;
+            btn.classList.add('btn-warning');
+            btn.classList.add('text-dark');
+            btn.classList.remove('btn-success');
+            btn.classList.remove('text-white');
+
+            // Update preview text on page if exists
+            const preview = document.getElementById('summary_toc_preview');
+            if (preview) {
+                preview.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i> Summary & TOC saved (${tocData.length} items).`;
+            }
+
+        }, 800);
+    }
+
+    // Initialize Modal with existing data when opened
+    document.addEventListener('DOMContentLoaded', () => {
+        const modalEl = document.getElementById('structuredSummaryModal');
+        modalEl.addEventListener('show.bs.modal', function (event) {
+            // Load Summary (HTML)
+            const customSummaryInput = document.querySelector('input[name="custom_summary"], textarea[name="custom_summary"]');
+            const summaryEditor = document.getElementById('modal_structured_summary');
+
+            if (customSummaryInput && customSummaryInput.value) {
+                summaryEditor.innerHTML = customSummaryInput.value;
+            } else {
+                summaryEditor.innerHTML = '<p>Start writing your summary here...</p>';
+            }
+            // Trigger preview update
+            updateTOCPreviewSummary();
+        });
+    });
+</script>

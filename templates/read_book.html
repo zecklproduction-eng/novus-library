@@ -4,18 +4,17 @@
 
 {% block content %}
 <style>
-    /* Override main content padding for full-width reader */
+    /* Ensure reader fills remaining viewport height */
     .main-content {
-        padding: 0 !important;
-        overflow: hidden !important;
-        height: 100vh !important;
-        display: flex !important;
-        flex-direction: column !important;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 0 30px 0 0 !important;
+        /* Right padding only to avoid double padding with sidebar */
     }
 
     .top-header-minimal {
         margin-bottom: 0 !important;
-        flex-shrink: 0 !important;
     }
 
     /* Reader container fills available space */
@@ -28,6 +27,7 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        user-select: none;
     }
 
     /* React app root */
@@ -71,13 +71,14 @@
     }
 
     .reading-highlight {
-        background-color: rgba(79, 70, 229, 0.15);
-        border-bottom: 2px solid #4f46e5;
+        background-color: rgba(251, 191, 36, 0.2);
+        border-bottom: 2px solid #fbbf24;
         border-radius: 2px;
         padding: 1px 0;
         transition: all 0.4s ease;
         position: relative;
         z-index: 5;
+        box-shadow: 0 2px 4px rgba(251, 191, 36, 0.1);
     }
 
     .reading-highlight::after {
@@ -87,8 +88,111 @@
         bottom: -2px;
         width: 100%;
         height: 2px;
-        background: #4f46e5;
-        box-shadow: 0 0 8px rgba(79, 70, 229, 0.4);
+        background: #fbbf24;
+        box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+    }
+
+    /* Rich Content Styles for Summary */
+    .rich-content h1 {
+        font-size: 1.875rem !important;
+        font-weight: 700 !important;
+        color: #1e293b !important;
+        margin-bottom: 1.5rem !important;
+        margin-top: 2rem !important;
+        border-bottom: 2px solid #f1f5f9 !important;
+        padding-bottom: 0.75rem !important;
+        display: block !important;
+        text-align: left !important;
+    }
+
+    .rich-content h1:first-child {
+        margin-top: 0 !important;
+    }
+
+    .rich-content h2 {
+        font-size: 1.5rem !important;
+        font-weight: 600 !important;
+        color: #334155 !important;
+        margin-bottom: 1rem !important;
+        margin-top: 1.5rem !important;
+        display: block !important;
+        text-align: left !important;
+    }
+
+    .rich-content h3 {
+        font-size: 1.25rem !important;
+        font-weight: 600 !important;
+        color: #475569 !important;
+        margin-bottom: 0.75rem !important;
+        margin-top: 1.25rem !important;
+        display: block !important;
+        text-align: left !important;
+    }
+
+    .rich-content p {
+        margin-bottom: 1.25rem !important;
+        line-height: 1.8 !important;
+        display: block !important;
+        text-align: justify !important;
+    }
+
+    .rich-content ul,
+    .rich-content ol {
+        margin-bottom: 1.25rem !important;
+        padding-left: 1.5rem !important;
+        display: block !important;
+    }
+
+    .rich-content ul {
+        list-style-type: disc !important;
+    }
+
+    .rich-content ol {
+        list-style-type: decimal !important;
+    }
+
+    .rich-content li {
+        margin-bottom: 0.5rem !important;
+        display: list-item !important;
+    }
+
+    .rich-content strong,
+    .rich-content b {
+        font-weight: 700 !important;
+        color: #0f172a !important;
+    }
+
+    .rich-content a {
+        color: #4f46e5 !important;
+        text-decoration: underline !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: color 0.2s !important;
+    }
+
+    .rich-content a:hover {
+        color: #312e81 !important;
+    }
+
+    /* High-visibility selection */
+    ::selection {
+        background-color: rgba(79, 70, 229, 0.2) !important;
+        /* Soft Indigo Selection */
+        color: inherit !important;
+    }
+
+    /* For specific reader area to be even more clear */
+    .reader-container ::selection {
+        background-color: rgba(79, 70, 229, 0.3) !important;
+        /* Slightly more opaque indigo for reader */
+        color: inherit !important;
+    }
+
+    /* Increase line-height to prevent selection overlap */
+    .rich-content,
+    .reader-container p,
+    .reader-container div {
+        line-height: 1.8 !important;
     }
 </style>
 
@@ -127,5 +231,5 @@
 </div>
 
 <!-- Load the built React app -->
-<script type="module" crossorigin src="/static/lumina-reader/dist/assets/index-J7YX8B4g.js"></script>
+<script type="module" crossorigin src="/static/lumina-reader/dist/assets/index-BSIj__1m.js"></script>
 {% endblock %}
