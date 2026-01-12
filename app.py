@@ -9,8 +9,16 @@ from collections import Counter
 import os
 import logging
 import traceback
+import mimetypes
 from logging.handlers import RotatingFileHandler
 from werkzeug.utils import secure_filename
+
+# Add custom MIME types for code projects
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('application/javascript', '.ts')
+mimetypes.add_type('application/javascript', '.tsx')
+mimetypes.add_type('application/javascript', '.jsx')
+
 UPLOAD_FOLDER = os.path.join("static", "uploads", "avatars")
 ALLOWED_EXTS = {"png", "jpg", "jpeg", "webp", "jfif"}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -1290,17 +1298,55 @@ def init_db():
             pass
     conn.commit()
 
-    # default users
-    try:
-        c.execute("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
-                  ("admin", "admin@novus.local", "123", "admin"))
-        c.execute("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
-                  ("publisher", "publisher@novus.local", "123", "publisher"))
-        c.execute("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
-                  ("student", "student@novus.local", "123", "student"))
+    # tool_links table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS tool_links (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            url TEXT NOT NULL,
+            description TEXT,
+            category TEXT,
+            plan_required TEXT DEFAULT 'basic',
+            icon_type TEXT,
+            icon_value TEXT,
+            is_project INTEGER DEFAULT 0,
+            project_name TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Migration for existing tool_links table
+    c.execute("PRAGMA table_info(tool_links)")
+    columns = [col[1] for col in c.fetchall()]
+    if 'is_project' not in columns:
+        c.execute("ALTER TABLE tool_links ADD COLUMN is_project INTEGER DEFAULT 0")
+        logger.info("Added 'is_project' column to tool_links table")
+    if 'project_name' not in columns:
+        c.execute("ALTER TABLE tool_links ADD COLUMN project_name TEXT")
+        logger.info("Added 'project_name' column to tool_links table")
+
+    # Seed default tool links if table is empty
+    c.execute("SELECT COUNT(*) FROM tool_links")
+    if c.fetchone()[0] == 0:
+        default_links = [
+            ('Google Workspace', 'https://workspace.google.com', 'Create workspace for your organization', 'work', 'basic', 'img', 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg'),
+            ('Figma - Design Tool', 'https://figma.com', 'Design innovation website', 'tools', 'basic', 'img', 'https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg'),
+            ('GitHub - Repositories', 'https://github.com', 'GitHub website - repositories', 'work', 'basic', 'fa', 'fab fa-github'),
+            ('YouTube', 'https://youtube.com', 'Watch videos and stream content', 'social', 'basic', 'fa', 'fab fa-youtube'),
+            ('Twitter / X', 'https://x.com', 'Social networking platform', 'social', 'basic', 'fa', 'fab fa-twitter'),
+            ('Notion', 'https://notion.so', 'All-in-one workspace for notes', 'work', 'basic', 'img', 'https://upload.wikimedia.org/wikipedia/commons/4/45/Notion_app_logo.png'),
+            ('Discord', 'https://discord.com', 'Chat and communicate with friends', 'social', 'basic', 'fa', 'fab fa-discord'),
+            ('VS Code Web', 'https://vscode.dev', 'Code editor in your browser', 'tools', 'basic', 'fa', 'fas fa-code'),
+            ('ChatGPT', 'https://chat.openai.com', 'AI assistant for conversations', 'tools', 'basic', 'fa', 'fas fa-robot'),
+            ('Canva', 'https://canva.com', 'Create stunning designs easily', 'tools', 'basic', 'fa', 'fas fa-palette'),
+            ('Slack', 'https://slack.com', 'Team communication platform', 'work', 'basic', 'fa', 'fab fa-slack')
+        ]
+        c.executemany("""
+            INSERT INTO tool_links (name, url, description, category, plan_required, icon_type, icon_value)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, default_links)
         conn.commit()
-    except sqlite3.IntegrityError:
-        pass
+
     conn.close()
 
 
@@ -7543,6 +7589,594 @@ def inject_avatar_settings():
 def faq():
     """Display FAQ & Guidelines page"""
     return render_template("faq.html")
+
+
+# -------------------- TOOLS ROUTE --------------------
+@app.route("/tools")
+def tools():
+    """Display Tools / Web Hub page"""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    is_admin = session.get("role") == "admin"
+    return render_template("tools.html", is_admin=is_admin)
+
+
+@app.route("/code-projects")
+def code_projects():
+    """Display dedicated Code Projects gallery page"""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    is_admin = session.get("role") == "admin"
+    return render_template("code_projects.html", is_admin=is_admin)
+
+
+# -------------------- TOOLS API ROUTES (Code Projects & Terminal) --------------------
+import zipfile
+import shutil
+import subprocess
+import json as json_module
+
+CODE_PROJECTS_FOLDER = os.path.join("static", "code_projects")
+os.makedirs(CODE_PROJECTS_FOLDER, exist_ok=True)
+
+import re
+def fix_html_paths(project_path):
+    """Automatically convert absolute paths (/index.css) to relative in HTML files"""
+    for dirpath, _, filenames in os.walk(project_path):
+        for f in filenames:
+            if f.endswith(".html"):
+                fp = os.path.join(dirpath, f)
+                try:
+                    with open(fp, 'r', encoding='utf-8') as file:
+                        content = file.read()
+                    
+                    # Replace href="/..." and src="/..." with relative versions
+                    # We look for / but only if it's the start of the path
+                    new_content = re.sub(r'(href|src)=["\']/(?!/)', r'\1="', content)
+                    
+                    if new_content != content:
+                        with open(fp, 'w', encoding='utf-8') as file:
+                            file.write(new_content)
+                except Exception as e:
+                    logger.error(f"Failed to fix paths in {fp}: {e}")
+
+
+@app.route("/api/tools/upload-zip", methods=["POST"])
+@admin_required
+def tools_upload_zip():
+    """Upload and extract a ZIP file as a code project"""
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
+    file = request.files["file"]
+    if not file.filename or not file.filename.lower().endswith(".zip"):
+        return jsonify({"error": "File must be a ZIP archive"}), 400
+    
+    # Generate project name from filename
+    project_name = secure_filename(file.filename.rsplit(".", 1)[0])
+    if not project_name:
+        project_name = f"project_{int(datetime.now().timestamp())}"
+    
+    # Create unique folder name if already exists
+    base_name = project_name
+    counter = 1
+    while os.path.exists(os.path.join(CODE_PROJECTS_FOLDER, project_name)):
+        project_name = f"{base_name}_{counter}"
+        counter += 1
+    
+    project_path = os.path.join(CODE_PROJECTS_FOLDER, project_name)
+    os.makedirs(project_path, exist_ok=True)
+    
+    # Save and extract ZIP
+    zip_path = os.path.join(project_path, "temp.zip")
+    try:
+        file.save(zip_path)
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(project_path)
+        os.remove(zip_path)
+        
+        # Get project size
+        total_size = 0
+        for dirpath, dirnames, filenames in os.walk(project_path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                total_size += os.path.getsize(fp)
+        
+        # Fix paths
+        fix_html_paths(project_path)
+        
+        return jsonify({
+            "success": True,
+            "project": {
+                "name": project_name,
+                "path": project_path,
+                "size": total_size,
+                "created_at": datetime.now().isoformat()
+            }
+        })
+    except Exception as e:
+        # Cleanup on error
+        if os.path.exists(project_path):
+            shutil.rmtree(project_path)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/tools/upload-files", methods=["POST"])
+@admin_required
+def tools_upload_files():
+    """Upload multiple files to create a code project"""
+    if "files" not in request.files:
+        return jsonify({"error": "No files provided"}), 400
+    
+    project_name = request.form.get("project_name", "").strip()
+    if not project_name:
+        project_name = f"project_{int(datetime.now().timestamp())}"
+    project_name = secure_filename(project_name)
+    
+    # Create unique folder
+    base_name = project_name
+    counter = 1
+    while os.path.exists(os.path.join(CODE_PROJECTS_FOLDER, project_name)):
+        project_name = f"{base_name}_{counter}"
+        counter += 1
+    
+    project_path = os.path.join(CODE_PROJECTS_FOLDER, project_name)
+    os.makedirs(project_path, exist_ok=True)
+    
+    try:
+        files = request.files.getlist("files")
+        for file in files:
+            if file.filename:
+                # Preserve folder structure from webkitRelativePath if available
+                relative_path = request.form.get(f"path_{file.filename}", file.filename)
+                file_path = os.path.join(project_path, secure_filename(relative_path.replace("/", os.sep)))
+                os.makedirs(os.path.dirname(file_path), exist_ok=True) if os.path.dirname(file_path) else None
+                file.save(file_path)
+        
+        # Get project size
+        total_size = 0
+        for dirpath, dirnames, filenames in os.walk(project_path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                total_size += os.path.getsize(fp)
+        
+        # Fix paths
+        fix_html_paths(project_path)
+        
+        return jsonify({
+            "success": True,
+            "project": {
+                "name": project_name,
+                "path": project_path,
+                "size": total_size,
+                "created_at": datetime.now().isoformat()
+            }
+        })
+    except Exception as e:
+        if os.path.exists(project_path):
+            shutil.rmtree(project_path)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/tools/projects", methods=["GET"])
+def tools_list_projects():
+    """List all uploaded code projects"""
+    projects = []
+    
+    if os.path.exists(CODE_PROJECTS_FOLDER):
+        for name in os.listdir(CODE_PROJECTS_FOLDER):
+            project_path = os.path.join(CODE_PROJECTS_FOLDER, name)
+            if os.path.isdir(project_path):
+                # Calculate size
+                total_size = 0
+                file_count = 0
+                for dirpath, dirnames, filenames in os.walk(project_path):
+                    for f in filenames:
+                        fp = os.path.join(dirpath, f)
+                        total_size += os.path.getsize(fp)
+                        file_count += 1
+                
+                # Get creation time
+                created_at = datetime.fromtimestamp(os.path.getctime(project_path)).isoformat()
+                
+                projects.append({
+                    "name": name,
+                    "size": total_size,
+                    "file_count": file_count,
+                    "created_at": created_at
+                })
+    
+    return jsonify({"projects": sorted(projects, key=lambda x: x["created_at"], reverse=True)})
+
+
+@app.route("/api/tools/projects/<project_name>", methods=["DELETE"])
+@admin_required
+def tools_delete_project(project_name):
+    # ...
+    pass # placeholder for search
+
+from flask import send_from_directory
+@app.route("/raw-project/<path:filepath>")
+def serve_project_raw(filepath):
+    """Serve project files with explicit MIME types and auto-extension resolution"""
+    # filepath matches project_name/internal_path
+    directory = CODE_PROJECTS_FOLDER # d:\nist project\computer\library\novus-library\static\code_projects
+    full_path = os.path.join(directory, filepath)
+    
+    # Try adding extensions if file doesn't exist
+    if not os.path.exists(full_path) and '.' not in os.path.basename(filepath):
+        for ext in ['.tsx', '.ts', '.jsx', '.js']:
+            if os.path.exists(full_path + ext):
+                filepath += ext
+                full_path += ext
+                break
+
+    mimetype = None
+    file_ext = os.path.splitext(filepath)[1].lower()
+    if file_ext in {'.ts', '.tsx', '.jsx'}:
+        mimetype = 'application/javascript'
+    elif file_ext == '.css':
+        mimetype = 'text/css'
+    
+    return send_from_directory(directory, filepath, mimetype=mimetype)
+    
+    if not os.path.exists(project_path):
+        return jsonify({"error": "Project not found"}), 404
+    
+    try:
+        shutil.rmtree(project_path)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------- Tool Links Persistence API ----------
+
+@app.route("/api/tools/links", methods=["GET"])
+def tools_get_links():
+    """Retrieve all tool links from the database"""
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session["user_id"]
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Get user's plan
+    user_plan = c.execute("SELECT plan FROM users WHERE id = ?", (user_id,)).fetchone()
+    user_plan = user_plan[0] if user_plan else "basic"
+    
+    links = c.execute("""
+        SELECT id, name, url, description, category, plan_required, icon_type, icon_value, is_project, project_name 
+        FROM tool_links 
+        ORDER BY created_at DESC
+    """).fetchall()
+    conn.close()
+    
+    plan_levels = {"basic": 0, "pro": 1, "ultimate": 2}
+    user_level = plan_levels.get(user_plan, 0)
+    
+    return jsonify({
+        "links": [{
+            "id": row[0],
+            "name": row[1],
+            "url": row[2],
+            "description": row[3],
+            "category": row[4],
+            "plan": row[5],
+            "icon_type": row[6],
+            "icon_value": row[7],
+            "is_project": bool(row[8]),
+            "project_name": row[9],
+            "locked": plan_levels.get(row[5], 0) > user_level
+        } for row in links]
+    })
+
+
+@app.route("/api/tools/projects/promote", methods=["POST"])
+@admin_required
+def tools_promote_project():
+    """Promote a code project to a tool link"""
+    # This might be multipart/form-data for an icon upload
+    name = request.form.get("name")
+    project_name = request.form.get("project_name")
+    description = request.form.get("description", "")
+    category = request.form.get("category", "tools")
+    plan = request.form.get("plan", "basic")
+    
+    if not name or not project_name:
+        return jsonify({"error": "Name and Project Name are required"}), 400
+    
+    icon_type = "fa"
+    icon_value = "fas fa-code" # Default
+    
+    # Handle icon upload
+    if "icon" in request.files:
+        file = request.files["icon"]
+        if file and file.filename:
+            filename = secure_filename(f"icon_{project_name}_{file.filename}")
+            icon_path = os.path.join("static", "uploads", "tool_icons", filename)
+            file.save(os.path.join(APP_ROOT, icon_path))
+            icon_type = "img"
+            icon_value = "/" + icon_path.replace("\\", "/") # Ensure absolute path for web
+
+    conn = get_conn()
+    c = conn.cursor()
+    # URL will be /project-view/<project_name>
+    url = f"/project-view/{project_name}"
+    
+    c.execute("""
+        INSERT INTO tool_links (name, url, description, category, plan_required, icon_type, icon_value, is_project, project_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+    """, (name, url, description, category, plan, icon_type, icon_value, project_name))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+
+@app.route("/project-view/<project_name>")
+@login_required
+def project_view(project_name):
+    """Premium viewing page for code projects"""
+    # Verify project exists
+    project_path = os.path.join(CODE_PROJECTS_FOLDER, project_name)
+    if not os.path.exists(project_path):
+        flash("Project not found.", "danger")
+        return redirect(url_for("tools"))
+    
+    return render_template("project_view.html", project_name=project_name)
+
+
+@app.route("/api/tools/links", methods=["POST"])
+@admin_required
+def tools_add_link():
+    """Add a new tool link (Admin Only)"""
+    data = request.json
+    if not data or not data.get("name") or not data.get("url"):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    name = data.get("name")
+    url = data.get("url")
+    description = data.get("description", "")
+    category = data.get("category", "work")
+    plan = data.get("plan", "basic")
+    icon_type = data.get("icon_type", "fa")
+    icon_value = data.get("icon_value", "fas fa-globe")
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO tool_links (name, url, description, category, plan_required, icon_type, icon_value)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (name, url, description, category, plan, icon_type, icon_value))
+    new_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True, "id": new_id})
+
+
+@app.route("/api/tools/links/<int:link_id>", methods=["PUT"])
+@admin_required
+def tools_update_link(link_id):
+    """Update an existing tool link (Admin Only)"""
+    data = request.json
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Check if exists
+    c.execute("SELECT id FROM tool_links WHERE id = ?", (link_id,))
+    if not c.fetchone():
+        conn.close()
+        return jsonify({"error": "Link not found"}), 404
+    
+    # Update fields
+    fields = []
+    values = []
+    
+    mapping = {
+        "name": "name",
+        "url": "url",
+        "description": "description",
+        "category": "category",
+        "plan": "plan_required",
+        "icon_type": "icon_type",
+        "icon_value": "icon_value"
+    }
+    
+    for key, col in mapping.items():
+        if key in data:
+            fields.append(f"{col} = ?")
+            values.append(data[key])
+    
+    if not fields:
+        conn.close()
+        return jsonify({"error": "Nothing to update"}), 400
+    
+    values.append(link_id)
+    c.execute(f"UPDATE tool_links SET {', '.join(fields)} WHERE id = ?", values)
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+
+@app.route("/api/tools/links/<int:link_id>", methods=["DELETE"])
+@admin_required
+def tools_delete_link(link_id):
+    """Delete a tool link (Admin Only)"""
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("DELETE FROM tool_links WHERE id = ?", (link_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+
+@app.route("/api/tools/projects/<project_name>/download", methods=["GET"])
+@admin_required
+def tools_download_project(project_name):
+    """Download a project as ZIP"""
+    project_name = secure_filename(project_name)
+    project_path = os.path.join(CODE_PROJECTS_FOLDER, project_name)
+    
+    if not os.path.exists(project_path):
+        return jsonify({"error": "Project not found"}), 404
+    
+    try:
+        # Create ZIP in memory
+        import io
+        memory_file = io.BytesIO()
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for root, dirs, files in os.walk(project_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, project_path)
+                    zf.write(file_path, arcname)
+        
+        memory_file.seek(0)
+        response = make_response(memory_file.read())
+        response.headers["Content-Type"] = "application/zip"
+        response.headers["Content-Disposition"] = f"attachment; filename={project_name}.zip"
+        return response
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/tools/terminal", methods=["POST"])
+@admin_required
+def tools_terminal():
+    """Execute a terminal command in a project directory (ADMIN ONLY)"""
+    data = request.get_json(silent=True) or {}
+    command = data.get("command", "").strip()
+    project_name = data.get("project", "").strip()
+    
+    if not command:
+        return jsonify({"error": "No command provided"}), 400
+        
+    # Get current session CWD or default to CODE_PROJECTS_FOLDER
+    session_cwd = session.get("terminal_cwd", CODE_PROJECTS_FOLDER)
+    
+    # If a specific project is selected in the UI dropdown, override session_cwd if not already inside it
+    if project_name:
+        project_name = secure_filename(project_name)
+        project_root = os.path.join(CODE_PROJECTS_FOLDER, project_name)
+        if not os.path.exists(project_root):
+             return jsonify({"error": f"Project '{project_name}' not found"}), 404
+        # If we aren't currently in this project or a subfolder of it, jump to its root
+        if not session_cwd.startswith(project_root):
+            session_cwd = project_root
+            session["terminal_cwd"] = session_cwd
+
+    cwd = session_cwd
+    if not os.path.exists(cwd):
+        cwd = CODE_PROJECTS_FOLDER
+        session["terminal_cwd"] = cwd
+
+    # Security: Block dangerous commands
+    dangerous_patterns = [
+        "rm -rf /", "rmdir /s", "format", "del /f /s /q",
+        ":(){ :|:& };:", "mkfs", "dd if=", "> /dev/sda",
+        "shutdown", "reboot", "halt", "poweroff", "rm ", "del "
+    ]
+    cmd_lower = command.lower()
+    for pattern in dangerous_patterns:
+        if pattern in cmd_lower:
+            return jsonify({"error": "Command blocked for security reasons"}), 403
+
+    # Handle 'cd' command specially
+    if cmd_lower.startswith("cd "):
+        target = command[3:].strip().strip('"').strip("'")
+        if not target or target == "~":
+            new_cwd = CODE_PROJECTS_FOLDER
+        elif target == "..":
+            new_cwd = os.path.dirname(cwd)
+            # Don't allow going above CODE_PROJECTS_FOLDER
+            if not os.path.abspath(new_cwd).startswith(os.path.abspath(CODE_PROJECTS_FOLDER)):
+                new_cwd = CODE_PROJECTS_FOLDER
+        else:
+            new_cwd = os.path.abspath(os.path.join(cwd, target))
+            if not new_cwd.startswith(os.path.abspath(CODE_PROJECTS_FOLDER)):
+                return jsonify({"error": "Access denied"}), 403
+            if not os.path.exists(new_cwd) or not os.path.isdir(new_cwd):
+                return jsonify({"error": "Directory not found"}), 404
+        
+        session["terminal_cwd"] = new_cwd
+        # Return success with updated path
+        rel_path = os.path.relpath(new_cwd, CODE_PROJECTS_FOLDER)
+        prompt_path = "~" if rel_path == "." else f"~/{rel_path.replace(os.sep, '/')}"
+        return jsonify({
+            "success": True, 
+            "stdout": "", 
+            "stderr": "", 
+            "returncode": 0, 
+            "cwd": prompt_path
+        })
+
+    try:
+        # Run command with timeout
+        result = subprocess.run(
+            command,
+            shell=True,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=120  # 2 minute timeout
+        )
+        
+        rel_path = os.path.relpath(cwd, CODE_PROJECTS_FOLDER)
+        prompt_path = "~" if rel_path == "." else f"~/{rel_path.replace(os.sep, '/')}"
+
+        return jsonify({
+            "success": True,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "returncode": result.returncode,
+            "cwd": prompt_path
+        })
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Command timed out (max 120 seconds)"}), 408
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/tools/terminal/files", methods=["GET"])
+@admin_required
+def tools_terminal_files():
+    """List files in a project directory for the terminal"""
+    project_name = request.args.get("project", "").strip()
+    subpath = request.args.get("path", "").strip()
+    
+    if project_name:
+        project_name = secure_filename(project_name)
+        base_path = os.path.join(CODE_PROJECTS_FOLDER, project_name)
+    else:
+        base_path = CODE_PROJECTS_FOLDER
+    
+    if subpath:
+        target_path = os.path.join(base_path, subpath)
+    else:
+        target_path = base_path
+    
+    if not os.path.exists(target_path):
+        return jsonify({"error": "Path not found"}), 404
+    
+    items = []
+    for name in os.listdir(target_path):
+        item_path = os.path.join(target_path, name)
+        items.append({
+            "name": name,
+            "is_dir": os.path.isdir(item_path),
+            "size": os.path.getsize(item_path) if os.path.isfile(item_path) else 0
+        })
+    
+    return jsonify({"items": sorted(items, key=lambda x: (not x["is_dir"], x["name"]))})
 
 
 # -------------------- ERROR HANDLERS --------------------

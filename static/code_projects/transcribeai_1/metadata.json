@@ -1,0 +1,7 @@
+{
+  "name": "TranscribeAI",
+  "description": "A professional-grade audio transcription tool that generates accurate timestamps using Gemini 3 Flash. Upload any audio file and get a searchable, downloadable transcript in seconds.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

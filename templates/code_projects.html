@@ -1,0 +1,656 @@
+{% extends "base.html" %}
+
+{% block title %}Code Projects - Novus Lib{% endblock %}
+
+{% block content %}
+<div class="content">
+    <div class="header-section">
+        <h1>Code Projects</h1>
+        <p>Explore and launch your uploaded web projects.</p>
+    </div>
+
+    <!-- Category Filters -->
+    <div class="category-filters">
+        <button class="filter-btn active" data-category="all">All Projects</button>
+        <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input type="text" id="projectSearch" placeholder="Search projects...">
+        </div>
+    </div>
+
+    <div class="tools-grid" id="projectsGrid">
+        <!-- Projects will be loaded here dynamically -->
+        <div class="loading-spinner">
+            <i class="fas fa-circle-notch fa-spin"></i>
+            <p>Loading projects...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Project Viewer Overlay -->
+<div id="projectViewer" class="project-viewer">
+    <div class="viewer-header">
+        <h2 id="viewerTitle">Project Name</h2>
+        <div class="viewer-actions">
+            <button onclick="toggleFullscreen()" class="viewer-btn" title="Toggle Fullscreen">
+                <i class="fas fa-expand"></i>
+            </button>
+            <button onclick="closeViewer()" class="viewer-btn close" title="Close Viewer">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <div class="viewer-content">
+        <iframe id="viewerFrame" src="about:blank"></iframe>
+    </div>
+</div>
+
+<style>
+    .header-section {
+        margin-bottom: 2rem;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 2rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .header-section h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #fff 0%, #00d4ff 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .category-filters {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-btn {
+        padding: 0.8rem 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #888;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
+    }
+
+    .filter-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        transform: translateY(-2px);
+    }
+
+    .filter-btn.active {
+        background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+    }
+
+    .search-container {
+        position: relative;
+        flex: 1;
+        max-width: 400px;
+    }
+
+    .search-container i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    .search-container input {
+        width: 100%;
+        padding: 0.8rem 1rem 0.8rem 3rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: #fff;
+        outline: none;
+        transition: all 0.3s;
+    }
+
+    .search-container input:focus {
+        border-color: #00d4ff;
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.1);
+    }
+
+    .tools-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .loading-spinner {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 4rem;
+        color: #888;
+    }
+
+    .loading-spinner i {
+        font-size: 2rem;
+        color: #00d4ff;
+        margin-bottom: 1rem;
+    }
+
+    .project-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 1.5rem;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .project-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(0, 212, 255, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .project-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at top right, rgba(0, 212, 255, 0.1), transparent);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .project-card:hover::before {
+        opacity: 1;
+    }
+
+    .project-info h3 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+        color: #fff;
+    }
+
+    .project-meta {
+        font-size: 0.85rem;
+        color: #888;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .project-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .project-meta span i {
+        color: #00d4ff;
+    }
+
+    .project-actions {
+        display: flex;
+        gap: 0.8rem;
+        margin-top: auto;
+    }
+
+    .btn-launch {
+        flex: 2;
+        padding: 0.8rem;
+        background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+        color: white;
+        border-radius: 12px;
+        cursor: pointer;
+        text-align: center;
+        font-weight: 600;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border: none;
+    }
+
+    .btn-launch:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+    }
+
+    .btn-promote {
+        flex: 1;
+        padding: 0.8rem;
+        background: rgba(0, 255, 153, 0.1);
+        border: 1px solid rgba(0, 255, 153, 0.2);
+        border-radius: 12px;
+        color: #00ff99;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-promote:hover {
+        background: rgba(0, 255, 153, 0.2);
+        box-shadow: 0 4px 15px rgba(0, 255, 153, 0.2);
+        transform: translateY(-2px);
+    }
+
+    .btn-download {
+        flex: 1;
+        padding: 0.8rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border-radius: 12px;
+        text-decoration: none;
+        text-align: center;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-download:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Project Viewer Styles - Integrated Look */
+    .project-viewer {
+        position: fixed;
+        top: 2rem;
+        right: 2rem;
+        bottom: 2rem;
+        left: 2rem;
+        background: #1a1a1c;
+        z-index: 10000;
+        display: none;
+        flex-direction: column;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 0 100vw rgba(0, 0, 0, 0.7);
+        overflow: hidden;
+        animation: viewerScaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes viewerScaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9) translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    .viewer-header {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        backdrop-filter: blur(20px);
+    }
+
+    .viewer-header h2 {
+        font-size: 1.2rem;
+        color: #fff;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .viewer-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .viewer-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #888;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .viewer-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+
+    .viewer-btn.close:hover {
+        background: #ff4d4d;
+        color: white;
+        border-color: transparent;
+    }
+
+    .viewer-content {
+        flex: 1;
+        position: relative;
+    }
+
+    .viewer-content iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: white;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+<!-- Promote Modal -->
+<div id="promoteModal" class="project-viewer"
+    style="display: none; align-items: center; justify-content: center; z-index: 20000; background: rgba(0,0,0,0.85);">
+    <div
+        style="background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; width: 500px; padding: 2.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); position: relative; animation: viewerScaleIn 0.3s ease;">
+        <button onclick="closePromoteModal()"
+            style="position: absolute; top: 1.5rem; right: 1.5rem; background: transparent; border: none; color: #94a3b8; cursor: pointer; font-size: 1.2rem;">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <h2 style="margin-bottom: 2rem; display: flex; align-items: center; gap: 15px; color: white;">
+            <div
+                style="width: 45px; height: 45px; background: rgba(0, 255, 153, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #00ff99;">
+                <i class="fas fa-rocket fa-lg"></i>
+            </div>
+            Promote Project
+        </h2>
+
+        <form id="promoteForm" onsubmit="handlePromote(event)">
+            <input type="hidden" id="promoteProjectName">
+
+            <div style="margin-bottom: 1.25rem;">
+                <label
+                    style="display: block; margin-bottom: 0.5rem; color: #94a3b8; font-size: 0.9rem; font-weight: 500;">Gallery
+                    Display Name</label>
+                <input type="text" id="promoteDisplayName" required placeholder="e.g. AI Transcriber Pro"
+                    style="width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); padding: 12px 16px; border-radius: 12px; color: white; outline: none; transition: border-color 0.3s;"
+                    onfocus="this.style.borderColor='#00ff99'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <label
+                    style="display: block; margin-bottom: 0.5rem; color: #94a3b8; font-size: 0.9rem; font-weight: 500;">Short
+                    Description</label>
+                <textarea id="promoteDescription" rows="3" placeholder="Explain what this tool does..."
+                    style="width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); padding: 12px 16px; border-radius: 12px; color: white; outline: none; resize: none; transition: border-color 0.3s;"
+                    onfocus="this.style.borderColor='#00ff99'"
+                    onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <label
+                    style="display: block; margin-bottom: 0.5rem; color: #94a3b8; font-size: 0.9rem; font-weight: 500;">Custom
+                    Icon (Recommended)</label>
+                <div
+                    style="background: #0f172a; border: 2px dashed rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 12px; text-align: center;">
+                    <i class="fas fa-image"
+                        style="font-size: 1.5rem; color: #475569; margin-bottom: 0.5rem; display: block;"></i>
+                    <input type="file" id="promoteIcon" accept="image/*"
+                        style="font-size: 0.85rem; color: #94a3b8; width: 100%;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label
+                        style="display: block; margin-bottom: 0.5rem; color: #94a3b8; font-size: 0.9rem; font-weight: 500;">Category</label>
+                    <select id="promoteCategory"
+                        style="width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 12px; color: white; outline: none;">
+                        <option value="tools">Tools</option>
+                        <option value="work">Work</option>
+                        <option value="social">Social</option>
+                        <option value="ai">AI Features</option>
+                    </select>
+                </div>
+                <div>
+                    <label
+                        style="display: block; margin-bottom: 0.5rem; color: #94a3b8; font-size: 0.9rem; font-weight: 500;">Access
+                        Level</label>
+                    <select id="promotePlan"
+                        style="width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 12px; color: white; outline: none;">
+                        <option value="basic">Basic (Public)</option>
+                        <option value="pro">Pro Member</option>
+                        <option value="ultimate">Ultimate Only</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit"
+                style="width: 100%; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00ff99 0%, #00cc7a 100%); color: #0f172a; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 10px 20px rgba(0, 255, 153, 0.2);">
+                <i class="fas fa-check-circle" style="margin-right: 8px;"></i> Confirm Promotion
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', initProjects);
+
+    async function initProjects() {
+        const grid = document.getElementById('projectsGrid');
+        if (!grid) return;
+
+        try {
+            const response = await fetch('/api/tools/projects');
+            const data = await response.json();
+
+            if (data.projects) {
+                grid.innerHTML = '';
+                if (data.projects.length === 0) {
+                    grid.innerHTML = '<div class="loading-spinner"><p>No projects found. Upload one in the Tools page!</p></div>';
+                    return;
+                }
+
+                data.projects.forEach(project => {
+                    grid.appendChild(createProjectCard(project));
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load projects:', error);
+            grid.innerHTML = '<div class="loading-spinner"><p style="color: #ff4d4d;">Failed to load projects.</p></div>';
+        }
+    }
+
+    function createProjectCard(project) {
+        const card = document.createElement('div');
+        card.className = 'project-card';
+
+        const sizeKB = (project.size / 1024).toFixed(1);
+        const date = new Date(project.created_at).toLocaleDateString();
+
+        card.innerHTML = `
+            <div class="project-info">
+                <h3>${project.name}</h3>
+                <div class="project-meta">
+                    <span><i class="fas fa-file-code"></i> ${project.file_count} files</span>
+                    <span><i class="fas fa-hdd"></i> ${sizeKB} KB</span>
+                    <span><i class="fas fa-calendar-alt"></i> ${date}</span>
+                </div>
+            </div>
+            <div class="project-actions">
+                <button onclick="launchProject('${project.name}')" class="btn-launch" title="Inline View">
+                    <i class="fas fa-play"></i> Launch
+                </button>
+                <button onclick="openPromoteModal('${project.name}')" class="btn-promote" title="Promote to Tools">
+                    <i class="fas fa-upload"></i> Upload
+                </button>
+                <a href="/api/tools/projects/${project.name}/download" class="btn-download" title="Download ZIP">
+                    <i class="fas fa-download"></i>
+                </a>
+            </div>
+        `;
+        return card;
+    }
+
+    async function launchProject(name) {
+        const viewer = document.getElementById('projectViewer');
+        const frame = document.getElementById('viewerFrame');
+        const title = document.getElementById('viewerTitle');
+
+        title.textContent = name;
+
+        try {
+            const response = await fetch(`/raw-project/${name}/index.html`);
+            if (!response.ok) throw new Error('Failed to fetch project index');
+
+            let html = await response.text();
+
+            // Check if project has .tsx or .jsx
+            const isReact = html.includes('.tsx') || html.includes('.jsx');
+
+            if (isReact) {
+                // Add Babel Standalone, escaping the closing script tag
+                const babelScript = '<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>';
+                html = html.replace('</head>', `${babelScript}\n</head>`);
+
+                // Change script types to text/babel and add data-type="module", escaping closing tags
+                html = html.replace(/<script\s+type="module"\s+src=["'](.*?\.(tsx|jsx))["']><\/script>/g,
+                    '<script type="text/babel" data-type="module" src="$1"><\/script>');
+            }
+
+            // Handle base path for assets
+            const baseTag = `<base href="/raw-project/${name}/">`;
+            html = html.replace('<head>', `<head>\n${baseTag}`);
+
+            // Set content using srcdoc
+            frame.srcdoc = html;
+        } catch (err) {
+            console.error('Launch error:', err);
+            // Fallback to direct URL if fetch/srcdoc fails
+            frame.srcdoc = '';
+            frame.src = `/raw-project/${name}/index.html`;
+        }
+
+        viewer.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeViewer() {
+        const viewer = document.getElementById('projectViewer');
+        const frame = document.getElementById('viewerFrame');
+
+        viewer.style.display = 'none';
+        frame.src = 'about:blank';
+        document.body.style.overflow = 'auto'; // Restore scroll
+    }
+
+    // Promotion logic
+    function openPromoteModal(projectName) {
+        document.getElementById('promoteProjectName').value = projectName;
+        document.getElementById('promoteDisplayName').value = projectName.replace(/_/g, ' ').toUpperCase();
+        document.getElementById('promoteModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closePromoteModal() {
+        document.getElementById('promoteModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+        document.getElementById('promoteForm').reset();
+    }
+
+    async function handlePromote(e) {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('name', document.getElementById('promoteDisplayName').value);
+        formData.append('project_name', document.getElementById('promoteProjectName').value);
+        formData.append('description', document.getElementById('promoteDescription').value);
+        formData.append('category', document.getElementById('promoteCategory').value);
+        formData.append('plan', document.getElementById('promotePlan').value);
+
+        const iconFile = document.getElementById('promoteIcon').files[0];
+        if (iconFile) {
+            formData.append('icon', iconFile);
+        }
+
+        try {
+            const response = await fetch('/api/tools/projects/promote', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                closePromoteModal();
+                showToast('Project promoted to Tools gallery!', 'success');
+            } else {
+                showToast(result.error || 'Promotion failed', 'error');
+            }
+        } catch (err) {
+            showToast('Error promoting project: ' + err.message, 'error');
+        }
+    }
+
+    function showToast(msg, type = 'success') {
+        Toastify({
+            text: msg,
+            duration: 3000,
+            close: true,
+            gravity: "top",
+            position: "right",
+            stopOnFocus: true,
+            style: {
+                background: type === 'success' ? "linear-gradient(to right, #00b09b, #96c93d)" : "linear-gradient(to right, #ff5f6d, #ffc371)",
+                borderRadius: "12px",
+                boxShadow: "0 10px 20px rgba(0,0,0,0.2)"
+            }
+        }).showToast();
+    }
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+
+    // Search functionality
+    const searchInput = document.getElementById('projectSearch');
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const cards = document.querySelectorAll('.project-card');
+
+        cards.forEach(card => {
+            const name = card.querySelector('h3').textContent.toLowerCase();
+            if (name.includes(query)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

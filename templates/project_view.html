@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novus | {{ project_name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-sidebar: rgba(15, 23, 42, 0.8);
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --accent-cyan: #00d4ff;
+            --accent-purple: #9333ea;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            background: radial-gradient(circle at top right, rgba(0, 212, 255, 0.05), transparent),
+                radial-gradient(circle at bottom left, rgba(147, 51, 234, 0.05), transparent);
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            margin-bottom: 2.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-box {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+        }
+
+        .sidebar-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 1.5rem;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(-4px);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.1);
+        }
+
+        .nav-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        header {
+            height: 80px;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        .search-container {
+            position: relative;
+            width: 400px;
+        }
+
+        .search-container i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-dim);
+        }
+
+        .search-container input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 12px 12px 48px;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-container input:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.1);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .icon-btn {
+            color: var(--text-dim);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .icon-btn:hover {
+            color: var(--accent-cyan);
+        }
+
+        .notification-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            border: 2px solid var(--bg-dark);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent-purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            overflow: hidden;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Iframe Container */
+        .iframe-container {
+            flex: 1;
+            padding: 1.5rem;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .iframe-wrapper {
+            flex: 1;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .iframe-header {
+            height: 40px;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            color: #475569;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        iframe {
+            width: 100%;
+            height: calc(100% - 40px);
+            border: none;
+        }
+
+        /* Decorative Particles Overlay */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background-image:
+                radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="particles"></div>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-box">V</div>
+            <span class="sidebar-title">Novus Hub</span>
+        </div>
+
+        <a href="/tools" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Dashboard</span>
+        </a>
+
+        <div class="nav-section">
+            <a href="#" class="nav-item active">
+                <i class="fas fa-layer-group"></i>
+                <span>Overview</span>
+            </a>
+            <a href="/code-projects" class="nav-item">
+                <i class="fas fa-code-branch"></i>
+                <span>Projects</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-terminal"></i>
+                <span>Terminal</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search resources...">
+            </div>
+
+            <div class="header-actions">
+                <i class="fas fa-bell icon-btn"><span class="notification-dot"></span></i>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        {% if user_avatar %}
+                        <img src="{{ user_avatar }}" alt="User Avatar">
+                        {% else %}
+                        <i class="fas fa-user"></i>
+                        {% endif %}
+                    </div>
+                    <i class="fas fa-chevron-down"
+                        style="font-size: 0.8rem; margin-right: 8px; color: var(--text-dim);"></i>
+                </div>
+            </div>
+        </header>
+
+        <div class="iframe-container">
+            <div class="iframe-wrapper">
+                <div class="iframe-header">
+                    <i class="fas fa-globe-americas" style="margin-right: 8px; color: #64748b;"></i>
+                    {{ project_name }}
+                </div>
+                <!-- We fetch the index via the raw route just like launchProject did -->
+                <iframe id="projectIframe"></iframe>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Load project content into iframe with Babel support
+        async function loadProject(name) {
+            const frame = document.getElementById('projectIframe');
+            try {
+                const response = await fetch(`/raw-project/${name}/index.html`);
+                if (!response.ok) throw new Error('Failed to fetch project');
+
+                let html = await response.text();
+                const isReact = html.includes('.tsx') || html.includes('.jsx');
+
+                if (isReact) {
+                    const babelScript = '<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>';
+                    html = html.replace('</head>', `${babelScript}\n</head>`);
+                    html = html.replace(/<script\s+type="module"\s+src=["'](.*?\.(tsx|jsx))["']><\/script>/g,
+                        '<script type="text/babel" data-type="module" src="$1"><\/script>');
+                }
+
+                const baseTag = `<base href="/raw-project/${name}/">`;
+                html = html.replace('<head>', `<head>\n${baseTag}`);
+
+                frame.srcdoc = html;
+            } catch (err) {
+                console.error('Error loading project:', err);
+                frame.src = `/raw-project/${name}/index.html`;
+            }
+        }
+
+        loadProject('{{ project_name }}');
+    </script>
+</body>
+
+</html>

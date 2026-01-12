@@ -1,0 +1,1899 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .tools-container {
+        min-height: calc(100vh - 80px);
+        background: linear-gradient(135deg, #0c1220 0%, #1a2337 50%, #0d1526 100%);
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Background mesh gradient effect */
+    .tools-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background:
+            radial-gradient(circle at 20% 80%, rgba(0, 100, 200, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(0, 150, 200, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(0, 80, 180, 0.08) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    /* Main header */
+    .tools-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        position: relative;
+        z-index: 10;
+    }
+
+    .tools-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .tools-brand-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #00d4ff, #0099cc);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+    }
+
+    .tools-brand-text {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .tools-search-wrapper {
+        flex: 1;
+        max-width: 400px;
+        margin: 0 2rem;
+    }
+
+    .tools-search-input {
+        width: 100%;
+        padding: 12px 20px 12px 45px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: white;
+        font-size: 0.9rem;
+        outline: none;
+        transition: all 0.3s ease;
+    }
+
+    .tools-search-input::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .tools-search-input:focus {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(0, 212, 255, 0.4);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
+    }
+
+    .tools-search-wrapper {
+        position: relative;
+    }
+
+    .tools-search-wrapper i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .tools-header-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .tools-notification-btn {
+        width: 40px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: rgba(255, 255, 255, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .tools-notification-btn:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: white;
+    }
+
+    .tools-user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 2px solid rgba(0, 212, 255, 0.5);
+        object-fit: cover;
+    }
+
+    /* Hero section */
+    .tools-hero {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 2rem 2.5rem;
+        margin-bottom: 2rem;
+        backdrop-filter: blur(10px);
+        position: relative;
+        z-index: 10;
+    }
+
+    .tools-hero h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .tools-hero p {
+        color: rgba(255, 255, 255, 0.6);
+        margin: 0;
+        font-size: 0.95rem;
+    }
+
+    .tools-hero p strong {
+        color: #00d4ff;
+    }
+
+    /* Main layout */
+    .tools-main-layout {
+        display: flex;
+        gap: 2rem;
+        position: relative;
+        z-index: 10;
+    }
+
+    /* Sidebar */
+    .tools-sidebar {
+        width: 200px;
+        flex-shrink: 0;
+    }
+
+    .tools-category-btn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 12px 18px;
+        background: transparent;
+        border: none;
+        border-radius: 12px;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 6px;
+        text-align: left;
+    }
+
+    .tools-category-btn:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: white;
+    }
+
+    .tools-category-btn.active {
+        background: rgba(0, 212, 255, 0.15);
+        color: #00d4ff;
+    }
+
+    .tools-category-btn i {
+        width: 20px;
+        text-align: center;
+    }
+
+    /* Grid container */
+    .tools-grid {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    /* Tool cards */
+    .tool-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 1.5rem;
+        backdrop-filter: blur(5px);
+        transition: all 0.3s ease;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tool-card:hover {
+        background: rgba(255, 255, 255, 0.07);
+        border-color: rgba(255, 255, 255, 0.15);
+        transform: translateY(-4px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .tool-card-menu {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 28px;
+        height: 28px;
+        background: rgba(255, 255, 255, 0.06);
+        border: none;
+        border-radius: 6px;
+        color: rgba(255, 255, 255, 0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .tool-card-menu:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: white;
+    }
+
+    /* Dropdown menu for card actions */
+    .tool-card-dropdown {
+        position: absolute;
+        top: 45px;
+        right: 12px;
+        background: #1a2337;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 6px 0;
+        min-width: 140px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        z-index: 100;
+        display: none;
+    }
+
+    .tool-card-dropdown.active {
+        display: block;
+        animation: dropdownSlideIn 0.2s ease;
+    }
+
+    @keyframes dropdownSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .tool-card-dropdown button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 16px;
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: left;
+    }
+
+    .tool-card-dropdown button:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+    }
+
+    .tool-card-dropdown button.delete-btn:hover {
+        background: rgba(220, 53, 69, 0.15);
+        color: #dc3545;
+    }
+
+    .tool-card-dropdown button i {
+        width: 16px;
+        text-align: center;
+    }
+
+    .tool-card-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        font-size: 1.8rem;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .tool-card-icon img {
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
+    }
+
+    .tool-card h3 {
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 6px 0;
+    }
+
+    .tool-card p {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.8rem;
+        margin: 0 0 1rem 0;
+        flex: 1;
+        line-height: 1.5;
+    }
+
+    .tool-card-launch {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .tool-card-launch.cyan {
+        background: linear-gradient(135deg, #00d4ff, #0099cc);
+        color: white;
+        border: none;
+    }
+
+    .tool-card-launch.cyan:hover {
+        box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        transform: translateY(-2px);
+    }
+
+    /* Add new card */
+    .tool-card.add-new {
+        border: 2px dashed rgba(0, 212, 255, 0.3);
+        background: rgba(0, 212, 255, 0.03);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        cursor: pointer;
+        min-height: 200px;
+    }
+
+    .tool-card.add-new:hover {
+        border-color: rgba(0, 212, 255, 0.5);
+        background: rgba(0, 212, 255, 0.08);
+    }
+
+    .add-new-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 200, 0.3));
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .add-new-icon i {
+        font-size: 1.5rem;
+        color: #00d4ff;
+    }
+
+    .add-new-title {
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    /* Icon backgrounds */
+    .icon-google {
+        background: white;
+    }
+
+    .icon-figma {
+        background: linear-gradient(135deg, #1e1e1e, #333);
+    }
+
+    .icon-github {
+        background: #24292e;
+        color: white;
+    }
+
+    .icon-alttralk {
+        background: linear-gradient(135deg, #ff6b35, #f7931e);
+    }
+
+    .icon-mongien {
+        background: linear-gradient(135deg, #e91e63, #9c27b0);
+    }
+
+    .icon-archiver {
+        background: linear-gradient(135deg, #4caf50, #8bc34a, #ff9800, #2196f3);
+    }
+
+    .icon-mitsnira {
+        background: linear-gradient(135deg, #ff5722, #e91e63);
+    }
+
+    .icon-youtube {
+        background: #ff0000;
+        color: white;
+    }
+
+    .icon-twitter {
+        background: #1da1f2;
+        color: white;
+    }
+
+    .icon-notion {
+        background: white;
+        color: #000;
+    }
+
+    .icon-slack {
+        background: #4a154b;
+        color: white;
+    }
+
+    .icon-discord {
+        background: #5865f2;
+        color: white;
+    }
+
+    .icon-vscode {
+        background: linear-gradient(135deg, #007acc, #0066aa);
+        color: white;
+    }
+
+    .icon-chatgpt {
+        background: #10a37f;
+        color: white;
+    }
+
+    .icon-canva {
+        background: linear-gradient(135deg, #00c4cc, #7b2ff2);
+        color: white;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .tools-main-layout {
+            flex-direction: column;
+        }
+
+        .tools-sidebar {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tools-category-btn {
+            flex: 1;
+            min-width: 140px;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .tools-container {
+            padding: 1rem;
+        }
+
+        .tools-header {
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .tools-search-wrapper {
+            order: 3;
+            max-width: 100%;
+            margin: 0;
+        }
+
+        .tools-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Add Link Modal Styles */
+    .add-link-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 1rem;
+    }
+
+    .add-link-modal.active {
+        display: flex;
+    }
+
+    .add-link-dialog {
+        background: #1a2337;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        width: 100%;
+        max-width: 500px;
+        padding: 2rem;
+        animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .add-link-dialog h2 {
+        color: white;
+        font-size: 1.3rem;
+        margin: 0 0 1.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .add-link-dialog h2 i {
+        color: #00d4ff;
+    }
+
+    .add-link-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.85rem;
+        margin-bottom: 6px;
+        font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: white;
+        font-size: 0.9rem;
+        outline: none;
+        transition: all 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        border-color: rgba(0, 212, 255, 0.5);
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .form-group select option {
+        background: #1a2337;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 1rem;
+    }
+
+    .btn-cancel {
+        flex: 1;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-save {
+        flex: 1;
+        padding: 12px;
+        background: linear-gradient(135deg, #00d4ff, #0099cc);
+        border: none;
+        border-radius: 10px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-save:hover {
+        box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+    }
+
+    /* Success toast */
+    .tools-toast {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: #10b981;
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.4s ease;
+        z-index: 10001;
+    }
+
+    .tools-toast.show {
+        transform: translateY(0);
+        opacity: 1;
+    }
+</style>
+
+<div class="tools-container">
+    <!-- Header -->
+    <div class="tools-header">
+        <div class="tools-brand">
+            <div class="tools-brand-icon">
+                <i class="fas fa-link"></i>
+            </div>
+            <span class="tools-brand-text">My Web Hub</span>
+        </div>
+
+        <div class="tools-search-wrapper">
+            <i class="fas fa-search"></i>
+            <input type="text" class="tools-search-input" placeholder="Search..." id="toolsSearch">
+        </div>
+
+        <div class="tools-header-right">
+            <button class="tools-notification-btn">
+                <i class="fas fa-bell"></i>
+            </button>
+            {% if user_avatar %}
+            <img src="{{ user_avatar }}" alt="User" class="tools-user-avatar">
+            {% else %}
+            <div class="tools-user-avatar"
+                style="background: linear-gradient(135deg, #00d4ff, #0099cc); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-user" style="color: white;"></i>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="tools-hero">
+        <h1>Your Gateway to the Web</h1>
+        <p>Welcome to the modern "<strong>Link Hub</strong>" website dashboard.</p>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="tools-main-layout">
+        <!-- Sidebar -->
+        <div class="tools-sidebar">
+            <button class="tools-category-btn active" data-category="all">
+                <i class="fas fa-th-large"></i>
+                All Links
+            </button>
+            <button class="tools-category-btn" data-category="work">
+                <i class="fas fa-briefcase"></i>
+                Work
+            </button>
+            <button class="tools-category-btn" data-category="social">
+                <i class="fas fa-users"></i>
+                Social
+            </button>
+            <button class="tools-category-btn" data-category="tools">
+                <i class="fas fa-wrench"></i>
+                Tools
+            </button>
+        </div>
+
+        <!-- Tools Grid -->
+        <div class="tools-grid" id="toolsGrid">
+            <!-- Add New Card (Admin Only) -->
+            {% if is_admin %}
+            <div class="tool-card add-new" onclick="openAddLinkModal()">
+                <div class="add-new-icon">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <h3 class="add-new-title">Add New Website Link</h3>
+            </div>
+            {% endif %}
+
+            <!-- Tool cards will be loaded dynamically from the database -->
+        </div>
+    </div>
+</div>
+
+<!-- Code Projects & Terminal Section (Admin Only) -->
+{% if is_admin %}
+<div class="tools-container" style="padding-top: 0;">
+    <!-- Section Header -->
+    <div class="tools-hero" style="margin-bottom: 1.5rem;">
+        <h1><i class="fas fa-code" style="color: #00d4ff; margin-right: 12px;"></i>Code Projects & Terminal</h1>
+        <p>Upload code projects and run commands directly on the server.</p>
+    </div>
+
+    <div class="tools-main-layout">
+        <!-- Left Column: Upload & Projects -->
+        <div style="flex: 1; min-width: 300px;">
+            <!-- Upload Section -->
+            <div class="code-upload-section">
+                <h3 style="color: white; margin: 0 0 1rem 0; font-size: 1rem;"><i class="fas fa-upload"
+                        style="color: #00d4ff; margin-right: 8px;"></i>Upload Code</h3>
+
+                <!-- ZIP Upload Dropzone -->
+                <div class="upload-dropzone" id="zipDropzone" onclick="document.getElementById('zipFileInput').click()">
+                    <i class="fas fa-file-archive"></i>
+                    <p>Drop ZIP file here or click to browse</p>
+                    <input type="file" id="zipFileInput" accept=".zip" style="display: none;"
+                        onchange="handleZipUpload(this.files[0])">
+                </div>
+
+                <!-- File Browser Upload -->
+                <div class="upload-dropzone" id="folderDropzone"
+                    onclick="document.getElementById('folderFileInput').click()" style="margin-top: 1rem;">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Upload multiple files / folder</p>
+                    <input type="file" id="folderFileInput" webkitdirectory multiple style="display: none;"
+                        onchange="handleFolderUpload(this.files)">
+                </div>
+            </div>
+
+            <!-- Projects List -->
+            <div class="projects-list-section">
+                <h3
+                    style="color: white; margin: 0 0 1rem 0; font-size: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fas fa-folder" style="color: #00d4ff; margin-right: 8px;"></i>Projects</span>
+                    <div style="display: flex; gap: 8px;">
+                        <a href="/code-projects" target="_blank" class="refresh-btn" title="Open Gallery"
+                            style="text-decoration: none; display: flex; align-items: center; justify-content: center;"><i
+                                class="fas fa-external-link-alt"></i></a>
+                        <button class="refresh-btn" onclick="loadProjects()"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </h3>
+                <div id="projectsList" class="projects-list">
+                    <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Terminal -->
+        <div style="flex: 2; min-width: 400px;">
+            <div class="terminal-section">
+                <div class="terminal-header">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-terminal" style="color: #00d4ff;"></i>
+                        <span style="font-weight: 600; color: white;">Terminal</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <select id="terminalProject" class="terminal-project-select" onchange="updateTerminalCwd()">
+                            <option value="">Root (code_projects/)</option>
+                        </select>
+                        <button class="terminal-btn" onclick="clearTerminal()" title="Clear"><i
+                                class="fas fa-trash-alt"></i></button>
+                    </div>
+                </div>
+                <div class="terminal-output" id="terminalOutput">
+                    <div class="terminal-welcome">
+                        <span style="color: #00d4ff;">Welcome to NOVUS Terminal</span><br>
+                        <span style="color: rgba(255,255,255,0.5);">Type commands below. Use project selector to change
+                            directory.</span>
+                    </div>
+                </div>
+                <div class="terminal-input-wrapper">
+                    <span class="terminal-prompt" id="terminalPrompt">~/static/projects$</span>
+                    <input type="text" id="terminalInput" class="terminal-input" placeholder="Type command..."
+                        onkeydown="handleTerminalKeydown(event)">
+                    <button class="terminal-run-btn" onclick="runTerminalCommand()"><i class="fas fa-play"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Code Upload Section */
+    .code-upload-section {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .upload-dropzone {
+        border: 2px dashed rgba(0, 212, 255, 0.3);
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: rgba(0, 212, 255, 0.03);
+    }
+
+    .upload-dropzone:hover,
+    .upload-dropzone.dragover {
+        border-color: rgba(0, 212, 255, 0.6);
+        background: rgba(0, 212, 255, 0.08);
+    }
+
+    .upload-dropzone i {
+        font-size: 2rem;
+        color: #00d4ff;
+        margin-bottom: 0.5rem;
+    }
+
+    .upload-dropzone p {
+        color: rgba(255, 255, 255, 0.6);
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    /* Projects List */
+    .projects-list-section {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 1.5rem;
+    }
+
+    .projects-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .project-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .project-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .project-info h4 {
+        color: white;
+        margin: 0 0 4px 0;
+        font-size: 0.95rem;
+    }
+
+    .project-info p {
+        color: rgba(255, 255, 255, 0.5);
+        margin: 0;
+        font-size: 0.75rem;
+    }
+
+    .project-actions {
+        display: flex;
+        gap: 6px;
+    }
+
+    .project-actions button {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .project-actions button:hover {
+        background: rgba(0, 212, 255, 0.2);
+        color: #00d4ff;
+    }
+
+    .project-actions button.delete:hover {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+    }
+
+    .refresh-btn {
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .refresh-btn:hover {
+        background: rgba(0, 212, 255, 0.2);
+        color: #00d4ff;
+    }
+
+    /* Terminal Section */
+    .terminal-section {
+        background: #0d1117;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        overflow: hidden;
+        height: 100%;
+        min-height: 450px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .terminal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .terminal-project-select {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        color: white;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        outline: none;
+    }
+
+    .terminal-project-select option {
+        background: #1a2337;
+    }
+
+    .terminal-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .terminal-btn:hover {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+    }
+
+    .terminal-output {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        color: #c9d1d9;
+    }
+
+    .terminal-welcome {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .terminal-line {
+        margin-bottom: 4px;
+    }
+
+    .terminal-line.command {
+        color: #58a6ff;
+    }
+
+    .terminal-line.stdout {
+        color: #c9d1d9;
+        white-space: pre-wrap;
+    }
+
+    .terminal-line.stderr {
+        color: #f85149;
+        white-space: pre-wrap;
+    }
+
+    .terminal-line.error {
+        color: #f85149;
+    }
+
+    .terminal-line.success {
+        color: #3fb950;
+    }
+
+    .terminal-input-wrapper {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        gap: 8px;
+    }
+
+    .terminal-prompt {
+        color: #00d4ff;
+        font-family: 'Consolas', monospace;
+        font-weight: bold;
+    }
+
+    .terminal-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: white;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.9rem;
+        outline: none;
+    }
+
+    .terminal-run-btn {
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #00d4ff, #0099cc);
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .terminal-run-btn:hover {
+        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+    }
+
+    .loading-spinner {
+        color: rgba(255, 255, 255, 0.5);
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .empty-projects {
+        color: rgba(255, 255, 255, 0.4);
+        text-align: center;
+        padding: 2rem;
+    }
+</style>
+{% endif %}
+
+<!-- Add Link Modal -->
+<div class="add-link-modal" id="addLinkModal">
+    <div class="add-link-dialog">
+        <h2><i class="fas fa-link"></i> Add New Link</h2>
+        <form class="add-link-form" id="addLinkForm" onsubmit="handleAddLink(event)">
+            <div class="form-group">
+                <label for="linkName">Website Name</label>
+                <input type="text" id="linkName" placeholder="e.g. Google Drive" required>
+            </div>
+            <div class="form-group">
+                <label for="linkUrl">URL</label>
+                <input type="url" id="linkUrl" placeholder="https://..." required>
+            </div>
+            <div class="form-group">
+                <label for="linkDescription">Description</label>
+                <textarea id="linkDescription" rows="2" placeholder="Short description..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="linkCategory">Category</label>
+                <select id="linkCategory">
+                    <option value="work">Work</option>
+                    <option value="social">Social</option>
+                    <option value="tools">Tools</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="linkPlan">Plan Required to Access</label>
+                <select id="linkPlan">
+                    <option value="basic">Basic (Free)</option>
+                    <option value="pro">Pro</option>
+                    <option value="ultimate">Ultimate</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-cancel" onclick="closeAddLinkModal()">Cancel</button>
+                <button type="submit" class="btn-save">Save Link</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Link Modal -->
+<div class="add-link-modal" id="editLinkModal">
+    <div class="add-link-dialog">
+        <h2><i class="fas fa-edit"></i> Edit Link</h2>
+        <form class="add-link-form" id="editLinkForm" onsubmit="handleEditLink(event)">
+            <div class="form-group">
+                <label for="editLinkName">Website Name</label>
+                <input type="text" id="editLinkName" placeholder="e.g. Google Drive" required>
+            </div>
+            <div class="form-group">
+                <label for="editLinkUrl">URL</label>
+                <input type="url" id="editLinkUrl" placeholder="https://..." required>
+            </div>
+            <div class="form-group">
+                <label for="editLinkDescription">Description</label>
+                <textarea id="editLinkDescription" rows="2" placeholder="Short description..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="editLinkCategory">Category</label>
+                <select id="editLinkCategory">
+                    <option value="work">Work</option>
+                    <option value="social">Social</option>
+                    <option value="tools">Tools</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="editLinkPlan">Plan Required to Access</label>
+                <select id="editLinkPlan">
+                    <option value="basic">Basic (Free)</option>
+                    <option value="pro">Pro</option>
+                    <option value="ultimate">Ultimate</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-cancel" onclick="closeEditLinkModal()">Cancel</button>
+                <button type="submit" class="btn-save">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="tools-toast" id="toolsToast">
+    <i class="fas fa-check-circle"></i>
+    <span id="toastMessage">Link added successfully!</span>
+</div>
+
+<style>
+    /* Plan Badge Styles */
+    .plan-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .plan-badge.basic {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .plan-badge.pro {
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 255, 0.2));
+        color: #00d4ff;
+        border: 1px solid rgba(0, 212, 255, 0.3);
+    }
+
+    .plan-badge.ultimate {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
+        color: #ffd700;
+        border: 1px solid rgba(255, 215, 0, 0.3);
+    }
+
+    .tool-card.locked {
+        opacity: 0.7;
+    }
+
+    .tool-card.locked .tool-card-launch {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+        cursor: not-allowed;
+    }
+
+    .lock-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .tool-card.locked:hover .lock-overlay {
+        opacity: 1;
+    }
+
+    .lock-overlay i {
+        font-size: 2rem;
+        color: rgba(255, 255, 255, 0.8);
+    }
+</style>
+
+<script>
+    // Category filter
+    const categoryBtns = document.querySelectorAll('.tools-category-btn');
+
+    categoryBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            categoryBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            applyFilters();
+        });
+    });
+
+    // Modal functions
+    function openAddLinkModal() {
+        document.getElementById('addLinkModal').classList.add('active');
+    }
+
+    function closeAddLinkModal() {
+        document.getElementById('addLinkModal').classList.remove('active');
+        document.getElementById('addLinkForm').reset();
+    }
+
+    // Search functionality
+    const searchInput = document.getElementById('toolsSearch');
+    searchInput.addEventListener('input', applyFilters);
+
+    function applyFilters() {
+        const activeCategoryBtn = document.querySelector('.tools-category-btn.active');
+        const category = activeCategoryBtn ? activeCategoryBtn.dataset.category : 'all';
+        const query = searchInput.value.toLowerCase().trim();
+
+        const toolCards = document.querySelectorAll('.tool-card:not(.add-new)');
+
+        toolCards.forEach(card => {
+            const cardCategory = card.dataset.category;
+            const cardName = card.dataset.name ? card.dataset.name.toLowerCase() : '';
+
+            const matchesCategory = (category === 'all' || cardCategory === category);
+            const matchesSearch = (query === '' || cardName.includes(query));
+
+            if (matchesCategory && matchesSearch) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // Load tool links on page load
+    document.addEventListener('DOMContentLoaded', initToolLinks);
+
+    async function initToolLinks() {
+        const grid = document.getElementById('toolsGrid');
+        if (!grid) return;
+
+        try {
+            const response = await fetch('/api/tools/links');
+            const data = await response.json();
+
+            if (data.links) {
+                // Keep "Add New" card but clear others
+                const addNewCard = grid.querySelector('.tool-card.add-new');
+                grid.innerHTML = '';
+                if (addNewCard) grid.appendChild(addNewCard);
+
+                data.links.forEach(link => {
+                    grid.appendChild(createToolCardElement(link));
+                });
+
+                // Re-apply current filter/search
+                applyFilters();
+
+                // Initial terminal sync
+                {% if is_admin %}
+                updateTerminalCwd();
+                {% endif %}
+            }
+        } catch (error) {
+            console.error('Failed to load tool links:', error);
+            showToast('Failed to load tool links');
+        }
+    }
+
+    function createToolCardElement(link) {
+        const card = document.createElement('div');
+        const isLocked = link.locked;
+        card.className = `tool-card ${isLocked ? 'locked' : ''}`;
+        card.dataset.id = link.id;
+        card.dataset.category = link.category;
+        card.dataset.name = link.name;
+        card.dataset.plan = link.plan;
+        card.dataset.url = link.url;
+
+        const planLabel = link.plan === 'basic' ? 'Free' : link.plan.charAt(0).toUpperCase() + link.plan.slice(1);
+        const isAdmin = {{ 'true' if is_admin else 'false' }
+    };
+
+    let iconHtml = '';
+    if (link.icon_type === 'img') {
+        iconHtml = `<img src="${link.icon_value}" alt="${link.name}">`;
+    } else {
+        iconHtml = `<i class="${link.icon_value || 'fas fa-globe'}"></i>`;
+    }
+
+    card.innerHTML = `
+            <span class="plan-badge ${link.plan}">${planLabel}</span>
+            ${link.is_project ? '<span class="project-tag" style="position: absolute; top: 10px; left: 10px; background: #00ff99; color: #0f172a; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">Project</span>' : ''}
+            ${isAdmin ? `
+            <button class="tool-card-menu" onclick="toggleCardMenu(event, this)"><i class="fas fa-ellipsis-h"></i></button>
+            <div class="tool-card-dropdown">
+                <button onclick="editToolCard(this)"><i class="fas fa-edit"></i> Edit</button>
+                <button class="delete-btn" onclick="deleteToolCard(this)"><i class="fas fa-trash"></i> Delete</button>
+            </div>
+            ` : ''}
+            <div class="tool-card-icon" style="${link.icon_type === 'fa' ? 'background: linear-gradient(135deg, #00d4ff, #0099cc); color: white;' : ''}">
+                ${iconHtml}
+            </div>
+            <h3>${link.name}</h3>
+            <p>${link.description || (link.is_project ? 'Uploaded code project' : 'Custom website link')}</p>
+            ${isLocked ? `
+                <div class="lock-overlay"><i class="fas fa-lock"></i></div>
+                <button class="tool-card-launch" disabled>Locked</button>
+            ` : `
+                <a href="${link.url}" ${link.is_project ? '' : 'target="_blank"'} class="tool-card-launch cyan">Launch</a>
+            `}
+        `;
+    return card;
+    }
+
+    async function handleAddLink(e) {
+        e.preventDefault();
+
+        const data = {
+            name: document.getElementById('linkName').value,
+            url: document.getElementById('linkUrl').value,
+            description: document.getElementById('linkDescription').value,
+            category: document.getElementById('linkCategory').value,
+            plan: document.getElementById('linkPlan').value,
+            icon_type: 'fa', // Default to FA icon for new links
+            icon_value: 'fas fa-globe'
+        };
+
+        try {
+            const response = await fetch('/api/tools/links', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                closeAddLinkModal();
+                showToast('Link added successfully!');
+                initToolLinks(); // Reload all links
+            } else {
+                showToast(result.error || 'Failed to add link');
+            }
+        } catch (error) {
+            showToast('Error: ' + error.message);
+        }
+    }
+
+    // ==================== DROPDOWN MENU FUNCTIONS ====================
+
+    // Toggle dropdown menu
+    function toggleCardMenu(event, btn) {
+        event.stopPropagation();
+        const dropdown = btn.nextElementSibling;
+
+        // Close all other dropdowns first
+        document.querySelectorAll('.tool-card-dropdown.active').forEach(d => {
+            if (d !== dropdown) d.classList.remove('active');
+        });
+
+        dropdown.classList.toggle('active');
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.tool-card-dropdown.active').forEach(d => {
+            d.classList.remove('active');
+        });
+    });
+
+    // ==================== EDIT MODAL FUNCTIONS ====================
+
+    let currentEditCard = null;
+
+    // Open Edit Modal with card data
+    function editToolCard(btn) {
+        const card = btn.closest('.tool-card');
+        currentEditCard = card;
+
+        // Close dropdown
+        card.querySelector('.tool-card-dropdown').classList.remove('active');
+
+        // Get current values
+        const name = card.querySelector('h3').textContent;
+        const description = card.querySelector('p').textContent;
+        const link = card.querySelector('.tool-card-launch');
+        const url = link ? link.href : card.dataset.url || '';
+        const category = card.dataset.category || 'work';
+        const plan = card.dataset.plan || 'basic';
+
+        // Populate form
+        document.getElementById('editLinkName').value = name;
+        document.getElementById('editLinkUrl').value = url;
+        document.getElementById('editLinkDescription').value = description;
+        document.getElementById('editLinkCategory').value = category;
+        document.getElementById('editLinkPlan').value = plan;
+
+        // Show modal
+        document.getElementById('editLinkModal').classList.add('active');
+    }
+
+    function closeEditLinkModal() {
+        document.getElementById('editLinkModal').classList.remove('active');
+        document.getElementById('editLinkForm').reset();
+        currentEditCard = null;
+    }
+
+    async function handleEditLink(e) {
+        e.preventDefault();
+
+        if (!currentEditCard) return;
+        const linkId = currentEditCard.dataset.id;
+
+        const data = {
+            name: document.getElementById('editLinkName').value,
+            url: document.getElementById('editLinkUrl').value,
+            description: document.getElementById('editLinkDescription').value,
+            category: document.getElementById('editLinkCategory').value,
+            plan: document.getElementById('editLinkPlan').value
+        };
+
+        try {
+            const response = await fetch(`/api/tools/links/${linkId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                closeEditLinkModal();
+                showToast('Link updated successfully!');
+                initToolLinks(); // Reload all links
+            } else {
+                showToast(result.error || 'Failed to update link');
+            }
+        } catch (error) {
+            showToast('Error: ' + error.message);
+        }
+    }
+
+    // Close edit modal on backdrop click
+    document.getElementById('editLinkModal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+            closeEditLinkModal();
+        }
+    });
+
+    // Delete tool card
+    async function deleteToolCard(btn) {
+        const card = btn.closest('.tool-card');
+        const name = card.querySelector('h3').textContent;
+        const linkId = card.dataset.id;
+
+        if (confirm(`Delete "${name}"? This cannot be undone.`)) {
+            try {
+                const response = await fetch(`/api/tools/links/${linkId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Link deleted successfully!');
+                    initToolLinks();
+                } else {
+                    showToast(result.error || 'Failed to delete link');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message);
+            }
+        }
+    }
+
+    function showToast(message) {
+        const toast = document.getElementById('toolsToast');
+        document.getElementById('toastMessage').textContent = message;
+        toast.classList.add('show');
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+
+    // Close modal on backdrop click
+
+    document.getElementById('addLinkModal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+            closeAddLinkModal();
+        }
+    });
+
+    // ==================== CODE PROJECTS & TERMINAL ====================
+    {% if is_admin %}
+
+    // Command history
+    let commandHistory = [];
+    let historyIndex = -1;
+
+    // Load projects on page load
+    document.addEventListener('DOMContentLoaded', loadProjects);
+
+    // Drag and drop for ZIP
+    const zipDropzone = document.getElementById('zipDropzone');
+    if (zipDropzone) {
+        zipDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zipDropzone.classList.add('dragover');
+        });
+        zipDropzone.addEventListener('dragleave', () => {
+            zipDropzone.classList.remove('dragover');
+        });
+        zipDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zipDropzone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.toLowerCase().endsWith('.zip')) {
+                handleZipUpload(file);
+            } else {
+                showToast('Please drop a ZIP file');
+            }
+        });
+    }
+
+    // Upload ZIP file
+    async function handleZipUpload(file) {
+        if (!file) return;
+
+        showToast('Uploading ZIP file...');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/tools/upload-zip', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(`Project "${data.project.name}" uploaded successfully!`);
+                loadProjects();
+            } else {
+                showToast(data.error || 'Upload failed');
+            }
+        } catch (error) {
+            showToast('Upload failed: ' + error.message);
+        }
+    }
+
+    // Upload folder/multiple files
+    async function handleFolderUpload(files) {
+        if (!files || files.length === 0) return;
+
+        // Get folder name from the first file's path
+        const firstPath = files[0].webkitRelativePath || files[0].name;
+        const folderName = firstPath.split('/')[0] || 'uploaded_project';
+
+        showToast(`Uploading ${files.length} files...`);
+
+        const formData = new FormData();
+        formData.append('project_name', folderName);
+
+        for (const file of files) {
+            formData.append('files', file);
+            if (file.webkitRelativePath) {
+                formData.append(`path_${file.name}`, file.webkitRelativePath);
+            }
+        }
+
+        try {
+            const response = await fetch('/api/tools/upload-files', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(`Project "${data.project.name}" uploaded successfully!`);
+                loadProjects();
+            } else {
+                showToast(data.error || 'Upload failed');
+            }
+        } catch (error) {
+            showToast('Upload failed: ' + error.message);
+        }
+    }
+
+    // Load projects list
+    async function loadProjects() {
+        const listEl = document.getElementById('projectsList');
+        const selectEl = document.getElementById('terminalProject');
+
+        if (!listEl) return;
+
+        listEl.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+        try {
+            const response = await fetch('/api/tools/projects');
+            const data = await response.json();
+
+            if (data.projects && data.projects.length > 0) {
+                listEl.innerHTML = data.projects.map(p => `
+                    <div class="project-item">
+                        <div class="project-info">
+                            <h4><i class="fas fa-folder" style="color: #00d4ff; margin-right: 6px;"></i>${p.name}</h4>
+                            <p>${formatBytes(p.size)} â€¢ ${p.file_count} files</p>
+                        </div>
+                        <div class="project-actions">
+                            <button onclick="openProjectInTerminal('${p.name}')" title="Open in Terminal"><i class="fas fa-terminal"></i></button>
+                            <button onclick="downloadProject('${p.name}')" title="Download"><i class="fas fa-download"></i></button>
+                            <button class="delete" onclick="deleteProject('${p.name}')" title="Delete"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Update terminal project selector
+                if (selectEl) {
+                    selectEl.innerHTML = '<option value="">Root (code_projects/)</option>' +
+                        data.projects.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+                }
+            } else {
+                listEl.innerHTML = '<div class="empty-projects"><i class="fas fa-folder-open"></i><br>No projects yet</div>';
+                if (selectEl) {
+                    selectEl.innerHTML = '<option value="">Root (code_projects/)</option>';
+                }
+            }
+        } catch (error) {
+            listEl.innerHTML = '<div class="empty-projects">Failed to load projects</div>';
+        }
+    }
+
+    // Delete project
+    async function deleteProject(name) {
+        if (!confirm(`Delete project "${name}"? This cannot be undone.`)) return;
+
+        try {
+            const response = await fetch(`/api/tools/projects/${encodeURIComponent(name)}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(`Project "${name}" deleted`);
+                loadProjects();
+            } else {
+                showToast(data.error || 'Delete failed');
+            }
+        } catch (error) {
+            showToast('Delete failed: ' + error.message);
+        }
+    }
+
+    // Download project as ZIP
+    function downloadProject(name) {
+        window.location.href = `/api/tools/projects/${encodeURIComponent(name)}/download`;
+    }
+
+    // Open project in terminal
+    function openProjectInTerminal(name) {
+        const selectEl = document.getElementById('terminalProject');
+        if (selectEl) {
+            selectEl.value = name;
+            // Explicitly call updateTerminalCwd to sync
+            updateTerminalCwd();
+        }
+    }
+
+    // Update Terminal CWD when project selector changes
+    async function updateTerminalCwd() {
+        const projectSelect = document.getElementById('terminalProject');
+        const projectName = projectSelect.value;
+
+        // Use a dummy 'cd' to the project folder to update session state
+        try {
+            const response = await fetch('/api/tools/terminal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    command: `cd .`, // Trigger cwd sync
+                    project: projectName
+                })
+            });
+            const data = await response.json();
+            if (data.success && data.cwd) {
+                document.getElementById('terminalPrompt').textContent = `${data.cwd}$`;
+                appendToTerminal(`Context changed to: ${data.cwd}`, 'success');
+            }
+        } catch (error) {
+            console.error('Failed to sync terminal CWD:', error);
+        }
+    }
+
+    // Terminal functions
+    function clearTerminal() {
+        const output = document.getElementById('terminalOutput');
+        if (output) {
+            output.innerHTML = `
+                <div class="terminal-welcome">
+                    <span style="color: #00d4ff;">NOVUS Terminal</span><br>
+                    <span style="color: rgba(255,255,255,0.5);">Terminal cleared.</span>
+                </div>
+            `;
+        }
+    }
+
+    function appendToTerminal(text, type = 'stdout') {
+        const output = document.getElementById('terminalOutput');
+        if (output) {
+            const line = document.createElement('div');
+            line.className = `terminal-line ${type}`;
+            line.textContent = text;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+    }
+
+    function handleTerminalKeydown(event) {
+        const input = document.getElementById('terminalInput');
+
+        if (event.key === 'Enter') {
+            runTerminalCommand();
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                input.value = commandHistory[commandHistory.length - 1 - historyIndex];
+            }
+        } else if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            if (historyIndex > 0) {
+                historyIndex--;
+                input.value = commandHistory[commandHistory.length - 1 - historyIndex];
+            } else {
+                historyIndex = -1;
+                input.value = '';
+            }
+        }
+    }
+
+    async function runTerminalCommand() {
+        const input = document.getElementById('terminalInput');
+        const projectSelect = document.getElementById('terminalProject');
+        const command = input.value.trim();
+
+        if (!command) return;
+
+        // Add to history
+        commandHistory.push(command);
+        historyIndex = -1;
+
+        // Show command in output
+        appendToTerminal(`$ ${command}`, 'command');
+        input.value = '';
+
+        try {
+            const response = await fetch('/api/tools/terminal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    command: command,
+                    project: projectSelect ? projectSelect.value : ''
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (data.stdout) {
+                    appendToTerminal(data.stdout, 'stdout');
+                }
+                if (data.stderr) {
+                    appendToTerminal(data.stderr, 'stderr');
+                }
+                if (data.returncode !== 0) {
+                    appendToTerminal(`Process exited with code ${data.returncode}`, 'error');
+                }
+
+                // Update dynamic prompt if cwd returned
+                if (data.cwd) {
+                    document.getElementById('terminalPrompt').textContent = `${data.cwd}$`;
+
+                    // If cwd is a project root, sync dropdown
+                    if (data.cwd.startsWith('~/')) {
+                        const parts = data.cwd.split('/');
+                        if (parts.length >= 2) {
+                            const projectName = parts[1];
+                            const options = Array.from(projectSelect.options);
+                            const hasProject = options.some(opt => opt.value === projectName);
+                            if (hasProject) projectSelect.value = projectName;
+                        } else if (data.cwd === '~') {
+                            projectSelect.value = '';
+                        }
+                    }
+                }
+            } else {
+                appendToTerminal(data.error || 'Command failed', 'error');
+            }
+        } catch (error) {
+            appendToTerminal('Error: ' + error.message, 'error');
+        }
+    }
+
+    // Utility: Format bytes
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    {% endif %}
+</script>
+{% endblock %}
