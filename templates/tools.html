@@ -1359,8 +1359,7 @@
         card.dataset.url = link.url;
 
         const planLabel = link.plan === 'basic' ? 'Free' : link.plan.charAt(0).toUpperCase() + link.plan.slice(1);
-        const isAdmin = {{ 'true' if is_admin else 'false' }
-    };
+        const isAdmin = {{ 'true' if is_admin else 'false' }};
 
     let iconHtml = '';
     if (link.icon_type === 'img') {
