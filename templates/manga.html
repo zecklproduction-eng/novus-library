@@ -146,14 +146,47 @@
     <!-- RIGHT: FILTER SIDEBAR -->
     <aside class="manga-filter-col">
       <div class="manga-filter-card">
-        <h3 class="filter-title">Filter by Realm</h3>
-        <div class="chip-row">
-          <a href="{{ url_for('manga') }}" class="chip {% if not selected_category %}chip-active{% endif %}">All
-            Worlds</a>
-          {% for cat in categories %}
-          <a href="{{ url_for('manga', category=cat) }}"
-            class="chip {% if cat == selected_category %}chip-active{% endif %}">{{ cat }}</a>
-          {% endfor %}
+        <h3 class="filter-title"><i class="fas fa-filter"></i> Refine Search</h3>
+
+        <div class="filter-group">
+          <label class="filter-label">Realm (Genre)</label>
+          <div class="chip-row">
+            <a href="{{ url_for('manga') }}" class="chip {% if not selected_category %}chip-active{% endif %}">All
+              Worlds</a>
+            {% for cat in categories %}
+            <a href="{{ url_for('manga', category=cat) }}"
+              class="chip {% if cat == selected_category %}chip-active{% endif %}">{{ cat }}</a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="filter-group" style="margin-top: 20px;">
+          <label class="filter-label">Art Style</label>
+          <div class="chip-row">
+            <span class="chip">Realistic</span>
+            <span class="chip">Stylized</span>
+            <span class="chip">Noir</span>
+            <span class="chip">Vibrant</span>
+          </div>
+        </div>
+
+        <div class="filter-group" style="margin-top: 20px;">
+          <label class="filter-label">Story Status</label>
+          <div class="chip-row">
+            <span class="chip">Ongoing</span>
+            <span class="chip">Completed</span>
+            <span class="chip">Hiatus</span>
+          </div>
+        </div>
+
+        <div class="filter-group" style="margin-top: 20px;">
+          <label class="filter-label">Atmosphere</label>
+          <div class="chip-row">
+            <span class="chip">Wholesome</span>
+            <span class="chip">Gritty</span>
+            <span class="chip">Epic</span>
+            <span class="chip">Cerebral</span>
+          </div>
         </div>
       </div>
     </aside>

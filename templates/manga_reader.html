@@ -36,6 +36,34 @@
     width: 100%;
   }
 
+  .sync-pulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--neon-blue);
+    border-radius: 50%;
+    margin-right: 5px;
+    box-shadow: 0 0 10px var(--neon-blue);
+    animation: sync-pulse 1.5s infinite;
+  }
+
+  @keyframes sync-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    50% {
+      transform: scale(1.5);
+      opacity: 0.5;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
   .manga-reader-container.fullscreen {
     position: fixed;
     top: 0;
@@ -1124,6 +1152,11 @@
     font-size: 16px;
   }
 
+  .more-options-menu .menu-item:hover {
+    background: rgba(0, 212, 255, 0.1);
+    color: var(--neon-blue) !important;
+  }
+
   /* NEW COMMENTS SECTION */
   .comments-section-new {
     margin-top: 24px;
@@ -1369,18 +1402,84 @@
     color: var(--text-muted);
     font-size: 14px;
   }
+
+  /* Spoiler Protection */
+  .spoiler-text {
+    background: #333;
+    color: transparent;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 0 4px;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .spoiler-text:hover {
+    background: #444;
+  }
+
+  .spoiler-text.revealed {
+    background: rgba(255, 255, 255, 0.05);
+    color: inherit;
+    user-select: text;
+  }
+
+  /* Emoji Reactions */
+  .reaction-bar {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .reaction-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+  }
+
+  .reaction-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--neon-blue);
+    transform: scale(1.05);
+  }
+
+  .reaction-btn.reacted {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+  }
+
+  .reaction-emoji {
+    font-size: 14px;
+  }
 </style>
 
 <div class="manga-reader-container">
   <!-- TOP BAR -->
   <div class="reader-top-bar">
     <div class="top-bar-left">
+      <a href="/manga/{{ manga[0] }}" class="btn-icon" title="Go Back">
+        <i class="fas fa-arrow-left"></i>
+      </a>
       <div class="chapter-title">
         <i class="fas fa-book"></i>
         <span id="chapterDisplay">{{ manga[1] }}</span>
       </div>
     </div>
     <div class="top-bar-right">
+      <button class="btn-premium" id="readTogetherBtn"
+        style="background: linear-gradient(135deg, #00d4ff, #9d50bb); color: #fff;">
+        <i class="fas fa-users"></i> <span>READTOGETHER</span>
+      </button>
       <button class="btn-premium" id="aiInsightsBtn">
         <i class="fas fa-sparkles"></i> <span>AI INSIGHTS</span>
       </button>
@@ -1390,7 +1489,10 @@
       <button class="btn-icon" id="reportBtn" title="Report Issue">
         <i class="fas fa-flag"></i>
       </button>
-      <button class="btn-icon" id="fullscreenBtn" title="Fullscreen">
+      <button class="btn-icon" id="zenModeBtn" title="Zen Mode (Z)">
+        <i class="fas fa-leaf"></i>
+      </button>
+      <button class="btn-icon" id="fullscreenBtn" title="Fullscreen (F)">
         <i class="fas fa-expand"></i>
       </button>
       <button class="btn-icon" title="Menu">
@@ -1437,6 +1539,9 @@
 
     <!-- RIGHT SIDEBAR -->
     <div class="reader-right">
+      {% set is_premium = session.get('plan') in ['pro', 'ultimate'] %}
+      {% set is_ultimate = session.get('plan') == 'ultimate' %}
+
       <!-- AI CHATBOT CARD -->
       <div class="sidebar-card">
         <div class="sidebar-header">
@@ -1447,6 +1552,64 @@
           <button class="ai-tab active" data-tab="chatbot">AI CHATBOT</button>
           <button class="ai-tab" data-tab="translate">AI TRANSLATE PANEL</button>
         </div>
+
+        <div id="aiChatContainer" style="display: flex; flex-direction: column; gap: 10px; height: 300px;">
+          {% if is_premium %}
+          <div id="aiChatHistory"
+            style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+            <div style="color: var(--neon-blue);">AI: Hello! How can I help you with this manga today?</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="aiChatInput" placeholder="Ask AI..."
+              style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 13px; outline: none;">
+            <button id="aiChatSend"
+              style="background: var(--neon-blue); border: none; border-radius: 8px; width: 36px; height: 36px; color: #000; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+          {% else %}
+          <div
+            style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 15px; background: rgba(0,0,0,0.4); border-radius: 10px; padding: 20px;">
+            <i class="fas fa-crown" style="font-size: 32px; color: #ffd700;"></i>
+            <div>
+              <div style="font-weight: 700; color: #fff; margin-bottom: 5px;">PRO FEATURE</div>
+              <p style="font-size: 12px; color: var(--text-muted);">The AI Chatbot is available only for Pro and
+                Ultimate members.</p>
+            </div>
+            <a href="{{ url_for('profile') }}?upgrade=true"
+              style="background: var(--neon-blue); color: #000; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 12px; text-decoration: none;">UPGRADE
+              NOW</a>
+          </div>
+          {% endif %}
+        </div>
+
+        <div id="aiTranslateContainer"
+          style="display: none; height: 350px; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 15px; font-size: 13px; color: #fff;">
+          {% if is_ultimate %}
+          <div style="text-align: center; margin-bottom: 15px;">
+            <i class="fas fa-language"
+              style="font-size: 24px; color: var(--neon-blue); margin-bottom: 10px; display: block;"></i>
+            <div style="font-weight: 600;">Culture & Context</div>
+            <p style="font-size: 11px; color: var(--text-muted);">Explain Japanese idioms and references on this page.
+            </p>
+          </div>
+          <div id="aiContextResult"
+            style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.1); border-radius: 8px; padding: 10px; margin-bottom: 10px; max-height: 180px;">
+            <div style="color: var(--text-muted); text-align: center; padding-top: 20px;">No context loaded for this
+              page yet.</div>
+          </div>
+          <button class="view-analysis-btn" onclick="loadPageContext()" style="width: 100%; height: 40px;"><i
+              class="fas fa-brain"></i> GET PAGE CONTEXT</button>
+          {% else %}
+          <div style="text-align: center; margin-top: 50px;">
+            <i class="fas fa-crown" style="font-size: 30px; color: #ffd700; margin-bottom: 15px; display: block;"></i>
+            <p style="color: var(--text-muted);">Ultimate plan required for Cultural Insights.</p>
+            <a href="{{ url_for('profile') }}?upgrade=true"
+              style="color: var(--neon-blue); font-size: 12px; text-decoration: none;">Upgrade to Ultimate</a>
+          </div>
+          {% endif %}
+        </div>
+
         <div class="ai-toggle">
           <span>AI ASSISTANT</span>
           <div class="toggle-switch active" id="aiToggle"></div>
@@ -1461,12 +1624,80 @@
         </div>
         <div class="ai-content">
           <div style="font-weight: 600; margin-bottom: 10px;">Smart Summary</div>
-          <div class="ai-summary">
-            <div class="ai-summary-point">Epic battle scenes and character development.</div>
-            <div class="ai-summary-point">Major plot twist revealed with backstory.</div>
-            <div class="ai-summary-point">New power-ups and abilities introduced.</div>
+          {% if is_premium %}
+          <div id="aiSummaryContent" class="ai-summary">
+            <div class="ai-summary-point">Fetching AI summary...</div>
           </div>
-          <button class="view-analysis-btn">VIEW FULL ANALYSIS</button>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
+            <button class="view-analysis-btn" onclick="loadAISummary(true)" style="width: 100%;">REGENERATE
+              SUMMARY</button>
+            {% if is_ultimate %}
+            <button class="view-analysis-btn" onclick="analyzeCurrentPage()"
+              style="width: 100%; background: var(--neon-purple); cursor: pointer;">
+              <i class="fas fa-eye"></i> ANALYZE THIS PAGE
+            </button>
+            {% else %}
+            <button class="view-analysis-btn" disabled
+              style="width: 100%; background: #333; cursor: not-allowed; opacity: 0.6;">
+              <i class="fas fa-lock"></i> ANALYZE (ULTIMATE ONLY)
+            </button>
+            {% endif %}
+          </div>
+          {% else %}
+          <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 15px; text-align: center;">
+            <i class="fas fa-lock" style="color: #ffd700; margin-bottom: 10px;"></i>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Upgrade to Pro to unlock the AI
+              Assistant.</p>
+            <a href="{{ url_for('profile') }}?upgrade=true"
+              style="color: var(--neon-blue); font-size: 12px; font-weight: 600; text-decoration: none;">Get Pro Access
+              <i class="fas fa-arrow-right"></i></a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- AI AMBIENT MOOD OST CARD -->
+      <div class="sidebar-card">
+        <div class="sidebar-header">
+          <i class="fas fa-headphones"></i>
+          AI AMBIENT OST
+        </div>
+        <div class="ai-content">
+          <div style="font-weight: 600; margin-bottom: 10px;">Mood-Based OST</div>
+          {% if is_ultimate %}
+          <div id="moodDisplay"
+            style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+            <i class="fas fa-compact-disc fa-spin" style="color: var(--neon-blue); font-size: 20px;"></i>
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                Current Mood</div>
+              <div id="currentMoodName" style="font-weight: 700; color: #fff; font-size: 14px;">DETECTING...</div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+              <span>Volume</span>
+              <span id="ostVolumeLabel">50%</span>
+            </div>
+            <input type="range" id="ostVolume" min="0" max="100" value="50"
+              style="width: 100%; accent-color: var(--neon-blue); height: 4px; cursor: pointer;">
+            <button id="ostToggle" class="view-analysis-btn"
+              style="width: 100%; border-color: var(--neon-blue); color: var(--neon-blue);">
+              <i class="fas fa-pause"></i> PAUSE AMBIENT
+            </button>
+          </div>
+          <audio id="ambientPlayer" loop></audio>
+          {% else %}
+          <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 15px; text-align: center;">
+            <i class="fas fa-crown" style="color: #ffd700; margin-bottom: 10px;"></i>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Ultimate plan required for AI
+              Ambient OST.</p>
+            <a href="{{ url_for('profile') }}?upgrade=true"
+              style="color: var(--neon-blue); font-size: 12px; font-weight: 600; text-decoration: none;">Upgrade to
+              Ultimate</a>
+          </div>
+          {% endif %}
         </div>
       </div>
 
@@ -1479,6 +1710,10 @@
         <div class="character-profiles" id="characterProfiles">
           <p style="color: #888; font-size: 12px; text-align: center;">Loading characters...</p>
         </div>
+        <button class="view-analysis-btn" id="viewRelationshipMapBtn"
+          style="width: calc(100% - 30px); margin: 0 15px 15px 15px; background: rgba(0, 212, 255, 0.1); border-color: var(--neon-blue); color: var(--neon-blue);">
+          <i class="fas fa-project-diagram"></i> AI RELATIONSHIP MAP
+        </button>
       </div>
     </div>
   </div>
@@ -1501,12 +1736,25 @@
       <button class="rating-btn dislike-btn" id="dislikeChapterBtn">
         <i class="fas fa-thumbs-down"></i>
       </button>
-      <button class="rating-btn share-btn" id="shareChapterBtn">
+      <button class="rating-btn share-btn" id="shareChapterBtn" onclick="shareChapter()">
         <i class="fas fa-share-alt"></i> Share
       </button>
-      <button class="rating-btn more-btn">
-        <i class="fas fa-ellipsis-h"></i>
-      </button>
+      <div style="position: relative;">
+        <button class="rating-btn more-btn" id="moreRatingOptionsBtn">
+          <i class="fas fa-ellipsis-h"></i>
+        </button>
+        <div id="moreRatingMenu" class="more-options-menu"
+          style="display: none; position: absolute; bottom: 100%; right: 0; background: #1a1a1f; border: 1px solid var(--glass-border); border-radius: 12px; padding: 8px; width: 180px; z-index: 100; margin-bottom: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+          <div class="menu-item" onclick="reportChapterIssue()"
+            style="padding: 10px; color: var(--text-secondary); cursor: pointer; border-radius: 8px; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-flag"></i> Report Problem
+          </div>
+          <div class="menu-item" onclick="window.location.href='/community'"
+            style="padding: 10px; color: var(--text-secondary); cursor: pointer; border-radius: 8px; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-users"></i> Open Community
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1679,7 +1927,124 @@
       </div>
     </div>
 
+    <div class="setting-item">
+      <label class="setting-label">AI Scan Enhancement</label>
+      <div
+        style="display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 10px; border: 1px solid var(--glass-border);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; color: var(--text-secondary);">Sharpen Text</span>
+          <div class="toggle-switch" onclick="toggleScanEffect('sharpen', this)" id="scan-sharpen"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; color: var(--text-secondary);">Denoiser</span>
+          <div class="toggle-switch" onclick="toggleScanEffect('denoise', this)" id="scan-denoise"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; color: var(--text-secondary);">Pro-Upscale (Simulated)</span>
+          <div class="toggle-switch" onclick="toggleScanEffect('upscale', this)" id="scan-upscale"></div>
+        </div>
+      </div>
+    </div>
+
     <button class="close-modal-btn" onclick="closeSettings()">Close</button>
+  </div>
+</div>
+
+<!-- AI RELATIONSHIP MAP MODAL -->
+<div id="relationshipMapModal" class="modal-overlay"
+  style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+  <div class="modal-content"
+    style="background: var(--bg-card); width: 95%; max-width: 800px; border-radius: 20px; border: 1px solid var(--glass-border); position: relative; padding: 30px; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+    <button onclick="document.getElementById('relationshipMapModal').style.display='none'"
+      style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; z-index: 10;"><i
+        class="fas fa-times"></i></button>
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; color: var(--neon-blue);">
+      <i class="fas fa-project-diagram" style="font-size: 24px;"></i>
+      <h2 style="margin: 0; font-family: 'Outfit', sans-serif;">AI Character Relationship Map</h2>
+    </div>
+    <div id="relationshipMapContent"
+      style="flex: 1; background: rgba(0,0,0,0.3); border-radius: 15px; padding: 20px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-content: flex-start;">
+      <div style="text-align: center; width: 100%; color: var(--text-muted); padding-top: 50px;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 30px; margin-bottom: 15px;"></i>
+        <p>Plotting connections...</p>
+      </div>
+    </div>
+    <div
+      style="margin-top: 20px; padding: 15px; background: rgba(0, 212, 255, 0.05); border-radius: 10px; font-size: 12px; color: var(--text-muted); border: 1px dashed rgba(0, 212, 255, 0.2);">
+      <i class="fas fa-info-circle"></i> This map is dynamically generated by AI based on currently read chapters.
+    </div>
+  </div>
+</div>
+
+<!-- READTOGETHER MODAL -->
+<div id="readTogetherModal" class="modal-overlay"
+  style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+  <div class="modal-content"
+    style="background: var(--bg-card); width: 90%; max-width: 500px; border-radius: 20px; border: 1px solid var(--glass-border); position: relative; padding: 30px; text-align: center;">
+    <button onclick="document.getElementById('readTogetherModal').style.display='none'"
+      style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;"><i
+        class="fas fa-times"></i></button>
+    <div style="font-size: 40px; color: var(--neon-blue); margin-bottom: 15px;"><i class="fas fa-users"></i></div>
+    <h2 style="font-family: 'Outfit', sans-serif; margin-bottom: 10px;">ReadTogether</h2>
+    <p style="color: var(--text-muted); margin-bottom: 25px;">Sync your reading experience with friends in real-time.
+    </p>
+    <div id="rt-setup" style="display: flex; flex-direction: column; gap: 15px;">
+      <div
+        style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 12px; padding: 20px;">
+        <div style="font-weight: 700; color: #fff; margin-bottom: 10px;">Create Reading Room</div>
+        <button onclick="startReadTogether()"
+          style="width: 100%; background: var(--neon-blue); color: #000; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;">LAUNCH
+          WORLD <i class="fas fa-rocket"></i></button>
+      </div>
+      <div
+        style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 12px; padding: 20px;">
+        <div style="font-weight: 700; color: #fff; margin-bottom: 10px;">Join Existing Room</div>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="rt-code-input" placeholder="Enter Room Code"
+            style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #fff; padding: 10px; border-radius: 8px;">
+          <button onclick="joinReadTogether()"
+            style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid var(--glass-border); padding: 5px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">JOIN</button>
+        </div>
+      </div>
+    </div>
+    <div id="rt-active" style="display: none;">
+      <div
+        style="margin-top: 20px; padding: 15px; background: rgba(0, 212, 255, 0.1); border-radius: 10px; color: var(--neon-blue); font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <span class="sync-pulse"></span> ONLINE: <span id="activeRoomCode">#RT-402</span>
+      </div>
+      <button onclick="stopReadTogether()"
+        style="margin-top: 20px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; padding: 10px 20px; border-radius: 10px; cursor: pointer; width: 100%;">LEAVE
+        ROOM</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHAPTER END OVERLAY -->
+<div id="chapterEndOverlay" class="modal-overlay"
+  style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2100; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+  <div class="modal-content"
+    style="background: var(--bg-card); width: 90%; max-width: 500px; border-radius: 24px; border: 1px solid var(--glass-border); padding: 40px; text-align: center;">
+    <div style="font-size: 48px; color: var(--neon-blue); margin-bottom: 20px;"><i class="fas fa-check-circle"></i>
+    </div>
+    <h2 style="font-family: 'Outfit', sans-serif; margin-bottom: 10px;">Chapter Complete!</h2>
+    <p style="color: var(--text-muted); margin-bottom: 30px;">You've finished this chapter. What's next?</p>
+    <div
+      style="background: rgba(255,255,255,0.03); border-radius: 15px; padding: 20px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.05);">
+      <div
+        style="font-size: 11px; color: var(--neon-blue); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">
+        Up Next</div>
+      <div id="nextChapterTitle" style="font-weight: 700; font-size: 18px; color: #fff;">Chapter Title</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <button onclick="goToNextChapter()"
+        style="background: var(--neon-blue); color: #000; border: none; padding: 14px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px;">CONTINUE
+        TO NEXT CHAPTER <i class="fas fa-arrow-right"></i></button>
+      <button onclick="document.getElementById('chapterEndOverlay').style.display='none'"
+        style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--glass-border); padding: 12px; border-radius: 12px; cursor: pointer; font-size: 14px;">STAY
+        ON THIS PAGE</button>
+      <a href="/manga" style="color: var(--text-muted); text-decoration: none; font-size: 13px; margin-top: 10px;">Back
+        to Library</a>
+    </div>
   </div>
 </div>
 
@@ -1731,23 +2096,87 @@
   }
 
   // Fullscreen Button
-  document.getElementById('fullscreenBtn')?.addEventListener('click', () => {
+  document.getElementById('fullscreenBtn')?.addEventListener('click', toggleFullscreen);
+
+  function toggleFullscreen() {
     const container = document.querySelector('.manga-reader-container');
     const btn = document.getElementById('fullscreenBtn');
     const icon = btn.querySelector('i');
 
-    container.classList.toggle('fullscreen');
-
-    if (container.classList.contains('fullscreen')) {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+      container.classList.add('fullscreen');
       icon.className = 'fas fa-compress';
-      btn.title = 'Exit Fullscreen';
-      // Hide sidebar in fullscreen
+      btn.title = 'Exit Fullscreen (F)';
       document.querySelector('.reader-right').style.display = 'none';
     } else {
+      document.exitFullscreen();
+      container.classList.remove('fullscreen');
       icon.className = 'fas fa-expand';
-      btn.title = 'Fullscreen';
-      // Show sidebar
+      btn.title = 'Fullscreen (F)';
       document.querySelector('.reader-right').style.display = 'flex';
+    }
+  }
+
+  // Zen Mode Button
+  document.getElementById('zenModeBtn')?.addEventListener('click', toggleZenMode);
+
+  function toggleZenMode() {
+    const container = document.querySelector('.manga-reader-container');
+    const isZen = container.classList.toggle('zen-mode');
+    const btn = document.getElementById('zenModeBtn');
+    const icon = btn.querySelector('i');
+
+    if (isZen) {
+      icon.style.color = 'var(--neon-blue)';
+      btn.title = 'Exit Zen Mode (Z)';
+      // Hide bars
+      document.querySelector('.reader-top-bar').style.transform = 'translateY(-100%)';
+      document.querySelector('.reader-nav-bar').style.transform = 'translateY(100%)';
+      document.querySelector('.reader-right').style.display = 'none';
+      // Add floating exit button if needed, or just rely on 'Z'
+    } else {
+      icon.style.color = '';
+      btn.title = 'Zen Mode (Z)';
+      document.querySelector('.reader-top-bar').style.transform = 'translateY(0)';
+      document.querySelector('.reader-nav-bar').style.transform = 'translateY(0)';
+      document.querySelector('.reader-right').style.display = 'flex';
+    }
+  }
+
+  // Keyboard Shortcuts
+  window.addEventListener('keydown', (e) => {
+    // Ignore if typing in input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    switch (e.key.toLowerCase()) {
+      case 'arrowleft':
+      case 'k':
+        previousPage();
+        break;
+      case 'arrowright':
+      case 'j':
+      case ' ':
+        e.preventDefault();
+        nextPage();
+        break;
+      case 'f':
+        toggleFullscreen();
+        break;
+      case 'z':
+        toggleZenMode();
+        break;
+      case 's':
+        document.getElementById('settingsBtn')?.click();
+        break;
+      case 'escape':
+        if (document.querySelector('.manga-reader-container').classList.contains('zen-mode')) {
+          toggleZenMode();
+        }
+        closeSettings();
+        break;
     }
   });
 
@@ -1763,11 +2192,45 @@
       this.classList.add('active');
 
       readerSettings[setting] = value;
-      readingMode = value;
+      if (setting === 'background') {
+        applyTheme(value);
+      } else {
+        readingMode = value;
+        applyReadingMode();
+      }
       saveSettings();
-      applyReadingMode();
     });
   });
+
+  // Apply Theme
+  function applyTheme(theme) {
+    const body = document.body;
+    const container = document.querySelector('.manga-reader-container');
+    const viewer = document.getElementById('mangaPages');
+
+    // Reset
+    container.style.backgroundColor = '';
+    viewer.style.backgroundColor = '';
+    body.style.backgroundColor = '';
+
+    if (theme === 'sepia') {
+      container.style.backgroundColor = '#f4ecd8';
+      viewer.style.backgroundColor = '#f4ecd8';
+      document.documentElement.style.setProperty('--text-primary', '#433422');
+      document.documentElement.style.setProperty('--text-secondary', '#5b4632');
+    } else if (theme === 'light') {
+      container.style.backgroundColor = '#ffffff';
+      viewer.style.backgroundColor = '#ffffff';
+      document.documentElement.style.setProperty('--text-primary', '#1a1a1a');
+      document.documentElement.style.setProperty('--text-secondary', '#4a4a4a');
+    } else {
+      // Dark (Default)
+      container.style.backgroundColor = 'var(--deep-dark)';
+      viewer.style.backgroundColor = '#050505';
+      document.documentElement.style.setProperty('--text-primary', '#f4f4f5');
+      document.documentElement.style.setProperty('--text-secondary', '#a1a1aa');
+    }
+  }
 
   // Apply reading mode
   function applyReadingMode() {
@@ -1836,7 +2299,7 @@
   // Brightness slider
   document.getElementById('brightnessSlider')?.addEventListener('input', function () {
     readerSettings.brightness = this.value;
-    document.getElementById('mangaPages').style.filter = `brightness(${this.value}%)`;
+    applyScanEffects();
     saveSettings();
   });
 
@@ -1846,6 +2309,133 @@
     readerSettings.aiAssistantEnabled = this.classList.contains('active');
     saveSettings();
   });
+
+  // Scan Effects
+  const scanEffects = {
+    sharpen: false,
+    denoise: false,
+    upscale: false
+  };
+
+  function toggleScanEffect(effect, btn) {
+    btn.classList.toggle('active');
+    scanEffects[effect] = btn.classList.contains('active');
+    applyScanEffects();
+  }
+
+  function applyScanEffects() {
+    const viewer = document.getElementById('mangaPages');
+    const brightness = readerSettings.brightness || 100;
+    let filters = [`brightness(${brightness}%)`];
+
+    if (scanEffects.sharpen) filters.push('contrast(1.2)');
+    if (scanEffects.upscale) filters.push('saturate(1.1)');
+    if (scanEffects.denoise) filters.push('contrast(1.05)');
+
+    viewer.style.filter = filters.join(' ');
+  }
+
+  // AI Relationship Map
+  document.getElementById('viewRelationshipMapBtn')?.addEventListener('click', async () => {
+    const modal = document.getElementById('relationshipMapModal');
+    const content = document.getElementById('relationshipMapContent');
+    if (!modal || !content) return;
+
+    modal.style.display = 'flex';
+    content.innerHTML = `
+      <div style="text-align: center; width: 100%; color: var(--text-muted); padding-top: 50px;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 30px; margin-bottom: 15px;"></i>
+        <p>Plotting connections...</p>
+      </div>
+    `;
+
+    try {
+      const mangaIdTag = "{{ manga[0] if manga else '' }}";
+      const mangaId = parseInt(mangaIdTag);
+      if (isNaN(mangaId)) throw new Error('Invalid Manga ID');
+
+      const response = await fetch(`/api/manga/${mangaId}/characters`);
+      if (!response.ok) throw new Error();
+
+      const characters = await response.json();
+      if (characters.length < 2) {
+        content.innerHTML = '<p style="color: var(--text-muted); text-align: center; width: 100%;">Not enough character data to plot relationships yet. Read more to unlock AI insights!</p>';
+        return;
+      }
+
+      // Simulate relationship mapping
+      content.innerHTML = characters.map((char, idx) => {
+        const otherChar = characters[(idx + 1) % characters.length];
+        const relationships = ['Ally', 'Rival', 'Friend', 'Mysterious Link', 'Mentor'];
+        const rel = relationships[idx % relationships.length];
+
+        return `
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 15px; padding: 15px; width: 220px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; width: 100%; justify-content: center;">
+              <div style="width: 45px; height: 45px; border-radius: 50%; background: var(--neon-blue); overflow: hidden; border: 2px solid var(--neon-blue);">
+                <img src="${char.avatar_url || '/static/img/placeholder.png'}" style="width:100%;height:100%;object-fit:cover;">
+              </div>
+              <i class="fas fa-link" style="color: var(--neon-blue); font-size: 12px;"></i>
+              <div style="width: 45px; height: 45px; border-radius: 50%; background: var(--neon-purple); overflow: hidden; border: 2px solid var(--neon-purple);">
+                <img src="${otherChar.avatar_url || '/static/img/placeholder.png'}" style="width:100%;height:100%;object-fit:cover;">
+              </div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 13px; font-weight: 700; color: #fff;">${char.name} & ${otherChar.name}</div>
+              <div style="font-size: 10px; color: var(--neon-blue); text-transform: uppercase; margin-top: 5px; font-weight: 600; letter-spacing: 1px;">${rel}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+    } catch (e) {
+      console.error(e);
+      content.innerHTML = '<p style="color: #ff4b2b; text-align: center; width: 100%;">Failed to load relationship data. Please try again later.</p>';
+    }
+  });
+
+  // ReadTogether logic
+  document.getElementById('readTogetherBtn')?.addEventListener('click', () => {
+    document.getElementById('readTogetherModal').style.display = 'flex';
+  });
+
+  let rtActive = false;
+  let rtSyncInterval = null;
+
+  function startReadTogether() {
+    const code = 'RT-' + Math.floor(1000 + Math.random() * 9000);
+    enterRoom(code);
+  }
+
+  function joinReadTogether() {
+    const code = document.getElementById('rt-code-input').value.trim();
+    if (code) enterRoom(code);
+    else alert('Please enter a room code');
+  }
+
+  function enterRoom(code) {
+    rtActive = true;
+    document.getElementById('rt-setup').style.display = 'none';
+    document.getElementById('rt-active').style.display = 'block';
+    document.getElementById('activeRoomCode').textContent = code;
+    document.getElementById('readTogetherBtn').classList.add('active');
+
+    // Simulate periodic sync
+    rtSyncInterval = setInterval(() => {
+      console.log('ReadTogether: Syncing scroll position...');
+    }, 5000);
+
+    alert(`Entered Reading Room ${code}. Your session is now synchronized.`);
+  }
+
+  function stopReadTogether() {
+    rtActive = false;
+    clearInterval(rtSyncInterval);
+    document.getElementById('rt-setup').style.display = 'flex';
+    document.getElementById('rt-active').style.display = 'none';
+    document.getElementById('readTogetherBtn').classList.remove('active');
+    document.getElementById('readTogetherModal').style.display = 'none';
+  }
 
   // AI Insights Button
   document.getElementById('aiInsightsBtn')?.addEventListener('click', () => {
@@ -1888,6 +2478,51 @@
       document.getElementById('progressSlider').value = (currentPageIndex / Math.max(totalPages - 1, 1)) * 100;
       updatePageCounter();
       scrollToCurrentPage();
+    } else {
+      showChapterEndOverlay();
+    }
+  }
+
+  function showChapterEndOverlay() {
+    const nextCh = getNextChapter();
+    const overlay = document.getElementById('chapterEndOverlay');
+    if (!overlay) return;
+
+    if (nextCh) {
+      document.getElementById('nextChapterTitle').textContent = `Ch ${nextCh[1]}: ${nextCh[2]}`;
+      overlay.style.display = 'flex';
+    } else {
+      // Last chapter of the series
+      document.getElementById('nextChapterTitle').textContent = "That's everything! Series Complete.";
+      overlay.querySelector('button').innerHTML = '<i class="fas fa-home"></i> BACK TO LIBRARY';
+      overlay.querySelector('button').onclick = () => window.location.href = '/manga';
+      overlay.style.display = 'flex';
+    }
+  }
+
+  function getNextChapter() {
+    if (!chapters || chapters.length === 0) return null;
+    const currentIndex = chapters.findIndex(ch => ch[0] === currentChapterId);
+    if (currentIndex !== -1 && currentIndex < chapters.length - 1) {
+      return chapters[currentIndex + 1];
+    }
+    return null;
+  }
+
+  function goToNextChapter() {
+    const nextCh = getNextChapter();
+    if (nextCh) {
+      document.getElementById('chapterEndOverlay').style.display = 'none';
+      if (document.getElementById('chapterSelector')) {
+        document.getElementById('chapterSelector').value = nextCh[0];
+        document.getElementById('chapterSelector').dispatchEvent(new Event('change'));
+      } else {
+        // Fallback
+        currentChapterId = nextCh[0];
+        const chapterDisplay = document.getElementById('chapterDisplay');
+        if (chapterDisplay) chapterDisplay.textContent = `Chapter ${nextCh[1]}: ${nextCh[2]}`;
+        loadChapter(nextCh[0], nextCh[1]);
+      }
     }
   }
 
@@ -2314,7 +2949,351 @@
     } catch (err) {
       console.error('Error starting reviews load:', err);
     }
+
+    // 5. Initialize AI features
+    initAIChat();
+    loadAISummary();
+    {% if is_premium %}
+    initMoodOST();
+    {% endif %}
   });
+
+  // AI Chat Functionality
+  function initAIChat() {
+    const chatInput = document.getElementById('aiChatInput');
+    const chatSend = document.getElementById('aiChatSend');
+    const chatHistory = document.getElementById('aiChatHistory');
+    const tabs = document.querySelectorAll('.ai-tab');
+    const chatContainer = document.getElementById('aiChatContainer');
+    const translateContainer = document.getElementById('aiTranslateContainer');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        if (tab.dataset.tab === 'chatbot') {
+          chatContainer.style.display = 'flex';
+          translateContainer.style.display = 'none';
+        } else {
+          chatContainer.style.display = 'none';
+          translateContainer.style.display = 'block';
+        }
+      });
+    });
+
+    const sendMessage = async () => {
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+
+      // Add user message to history
+      const userDiv = document.createElement('div');
+      userDiv.style.color = 'var(--text-primary)';
+      userDiv.innerHTML = `<strong>You:</strong> ${escapeHtml(msg)}`;
+      chatHistory.appendChild(userDiv);
+      chatInput.value = '';
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+
+      // Add thinking indicator
+      const thinkingDiv = document.createElement('div');
+      thinkingDiv.style.color = 'var(--neon-blue)';
+      thinkingDiv.id = 'ai-thinking';
+      thinkingDiv.textContent = 'AI is thinking...';
+      chatHistory.appendChild(thinkingDiv);
+
+      try {
+        const response = await fetch('/api/manga/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: msg,
+            manga_id: parseInt("{{ manga[0] }}"),
+            chapter_num: currentChapterId // Using currentChapterId as a fallback for context
+          })
+        });
+
+        chatHistory.removeChild(thinkingDiv);
+
+        if (response.ok) {
+          const data = await response.json();
+          const aiDiv = document.createElement('div');
+          aiDiv.style.color = 'var(--neon-blue)';
+          aiDiv.innerHTML = `<strong>AI:</strong> ${data.reply}`;
+          chatHistory.appendChild(aiDiv);
+        } else {
+          const errDiv = document.createElement('div');
+          errDiv.style.color = '#ff4b2b';
+          errDiv.textContent = 'Error: Failed to get AI response.';
+          chatHistory.appendChild(errDiv);
+        }
+      } catch (error) {
+        if (document.getElementById('ai-thinking')) chatHistory.removeChild(thinkingDiv);
+        console.error('Chat error:', error);
+      }
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    };
+
+    chatSend?.addEventListener('click', sendMessage);
+    chatInput?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  }
+
+  // AI Scene Analysis
+  async function analyzeCurrentPage() {
+    const modal = document.getElementById('aiAnalysisModal');
+    const body = document.getElementById('aiAnalysisBody');
+    if (!modal || !body) return;
+
+    modal.style.display = 'flex';
+    body.innerHTML = `
+      <div style="text-align: center; color: var(--text-muted); margin-top: 50px;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 30px; margin-bottom: 15px;"></i>
+        <p>Analyzing visual elements...</p>
+      </div>
+    `;
+
+    try {
+      // Get current page URL
+      // pages is a global variable available in this template
+      if (typeof pages === 'undefined' || !pages[currentPageIndex]) {
+        body.innerHTML = '<p style="color: #ff4b2b; text-align: center;">Error: Could not determine current page image.</p>';
+        return;
+      }
+
+      const currentPageUrl = pages[currentPageIndex].url;
+
+      const response = await fetch('/api/manga/page/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page_url: currentPageUrl })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Convert analysis into evocative cards or points
+        const segments = data.analysis.split('\n').filter(s => s.trim());
+        body.innerHTML = segments.map(s => {
+          if (s.includes(':')) {
+            const parts = s.split(':');
+            const title = parts[0];
+            const desc = parts.slice(1).join(':'); // Handle cases with multiple colons
+            return `<div style="margin-bottom: 15px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; border-left: 3px solid var(--neon-purple);">
+                      <strong style="color: var(--neon-purple); display: block; margin-bottom: 5px; font-size: 14px; text-transform: uppercase;">${escapeHtml(title.trim())}</strong>
+                      <span style="color: #e0e0e0;">${escapeHtml(desc.trim())}</span>
+                    </div>`;
+          }
+          return `<p style="margin-bottom: 10px;">${escapeHtml(s)}</p>`;
+        }).join('');
+      } else {
+        const err = await response.json();
+        body.innerHTML = `<p style="color: #ff4b2b; text-align: center;">Error: ${err.error || 'Failed to analyze scene.'}</p>`;
+      }
+    } catch (error) {
+      console.error('Analysis error:', error);
+      body.innerHTML = '<p style="color: #ff4b2b; text-align: center;">Failed to connect to AI analysis server.</p>';
+    }
+  }
+
+  function closeAnalysisModal() {
+    const modal = document.getElementById('aiAnalysisModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    let html = div.innerHTML;
+
+    // Parse [spoiler] tags
+    html = html.replace(/\[spoiler\](.*?)\[\/spoiler\]/gi, '<span class="spoiler-text" onclick="this.classList.toggle(\'revealed\')">$1</span>');
+
+    return html;
+  }
+
+  // AI Ambient OST Functionality
+  function initMoodOST() {
+    const player = document.getElementById('ambientPlayer');
+    const moodNameDisplay = document.getElementById('currentMoodName');
+    const volumeSlider = document.getElementById('ostVolume');
+    const volumeLabel = document.getElementById('ostVolumeLabel');
+    const toggleBtn = document.getElementById('ostToggle');
+
+    if (!player || !volumeSlider) return;
+
+    const moodTracks = {
+      'ACTION': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', // Action Placeholder
+      'CHILL': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',  // Chill Placeholder
+      'SAD': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',    // Sad Placeholder
+      'MYSTERY': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',// Mystery Placeholder
+      'COMEDY': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', // Comedy Placeholder
+      'ROMANCE': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' // Romance Placeholder
+    };
+
+    let currentMood = null;
+    let isPlaying = true;
+
+    async function updateMood() {
+      if (!isPlaying) return;
+
+      try {
+        const currentPageUrl = pages[currentPageIndex]?.url;
+        if (!currentPageUrl) return;
+
+        const response = await fetch('/api/manga/mood', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page_url: currentPageUrl })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const newMood = data.mood;
+
+          if (newMood !== currentMood) {
+            currentMood = newMood;
+            moodNameDisplay.textContent = currentMood;
+
+            // Fade out, change source, fade in
+            const fadeOut = setInterval(() => {
+              if (player.volume > 0.05) {
+                player.volume -= 0.05;
+              } else {
+                clearInterval(fadeOut);
+                player.src = moodTracks[currentMood] || moodTracks['CHILL'];
+                player.play();
+                const fadeIn = setInterval(() => {
+                  if (player.volume < (volumeSlider.value / 100) - 0.05) {
+                    player.volume += 0.05;
+                  } else {
+                    player.volume = volumeSlider.value / 100;
+                    clearInterval(fadeIn);
+                  }
+                }, 100);
+              }
+            }, 100);
+          }
+        }
+      } catch (err) {
+        console.error('Mood OST Error:', err);
+      }
+    }
+
+    volumeSlider.addEventListener('input', () => {
+      const vol = volumeSlider.value;
+      volumeLabel.textContent = vol + '%';
+      player.volume = vol / 100;
+    });
+
+    toggleBtn.addEventListener('click', () => {
+      if (isPlaying) {
+        player.pause();
+        isPlaying = false;
+        toggleBtn.innerHTML = '<i class="fas fa-play"></i> RESUME AMBIENT';
+        toggleBtn.style.color = '#fff';
+        toggleBtn.style.borderColor = 'var(--glass-border)';
+      } else {
+        player.play();
+        isPlaying = true;
+        toggleBtn.innerHTML = '<i class="fas fa-pause"></i> PAUSE AMBIENT';
+        toggleBtn.style.color = 'var(--neon-blue)';
+        toggleBtn.style.borderColor = 'var(--neon-blue)';
+        updateMood();
+      }
+    });
+
+    // Initial load
+    player.volume = 0.5;
+    updateMood();
+
+    // Re-check mood on page change
+    const originalUpdateReaderUI = updateReaderUI;
+    if (typeof updateReaderUI === 'function') {
+      window.updateReaderUI = function () {
+        originalUpdateReaderUI();
+        updateMood();
+      };
+    }
+  }
+
+  // AI Culture & Context Functionality
+  async function loadPageContext() {
+    const resultDiv = document.getElementById('aiContextResult');
+    if (!resultDiv) return;
+
+    resultDiv.innerHTML = `
+      <div style="text-align: center; color: var(--text-muted); padding-top: 20px;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 20px; margin-bottom: 10px;"></i>
+        <div>Analyzing cultural nuances...</div>
+      </div>
+    `;
+
+    try {
+      if (typeof pages === 'undefined' || !pages[currentPageIndex]) {
+        resultDiv.innerHTML = '<div style="color: #ff4b2b; text-align: center;">Error: Page not found.</div>';
+        return;
+      }
+
+      const response = await fetch('/api/manga/page/context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page_url: pages[currentPageIndex].url })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Format the analysis (similar to scene analysis breakdown)
+        const segments = data.context.split('\n').filter(s => s.trim());
+        resultDiv.innerHTML = segments.map(s => {
+          if (s.includes(':')) {
+            const index = s.indexOf(':');
+            const title = s.slice(0, index);
+            const desc = s.slice(index + 1);
+            return `<div style="margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                      <strong style="color: var(--neon-blue); display: block; font-size: 12px; text-transform: uppercase;">${escapeHtml(title.trim())}</strong>
+                      <div style="font-size: 13px; color: #eee; margin-top: 3px;">${escapeHtml(desc.trim())}</div>
+                    </div>`;
+          }
+          // Use a different style for bold headers from Gemini
+          if (s.startsWith('**') && s.endsWith('**')) {
+            return `<div style="margin-top: 15px; margin-bottom: 8px; font-weight: 700; color: var(--neon-blue); border-bottom: 1px solid var(--neon-blue); padding-bottom: 2px;">${escapeHtml(s.replace(/\*\*/g, ''))}</div>`;
+          }
+          return `<p style="margin-bottom: 8px; font-size: 13px; line-height: 1.4;">${escapeHtml(s)}</p>`;
+        }).join('');
+      } else {
+        const err = await response.json();
+        resultDiv.innerHTML = `<div style="color: #ff4b2b; text-align: center; padding-top: 20px;">Error: ${err.error || 'Failed to get context.'}</div>`;
+      }
+    } catch (error) {
+      console.error('Context load error:', error);
+      resultDiv.innerHTML = '<div style="color: #ff4b2b; text-align: center; padding-top: 20px;">Connection failed.</div>';
+    }
+  }
+
+  // AI Summary Functionality
+  async function loadAISummary(force = false) {
+    const summaryContent = document.getElementById('aiSummaryContent');
+    if (!summaryContent) return;
+
+    if (force) {
+      summaryContent.innerHTML = '<div class="ai-summary-point">Regenerating summary...</div>';
+    }
+
+    try {
+      const response = await fetch(`/api/manga/{{ manga[0] }}/summary${force ? '?force=true' : ''}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Split summary into points if possible (e.g., by sentences or bullet points)
+        const points = data.summary.split('. ').filter(p => p.trim());
+        summaryContent.innerHTML = points.map(p => `<div class="ai-summary-point">${p.trim()}${p.endsWith('.') ? '' : '.'}</div>`).join('');
+      } else {
+        summaryContent.innerHTML = '<div class="ai-summary-point">Failed to load AI summary.</div>';
+      }
+    } catch (error) {
+      console.error('Summary error:', error);
+      summaryContent.innerHTML = '<div class="ai-summary-point">Error loading AI summary.</div>';
+    }
+  }
 
   // Load comments for this manga
   async function loadComments() {
@@ -2348,6 +3327,14 @@
         const timeAgo = formatTimeAgo(c.created_at);
         const isOwner = currentUserId && c.user_id === currentUserId;
         const likedClass = c.user_liked ? 'liked' : '';
+        const reactions = [
+          { emoji: '🔥', key: 'fire' },
+          { emoji: '❤️', key: 'heart' },
+          { emoji: '😂', key: 'laugh' },
+          { emoji: '🤯', key: 'mindblown' },
+          { emoji: '😭', key: 'cry' }
+        ];
+
         return `
           <div class="comment-item-new ${isReply ? 'comment-reply' : ''}" data-comment-id="${c.id}">
             <div class="comment-avatar-new">
@@ -2359,7 +3346,17 @@
                 <span class="comment-timestamp">${timeAgo}</span>
               </div>
               <div class="comment-body" id="comment-body-${c.id}">${escapeHtml(c.content)}</div>
-              <div class="comment-actions-new">
+              
+              <div class="reaction-bar">
+                ${reactions.map(r => `
+                  <button class="reaction-btn" onclick="reactToComment(${c.id}, '${r.key}')">
+                    <span class="reaction-emoji">${r.emoji}</span>
+                    <span class="reaction-count">0</span>
+                  </button>
+                `).join('')}
+              </div>
+
+              <div class="comment-actions-new" style="margin-top: 12px;">
                 <button class="comment-action-btn ${likedClass}" onclick="likeComment(${c.id}, this)">
                   <i class="fas fa-thumbs-up"></i> <span class="like-count">${c.likes || 0}</span>
                 </button>
@@ -2435,6 +3432,25 @@
     } catch (error) {
       console.error('Error liking comment:', error);
     }
+  }
+
+  // React to a comment with emoji
+  function reactToComment(commentId, reactionKey) {
+    // This would typically call an API. For now, let's simulate UI response.
+    const event = window.event;
+    const btn = event.currentTarget;
+    const countEl = btn.querySelector('.reaction-count');
+
+    btn.classList.toggle('reacted');
+    let currentCount = parseInt(countEl.textContent);
+    if (btn.classList.contains('reacted')) {
+      countEl.textContent = currentCount + 1;
+    } else {
+      countEl.textContent = Math.max(0, currentCount - 1);
+    }
+
+    // Optional: Call API
+    // fetch(`/api/comment/${commentId}/react`, { method: 'POST', body: JSON.stringify({ reaction: reactionKey }) });
   }
 
   // Show reply form under a comment
@@ -2858,6 +3874,41 @@
     const isActive = document.getElementById('dislikeChapterBtn').classList.contains('active');
     rateChapter(isActive ? 0 : -1);
   });
+
+  // Share functionality
+  function shareChapter() {
+    const shareData = {
+      title: '{{ manga[1] }} - Chapter Rating',
+      text: 'Check out chapter progress on Novus!',
+      url: window.location.href
+    };
+    if (navigator.share) {
+      navigator.share(shareData).catch(err => console.log('Error sharing:', err));
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copied to clipboard!');
+    }
+  }
+
+  // More Options Menu Toggle
+  const moreBtn = document.getElementById('moreRatingOptionsBtn');
+  const moreMenu = document.getElementById('moreRatingMenu');
+
+  moreBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isVisible = moreMenu.style.display === 'block';
+    moreMenu.style.display = isVisible ? 'none' : 'block';
+  });
+
+  document.addEventListener('click', () => {
+    if (moreMenu) moreMenu.style.display = 'none';
+  });
+
+  function reportChapterIssue() {
+    const reportBtn = document.getElementById('reportBtn');
+    if (reportBtn) reportBtn.click();
+    else alert('Report feature triggered. Please describe the problem.');
+  }
 
   // Call loadChapterRating when a chapter is loaded
   const originalLoadChapter = loadChapter;

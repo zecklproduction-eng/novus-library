@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}Community | NOVUS{% endblock %}
+
+{% block content %}
+<!-- Lucide Icons CDN -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<!-- Community CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/community.css') }}">
+
+<!-- Google Inter Font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+    .community-page,
+    .community-page * {
+        font-family: 'Inter', sans-serif;
+    }
+</style>
+
+<div class="community-page">
+    <div class="community-layout">
+
+        <!-- ===== LEFT SIDEBAR ===== -->
+        <aside class="community-sidebar community-sidebar-left">
+
+            <!-- My Groups Section -->
+            <div class="community-card">
+                <h3 class="community-card-title">My Groups</h3>
+                <div class="groups-grid">
+                    <div class="group-item">
+                        <div class="group-icon">
+                            <i data-lucide="globe"></i>
+                        </div>
+                        <span class="group-name">Global Club</span>
+                    </div>
+                    <div class="group-item">
+                        <div class="group-icon">
+                            <img src="https://i.pravatar.cc/150?img=5" alt="Manga Readers">
+                            <span class="notification-badge">0</span>
+                        </div>
+                        <span class="group-name">Manga Readers</span>
+                    </div>
+                    <div class="group-item">
+                        <div class="group-icon">
+                            <i data-lucide="book-open"></i>
+                        </div>
+                        <span class="group-name">Book Club</span>
+                    </div>
+                    <div class="group-item">
+                        <div class="group-icon more-groups">
+                            <i data-lucide="plus"></i>
+                            <i data-lucide="chevron-down"
+                                style="width:10px;height:10px;position:absolute;bottom:2px;right:2px;"></i>
+                        </div>
+                        <span class="group-name">More Groups</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suggested Groups Section -->
+            <div class="community-card">
+                <h3 class="community-card-title">Suggested Groups</h3>
+                <div class="suggested-groups-row">
+                    <div class="group-item">
+                        <div class="group-icon">
+                            <i data-lucide="tv"></i>
+                        </div>
+                        <span class="group-name">Anime Addicts</span>
+                    </div>
+                    <div class="group-item">
+                        <div class="group-icon">
+                            <i data-lucide="wand-2"></i>
+                        </div>
+                        <span class="group-name">Fantasy Worlds</span>
+                    </div>
+                    <div class="group-item">
+                        <div class="group-icon">
+                            <i data-lucide="rocket"></i>
+                        </div>
+                        <span class="group-name">Sci-Fi Hub</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Your Group Activity Section -->
+            <div class="community-card">
+                <h3 class="community-card-title">Your Group Activity</h3>
+                <div class="activity-list">
+                    <div class="activity-item">
+                        <img src="https://picsum.photos/seed/activity1/40/50" alt="Activity" class="activity-thumb">
+                        <span class="activity-text"><strong>New chapter</strong> discussion in Global Club</span>
+                    </div>
+                    <div class="activity-item">
+                        <img src="https://picsum.photos/seed/activity2/40/50" alt="Activity" class="activity-thumb">
+                        <span class="activity-text"><strong>Book recommendation</strong> in Manga Readers</span>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- ===== CENTER MAIN CONTENT ===== -->
+        <main class="community-main">
+
+            <!-- Header -->
+            <div class="community-header">
+                <h1 class="community-title">Community</h1>
+                <div class="header-actions">
+                    <button class="btn-glow btn-glow-cyan">
+                        <i data-lucide="plus" style="width:14px;height:14px;"></i>
+                        Create Post
+                    </button>
+                    <button class="btn-glow btn-glow-cyan">
+                        <i data-lucide="users" style="width:14px;height:14px;"></i>
+                        Join a Group
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="community-search">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" placeholder="Search for book, manga, or anime discussions...">
+            </div>
+
+            <!-- Filters Row -->
+            <div class="community-filters">
+                <div class="filter-tabs">
+                    <button class="filter-tab active">All Posts</button>
+                    <button class="filter-tab">Discussions</button>
+                </div>
+                <div class="sort-dropdown">
+                    <span>Sort By</span>
+                    <select>
+                        <option>(Newest, Hot, Top)</option>
+                        <option>Newest</option>
+                        <option>Hot</option>
+                        <option>Top</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Posts Feed -->
+            <div class="posts-feed">
+
+                <!-- Post Card 1: Discussion with vote column -->
+                <article class="post-card">
+                    <!-- Vote Column -->
+                    <div class="vote-column">
+                        <button class="vote-btn upvote" title="Upvote">
+                            <i data-lucide="thumbs-up"></i>
+                        </button>
+                        <button class="vote-btn downvote" title="Downvote">
+                            <i data-lucide="thumbs-down"></i>
+                        </button>
+                    </div>
+
+                    <!-- Thumbnail -->
+                    <img src="https://picsum.photos/seed/manga-onepiece/90/115" alt="Cover" class="post-thumbnail">
+
+                    <!-- Content -->
+                    <div class="post-content">
+                        <h2 class="post-title">Discussion: Best Manga Arc of All Time?</h2>
+                        <div class="post-meta">
+                            <span class="posted-time">Posted 7 minutes ago</span>
+                            <div class="post-author">
+                                <img src="https://i.pravatar.cc/150?img=12" alt="HistoryBuff"
+                                    class="post-author-avatar">
+                                <span class="post-author-name">HistoryBuff</span>
+                            </div>
+                            <span class="post-comments-count">29 comments</span>
+                        </div>
+                        <p class="post-body">
+                            Why are the character chapters that embellished my topic comments? After view as the Best
+                            Manga Arc of all time. Manga arc of All Time? Umagaking II ronting is the most shoro...
+                        </p>
+                        <div class="post-actions">
+                            <button class="comments-btn">
+                                <i data-lucide="message-circle"></i>
+                                <span>12 Comments</span>
+                            </button>
+                            <button class="share-btn">
+                                <i data-lucide="corner-up-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Post Card 2: Poll -->
+                <article class="post-card">
+                    <!-- Vote Column -->
+                    <div class="vote-column">
+                        <button class="vote-btn upvote" title="Upvote">
+                            <i data-lucide="thumbs-up"></i>
+                        </button>
+                        <button class="vote-btn downvote" title="Downvote">
+                            <i data-lucide="thumbs-down"></i>
+                        </button>
+                    </div>
+
+                    <!-- Thumbnail -->
+                    <img src="https://picsum.photos/seed/manga-poll/90/115" alt="Cover" class="post-thumbnail">
+
+                    <!-- Content -->
+                    <div class="post-content">
+                        <h2 class="post-title">Discussion: Poll: What's your favorite genre?</h2>
+                        <div class="post-meta">
+                            <span class="posted-time">Posted 7 minutes ago</span>
+                        </div>
+                        <div class="poll-options">
+                            <label class="poll-option selected">
+                                <span class="poll-radio"></span>
+                                <span class="poll-label">Action</span>
+                            </label>
+                            <label class="poll-option">
+                                <span class="poll-radio"></span>
+                                <span class="poll-label">Fantasy</span>
+                            </label>
+                            <label class="poll-option">
+                                <span class="poll-radio"></span>
+                                <span class="poll-label">Romance</span>
+                            </label>
+                            <label class="poll-option">
+                                <span class="poll-radio"></span>
+                                <span class="poll-label">Slice of Life</span>
+                            </label>
+                        </div>
+                        <div class="post-actions">
+                            <button class="comments-btn">
+                                <i data-lucide="message-circle"></i>
+                                <span>Comments</span>
+                            </button>
+                            <button class="share-btn">
+                                <i data-lucide="corner-up-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+
+            <!-- Load More Button -->
+            <div class="load-more-container">
+                <button class="load-more-btn">Load More Posts</button>
+            </div>
+
+        </main>
+
+        <!-- ===== RIGHT SIDEBAR ===== -->
+        <aside class="community-sidebar community-sidebar-right">
+
+            <!-- Decorative Large Stars -->
+            <div class="decorative-star-large star-1">★</div>
+            <div class="decorative-star-large star-2">★</div>
+
+            <!-- Top Contributors Section -->
+            <div class="community-card">
+                <h3 class="community-card-title">Top Contributors</h3>
+                <div class="top-contributors">
+                    <div class="contributor rank-1">
+                        <div class="contributor-avatar">
+                            <img src="https://i.pravatar.cc/150?img=32" alt="1st Place">
+                            <span class="contributor-badge">1st</span>
+                        </div>
+                    </div>
+                    <div class="contributor rank-2">
+                        <div class="contributor-avatar">
+                            <img src="https://i.pravatar.cc/150?img=44" alt="2nd Place">
+                            <span class="contributor-badge">2nd</span>
+                        </div>
+                    </div>
+                    <div class="contributor rank-3">
+                        <div class="contributor-avatar">
+                            <img src="https://i.pravatar.cc/150?img=51" alt="3rd Place">
+                            <span class="contributor-badge">3rd</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trending Topics Section -->
+            <div class="community-card">
+                <h3 class="community-card-title">Trending Topics</h3>
+                <div class="trending-list">
+                    <a href="#" class="trending-item">#OnePiece</a>
+                    <a href="#" class="trending-item">#JujutsuKaisen</a>
+                    <a href="#" class="trending-item">#Webtoons</a>
+                </div>
+            </div>
+
+            <!-- Who's Online Section -->
+            <div class="community-card">
+                <h3 class="community-card-title">Who's Online</h3>
+                <div class="online-list">
+                    <div class="online-user">
+                        <div class="online-avatar">
+                            <img src="https://i.pravatar.cc/150?img=15" alt="Monshoron">
+                            <span class="online-status"></span>
+                        </div>
+                        <div class="online-info">
+                            <span class="online-name">Monshoron</span>
+                            <span class="online-handle">181entaos</span>
+                        </div>
+                    </div>
+                    <div class="online-user">
+                        <div class="online-avatar">
+                            <img src="https://i.pravatar.cc/150?img=22" alt="JujutsuKaisen">
+                            <span class="online-status"></span>
+                        </div>
+                        <div class="online-info">
+                            <span class="online-name">JujutsuKaisen</span>
+                            <span class="online-handle">131entaos</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+    </div>
+</div>
+
+<script>
+    // Initialize Lucide icons
+    document.addEventListener('DOMContentLoaded', function () {
+        lucide.createIcons();
+
+        // Poll option toggle functionality
+        document.querySelectorAll('.poll-option').forEach(option => {
+            option.addEventListener('click', function () {
+                // Remove selected from all options in this poll
+                this.closest('.poll-options').querySelectorAll('.poll-option').forEach(o => {
+                    o.classList.remove('selected');
+                });
+                // Add selected to clicked option
+                this.classList.add('selected');
+            });
+        });
+
+        // Filter tab toggle
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', function () {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Vote button toggle
+        document.querySelectorAll('.vote-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const isUpvote = this.classList.contains('upvote');
+                const parent = this.closest('.vote-column');
+                const oppositeBtn = parent.querySelector(isUpvote ? '.downvote' : '.upvote');
+
+                // Toggle current button
+                this.classList.toggle('active');
+
+                // Remove active from opposite button if this one is now active
+                if (this.classList.contains('active')) {
+                    oppositeBtn.classList.remove('active');
+                }
+            });
+        });
+    });
+</script>
+
+{% endblock %}

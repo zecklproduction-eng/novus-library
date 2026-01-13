@@ -4816,6 +4816,11 @@ def manga_chat_api():
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
+    # Check plan
+    user_plan = session.get('plan', 'basic')
+    if user_plan not in ['pro', 'ultimate']:
+        return jsonify({"error": "Pro plan required for AI Chatbot"}), 403
+    
     data = request.json
     user_msg = data.get('message')
     manga_id = data.get('manga_id')
@@ -4846,6 +4851,171 @@ def manga_chat_api():
         ai = ImageSummaryAI()
         response_text = ai.chat_with_context(user_msg, context_text)
         return jsonify({"success": True, "reply": response_text})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/manga/<int:manga_id>/summary", methods=["GET"])
+def get_manga_summary(manga_id):
+    """Get or generate AI summary for a manga."""
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Check plan
+    user_plan = session.get('plan', 'basic')
+    if user_plan not in ['pro', 'ultimate']:
+        return jsonify({"error": "Pro plan required for AI Assistant"}), 403
+    
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Check cache
+        c.execute("SELECT summary FROM ai_summaries WHERE item_type='manga' AND item_id=?", (manga_id,))
+        row = c.fetchone()
+        
+        if row:
+            conn.close()
+            return jsonify({"success": True, "summary": row[0], "cached": True})
+        
+        # Generate new summary
+        c.execute("SELECT title, description FROM books WHERE id=?", (manga_id,))
+        m_row = c.fetchone()
+        if not m_row:
+            conn.close()
+            return jsonify({"error": "Manga not found"}), 404
+        
+        title, description = m_row
+        if not description:
+            conn.close()
+            return jsonify({"success": True, "summary": "No description available for this manga."})
+            
+        ai = ImageSummaryAI()
+        summary = ai.chat_with_context(f"Summarize this manga titled '{title}': {description}", "You are a helpful manga assistant.")
+        
+        # Cache summary
+        c.execute("INSERT OR REPLACE INTO ai_summaries (item_type, item_id, summary, created_at) VALUES ('manga', ?, ?, ?)",
+                  (manga_id, summary, datetime.utcnow().isoformat()))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True, "summary": summary, "cached": False})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/manga/page/analyze", methods=["POST"])
+def analyze_manga_page():
+    """Deep AI analysis for a specific manga page."""
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Check plan
+    user_plan = session.get('plan', 'basic')
+    if user_plan != 'ultimate':
+        return jsonify({"error": "Ultimate plan required for Scene Analysis"}), 403
+        
+    data = request.json
+    page_url = data.get('page_url')
+    
+    if not page_url:
+        return jsonify({"error": "No page URL provided"}), 400
+        
+    try:
+        # Convert /static/manga/... to local file path
+        if page_url.startswith('/static/'):
+            # Path logic: remove leading / and join with APP_ROOT
+            rel_path = page_url.lstrip('/')
+            image_path = os.path.join(APP_ROOT, rel_path)
+        else:
+            return jsonify({"error": "Invalid image source"}), 400
+            
+        if not os.path.exists(image_path):
+            return jsonify({"error": f"Image file not found at {image_path}"}), 404
+            
+        ai = ImageSummaryAI()
+        analysis = ai.analyze_manga_scene(image_path)
+        
+        return jsonify({
+            "success": True, 
+            "analysis": analysis
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/manga/page/context", methods=["POST"])
+def get_manga_page_context_api():
+    """AI analysis for cultural and idiom context of a manga page."""
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Check plan
+    user_plan = session.get('plan', 'basic')
+    if user_plan != 'ultimate':
+        return jsonify({"error": "Ultimate plan required for Culture & Context"}), 403
+        
+    data = request.json
+    page_url = data.get('page_url')
+    
+    if not page_url:
+        return jsonify({"error": "No page URL provided"}), 400
+        
+    try:
+        if page_url.startswith('/static/'):
+            rel_path = page_url.lstrip('/')
+            image_path = os.path.join(APP_ROOT, rel_path)
+        else:
+            return jsonify({"error": "Invalid image source"}), 400
+            
+        if not os.path.exists(image_path):
+            return jsonify({"error": "Image file not found"}), 404
+            
+        ai = ImageSummaryAI()
+        context_data = ai.get_manga_page_context(image_path)
+        
+        return jsonify({
+            "success": True, 
+            "context": context_data
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/manga/mood", methods=["POST"])
+def get_manga_mood():
+    """Detect the mood of a manga page for ambient audio."""
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Check plan
+    user_plan = session.get('plan', 'basic')
+    if user_plan != 'ultimate':
+        return jsonify({"error": "Ultimate plan required for AI Ambient OST"}), 403
+        
+    data = request.json
+    page_url = data.get('page_url')
+    
+    if not page_url:
+        return jsonify({"error": "No page URL provided"}), 400
+        
+    try:
+        if page_url.startswith('/static/'):
+            rel_path = page_url.lstrip('/')
+            image_path = os.path.join(APP_ROOT, rel_path)
+        else:
+            return jsonify({"error": "Invalid image source"}), 400
+            
+        if not os.path.exists(image_path):
+            return jsonify({"error": "Image file not found"}), 404
+            
+        ai = ImageSummaryAI()
+        mood = ai.detect_manga_mood(image_path)
+        
+        return jsonify({
+            "success": True, 
+            "mood": mood
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -9737,7 +9907,18 @@ def api_manga_search():
         })
     return jsonify(results)
 
+
+
+@app.route('/community')
+@login_required
+def community():
+    """NOVUS Community page - social hub for discussions and groups"""
+    return render_template('community.html')
+
+
 if __name__ == "__main__":
 
     init_db()
     app.run(debug=True, host="0.0.0.0", port=5000)
+
+

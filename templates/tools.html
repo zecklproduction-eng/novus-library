@@ -553,9 +553,12 @@
         border-radius: 20px;
         width: 100%;
         max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
         padding: 2rem;
         animation: modalSlideIn 0.3s ease;
     }
+
 
     @keyframes modalSlideIn {
         from {
@@ -1228,6 +1231,50 @@
     </div>
 </div>
 
+<!-- Promote Project Modal -->
+<div class="add-link-modal" id="promoteProjectModal">
+    <div class="add-link-dialog">
+        <h2><i class="fas fa-rocket" style="color: #00ff99;"></i> Promote to Tools</h2>
+        <form class="add-link-form" id="promoteProjectForm" onsubmit="handlePromoteProject(event)">
+            <input type="hidden" id="promoteProjectName">
+            <div class="form-group">
+                <label for="promoteDisplayName">Display Name</label>
+                <input type="text" id="promoteDisplayName" placeholder="e.g. My Awesome App" required>
+            </div>
+            <div class="form-group">
+                <label for="promoteDescription">Description</label>
+                <textarea id="promoteDescription" rows="2" placeholder="Short description..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="promoteCategory">Category</label>
+                <select id="promoteCategory">
+                    <option value="tools">Tools</option>
+                    <option value="work">Work</option>
+                    <option value="social">Social</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="promotePlan">Plan Required to Access</label>
+                <select id="promotePlan">
+                    <option value="basic">Basic (Free)</option>
+                    <option value="pro">Pro</option>
+                    <option value="ultimate">Ultimate</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="promoteIcon">Custom Icon (optional)</label>
+                <input type="file" id="promoteIcon" accept="image/*" style="color: white;">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-cancel" onclick="closePromoteModal()">Cancel</button>
+                <button type="submit" class="btn-save" style="background: linear-gradient(135deg, #00ff99, #00cc77);">
+                    <i class="fas fa-rocket"></i> Promote
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <style>
     /* Plan Badge Styles */
     .plan-badge {
@@ -1798,10 +1845,12 @@
                             <p>${formatBytes(p.size)} • ${p.file_count} files</p>
                         </div>
                         <div class="project-actions">
+                            <button onclick="openPromoteModal('${p.name}')" title="Promote to Tools" style="color: #00ff99;"><i class="fas fa-rocket"></i></button>
                             <button onclick="openProjectInTerminal('${p.name}')" title="Open in Terminal"><i class="fas fa-terminal"></i></button>
                             <button onclick="downloadProject('${p.name}')" title="Download"><i class="fas fa-download"></i></button>
                             <button class="delete" onclick="deleteProject('${p.name}')" title="Delete"><i class="fas fa-trash"></i></button>
                         </div>
+
                     </div>
                 `).join('');
 
@@ -1843,8 +1892,66 @@
         }
     }
 
+    // Promote project modal functions
+    function openPromoteModal(projectName) {
+        document.getElementById('promoteProjectName').value = projectName;
+        document.getElementById('promoteDisplayName').value = projectName;
+        document.getElementById('promoteDescription').value = '';
+        document.getElementById('promoteCategory').value = 'tools';
+        document.getElementById('promotePlan').value = 'basic';
+        document.getElementById('promoteIcon').value = '';
+        document.getElementById('promoteProjectModal').classList.add('active');
+    }
+
+    function closePromoteModal() {
+        document.getElementById('promoteProjectModal').classList.remove('active');
+    }
+
+    async function handlePromoteProject(e) {
+        e.preventDefault();
+
+        const projectName = document.getElementById('promoteProjectName').value;
+        const formData = new FormData();
+        formData.append('project_name', projectName);
+        formData.append('name', document.getElementById('promoteDisplayName').value);
+        formData.append('description', document.getElementById('promoteDescription').value);
+        formData.append('category', document.getElementById('promoteCategory').value);
+        formData.append('plan', document.getElementById('promotePlan').value);
+
+        const iconFile = document.getElementById('promoteIcon').files[0];
+        if (iconFile) {
+            formData.append('icon', iconFile);
+        }
+
+        try {
+            const response = await fetch('/api/tools/projects/promote', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                closePromoteModal();
+                showToast(`Project "${document.getElementById('promoteDisplayName').value}" promoted to tools!`);
+                initToolLinks(); // Reload the tools grid to show the new link
+            } else {
+                showToast(data.error || 'Promotion failed');
+            }
+        } catch (error) {
+            showToast('Promotion failed: ' + error.message);
+        }
+    }
+
+    // Close promote modal when clicking outside
+    document.getElementById('promoteProjectModal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+            closePromoteModal();
+        }
+    });
+
     // Download project as ZIP
     function downloadProject(name) {
+
         window.location.href = `/api/tools/projects/${encodeURIComponent(name)}/download`;
     }
 

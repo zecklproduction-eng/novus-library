@@ -148,6 +148,122 @@ class ImageSummaryAI:
             logger.error(f"Failed to summarize cover: {e}")
             raise Exception(f"Failed to summarize cover: {e}")
 
+    def analyze_manga_scene(self, image_path):
+        """Deep visual analysis of a manga page"""
+        if not os.path.exists(image_path):
+            raise Exception(f"Image not found: {image_path}")
+            
+        try:
+            base64_img = self.encode_image_to_base64(image_path)
+            mime_type = self.get_image_mime_type(image_path)
+            
+            prompt = """Analyze this manga page for a 'Cinematic Breakdown'. Provide:
+            1. Scene Setting (Where/When)
+            2. Character Focus (Who and their emotions)
+            3. Key Action (What is happening)
+            4. Artistic Style Note (Line work, shading, impact)
+            Keep it professional and evocative."""
+            
+            contents = [{
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": base64_img
+                        }
+                    }
+                ]
+            }]
+            
+            result = self._call_gemini(contents)
+            return result['candidates'][0]['content']['parts'][0]['text'].strip()
+            
+        except Exception as e:
+            logger.error(f"Failed to analyze scene: {e}")
+            raise Exception(f"Failed to analyze scene: {e}")
+
+    def get_manga_page_context(self, image_path):
+        """Analyze a manga page for cultural context, idioms, and translation notes."""
+        if not os.path.exists(image_path):
+            raise Exception(f"Image not found: {image_path}")
+            
+        try:
+            base64_img = self.encode_image_to_base64(image_path)
+            mime_type = self.get_image_mime_type(image_path)
+            
+            prompt = """Analyze this manga page for 'Cultural & Translation Insights'. Provide:
+            1. Honorifics/Address (Notable usage of -san, -kun, -sama, etc. and what it implies about relationships)
+            2. Cultural References (Traditions, food, seasonal motifs, or social norms shown)
+            3. Idioms/Wordplay (Explain any Japanese puns or literal idioms present)
+            4. Translation Difficulty (Nuance that might be lost in simple translation)
+            Format with clear headings. Keep it educational and engaging."""
+            
+            contents = [{
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": base64_img
+                        }
+                    }
+                ]
+            }]
+            
+            result = self._call_gemini(contents)
+            return result['candidates'][0]['content']['parts'][0]['text'].strip()
+            
+        except Exception as e:
+            logger.error(f"Failed to get page context: {e}")
+            raise Exception(f"Failed to get page context: {e}")
+
+    def detect_manga_mood(self, image_path):
+        """Analyze a manga page to detect its emotional mood for background music."""
+        if not os.path.exists(image_path):
+            raise Exception(f"Image not found: {image_path}")
+            
+        try:
+            base64_img = self.encode_image_to_base64(image_path)
+            mime_type = self.get_image_mime_type(image_path)
+            
+            prompt = """Analyze this manga page and determine the dominant emotional 'Mood'. 
+            Return ONLY ONE of the following tags in uppercase:
+            ACTION (for battles, high energy, fast movement)
+            CHILL (for daily life, transitions, calm scenes)
+            SAD (for emotional, tragic, or melancholy scenes)
+            MYSTERY (for tense, suspicious, or dark atmospheric scenes)
+            COMEDY (for funny, lighthearted, or exaggerated scenes)
+            ROMANCE (for sweet, intimate, or heartwarming scenes)
+            
+            Return ONLY the tag."""
+            
+            contents = [{
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": base64_img
+                        }
+                    }
+                ]
+            }]
+            
+            result = self._call_gemini(contents)
+            mood = result['candidates'][0]['content']['parts'][0]['text'].strip().upper()
+            
+            # Sanitize output (sometimes Gemini includes extra text or quotes)
+            valid_moods = ['ACTION', 'CHILL', 'SAD', 'MYSTERY', 'COMEDY', 'ROMANCE']
+            for v in valid_moods:
+                if v in mood:
+                    return v
+            return "CHILL" # Default
+            
+        except Exception as e:
+            logger.error(f"Failed to detect mood: {e}")
+            raise Exception(f"Failed to detect mood: {e}")
+
     def extract_text_from_image(self, image_path):
         """Extract all visible text from an image"""
         if not os.path.exists(image_path):
