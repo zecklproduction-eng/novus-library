@@ -356,29 +356,262 @@
     </main>
 
     <script>
-        // Load project content into iframe with Babel support
+        // Load project content into iframe
         async function loadProject(name) {
             const frame = document.getElementById('projectIframe');
+
             try {
+                // First check what type of project this is
                 const response = await fetch(`/raw-project/${name}/index.html`);
                 if (!response.ok) throw new Error('Failed to fetch project');
 
                 let html = await response.text();
-                const isReact = html.includes('.tsx') || html.includes('.jsx');
 
-                if (isReact) {
-                    const babelScript = '<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>';
+                // Check if it uses importmap (modern ES modules) - these need TSX transpilation
+                const usesImportMap = html.includes('<script type="importmap"') || html.includes("type='importmap'");
+
+                // Check if it's a React TSX/JSX project
+                const isReactTsx = html.includes('.tsx') || html.includes('.jsx');
+
+                if (usesImportMap && isReactTsx) {
+                    // Projects with importmap AND TSX need special handling
+                    // We inject a loader that will transpile and run the TSX files
+
+                    // Remove the original TSX script
+                    html = html.replace(/<script\s+type="module"\s+src=["']([^"']*\.tsx)["']><\/script>/g, '');
+
+                    // Add a base tag
+                    const baseTag = `<base href="/raw-project/${name}/">`;
+                    html = html.replace('<head>', `<head>\n${baseTag}`);
+
+                    // Inject our TSX loader at the end of body
+                    const loaderScript = `
+<script type="module">
+    const basePath = '/raw-project/${name}/';
+    const EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js', ''];
+    
+    // Normalize a path by removing leading ./ and resolving extensions
+    function normalizePath(importPath) {
+        let normalized = importPath.replace(/^\\.\\//, '');
+        // Remove extension if present (we'll add the correct one later)
+        return normalized;
+    }
+    
+    // Fetch a file, trying different extensions
+    async function fetchFile(path) {
+        // If already has extension, try it directly first
+        if (path.match(/\\.(tsx|ts|jsx|js)$/)) {
+            const res = await fetch(basePath + path);
+            if (res.ok) return { path, code: await res.text() };
+        }
+        
+        // Try each extension
+        for (const ext of EXTENSIONS) {
+            const tryPath = path + ext;
+            const res = await fetch(basePath + tryPath);
+            if (res.ok) return { path: tryPath, code: await res.text() };
+        }
+        throw new Error('Failed to load: ' + path);
+    }
+    
+    // Extract all local imports from code
+    function extractImports(code) {
+        const imports = [];
+        const regex = /from\\s+['\"](\\.?\\.?\\/[^'\"]+|[a-zA-Z][^'\"]*)['"]/g;
+        let match;
+        while ((match = regex.exec(code)) !== null) {
+            const importPath = match[1];
+            // Only process local imports (starting with . or local folders)
+            if (importPath.startsWith('.') || 
+                importPath.startsWith('components') || 
+                importPath.startsWith('services') || 
+                importPath.startsWith('types')) {
+                imports.push(normalizePath(importPath));
+            }
+        }
+        return imports;
+    }
+    
+    // Main loader
+    async function loadProject() {
+        console.log('[TSX Loader] Starting...');
+        
+        // Step 1: Collect all files recursively
+        const toProcess = ['index.tsx'];
+        const files = {}; // path -> code mapping
+        const resolvedPaths = {}; // normalized path -> actual file path
+        
+        while (toProcess.length > 0) {
+            const current = toProcess.pop();
+            const normalized = normalizePath(current);
+            if (files[normalized]) continue;
+            
+            try {
+                const { path: actualPath, code } = await fetchFile(current);
+                files[normalized] = code;
+                resolvedPaths[normalized] = actualPath;
+                console.log('[TSX Loader] Loaded:', actualPath);
+                
+                // Find imports in this file
+                const imports = extractImports(code);
+                for (const imp of imports) {
+                    if (!files[imp]) {
+                        toProcess.push(imp);
+                    }
+                }
+            } catch (e) {
+                console.warn('[TSX Loader] Failed to load:', current, e.message);
+            }
+        }
+        
+        // Step 2: Load Babel
+        console.log('[TSX Loader] Loading Babel...');
+        const babel = await import('https://esm.sh/@babel/standalone@7.24.5');
+        
+        // Step 3: Transpile all files
+        const transpiled = {};
+        for (const [path, code] of Object.entries(files)) {
+            try {
+                const result = babel.transform(code, {
+                    filename: path,
+                    presets: [
+                        ['react', { runtime: 'automatic' }],
+                        ['typescript', { isTSX: true, allExtensions: true }]
+                    ],
+                });
+                transpiled[path] = result.code;
+                console.log('[TSX Loader] Transpiled:', path);
+            } catch (e) {
+                console.error('[TSX Loader] Transpile error for', path, e);
+                throw e;
+            }
+        }
+        
+        // Step 4: Create blob URLs for all modules
+        const blobUrls = {};
+        for (const path of Object.keys(transpiled)) {
+            // Create temp blob first - will recreate with correct imports later
+            blobUrls[path] = 'TEMP_URL_' + path;
+        }
+        
+        // Step 5: Rewrite imports using regex for flexible matching
+        function rewriteImports(code, moduleMap) {
+            let result = code;
+            console.log('[TSX Loader] Module map keys:', Object.keys(moduleMap));
+            console.log('[TSX Loader] Sample of code being rewritten (first 500 chars):', code.substring(0, 500));
+            
+            // For each module we know about, replace its import
+            for (const [modulePath, blobUrl] of Object.entries(moduleMap)) {
+                if (!blobUrl || blobUrl.startsWith('TEMP_URL_')) continue;
+                
+                // Strip extension for base name
+                let basePath = modulePath;
+                if (basePath.endsWith('.tsx')) basePath = basePath.slice(0, -4);
+                else if (basePath.endsWith('.ts')) basePath = basePath.slice(0, -3);
+                else if (basePath.endsWith('.jsx')) basePath = basePath.slice(0, -4);
+                else if (basePath.endsWith('.js')) basePath = basePath.slice(0, -3);
+                
+                const variants = [
+                    modulePath,                    // types.ts
+                    basePath,                      // types
+                    './' + modulePath,             // ./types.ts
+                    './' + basePath,               // ./types
+                ];
+                
+                for (const variant of variants) {
+                    const before = result;
+                    // Match both quote styles with optional whitespace after 'from'
+                    // Pattern: from "variant" or from 'variant' or from  "variant"
+                    const patterns = [
+                        'from "' + variant + '"',
+                        "from '" + variant + "'",
+                        'from  "' + variant + '"',
+                        "from  '" + variant + "'",
+                    ];
+                    
+                    for (const p of patterns) {
+                        result = result.split(p).join('from "' + blobUrl + '"');
+                    }
+                    
+                    if (result !== before) {
+                        console.log('[TSX Loader] Replaced import:', variant, 'with blob URL');
+                    }
+                }
+            }
+            return result;
+        }
+        
+        // Step 6: Create blobs with rewritten imports
+        // Strategy: 
+        // 1) First pass: Create blobs with original transpiled code to get stable URLs
+        // 2) Rewrite all code using these final URLs
+        // 3) Second pass: Create NEW blobs with rewritten code (these will have DIFFERENT URLs)
+        // 4) Rewrite AGAIN with the new URLs
+        // 5) Third pass: Final blobs (optional - let's try two passes first with a different approach)
+        
+        // BETTER STRATEGY: Only use the FINAL set of blob URLs
+        // Step 1: Create final blobs from rewritten code in ONE pass by iterating twice
+        
+        // First loop: Create blobs to get URLs (with transpiled code for now)
+        for (const [path, code] of Object.entries(transpiled)) {
+            const blob = new Blob([code], { type: 'application/javascript' });
+            blobUrls[path] = URL.createObjectURL(blob);
+        }
+        
+        console.log('[TSX Loader] First pass blob URLs:', Object.keys(blobUrls));
+        
+        // Second loop: Rewrite with these URLs and CREATE NEW blobs
+        for (const [path, code] of Object.entries(transpiled)) {
+            const rewritten = rewriteImports(code, blobUrls);
+            const blob = new Blob([rewritten], { type: 'application/javascript' });
+            // Don't revoke - create NEW URL
+            blobUrls[path] = URL.createObjectURL(blob);
+        }
+        
+        console.log('[TSX Loader] Second pass blob URLs:', Object.keys(blobUrls).map(k => k + ' -> ' + blobUrls[k].substring(0, 50)));
+        
+        // Third loop: Rewrite AGAIN with the FINAL URLs and update blobs  
+        for (const [path, code] of Object.entries(transpiled)) {
+            const rewritten = rewriteImports(code, blobUrls);
+            const blob = new Blob([rewritten], { type: 'application/javascript' });
+            blobUrls[path] = URL.createObjectURL(blob);
+        }
+        
+        console.log('[TSX Loader] Final blob URLs (third pass):', Object.keys(blobUrls).map(k => k + ' -> ' + blobUrls[k].substring(0, 50)));
+        
+        // Step 7: Execute the entry point
+        console.log('[TSX Loader] Executing entry point...');
+        await import(blobUrls['index.tsx'] || blobUrls['index']);
+        console.log('[TSX Loader] Done!');
+    }
+    
+    loadProject().catch(e => {
+        console.error('[TSX Loader] Fatal error:', e);
+        document.body.innerHTML = '<div style="color:#ff6b6b;padding:20px;font-family:monospace;background:#1a1a2e;min-height:100vh;"><h2>Error Loading Project</h2><pre>' + e.stack + '</pre></div>';
+    });
+<` + `/script>`;
+
+                    html = html.replace('</body>', loaderScript + '\n</body>');
+                    frame.srcdoc = html;
+                } else if (isReactTsx) {
+                    // Legacy TSX without importmap - use Babel standalone
+                    const babelScript = '<script src="https://unpkg.com/@babel/standalone/babel.min.js"><' + '/script>';
                     html = html.replace('</head>', `${babelScript}\n</head>`);
                     html = html.replace(/<script\s+type="module"\s+src=["'](.*?\.(tsx|jsx))["']><\/script>/g,
-                        '<script type="text/babel" data-type="module" src="$1"><\/script>');
+                        '<script type="text/babel" data-type="module" src="$1"><' + '/script>');
+
+                    const baseTag = `<base href="/raw-project/${name}/">`;
+                    html = html.replace('<head>', `<head>\n${baseTag}`);
+                    frame.srcdoc = html;
+                } else {
+                    // Regular HTML project - just add base and load
+                    const baseTag = `<base href="/raw-project/${name}/">`;
+                    html = html.replace('<head>', `<head>\n${baseTag}`);
+                    frame.srcdoc = html;
                 }
-
-                const baseTag = `<base href="/raw-project/${name}/">`;
-                html = html.replace('<head>', `<head>\n${baseTag}`);
-
-                frame.srcdoc = html;
             } catch (err) {
                 console.error('Error loading project:', err);
+                // Fallback to direct URL loading
                 frame.src = `/raw-project/${name}/index.html`;
             }
         }

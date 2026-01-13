@@ -7792,8 +7792,27 @@ def tools_list_projects():
 @app.route("/api/tools/projects/<project_name>", methods=["DELETE"])
 @admin_required
 def tools_delete_project(project_name):
-    # ...
-    pass # placeholder for search
+    """Delete a code project (Admin Only)"""
+    project_name = secure_filename(project_name)
+    project_path = os.path.join(CODE_PROJECTS_FOLDER, project_name)
+    
+    if not os.path.exists(project_path):
+        return jsonify({"error": "Project not found"}), 404
+    
+    try:
+        # Also delete any tool_links that reference this project
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("DELETE FROM tool_links WHERE project_name = ?", (project_name,))
+        conn.commit()
+        conn.close()
+        
+        # Delete the project folder
+        shutil.rmtree(project_path)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 from flask import send_from_directory
 @app.route("/raw-project/<path:filepath>")
@@ -7819,15 +7838,7 @@ def serve_project_raw(filepath):
         mimetype = 'text/css'
     
     return send_from_directory(directory, filepath, mimetype=mimetype)
-    
-    if not os.path.exists(project_path):
-        return jsonify({"error": "Project not found"}), 404
-    
-    try:
-        shutil.rmtree(project_path)
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+
 
 
 # ---------- Tool Links Persistence API ----------
@@ -8000,6 +8011,58 @@ def tools_update_link(link_id):
     
     values.append(link_id)
     c.execute(f"UPDATE tool_links SET {', '.join(fields)} WHERE id = ?", values)
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+
+@app.route("/api/tools/links/<int:link_id>/update", methods=["POST"])
+@admin_required
+def tools_update_link_with_icon(link_id):
+    """Update an existing tool link with icon file upload (Admin Only)"""
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Check if exists
+    c.execute("SELECT id FROM tool_links WHERE id = ?", (link_id,))
+    if not c.fetchone():
+        conn.close()
+        return jsonify({"error": "Link not found"}), 404
+    
+    # Get form data
+    name = request.form.get("name")
+    url = request.form.get("url")
+    description = request.form.get("description", "")
+    category = request.form.get("category", "work")
+    plan = request.form.get("plan", "basic")
+    
+    icon_type = None
+    icon_value = None
+    
+    # Handle icon upload
+    if "icon" in request.files:
+        file = request.files["icon"]
+        if file and file.filename:
+            filename = secure_filename(f"icon_{link_id}_{file.filename}")
+            icon_path = os.path.join("static", "uploads", "tool_icons", filename)
+            file.save(os.path.join(APP_ROOT, icon_path))
+            icon_type = "img"
+            icon_value = "/" + icon_path.replace("\\", "/")
+    
+    # Build update query
+    update_fields = [
+        "name = ?", "url = ?", "description = ?", 
+        "category = ?", "plan_required = ?"
+    ]
+    values = [name, url, description, category, plan]
+    
+    if icon_type and icon_value:
+        update_fields.extend(["icon_type = ?", "icon_value = ?"])
+        values.extend([icon_type, icon_value])
+    
+    values.append(link_id)
+    c.execute(f"UPDATE tool_links SET {', '.join(update_fields)} WHERE id = ?", values)
     conn.commit()
     conn.close()
     
