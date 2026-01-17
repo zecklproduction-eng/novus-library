@@ -2,7 +2,252 @@
 
 {% block title %}Community | NOVUS{% endblock %}
 
-{% block content %}
+{% block modals %}
+<!-- Browse Groups Modal -->
+<div class="modal-overlay" id="browseGroupsModal">
+    <div class="browse-modal">
+        <div class="browse-modal-header">
+            <div class="browse-modal-title">
+                <i data-lucide="compass"></i>
+                <h2>Browse All Groups</h2>
+            </div>
+            <button class="close-modal" id="closeBrowseModal">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+
+        <div class="browse-modal-tabs">
+            <button class="browse-tab active" data-tab="genres">Genres</button>
+            <button class="browse-tab" data-tab="manga">Manga & Books</button>
+        </div>
+
+        <div class="browse-modal-content">
+            <!-- Genres Tab -->
+            <div class="browse-tab-pane active" id="pane-genres">
+                <div class="browse-groups-grid">
+                    {% for group in all_genre_groups %}
+                    <a href="{{ url_for('group_page', group_id=group.id) }}" class="browse-group-card">
+                        <div class="browse-group-icon">
+                            {% if group.icon_url %}
+                            <img src="{{ group.icon_url }}" alt="{{ group.name }}">
+                            {% else %}
+                            <i data-lucide="tag"></i>
+                            {% endif %}
+                        </div>
+                        <div class="browse-group-info">
+                            <span class="browse-group-name">{{ group.name }}</span>
+                            <span class="browse-group-members">{{ group.member_count }} members</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Manga Tab -->
+            <div class="browse-tab-pane" id="pane-manga">
+                <div class="browse-groups-grid">
+                    {% for group in all_manga_groups %}
+                    <a href="{{ url_for('group_page', group_id=group.id) }}" class="browse-group-card">
+                        <div class="browse-group-icon">
+                            {% if group.icon_url %}
+                            <img src="{{ group.icon_url }}" alt="{{ group.name }}">
+                            {% else %}
+                            <i data-lucide="book-image"></i>
+                            {% endif %}
+                        </div>
+                        <div class="browse-group-info">
+                            <span class="browse-group-name">{{ group.name }}</span>
+                            <span class="browse-group-members">{{ group.member_count }} members</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Post Modal -->
+<div class="modal-overlay" id="createPostModal">
+    <div class="create-post-modal">
+        <div class="create-post-header">
+            <div class="create-post-title">
+                <i data-lucide="edit-3"></i>
+                <h2>Create Post</h2>
+            </div>
+            <button class="close-modal" id="closeCreatePostModal">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+
+        <form id="createPostForm" class="create-post-form">
+            <!-- Post Title -->
+            <div class="form-group">
+                <label for="postTitle">Title</label>
+                <input type="text" id="postTitle" name="title" placeholder="Give your post a title..." required>
+            </div>
+
+            <!-- Post Content -->
+            <div class="form-group">
+                <label for="postContent">Content</label>
+                <textarea id="postContent" name="content" placeholder="What's on your mind?" rows="5"
+                    required></textarea>
+            </div>
+
+            <!-- Post Type -->
+            <div class="form-group">
+                <label>Post Type</label>
+                <div class="post-type-options">
+                    <label class="post-type-option selected">
+                        <input type="radio" name="post_type" value="discussion" checked>
+                        <i data-lucide="message-circle"></i>
+                        <span>Discussion</span>
+                    </label>
+                    <label class="post-type-option">
+                        <input type="radio" name="post_type" value="question">
+                        <i data-lucide="help-circle"></i>
+                        <span>Question</span>
+                    </label>
+                    <label class="post-type-option">
+                        <input type="radio" name="post_type" value="recommendation">
+                        <i data-lucide="star"></i>
+                        <span>Recommendation</span>
+                    </label>
+                    <label class="post-type-option">
+                        <input type="radio" name="post_type" value="poll">
+                        <i data-lucide="bar-chart-2"></i>
+                        <span>Poll</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Group Selector -->
+            <div class="form-group">
+                <label for="groupSearchInput">Post to Group</label>
+                <div class="group-search-container">
+                    <input type="text" id="groupSearchInput" placeholder="Search for a group..." autocomplete="off">
+                    <input type="hidden" id="postGroup" name="group_id">
+                    <div id="groupSearchResults" class="search-results-dropdown"></div>
+                    <div id="selectedGroupPreview" class="selected-item-preview" style="display: none;">
+                        <span id="selectedGroupName"></span>
+                        <button type="button" id="removeGroupSelection">&times;</button>
+                    </div>
+                </div>
+                <p class="form-hint" style="color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 6px;">
+                    Search from all available groups. <a href="{{ url_for('discover_groups') }}" target="_blank"
+                        style="color: var(--community-cyan);">Discover new groups</a>
+                </p>
+            </div>
+
+            <!-- Poll Options Section (Hidden by default) -->
+            <div class="form-group" id="pollSection" style="display: none;">
+                <label>Poll Options</label>
+                <div class="poll-creator-container">
+                    <div id="pollOptionsList">
+                        <div class="poll-option-input">
+                            <input type="text" name="poll_options[]" placeholder="Option 1">
+                        </div>
+                        <div class="poll-option-input">
+                            <input type="text" name="poll_options[]" placeholder="Option 2">
+                        </div>
+                    </div>
+                    <button type="button" class="btn-outline-sm" id="addPollOptionBtn" style="margin-top: 10px;">
+                        <i data-lucide="plus"></i> Add Option
+                    </button>
+                </div>
+            </div>
+
+            <!-- Manga Link Section (Hidden by default) -->
+            <div class="form-group" id="mangaLinkSection" style="display: none;">
+                <label for="mangaSearch">Link a Manga/Book</label>
+                <div class="manga-search-container">
+                    <input type="text" id="mangaSearchInput" placeholder="Search for a title to link...">
+                    <input type="hidden" name="manga_id" id="selectedMangaId">
+                    <div id="mangaSearchResults" class="search-results-dropdown"></div>
+                    <div id="selectedMangaPreview" class="selected-item-preview" style="display: none;">
+                        <span id="selectedMangaName"></span>
+                        <button type="button" id="removeMangaLink">×</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attachments -->
+            <div class="form-group">
+                <label>Attachments</label>
+                <div class="attachments-area">
+                    <input type="file" id="postAttachments" name="attachments" multiple hidden>
+                    <button type="button" class="attachment-btn"
+                        onclick="document.getElementById('postAttachments').click()">
+                        <i data-lucide="paperclip"></i>
+                        <span>Add Files</span>
+                    </button>
+                    <div class="attachments-preview" id="attachmentsPreview"></div>
+                </div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="post-toolbar">
+                <div class="toolbar-left">
+                    <button type="button" class="toolbar-btn" id="emojiBtn" title="Add Emoji">
+                        <i data-lucide="smile"></i>
+                    </button>
+                    <button type="button" class="toolbar-btn" id="gifBtn" title="Add GIF">
+                        <i data-lucide="sticky-note"></i>
+                    </button>
+                    <button type="button" class="toolbar-btn" id="addMangaLinkBtn" title="Add Link">
+                        <i data-lucide="link-2"></i>
+                    </button>
+                    <input type="hidden" name="gif_url" id="postGifUrl">
+                    <div id="gifPreview" class="selected-item-preview" style="display: none; margin-top: 5px;">
+                        <img id="selectedGifImg" src="" alt="Selected GIF"
+                            style="max-height: 100px; border-radius: 4px;">
+                        <button type="button" id="removeGif">×</button>
+                    </div>
+
+                    <button type="button" class="toolbar-btn" title="Mention">
+                        <i data-lucide="at-sign"></i>
+                    </button>
+                </div>
+                <div class="toolbar-right">
+                    <button type="button" class="btn-secondary" onclick="closeModal('createPostModal')">Cancel</button>
+                    <button type="submit" class="btn-primary">
+                        <i data-lucide="send"></i>
+                        Post
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Emoji Picker (hidden by default) -->
+        <div class="emoji-picker" id="emojiPicker">
+            <div class="emoji-grid">
+                <span class="emoji" data-emoji="😀">😀</span>
+                <span class="emoji" data-emoji="😂">😂</span>
+                <span class="emoji" data-emoji="😍">😍</span>
+                <span class="emoji" data-emoji="🤔">🤔</span>
+                <span class="emoji" data-emoji="😎">😎</span>
+                <span class="emoji" data-emoji="🔥">🔥</span>
+                <span class="emoji" data-emoji="❤️">❤️</span>
+                <span class="emoji" data-emoji="👍">👍</span>
+                <span class="emoji" data-emoji="👏">👏</span>
+                <span class="emoji" data-emoji="🎉">🎉</span>
+                <span class="emoji" data-emoji="💯">💯</span>
+                <span class="emoji" data-emoji="✨">✨</span>
+                <span class="emoji" data-emoji="📚">📚</span>
+                <span class="emoji" data-emoji="🎮">🎮</span>
+                <span class="emoji" data-emoji="🎬">🎬</span>
+                <span class="emoji" data-emoji="🎵">🎵</span>
+                <span class="emoji" data-emoji="💪">💪</span>
+                <span class="emoji" data-emoji="🙏">🙏</span>
+                <span class="emoji" data-emoji="😢">😢</span>
+                <span class="emoji" data-emoji="😡">😡</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
 <!-- Lucide Icons CDN -->
 <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -18,7 +263,9 @@
         font-family: 'Inter', sans-serif;
     }
 </style>
+{% endblock %}
 
+{% block content %}
 <div class="community-page">
     <div class="community-layout">
 
@@ -29,73 +276,124 @@
             <div class="community-card">
                 <h3 class="community-card-title">My Groups</h3>
                 <div class="groups-grid">
-                    <div class="group-item">
+                    {% if my_groups %}
+                    {% for group in my_groups[:6] %}
+                    <a href="{{ url_for('group_page', group_id=group.id) }}" class="group-item">
                         <div class="group-icon">
-                            <i data-lucide="globe"></i>
-                        </div>
-                        <span class="group-name">Global Club</span>
-                    </div>
-                    <div class="group-item">
-                        <div class="group-icon">
-                            <img src="https://i.pravatar.cc/150?img=5" alt="Manga Readers">
-                            <span class="notification-badge">0</span>
-                        </div>
-                        <span class="group-name">Manga Readers</span>
-                    </div>
-                    <div class="group-item">
-                        <div class="group-icon">
+                            {% if group.icon_url %}
+                            <img src="{{ group.icon_url }}" alt="{{ group.name }}">
+                            {% else %}
+                            {% if group.group_type == 'genre' %}
+                            <i data-lucide="bookmark"></i>
+                            {% elif group.group_type == 'manga' %}
+                            <i data-lucide="book-image"></i>
+                            {% elif group.group_type == 'book' %}
                             <i data-lucide="book-open"></i>
+                            {% else %}
+                            <i data-lucide="users"></i>
+                            {% endif %}
+                            {% endif %}
                         </div>
-                        <span class="group-name">Book Club</span>
-                    </div>
-                    <div class="group-item">
+                        <span class="group-name">{{ group.name }}</span>
+                    </a>
+                    {% endfor %}
+                    {% else %}
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; text-align: center;">No groups joined yet
+                    </p>
+                    {% endif %}
+                    <a href="{{ url_for('discover_groups') }}" class="group-item" style="text-decoration:none;">
                         <div class="group-icon more-groups">
-                            <i data-lucide="plus"></i>
-                            <i data-lucide="chevron-down"
-                                style="width:10px;height:10px;position:absolute;bottom:2px;right:2px;"></i>
+                            <i data-lucide="compass"></i>
                         </div>
-                        <span class="group-name">More Groups</span>
-                    </div>
+                        <span class="group-name">Browse All</span>
+                    </a>
                 </div>
             </div>
 
             <!-- Suggested Groups Section -->
             <div class="community-card">
                 <h3 class="community-card-title">Suggested Groups</h3>
-                <div class="suggested-groups-row">
-                    <div class="group-item">
+                <div class="suggested-groups-row" id="suggestedGroupsContainer">
+                    {% if suggested_groups %}
+                    {% for group in suggested_groups[:6] %}
+                    <a href="{{ url_for('group_page', group_id=group.id) }}" class="group-item">
                         <div class="group-icon">
-                            <i data-lucide="tv"></i>
+                            {% if group.icon_url %}
+                            <img src="{{ group.icon_url }}" alt="{{ group.name }}">
+                            {% else %}
+                            {% if group.group_type == 'genre' %}
+                            <i data-lucide="tag"></i>
+                            {% elif group.group_type == 'manga' %}
+                            <i data-lucide="book-image"></i>
+                            {% elif group.group_type == 'book' %}
+                            <i data-lucide="book-open"></i>
+                            {% else %}
+                            <i data-lucide="users"></i>
+                            {% endif %}
+                            {% endif %}
                         </div>
-                        <span class="group-name">Anime Addicts</span>
-                    </div>
-                    <div class="group-item">
-                        <div class="group-icon">
-                            <i data-lucide="wand-2"></i>
-                        </div>
-                        <span class="group-name">Fantasy Worlds</span>
-                    </div>
-                    <div class="group-item">
-                        <div class="group-icon">
-                            <i data-lucide="rocket"></i>
-                        </div>
-                        <span class="group-name">Sci-Fi Hub</span>
-                    </div>
+                        <span class="group-name">{{ group.name }}</span>
+                    </a>
+                    {% endfor %}
+                    {% else %}
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px;">No suggestions available</p>
+                    {% endif %}
                 </div>
+                <!-- Hidden extra groups -->
+                <div class="suggested-groups-row extra-groups" id="extraGroupsContainer" style="display: none;">
+                    {% if suggested_groups and suggested_groups|length > 6 %}
+                    {% for group in suggested_groups[6:] %}
+                    <a href="{{ url_for('group_page', group_id=group.id) }}" class="group-item">
+                        <div class="group-icon">
+                            {% if group.icon_url %}
+                            <img src="{{ group.icon_url }}" alt="{{ group.name }}">
+                            {% else %}
+                            {% if group.group_type == 'genre' %}
+                            <i data-lucide="tag"></i>
+                            {% elif group.group_type == 'manga' %}
+                            <i data-lucide="book-image"></i>
+                            {% else %}
+                            <i data-lucide="users"></i>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                        <span class="group-name">{{ group.name }}</span>
+                    </a>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+                {% if suggested_groups and suggested_groups|length > 6 %}
+                <button class="show-more-btn" id="showMoreGroupsBtn">
+                    <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                    <span>Show More ({{ suggested_groups|length - 6 }})</span>
+                </button>
+                {% endif %}
             </div>
 
             <!-- Your Group Activity Section -->
             <div class="community-card">
-                <h3 class="community-card-title">Your Group Activity</h3>
+                <h3 class="community-card-title">Recent Activity</h3>
                 <div class="activity-list">
+                    {% if recent_activity %}
+                    {% for act in recent_activity %}
                     <div class="activity-item">
-                        <img src="https://picsum.photos/seed/activity1/40/50" alt="Activity" class="activity-thumb">
-                        <span class="activity-text"><strong>New chapter</strong> discussion in Global Club</span>
+                        <div class="activity-icon">
+                            {% if act.post_type == 'poll' %}
+                            <i data-lucide="bar-chart-2"></i>
+                            {% elif act.post_type == 'recommendation' %}
+                            <i data-lucide="star"></i>
+                            {% else %}
+                            <i data-lucide="message-circle"></i>
+                            {% endif %}
+                        </div>
+                        <span class="activity-text">
+                            <strong>{{ act.username }}</strong> posted in <em>{{ act.group_name }}</em>
+                        </span>
                     </div>
-                    <div class="activity-item">
-                        <img src="https://picsum.photos/seed/activity2/40/50" alt="Activity" class="activity-thumb">
-                        <span class="activity-text"><strong>Book recommendation</strong> in Manga Readers</span>
-                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; text-align: center;">No recent activity</p>
+                    {% endif %}
                 </div>
             </div>
 
@@ -108,14 +406,15 @@
             <div class="community-header">
                 <h1 class="community-title">Community</h1>
                 <div class="header-actions">
-                    <button class="btn-glow btn-glow-cyan">
+                    <button class="btn-glow btn-glow-cyan" id="createPostBtn">
                         <i data-lucide="plus" style="width:14px;height:14px;"></i>
                         Create Post
                     </button>
-                    <button class="btn-glow btn-glow-cyan">
+                    <a href="{{ url_for('discover_groups') }}" class="btn-glow btn-glow-cyan"
+                        style="text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
                         <i data-lucide="users" style="width:14px;height:14px;"></i>
                         Join a Group
-                    </button>
+                    </a>
                 </div>
             </div>
 
@@ -144,101 +443,109 @@
 
             <!-- Posts Feed -->
             <div class="posts-feed">
-
-                <!-- Post Card 1: Discussion with vote column -->
-                <article class="post-card">
+                {% if posts %}
+                {% for post in posts %}
+                <article class="post-card" data-post-id="{{ post.id }}">
                     <!-- Vote Column -->
                     <div class="vote-column">
-                        <button class="vote-btn upvote" title="Upvote">
+                        <button class="vote-btn upvote {% if post.user_vote == 1 %}active{% endif %}" title="Upvote">
                             <i data-lucide="thumbs-up"></i>
+                            <span class="vote-count">{{ post.upvotes }}</span>
                         </button>
-                        <button class="vote-btn downvote" title="Downvote">
+                        <button class="vote-btn downvote {% if post.user_vote == -1 %}active{% endif %}"
+                            title="Downvote">
                             <i data-lucide="thumbs-down"></i>
                         </button>
                     </div>
 
-                    <!-- Thumbnail -->
-                    <img src="https://picsum.photos/seed/manga-onepiece/90/115" alt="Cover" class="post-thumbnail">
-
-                    <!-- Content -->
-                    <div class="post-content">
-                        <h2 class="post-title">Discussion: Best Manga Arc of All Time?</h2>
-                        <div class="post-meta">
-                            <span class="posted-time">Posted 7 minutes ago</span>
+                    <!-- Thumbnail / Meta -->
+                    <div class="post-main-content">
+                        <div class="post-header-meta">
                             <div class="post-author">
-                                <img src="https://i.pravatar.cc/150?img=12" alt="HistoryBuff"
-                                    class="post-author-avatar">
-                                <span class="post-author-name">HistoryBuff</span>
+                                <img src="{{ post.avatar or url_for('static', filename='uploads/avatars/default.png') }}"
+                                    alt="{{ post.username }}" class="post-author-avatar">
+                                <div class="author-info">
+                                    <span class="post-author-name">{{ post.username }}</span>
+                                    <span class="posted-time">{{ post.created_at|time_ago }} in <a
+                                            href="{{ url_for('group_page', group_id=post.group_id) }}">{{
+                                            post.group_name }}</a></span>
+                                </div>
                             </div>
-                            <span class="post-comments-count">29 comments</span>
+                            <span class="post-type-badge {{ post.post_type }}">{{ post.post_type|capitalize }}</span>
                         </div>
-                        <p class="post-body">
-                            Why are the character chapters that embellished my topic comments? After view as the Best
-                            Manga Arc of all time. Manga arc of All Time? Umagaking II ronting is the most shoro...
-                        </p>
+
+                        <h2 class="post-title">{{ post.title }}</h2>
+
+                        <div class="post-body">
+                            {{ post.content|truncate(300) }}
+                        </div>
+
+                        <!-- Attachments Rendering -->
+                        {% if post.attachments %}
+                        <div class="post-attachments-grid">
+                            {% for attach in post.attachments %}
+                            {% if attach.file_type == 'manga_link' %}
+                            <a href="{{ attach.file_url }}" class="manga-link-card">
+                                <img src="{{ attach.manga_cover }}" alt="{{ attach.manga_title }}">
+                                <div class="manga-link-info">
+                                    <span class="manga-link-title">{{ attach.manga_title }}</span>
+                                    <span class="manga-link-badge">Manga</span>
+                                </div>
+                            </a>
+                            {% elif attach.file_type in ['jpg', 'jpeg', 'png', 'webp', 'gif'] %}
+                            <div class="attachment-image">
+                                <img src="{{ attach.file_url }}" alt="Attachment" onclick="window.open(this.src)">
+                            </div>
+                            {% else %}
+                            <a href="{{ attach.file_url }}" class="attachment-file" download>
+                                <i data-lucide="file-text"></i>
+                                <span>{{ attach.file_name }}</span>
+                            </a>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Poll Rendering -->
+                        {% if post.post_type == 'poll' and post.poll %}
+                        <div class="poll-container" data-poll-id="{{ post.poll.id }}">
+                            <div class="poll-options-display">
+                                {% for opt in post.poll.options %}
+                                <div class="poll-option-vote {% if opt.id in post.poll.user_votes %}voted{% endif %}"
+                                    data-option-id="{{ opt.id }}">
+                                    <div class="poll-option-bar"
+                                        style="width: {{ (opt.vote_count / post.poll.total_votes * 100)|round if post.poll.total_votes > 0 else 0 }}%">
+                                    </div>
+                                    <span class="poll-option-text">{{ opt.option_text }}</span>
+                                    <span class="poll-option-percent">{{ (opt.vote_count / post.poll.total_votes *
+                                        100)|round|int if post.poll.total_votes > 0 else 0 }}%</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="poll-footer">
+                                <span>{{ post.poll.total_votes }} votes</span>
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <div class="post-actions">
                             <button class="comments-btn">
                                 <i data-lucide="message-circle"></i>
-                                <span>12 Comments</span>
+                                <span>{{ post.comment_count }} Comments</span>
                             </button>
-                            <button class="share-btn">
-                                <i data-lucide="corner-up-right"></i>
+                            <button class="share-btn" title="Share">
+                                <i data-lucide="share-2"></i>
                             </button>
                         </div>
                     </div>
                 </article>
-
-                <!-- Post Card 2: Poll -->
-                <article class="post-card">
-                    <!-- Vote Column -->
-                    <div class="vote-column">
-                        <button class="vote-btn upvote" title="Upvote">
-                            <i data-lucide="thumbs-up"></i>
-                        </button>
-                        <button class="vote-btn downvote" title="Downvote">
-                            <i data-lucide="thumbs-down"></i>
-                        </button>
-                    </div>
-
-                    <!-- Thumbnail -->
-                    <img src="https://picsum.photos/seed/manga-poll/90/115" alt="Cover" class="post-thumbnail">
-
-                    <!-- Content -->
-                    <div class="post-content">
-                        <h2 class="post-title">Discussion: Poll: What's your favorite genre?</h2>
-                        <div class="post-meta">
-                            <span class="posted-time">Posted 7 minutes ago</span>
-                        </div>
-                        <div class="poll-options">
-                            <label class="poll-option selected">
-                                <span class="poll-radio"></span>
-                                <span class="poll-label">Action</span>
-                            </label>
-                            <label class="poll-option">
-                                <span class="poll-radio"></span>
-                                <span class="poll-label">Fantasy</span>
-                            </label>
-                            <label class="poll-option">
-                                <span class="poll-radio"></span>
-                                <span class="poll-label">Romance</span>
-                            </label>
-                            <label class="poll-option">
-                                <span class="poll-radio"></span>
-                                <span class="poll-label">Slice of Life</span>
-                            </label>
-                        </div>
-                        <div class="post-actions">
-                            <button class="comments-btn">
-                                <i data-lucide="message-circle"></i>
-                                <span>Comments</span>
-                            </button>
-                            <button class="share-btn">
-                                <i data-lucide="corner-up-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                </article>
-
+                {% endfor %}
+                {% else %}
+                <div class="empty-feed">
+                    <i data-lucide="layout" size="48"></i>
+                    <p>No posts yet. Be the first to start a conversation!</p>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Load More Button -->
@@ -259,24 +566,17 @@
             <div class="community-card">
                 <h3 class="community-card-title">Top Contributors</h3>
                 <div class="top-contributors">
-                    <div class="contributor rank-1">
+                    {% for contributor in top_contributors %}
+                    <div class="contributor rank-{{ loop.index }}">
                         <div class="contributor-avatar">
-                            <img src="https://i.pravatar.cc/150?img=32" alt="1st Place">
-                            <span class="contributor-badge">1st</span>
+                            <img src="{{ contributor.avatar or url_for('static', filename='uploads/avatars/default.png') }}"
+                                alt="{{ contributor.name }}">
+                            <span class="contributor-badge">{{ loop.index }}{{ 'st' if loop.index == 1 else 'nd' if
+                                loop.index == 2 else 'rd' }}</span>
                         </div>
+                        <span class="contributor-name">{{ contributor.name }}</span>
                     </div>
-                    <div class="contributor rank-2">
-                        <div class="contributor-avatar">
-                            <img src="https://i.pravatar.cc/150?img=44" alt="2nd Place">
-                            <span class="contributor-badge">2nd</span>
-                        </div>
-                    </div>
-                    <div class="contributor rank-3">
-                        <div class="contributor-avatar">
-                            <img src="https://i.pravatar.cc/150?img=51" alt="3rd Place">
-                            <span class="contributor-badge">3rd</span>
-                        </div>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
 
@@ -321,20 +621,23 @@
 
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    // Initialize Lucide icons
     document.addEventListener('DOMContentLoaded', function () {
-        lucide.createIcons();
+        console.log('[DEBUG] Community JS: DOMContentLoaded fired');
+
+        // Initialize Lucide icons
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        console.log('[DEBUG] Community JS: Lucide icons initialized');
 
         // Poll option toggle functionality
         document.querySelectorAll('.poll-option').forEach(option => {
             option.addEventListener('click', function () {
-                // Remove selected from all options in this poll
                 this.closest('.poll-options').querySelectorAll('.poll-option').forEach(o => {
                     o.classList.remove('selected');
                 });
-                // Add selected to clicked option
                 this.classList.add('selected');
             });
         });
@@ -353,17 +656,465 @@
                 const isUpvote = this.classList.contains('upvote');
                 const parent = this.closest('.vote-column');
                 const oppositeBtn = parent.querySelector(isUpvote ? '.downvote' : '.upvote');
-
-                // Toggle current button
                 this.classList.toggle('active');
-
-                // Remove active from opposite button if this one is now active
                 if (this.classList.contains('active')) {
                     oppositeBtn.classList.remove('active');
                 }
             });
         });
+
+        // Show More Groups toggle
+        const showMoreBtn = document.getElementById('showMoreGroupsBtn');
+        const extraGroups = document.getElementById('extraGroupsContainer');
+        if (showMoreBtn && extraGroups) {
+            showMoreBtn.addEventListener('click', function () {
+                const isExpanded = extraGroups.style.display !== 'none';
+                if (isExpanded) {
+                    extraGroups.style.display = 'none';
+                    this.querySelector('span').textContent = 'Show More (' + extraGroups.querySelectorAll('.group-item').length + ')';
+                    this.querySelector('svg, i').style.transform = 'rotate(0deg)';
+                } else {
+                    extraGroups.style.display = 'grid';
+                    this.querySelector('span').textContent = 'Show Less';
+                    this.querySelector('svg, i').style.transform = 'rotate(180deg)';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+            });
+        }
+
+        // Modal Helper Function
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Browse Groups Modal Logic
+        const browseGroupsBtnHeader = document.getElementById('browseGroupsBtnHeader');
+        const browseAllGroupsSidebar = document.getElementById('browseAllGroupsSidebar');
+        const closeBrowseModal = document.getElementById('closeBrowseModal');
+        const browseGroupsModal = document.getElementById('browseGroupsModal');
+
+        if (browseGroupsBtnHeader) browseGroupsBtnHeader.addEventListener('click', () => openModal('browseGroupsModal'));
+        if (browseAllGroupsSidebar) browseAllGroupsSidebar.addEventListener('click', () => openModal('browseGroupsModal'));
+        if (closeBrowseModal) closeBrowseModal.addEventListener('click', () => closeModal('browseGroupsModal'));
+
+        if (browseGroupsModal) {
+            browseGroupsModal.addEventListener('click', (e) => {
+                if (e.target === browseGroupsModal) closeModal('browseGroupsModal');
+            });
+        }
+
+        // Tab switching logic for Browse Modal
+        const browseTabs = document.querySelectorAll('.browse-tab');
+        browseTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.getAttribute('data-tab');
+                browseTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.browse-tab-pane').forEach(p => p.classList.remove('active'));
+                const pane = document.getElementById('pane-' + tabId);
+                if (pane) pane.classList.add('active');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
+        });
+
+        // Create Post Modal Logic
+        const createPostBtn = document.getElementById('createPostBtn');
+        const createPostModal = document.getElementById('createPostModal');
+        const closeCreatePostBtn = document.getElementById('closeCreatePostModal');
+        const emojiBtn = document.getElementById('emojiBtn');
+        const emojiPicker = document.getElementById('emojiPicker');
+        const postContent = document.getElementById('postContent');
+        const postAttachments = document.getElementById('postAttachments');
+        const attachmentsPreview = document.getElementById('attachmentsPreview');
+        const createPostForm = document.getElementById('createPostForm');
+
+        if (createPostBtn) createPostBtn.addEventListener('click', () => openModal('createPostModal'));
+        if (closeCreatePostBtn) closeCreatePostBtn.addEventListener('click', () => closeModal('createPostModal'));
+
+        if (createPostModal) {
+            createPostModal.addEventListener('click', (e) => {
+                if (e.target === createPostModal) closeModal('createPostModal');
+            });
+        }
+
+        // Close on Escape key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeModal('browseGroupsModal');
+                closeModal('createPostModal');
+            }
+        });
+
+        // Post type option selection
+        document.querySelectorAll('.post-type-option').forEach(option => {
+            option.addEventListener('click', function () {
+                // Remove selected class from all options
+                this.closest('.post-type-options').querySelectorAll('.post-type-option').forEach(opt => opt.classList.remove('selected'));
+                // Add selected class to the clicked option
+                this.classList.add('selected');
+
+                // Check the hidden radio input
+                const radio = this.querySelector('input');
+                if (radio) {
+                    radio.checked = true;
+                    // Trigger change event if needed
+                    radio.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    // Toggle Sections based on post type
+                    const postType = radio.value;
+                    const pollSection = document.getElementById('pollSection');
+                    const mangaLinkSection = document.getElementById('mangaLinkSection');
+
+                    if (pollSection) {
+                        pollSection.style.display = (postType === 'poll') ? 'block' : 'none';
+                    }
+
+                    // If recommendation, show manga link section by default
+                    if (mangaLinkSection && postType === 'recommendation') {
+                        mangaLinkSection.style.display = 'block';
+                    }
+                }
+            });
+        });
+
+        // Emoji picker toggle
+        if (emojiBtn && emojiPicker) {
+            emojiBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                emojiPicker.classList.toggle('active');
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+                    emojiPicker.classList.remove('active');
+                }
+            });
+
+            document.querySelectorAll('.emoji').forEach(emoji => {
+                emoji.addEventListener('click', function () {
+                    const emojiChar = this.getAttribute('data-emoji');
+                    if (postContent) {
+                        const cursorPos = postContent.selectionStart;
+                        const textBefore = postContent.value.substring(0, cursorPos);
+                        const textAfter = postContent.value.substring(cursorPos);
+                        postContent.value = textBefore + emojiChar + textAfter;
+                        postContent.focus();
+                        postContent.setSelectionRange(cursorPos + emojiChar.length, cursorPos + emojiChar.length);
+                    }
+                    emojiPicker.classList.remove('active');
+                });
+            });
+        }
+
+        // File attachments preview
+        if (postAttachments && attachmentsPreview) {
+            postAttachments.addEventListener('change', function () {
+                attachmentsPreview.innerHTML = '';
+                Array.from(this.files).forEach((file, index) => {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            previewItem.innerHTML = `
+                                <img src="${e.target.result}" alt="Preview">
+                                <button type="button" class="remove-preview" data-index="${index}">&times;</button>
+                            `;
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        // For non-image files, show an icon
+                        let icon = 'file';
+                        if (file.type.includes('pdf')) icon = 'file-text';
+                        else if (file.type.includes('zip') || file.type.includes('rar')) icon = 'archive';
+                        else if (file.type.includes('word') || file.type.includes('office')) icon = 'file-text';
+
+                        previewItem.innerHTML = `
+                            <div class="file-preview-placeholder">
+                                <i data-lucide="${icon}"></i>
+                                <span class="file-name">${file.name}</span>
+                                <button type="button" class="remove-preview" data-index="${index}">&times;</button>
+                            </div>
+                        `;
+                    }
+                    attachmentsPreview.appendChild(previewItem);
+                });
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
+
+            attachmentsPreview.addEventListener('click', function (e) {
+                if (e.target.classList.contains('remove-preview')) {
+                    e.target.closest('.preview-item').remove();
+                    // Note: This only removes the preview, not the file from the input.
+                    // To truly remove it, we'd need to create a new DataTransfer and rebuild the file list.
+                    // For now, removing the UI item is a good start.
+                }
+            });
+        }
+
+        // Poll Options Logic
+        const addPollOptionBtn = document.getElementById('addPollOptionBtn');
+        const pollOptionsList = document.getElementById('pollOptionsList');
+        if (addPollOptionBtn && pollOptionsList) {
+            addPollOptionBtn.addEventListener('click', function () {
+                const count = pollOptionsList.querySelectorAll('.poll-option-input').length;
+                if (count < 6) {
+                    const div = document.createElement('div');
+                    div.className = 'poll-option-input';
+                    div.innerHTML = `
+                        <input type="text" name="poll_options[]" placeholder="Option ${count + 1}">
+                        <button type="button" class="remove-option">&times;</button>
+                    `;
+                    pollOptionsList.appendChild(div);
+                } else {
+                    alert('Maximum 6 options allowed');
+                }
+            });
+
+            pollOptionsList.addEventListener('click', function (e) {
+                if (e.target.classList.contains('remove-option')) {
+                    const count = pollOptionsList.querySelectorAll('.poll-option-input').length;
+                    if (count > 2) {
+                        e.target.closest('.poll-option-input').remove();
+                        // Re-index placeholders
+                        pollOptionsList.querySelectorAll('.poll-option-input input').forEach((input, i) => {
+                            input.placeholder = `Option ${i + 1}`;
+                        });
+                    } else {
+                        alert('Polls must have at least 2 options');
+                    }
+                }
+            });
+        }
+
+        // Manga Search Logic (Using client-side filter of all_manga_groups)
+        const mangaSearchInput = document.getElementById('mangaSearchInput');
+        const mangaSearchResults = document.getElementById('mangaSearchResults');
+        const selectedMangaPreview = document.getElementById('selectedMangaPreview');
+        const selectedMangaName = document.getElementById('selectedMangaName');
+        const selectedMangaId = document.getElementById('selectedMangaId');
+        const mangaLinkSection = document.getElementById('mangaLinkSection');
+
+        // Toolbar Manga Link Toggle
+        const addMangaLinkBtn = document.getElementById('addMangaLinkBtn');
+        if (addMangaLinkBtn) {
+            addMangaLinkBtn.addEventListener('click', () => {
+                if (mangaLinkSection) {
+                    mangaLinkSection.style.display = (mangaLinkSection.style.display === 'none' || mangaLinkSection.style.display === '') ? 'block' : 'none';
+                    if (mangaLinkSection.style.display === 'block') mangaSearchInput.focus();
+                }
+            });
+        }
+
+        // Pre-parse the manga groups passed from Jinja
+        const mangaData = {{ all_manga_groups | tojson | safe
+    }};
+
+
+    if (mangaSearchInput) {
+        mangaSearchInput.addEventListener('input', function () {
+            const query = this.value.toLowerCase().trim();
+            mangaSearchResults.innerHTML = '';
+            if (query.length < 2) {
+                mangaSearchResults.style.display = 'none';
+                return;
+            }
+
+            const filtered = mangaData.filter(m => (m.name || '').toLowerCase().includes(query)).slice(0, 5);
+            if (filtered.length > 0) {
+                filtered.forEach(m => {
+                    const item = document.createElement('div');
+                    item.className = 'search-result-item';
+                    item.innerHTML = `
+                            ${m.icon_url ? `<img src="${m.icon_url}">` : '<i data-lucide="book"></i>'}
+                            <span>${m.name}</span>
+                        `;
+                    item.addEventListener('click', () => {
+                        selectedMangaId.value = m.id;
+                        selectedMangaName.textContent = m.name;
+                        selectedMangaPreview.style.display = 'flex';
+                        mangaSearchResults.style.display = 'none';
+                        mangaSearchInput.value = '';
+                    });
+                    mangaSearchResults.appendChild(item);
+                });
+                mangaSearchResults.style.display = 'block';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        });
+    }
+
+    const removeMangaLinkBtn = document.getElementById('removeMangaLink');
+    if (removeMangaLinkBtn) {
+        removeMangaLinkBtn.addEventListener('click', () => {
+            selectedMangaId.value = '';
+            selectedMangaPreview.style.display = 'none';
+        });
+    }
+
+    // === Group Search Logic ===
+    const allGroupsData = {{ (my_groups + suggested_groups) | tojson | safe }};
+
+
+    const groupSearchInput = document.getElementById('groupSearchInput');
+    const groupSearchResults = document.getElementById('groupSearchResults');
+    const postGroupHidden = document.getElementById('postGroup');
+    const selectedGroupPreview = document.getElementById('selectedGroupPreview');
+    const selectedGroupName = document.getElementById('selectedGroupName');
+
+    if (groupSearchInput) {
+        groupSearchInput.addEventListener('input', function () {
+            const query = this.value.toLowerCase().trim();
+            groupSearchResults.innerHTML = '';
+
+            if (query.length < 2) {
+                groupSearchResults.style.display = 'none';
+                return;
+            }
+
+            const filtered = allGroupsData.filter(g => (g.name || '').toLowerCase().includes(query)).slice(0, 6);
+
+            if (filtered.length > 0) {
+                filtered.forEach(g => {
+                    const item = document.createElement('div');
+                    item.className = 'search-result-item';
+
+                    let iconHtml;
+                    if (g.icon_url && g.icon_url !== '/static/img/earth.png') {
+                        iconHtml = `<img src="${g.icon_url}">`;
+                    } else if (g.name === 'World' || g.group_type === 'system') {
+                        iconHtml = `<i data-lucide="globe"></i>`;
+                    } else {
+                        iconHtml = `<i data-lucide="${g.group_type === 'genre' ? 'tag' : 'book-image'}"></i>`;
+                    }
+
+                    item.innerHTML = `
+                        ${iconHtml}
+                        <span>${g.name}</span>
+                    `;
+                    item.addEventListener('click', () => {
+                        postGroupHidden.value = g.id;
+                        selectedGroupName.textContent = g.name;
+                        selectedGroupPreview.style.display = 'flex';
+                        groupSearchResults.style.display = 'none';
+                        groupSearchInput.value = '';
+                        groupSearchInput.style.display = 'none';
+                    });
+                    groupSearchResults.appendChild(item);
+                });
+                groupSearchResults.style.display = 'block';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } else {
+                groupSearchResults.innerHTML = '<div class="search-result-item" style="color: rgba(255,255,255,0.4);">No groups found</div>';
+                groupSearchResults.style.display = 'block';
+            }
+        });
+    }
+
+    const removeGroupSelectionBtn = document.getElementById('removeGroupSelection');
+    if (removeGroupSelectionBtn) {
+        removeGroupSelectionBtn.addEventListener('click', () => {
+            postGroupHidden.value = '';
+            selectedGroupPreview.style.display = 'none';
+            groupSearchInput.style.display = '';
+            groupSearchInput.value = '';
+            groupSearchInput.focus();
+        });
+    }
+
+    // GIF Picker Logic
+    const gifBtn = document.getElementById('gifBtn');
+    const postGifUrl = document.getElementById('postGifUrl');
+    const gifPreview = document.getElementById('gifPreview');
+    const selectedGifImg = document.getElementById('selectedGifImg');
+
+    if (gifBtn) {
+        gifBtn.addEventListener('click', function () {
+            // Toggle a small GIF selector panel
+            let existingPicker = document.querySelector('.gif-picker-content');
+            if (existingPicker) {
+                existingPicker.remove();
+                return;
+            }
+
+            const picker = document.createElement('div');
+            picker.className = 'gif-picker-content';
+
+            // Mock GIF data
+            const mockGifs = [
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKVUn7XYMgbzgB2/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlS697eB7j58pPO/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpx4vV6D6ZTG/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l41lTfuxV5F6e4JNu/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpx4vV6D6ZTG/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlU7mR8E8E9x8p2/giphy.gif'
+            ];
+
+            mockGifs.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'gif-item';
+                img.addEventListener('click', () => {
+                    postGifUrl.value = url;
+                    selectedGifImg.src = url;
+                    gifPreview.style.display = 'flex';
+                    picker.remove();
+                });
+                picker.appendChild(img);
+            });
+
+            gifBtn.parentElement.after(picker);
+        });
+
+        document.getElementById('removeGif').addEventListener('click', () => {
+            postGifUrl.value = '';
+            gifPreview.style.display = 'none';
+        });
+    }
+
+    // Form submission
+    if (createPostForm) {
+        createPostForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const btn = this.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/community/posts', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    closeModal('createPostModal');
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Failed to create post');
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                alert('An error occurred. Please try again.');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        });
+    }
     });
 </script>
-
 {% endblock %}

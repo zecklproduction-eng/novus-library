@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/studio.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/book_detail.css') }}" />
+  {% block extra_head %}{% endblock %}
 
 
   <style>
@@ -349,10 +350,16 @@
       </a>
       {% endif %}
 
-      <!-- Community -->
+      <!-- Community Groups -->
+      <a href="{{ url_for('community') }}" class="nav-item">
+        <i class="fas fa-users"></i>
+        <span class="tooltip-text">Community Groups</span>
+      </a>
+
+      <!-- Community Reviews -->
       <a href="{{ url_for('community_reviews') }}" class="nav-item">
         <i class="fas fa-comments"></i>
-        <span class="tooltip-text">Community</span>
+        <span class="tooltip-text">Reviews</span>
       </a>
 
       <!-- Watchlist -->
@@ -1915,6 +1922,8 @@
       }
     });
   </script>
+  {% block modals %}{% endblock %}
+  {% block extra_js %}{% endblock %}
 </body>
 
 </html>

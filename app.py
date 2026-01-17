@@ -12,6 +12,7 @@ import traceback
 import mimetypes
 from logging.handlers import RotatingFileHandler
 from werkzeug.utils import secure_filename
+import re
 
 # Add custom MIME types for code projects
 mimetypes.add_type('application/javascript', '.js')
@@ -86,6 +87,73 @@ ALLOWED_ANIMATION = {"mp4", "webm", "gif", "png", "jpg", "jpeg"}
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "novus_secret_key")
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+
+# Custom Jinja filter for relative time display
+@app.template_filter('time_ago')
+def time_ago_filter(dt):
+    """Convert datetime to relative time string like '2 hours ago'"""
+    if not dt:
+        return 'Just now'
+    
+    if isinstance(dt, str):
+        try:
+            dt = datetime.strptime(dt, '%Y-%m-%d %H:%M:%S')
+        except:
+            try:
+                dt = datetime.strptime(dt, '%Y-%m-%d')
+            except:
+                return dt
+    
+    now = datetime.now()
+    diff = now - dt
+    
+    seconds = diff.total_seconds()
+    
+    if seconds < 60:
+        return 'Just now'
+    elif seconds < 3600:
+        minutes = int(seconds / 60)
+        return f'{minutes}m ago'
+    elif seconds < 86400:
+        hours = int(seconds / 3600)
+        return f'{hours}h ago'
+    elif seconds < 604800:
+        days = int(seconds / 86400)
+        return f'{days}d ago'
+    elif seconds < 2592000:
+        weeks = int(seconds / 604800)
+        return f'{weeks}w ago'
+    else:
+        return dt.strftime('%b %d, %Y')
+
+
+@app.template_filter('mentions')
+def mentions_filter(text):
+    """Highlight @usernames, @everyone, etc. in text"""
+    if not text:
+        return text
+    
+    from markupsafe import escape
+    text = str(escape(text))
+    
+    # Highlight @mentions
+    # Pattern matches @ followed by word characters or hyphens (for @mod-username)
+    mention_pattern = r'@([a-zA-Z0-9_-]+)'
+    
+    def replace_mention(match):
+        username = match.group(1)
+        # Roles and special mentions
+        if username in ['everyone', 'admin', 'publisher', 'mod']:
+            return f'<span class="mention-tag role-mention">@{username}</span>'
+        elif username.startswith('mod-'):
+            actual_user = username[4:]
+            return f'<span class="mention-tag mod-mention" title="Moderator: {actual_user}">@{username}</span>'
+        else:
+            return f'<span class="mention-tag user-mention">@{username}</span>'
+            
+    return re.sub(mention_pattern, replace_mention, text)
+
 
 
 # Context Processor to make animations available globally (for banner in base/index)
@@ -1347,7 +1415,258 @@ def init_db():
         """, default_links)
         conn.commit()
 
+    # -------------------- COMMUNITY GROUPS TABLES --------------------
+    # community_groups table - stores all community groups (genre, manga, book)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS community_groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            group_type TEXT NOT NULL DEFAULT 'general',
+            reference_id INTEGER,
+            category TEXT,
+            icon_url TEXT,
+            banner_url TEXT,
+            owner_id INTEGER,
+            member_count INTEGER DEFAULT 0,
+            post_count INTEGER DEFAULT 0,
+            is_auto_created BOOLEAN DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (owner_id) REFERENCES users(id)
+        )
+    """)
+
+    # group_members table - stores group memberships
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            role TEXT DEFAULT 'member',
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(group_id, user_id),
+            FOREIGN KEY (group_id) REFERENCES community_groups(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
+     # group_posts table - stores posts in groups
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            title TEXT,
+            content TEXT,
+            post_type TEXT DEFAULT 'discussion',
+            upvotes INTEGER DEFAULT 0,
+            downvotes INTEGER DEFAULT 0,
+            comment_count INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (group_id) REFERENCES community_groups(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
+    # group_posts migration: add missing columns
+    columns_to_add = [
+        ("channel_id", "INTEGER"),
+        ("manga_id", "INTEGER"),
+        ("gif_url", "TEXT"),
+        ("poll_question", "TEXT")
+    ]
+    for col_name, col_type in columns_to_add:
+        try:
+            c.execute(f"ALTER TABLE group_posts ADD COLUMN {col_name} {col_type}")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+
+    # poll_options table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS poll_options (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            option_text TEXT NOT NULL,
+            vote_count INTEGER DEFAULT 0,
+            FOREIGN KEY (post_id) REFERENCES group_posts(id) ON DELETE CASCADE
+        )
+    """)
+
+
+    # group_post_attachments
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_post_attachments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            file_url TEXT NOT NULL,
+            file_type TEXT NOT NULL,
+            file_name TEXT,
+            FOREIGN KEY (post_id) REFERENCES group_posts(id) ON DELETE CASCADE
+        )
+    """)
+
+    # group_post_votes
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_post_votes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            vote INTEGER NOT NULL, -- 1 for upvote, -1 for downvote
+            UNIQUE(post_id, user_id),
+            FOREIGN KEY (post_id) REFERENCES group_posts(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
+    # group_comments
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (post_id) REFERENCES group_posts(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
+    # group_comment_attachments
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_comment_attachments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            comment_id INTEGER NOT NULL,
+            file_url TEXT NOT NULL,
+            file_type TEXT NOT NULL,
+            file_name TEXT,
+            manga_id INTEGER,
+            manga_title TEXT,
+            manga_cover TEXT,
+            FOREIGN KEY (comment_id) REFERENCES group_comments(id) ON DELETE CASCADE
+        )
+    """)
+
+    # Migration: Add manga columns to group_comment_attachments if they don't exist
+    try:
+        c.execute("ALTER TABLE group_comment_attachments ADD COLUMN manga_id INTEGER")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute("ALTER TABLE group_comment_attachments ADD COLUMN manga_title TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute("ALTER TABLE group_comment_attachments ADD COLUMN manga_cover TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    # group_comment_likes
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_comment_likes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            comment_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            UNIQUE(comment_id, user_id),
+            FOREIGN KEY (comment_id) REFERENCES group_comments(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
+    # group_channels
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_channels (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT,
+            channel_type TEXT DEFAULT 'text',
+            icon TEXT DEFAULT 'hash',
+            position INTEGER DEFAULT 0,
+            FOREIGN KEY (group_id) REFERENCES community_groups(id) ON DELETE CASCADE
+        )
+    """)
+
+    # group_polls table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_polls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            question TEXT NOT NULL,
+            allow_multiple BOOLEAN DEFAULT 0,
+            expires_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (post_id) REFERENCES group_posts(id) ON DELETE CASCADE
+        )
+    """)
+
+    # group_poll_options table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_poll_options (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            poll_id INTEGER NOT NULL,
+            option_text TEXT NOT NULL,
+            vote_count INTEGER DEFAULT 0,
+            FOREIGN KEY (poll_id) REFERENCES group_polls(id) ON DELETE CASCADE
+        )
+    """)
+
+    # group_poll_votes table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_poll_votes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            poll_id INTEGER NOT NULL,
+            option_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(poll_id, user_id, option_id),
+            FOREIGN KEY (poll_id) REFERENCES group_polls(id) ON DELETE CASCADE,
+            FOREIGN KEY (option_id) REFERENCES group_poll_options(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
+    conn.commit()
+
+    # Seed default genre groups if none exist
+    c.execute("SELECT COUNT(*) FROM community_groups WHERE group_type = 'genre'")
+    if c.fetchone()[0] == 0:
+        default_genre_groups = [
+            ('Action', 'Discuss your favorite action manga and anime!', 'genre', 'Action', None),
+            ('Romance', 'For fans of love stories and romantic manga!', 'genre', 'Romance', None),
+            ('Fantasy', 'Explore magical worlds and fantastical adventures!', 'genre', 'Fantasy', None),
+            ('Sci-Fi', 'Science fiction, mecha, and futuristic stories!', 'genre', 'Sci-Fi', None),
+            ('Comedy', 'Laugh together with comedy manga fans!', 'genre', 'Comedy', None),
+            ('Horror', 'For those who love a good scare!', 'genre', 'Horror', None),
+            ('Slice of Life', 'Everyday life stories and chill reads!', 'genre', 'Slice of Life', None),
+            ('Sports', 'Sports manga and anime discussions!', 'genre', 'Sports', None),
+            ('Mystery', 'Detective stories and thrilling mysteries!', 'genre', 'Mystery', None),
+            ('Adventure', 'Epic journeys and adventures await!', 'genre', 'Adventure', None),
+        ]
+        c.executemany("""
+            INSERT INTO community_groups (name, description, group_type, category, owner_id, is_auto_created)
+            VALUES (?, ?, ?, ?, ?, 1)
+        """, default_genre_groups)
+        conn.commit()
+        logger.info("Created default genre groups for community")
+
+    # Check/Create World Group
+    c.execute("SELECT id FROM community_groups WHERE name = 'World' AND group_type = 'system'")
+    if not c.fetchone():
+        c.execute("""
+            INSERT INTO community_groups (name, description, group_type, category, owner_id, is_auto_created)
+            VALUES (?, ?, ?, ?, ?, 1)
+        """, ('World', 'Global posts visible to everyone', 'system', 'General', None))
+        conn.commit()
+        logger.info("Created World system group")
+
     conn.close()
+    
+    # Sync groups with existing content
+    sync_community_groups()
 
 
 
@@ -2940,6 +3259,9 @@ def add_book():
         uploader_id = session.get("user_id")
         log_system_event('INFO', 'upload', f'User uploaded book: {title}', uploader_id, {'book_id': c.lastrowid, 'book_type': 'book'})
         
+        # Sync community groups to create group for new book/genres
+        sync_community_groups()
+        
         # Fulfill Request if exists
         request_id = request.form.get("request_id")
         earned_amount = 0.0
@@ -3112,6 +3434,9 @@ def add_book():
         # Log manga upload
         uploader_id = session.get("user_id")
         log_system_event('INFO', 'upload', f'User uploaded manga: {title} with {page_count} pages in Chapter 1', uploader_id, {'manga_id': manga_id, 'book_type': 'manga', 'chapters': 1, 'pages': page_count})
+
+        # Sync community groups to create group for new manga/genres
+        sync_community_groups()
 
         # Fulfill Request if exists
         request_id = request.form.get("request_id")
@@ -4853,6 +5178,52 @@ def manga_chat_api():
         return jsonify({"success": True, "reply": response_text})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/manga/search")
+def search_manga_api():
+    """API for manga search/autocompletion"""
+    query = request.args.get('q', '').strip()
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    if not query:
+        # Return mostly recent or popular mangas if no query
+        c.execute("""
+            SELECT id, title, author, cover_path, category
+            FROM books 
+            WHERE COALESCE(book_type,'book')='manga'
+            ORDER BY created_at DESC
+            LIMIT 10
+        """)
+    else:
+        c.execute("""
+            SELECT id, title, author, cover_path, category
+            FROM books 
+            WHERE (title LIKE ? OR author LIKE ?) AND COALESCE(book_type,'book')='manga'
+            LIMIT 10
+        """, (f'%{query}%', f'%{query}%'))
+    
+    results = []
+    for row in c.fetchall():
+        cover = row[3]
+        # Normalize cover path
+        if cover and not cover.startswith('http') and not cover.startswith('/'):
+            cover = f'/static/{cover}'
+        elif not cover:
+            cover = None 
+            
+        results.append({
+            'id': row[0],
+            'title': row[1],
+            'author': row[2],
+            'cover': cover,
+            'category': row[4]
+        })
+
+    conn.close()
+    return jsonify(results)
 
 
 @app.route("/api/manga/<int:manga_id>/summary", methods=["GET"])
@@ -9882,43 +10253,1588 @@ def ranking():
 @app.route("/api/manga/search")
 def api_manga_search():
     query = request.args.get("q", "").strip()
-    if not query:
-        return jsonify([])
     
     conn = get_conn()
     c = conn.cursor()
-    c.execute("""
-        SELECT id, title, author, cover_path 
-        FROM books 
-        WHERE (book_type = 'manga' OR category LIKE '%Manga%')
-        AND title LIKE ? 
-        LIMIT 10
-    """, (f"%{query}%",))
+    
+    if query:
+        # Search with query - replace dashes with spaces for #@ shortcut support
+        search_term = query.replace('-', ' ')
+        c.execute("""
+            SELECT id, title, author, cover_path 
+            FROM books 
+            WHERE (book_type = 'manga' OR category LIKE '%Manga%')
+            AND title LIKE ? 
+            LIMIT 10
+        """, (f"%{search_term}%",))
+    else:
+        # Return recent/popular manga when no query
+        c.execute("""
+            SELECT id, title, author, cover_path 
+            FROM books 
+            WHERE (book_type = 'manga' OR category LIKE '%Manga%')
+            ORDER BY id DESC
+            LIMIT 10
+        """)
+    
     rows = c.fetchall()
     conn.close()
     
     results = []
     for row in rows:
+        cover = row[3]
+        # Ensure cover path is a proper URL
+        if cover and not cover.startswith('http') and not cover.startswith('/'):
+            cover = f'/static/{cover}'
+        elif not cover:
+            cover = 'https://via.placeholder.com/200x300?text=No+Cover'
+        
         results.append({
             'id': row[0],
             'title': row[1],
-            'author': row[2],
-            'cover': row[3]
+            'author': row[2] or 'Unknown',
+            'cover': cover
         })
     return jsonify(results)
 
+
+@app.route("/api/users/search")
+@login_required
+def api_users_search():
+    """Search users for @ mentions"""
+    query = request.args.get("q", "").strip().lower()
+    group_id = request.args.get("group_id")
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    results = []
+    
+    # Special mention targets
+    special_mentions = [
+        {'id': 'everyone', 'username': 'everyone', 'type': 'special', 'description': 'Notify all group members'},
+        {'id': 'admin', 'username': 'admin', 'type': 'role', 'description': 'All admins'},
+        {'id': 'publisher', 'username': 'publisher', 'type': 'role', 'description': 'All publishers'},
+        {'id': 'mod', 'username': 'mod', 'type': 'role', 'description': 'All moderators'},
+    ]
+    
+    # Filter special mentions based on query
+    for sm in special_mentions:
+        if not query or query in sm['username']:
+            results.append(sm)
+    
+    # Search actual users
+    if query:
+        c.execute("""
+            SELECT id, username, avatar_url, role
+            FROM users
+            WHERE username LIKE ? 
+            ORDER BY username
+            LIMIT 8
+        """, (f"%{query}%",))
+    else:
+        # Show recent/active users if no query
+        c.execute("""
+            SELECT id, username, avatar_url, role
+            FROM users
+            ORDER BY id DESC
+            LIMIT 8
+        """)
+    
+    for row in c.fetchall():
+        u_id, username, avatar, role = row
+        
+        # Add basic user result
+        results.append({
+            'id': u_id,
+            'username': username,
+            'avatar': avatar,
+            'role': role,
+            'type': 'user'
+        })
+        
+        # If searching for mod- specifically or user is a moderator/admin, add mod- suggestion
+        is_mod_role = role and role.lower() in ['mod', 'moderator', 'admin']
+        if (query and query.startswith('mod-')) or is_mod_role:
+            results.append({
+                'id': f'mod-{u_id}',
+                'username': f'mod-{username}',
+                'avatar': avatar,
+                'role': 'Moderator',
+                'type': 'role',
+                'description': f'Moderator: {username}'
+            })
+    
+    conn.close()
+    return jsonify(results)
+
+
+
+# -------------------- COMMUNITY & GROUPS --------------------
+
+def create_group_for_content(title, description, group_type, reference_id=None, category=None, owner_id=None, icon_url=None):
+    """Helper function to auto-create a group for manga/book or genre"""
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Check if group already exists for this content
+    if reference_id:
+        c.execute("SELECT id FROM community_groups WHERE reference_id = ? AND group_type = ?", (reference_id, group_type))
+    elif category:
+        # Check by category OR name for genre groups to avoid duplicates
+        c.execute("SELECT id FROM community_groups WHERE (category = ? OR name = ?) AND group_type = 'genre'", (category, category))
+    else:
+        c.execute("SELECT id FROM community_groups WHERE name = ? AND group_type = ?", (title, group_type))
+    
+    existing = c.fetchone()
+    if existing:
+        conn.close()
+        return existing[0]
+    
+    # Create new group
+    banner_url = f"https://picsum.photos/seed/{title.replace(' ', '-').lower()}/1200/300"
+    c.execute("""
+        INSERT INTO community_groups (name, description, group_type, reference_id, category, owner_id, icon_url, banner_url, is_auto_created)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+    """, (title, description, group_type, reference_id, category, owner_id, icon_url, banner_url))
+    
+    group_id = c.lastrowid
+    
+    # If owner specified, add them as owner member
+    if owner_id:
+        c.execute("""
+            INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, 'owner')
+        """, (group_id, owner_id))
+    
+    conn.commit()
+    conn.close()
+    return group_id
+
+
+def ensure_genre_group(genre_name):
+    """Ensure a genre group exists, create if not"""
+    if not genre_name:
+        return None
+    description = f"Discuss your favorite {genre_name} manga and anime!"
+    return create_group_for_content(genre_name, description, 'genre', category=genre_name)
+
+
+def get_user_group_role(group_id, user_id):
+    """Get user's role in a group"""
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT role FROM group_members WHERE group_id = ? AND user_id = ?", (group_id, user_id))
+    result = c.fetchone()
+    conn.close()
+    return result[0] if result else None
+
+
+def can_edit_group_settings(group_id, user_id, is_admin):
+    """Check if user can edit group settings"""
+    if is_admin:
+        return True
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT group_type, owner_id FROM community_groups WHERE id = ?", (group_id,))
+    group = c.fetchone()
+    conn.close()
+    
+    if not group:
+        return False
+    
+    group_type, owner_id = group
+    
+    # Genre groups - admin only
+    if group_type == 'genre':
+        return False
+    
+    # Manga/book groups - owner (publisher) or admin
+    return owner_id == user_id
+
+
+def sync_community_groups():
+    """Ensure all genres and mangas have community groups"""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # 1. Sync Genre Groups (from books table categories)
+        c.execute("SELECT DISTINCT category FROM books")
+        raw_categories = [row[0] for row in c.fetchall() if row[0]]
+        genres = set()
+        for cat_str in raw_categories:
+            for cat in cat_str.split(','):
+                cleaned = cat.strip()
+                if cleaned:
+                    genres.add(cleaned)
+        
+        for genre in genres:
+            ensure_genre_group(genre)
+            
+        # 2. Sync Manga Groups (for each manga entry)
+        c.execute("SELECT id, title, description, cover_path FROM books WHERE book_type = 'manga'")
+        mangas = c.fetchall()
+        for m_id, m_title, m_desc, m_cover in mangas:
+            create_group_for_content(
+                title=f"{m_title}",
+                description=m_desc or f"Official discussion group for {m_title}",
+                group_type='manga',
+                reference_id=m_id,
+                icon_url=m_cover
+            )
+        
+        conn.commit()
+        conn.close()
+        logger.info("Successfully synced community groups for all genres and mangas")
+    except Exception as e:
+        if 'logger' in globals():
+            logger.error(f"Error syncing community groups: {e}")
+        else:
+            print(f"Error syncing community groups: {e}")
 
 
 @app.route('/community')
 @login_required
 def community():
     """NOVUS Community page - social hub for discussions and groups"""
-    return render_template('community.html')
+    try:
+        conn = get_conn()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        user_id = session.get('user_id')
+        
+        # Get user's groups
+        c.execute("""
+            SELECT cg.id, cg.name, cg.group_type, cg.icon_url, cg.member_count
+            FROM community_groups cg
+            JOIN group_members gm ON cg.id = gm.group_id
+            WHERE gm.user_id = ?
+            ORDER BY gm.joined_at DESC
+            LIMIT 10
+        """, (user_id,))
+        my_groups = [dict(row) for row in c.fetchall()]
+
+        # Prepend World/Global group manually so it's always available
+        c.execute("SELECT id, name, group_type, icon_url, member_count FROM community_groups WHERE name = 'World' AND group_type = 'system'")
+        world_row = c.fetchone()
+        if world_row:
+            world_group = dict(world_row)
+            # Ensure it has an icon
+            if not world_group['icon_url']:
+                world_group['icon_url'] = '/static/img/earth.png' # Fallback if not set
+            my_groups.insert(0, world_group)
+        
+        # Get suggested groups (groups user hasn't joined)
+        c.execute("""
+            SELECT id, name, group_type, icon_url, member_count
+            FROM community_groups 
+            WHERE id NOT IN (SELECT group_id FROM group_members WHERE user_id = ?)
+            ORDER BY member_count DESC
+            LIMIT 30
+        """, (user_id,))
+        suggested_groups = [dict(row) for row in c.fetchall()]
+        
+        # Get recent posts from all groups with detailed info
+        c.execute("""
+            SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at,
+                   u.id as user_id, u.username, u.avatar_url as avatar,
+                   cg.id as group_id, cg.name as group_name
+            FROM group_posts gp
+            JOIN users u ON gp.user_id = u.id
+            JOIN community_groups cg ON gp.group_id = cg.id
+            ORDER BY gp.created_at DESC
+            LIMIT 20
+        """)
+        
+        posts = []
+        for row in c.fetchall():
+            post = dict(row)
+            post_id = post['id']
+            
+            # Fetch user vote status
+            c.execute("SELECT vote FROM group_post_votes WHERE post_id = ? AND user_id = ?", (post_id, user_id))
+            vote_row = c.fetchone()
+            post['user_vote'] = vote_row['vote'] if vote_row else 0
+            
+            # Fetch attachments
+            c.execute("SELECT file_url, file_type, file_name FROM group_post_attachments WHERE post_id = ?", (post_id,))
+            attachments = []
+            for a_row in c.fetchall():
+                attach = dict(a_row)
+                # If it's a manga link, fetch details
+                if attach['file_type'] == 'manga_link':
+                    try:
+                        m_id = attach['file_url'].split('/')[-1]
+                        c.execute("SELECT title, cover_path FROM books WHERE id = ?", (m_id,))
+                        m_data = c.fetchone()
+                        if m_data:
+                            attach['manga_title'] = m_data['title']
+                            m_cover = m_data['cover_path']
+                            if m_cover and not m_cover.startswith('http') and not m_cover.startswith('/'):
+                                m_cover = f'/static/{m_cover}'
+                            attach['manga_cover'] = m_cover or 'https://via.placeholder.com/200x300?text=No+Cover'
+                    except: pass
+                attachments.append(attach)
+            post['attachments'] = attachments
+            
+            # Fetch poll data
+            if post['post_type'] == 'poll':
+                c.execute("SELECT id, question, allow_multiple FROM group_polls WHERE post_id = ?", (post_id,))
+                poll_row = c.fetchone()
+                if poll_row:
+                    poll = dict(poll_row)
+                    c.execute("""
+                        SELECT id, option_text, vote_count 
+                        FROM group_poll_options 
+                        WHERE poll_id = ?
+                    """, (poll['id'],))
+                    poll['options'] = [dict(opt) for opt in c.fetchall()]
+                    poll['total_votes'] = sum(opt['vote_count'] for opt in poll['options'])
+                    
+                    # User's specific vote
+                    c.execute("SELECT option_id FROM group_poll_votes WHERE poll_id = ? AND user_id = ?", (poll['id'], user_id))
+                    poll['user_votes'] = [v['option_id'] for v in c.fetchall()]
+                    post['poll'] = poll
+            
+            posts.append(post)
+            
+        # Get top contributors
+        c.execute("""
+            SELECT u.id, u.username as name, u.avatar_url as avatar, COUNT(gp.id) as post_count
+            FROM users u
+            JOIN group_posts gp ON u.id = gp.user_id
+            GROUP BY u.id
+            ORDER BY post_count DESC
+            LIMIT 3
+        """)
+        top_contributors = [dict(row) for row in c.fetchall()]
+
+        # Recent Community Activity (Last 5 actions across groups)
+        c.execute("""
+            SELECT u.username, gp.title, cg.name as group_name, gp.created_at, gp.post_type
+            FROM group_posts gp
+            JOIN users u ON gp.user_id = u.id
+            JOIN community_groups cg ON gp.group_id = cg.id
+            ORDER BY gp.created_at DESC
+            LIMIT 5
+        """)
+        recent_activity = [dict(row) for row in c.fetchall()]
+
+        # Get all genre/manga groups for the browse modal
+        c.execute("SELECT id, name, icon_url, member_count FROM community_groups WHERE group_type = 'genre' ORDER BY name ASC")
+        all_genre_groups = [dict(row) for row in c.fetchall()]
+        
+        c.execute("SELECT id, name, icon_url, member_count FROM community_groups WHERE group_type = 'manga' ORDER BY member_count DESC")
+        all_manga_groups = [dict(row) for row in c.fetchall()]
+        
+        conn.close()
+        
+        return render_template('community.html', 
+                             my_groups=my_groups, 
+                             suggested_groups=suggested_groups,
+                             posts=posts,
+                             top_contributors=top_contributors,
+                             recent_activity=recent_activity,
+                             all_genre_groups=all_genre_groups,
+                             all_manga_groups=all_manga_groups)
+    except Exception as e:
+        logger.error(f"Community page error: {e}")
+        # Fallback - render template with empty data
+        return render_template('community.html', 
+                             my_groups=[], 
+                             suggested_groups=[],
+                             posts=[],
+                             top_contributors=[])
+
+
+@app.route('/group/<int:group_id>')
+@login_required
+def group_page(group_id):
+    """Individual group page"""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Get group details
+        c.execute("""
+            SELECT id, name, description, group_type, reference_id, category, 
+                   icon_url, banner_url, owner_id, member_count, post_count, created_at
+            FROM community_groups WHERE id = ?
+        """, (group_id,))
+        row = c.fetchone()
+        
+        if not row:
+            conn.close()
+            flash('Group not found', 'error')
+            return redirect(url_for('community'))
+        
+        group = dict(zip(['id', 'name', 'description', 'group_type', 'reference_id', 'category',
+                          'icon_url', 'banner_url', 'owner_id', 'member_count', 'post_count', 'created_at'], row))
+        
+        # Format member count nicely
+        if group['member_count'] >= 1000:
+            group['member_count_display'] = f"{group['member_count'] / 1000:.1f}K"
+        else:
+            group['member_count_display'] = str(group['member_count'])
+        
+        # Check if current user is a member
+        user_id = session.get('user_id')
+        c.execute("SELECT role FROM group_members WHERE group_id = ? AND user_id = ?", (group_id, user_id))
+        member_row = c.fetchone()
+        is_member = member_row is not None
+        user_role = member_row[0] if member_row else None
+        
+        # Check if user can edit settings
+        is_admin = session.get('role') == 'admin'
+        can_edit_settings = can_edit_group_settings(group_id, user_id, is_admin)
+        
+        # Get group admins/moderators
+        c.execute("""
+            SELECT u.id, u.username, u.avatar_url, gm.role
+            FROM group_members gm
+            JOIN users u ON gm.user_id = u.id
+            WHERE gm.group_id = ? AND gm.role IN ('owner', 'admin', 'moderator')
+            ORDER BY CASE gm.role WHEN 'owner' THEN 1 WHEN 'admin' THEN 2 ELSE 3 END
+        """, (group_id,))
+        admins = [dict(zip(['id', 'name', 'avatar', 'role'], row)) for row in c.fetchall()]
+        
+        # Get recent members
+        c.execute("""
+            SELECT u.id, u.username, u.avatar_url
+            FROM group_members gm
+            JOIN users u ON gm.user_id = u.id
+            WHERE gm.group_id = ?
+            ORDER BY gm.joined_at DESC
+            LIMIT 8
+        """, (group_id,))
+        recent_members = [dict(zip(['id', 'name', 'avatar'], row)) for row in c.fetchall()]
+        
+        # Get group posts
+        c.execute("""
+            SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at,
+                   u.id as user_id, u.username, u.avatar_url, gp.channel_id
+            FROM group_posts gp
+            JOIN users u ON gp.user_id = u.id
+            WHERE gp.group_id = ?
+            ORDER BY gp.created_at DESC
+            LIMIT 20
+        """, (group_id,))
+        posts = []
+        for r in c.fetchall():
+            p_obj = dict(zip(['id', 'title', 'content', 'post_type', 'upvotes', 'downvotes', 'comment_count', 'created_at',
+                               'user_id', 'username', 'avatar', 'channel_id'], r))
+            # Get attachments
+            c.execute("SELECT file_url, file_type, file_name FROM group_post_attachments WHERE post_id = ?", (p_obj['id'],))
+            attachments = []
+            for row in c.fetchall():
+                a_url, a_type, a_name = row
+                attach = {'url': a_url, 'type': a_type, 'name': a_name}
+                
+                # If it's a manga link, try to fetch cover and title
+                if a_type == 'manga_link' and '/manga/detail/' in a_url:
+                    try:
+                        m_id = a_url.split('/')[-1]
+                        c.execute("SELECT title, cover_path FROM books WHERE id = ?", (m_id,))
+                        m_row = c.fetchone()
+                        if m_row:
+                            attach['manga_title'] = m_row[0]
+                            m_cover = m_row[1]
+                            if m_cover and not m_cover.startswith('http') and not m_cover.startswith('/'):
+                                m_cover = f'/static/{m_cover}'
+                            attach['manga_cover'] = m_cover or 'https://via.placeholder.com/200x300?text=No+Cover'
+                    except:
+                        pass
+                attachments.append(attach)
+            p_obj['attachments'] = attachments
+
+            # Fetch poll data if post_type is poll
+            if p_obj['post_type'] == 'poll':
+                c.execute("""
+                    SELECT id, question, allow_multiple, expires_at 
+                    FROM group_polls WHERE post_id = ?
+                """, (p_obj['id'],))
+                poll_row = c.fetchone()
+                if poll_row:
+                    poll = dict(zip(['id', 'question', 'allow_multiple', 'expires_at'], poll_row))
+                    c.execute("""
+                        SELECT id, option_text, (SELECT COUNT(*) FROM group_poll_votes WHERE option_id = gpo.id) as votes
+                        FROM group_poll_options gpo WHERE poll_id = ?
+                    """, (poll['id'],))
+                    poll['options'] = [dict(zip(['id', 'text', 'votes'], row)) for row in c.fetchall()]
+                    poll['total_votes'] = sum(opt['votes'] for opt in poll['options'])
+                    
+                    # User's current votes
+                    c.execute("SELECT option_id FROM group_poll_votes WHERE poll_id = ? AND user_id = ?", (poll['id'], user_id))
+                    poll['user_votes'] = [row[0] for row in c.fetchall()]
+                    
+                    p_obj['poll'] = poll
+
+            posts.append(p_obj)
+        
+        # Get related groups (same type or category)
+        c.execute("""
+            SELECT id, name, icon_url, member_count, group_type
+            FROM community_groups
+            WHERE id != ? AND (group_type = ? OR category = ?)
+            ORDER BY member_count DESC
+            LIMIT 3
+        """, (group_id, group['group_type'], group.get('category')))
+        related_groups = [dict(zip(['id', 'name', 'icon_url', 'member_count', 'group_type'], row)) for row in c.fetchall()]
+        
+        # Get channels for this group
+        c.execute("""
+            SELECT id, name, description, channel_type, icon, position
+            FROM group_channels
+            WHERE group_id = ?
+            ORDER BY position ASC
+        """, (group_id,))
+        channels = [dict(zip(['id', 'name', 'description', 'type', 'icon', 'position'], row)) for row in c.fetchall()]
+        
+        # Add user vote status to posts
+        for post in posts:
+            c.execute("SELECT vote FROM group_post_votes WHERE post_id = ? AND user_id = ?", (post['id'], user_id))
+            vote_row = c.fetchone()
+            post['user_vote'] = vote_row[0] if vote_row else 0
+        
+        conn.close()
+        
+        return render_template('group.html', 
+                             group=group, 
+                             is_member=is_member,
+                             user_role=user_role,
+                             can_edit_settings=can_edit_settings,
+                             admins=admins,
+                             recent_members=recent_members,
+                             posts=posts,
+                             related_groups=related_groups,
+                             channels=channels)
+    except Exception as e:
+        import traceback
+        logger.error(f"Group page error for group {group_id}: {e}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        print(f"[DEBUG] Group page error: {e}")
+        print(f"[DEBUG] Full traceback: {traceback.format_exc()}")
+        flash('Error loading group', 'error')
+        return redirect(url_for('community'))
+
+
+@app.route('/group/<int:group_id>/join', methods=['POST'])
+@login_required
+def join_group(group_id):
+    """Join a community group"""
+    user_id = session.get('user_id')
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Check if already a member
+    c.execute("SELECT id FROM group_members WHERE group_id = ? AND user_id = ?", (group_id, user_id))
+    if c.fetchone():
+        conn.close()
+        return jsonify({'success': False, 'message': 'Already a member'})
+    
+    # Add member
+    c.execute("INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, 'member')", (group_id, user_id))
+    
+    # Update member count
+    c.execute("UPDATE community_groups SET member_count = member_count + 1 WHERE id = ?", (group_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': 'Joined group successfully'})
+
+
+@app.route('/group/<int:group_id>/leave', methods=['POST'])
+@login_required
+def leave_group(group_id):
+    """Leave a community group"""
+    user_id = session.get('user_id')
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Check if user is owner
+    c.execute("SELECT role FROM group_members WHERE group_id = ? AND user_id = ?", (group_id, user_id))
+    result = c.fetchone()
+    if result and result[0] == 'owner':
+        conn.close()
+        return jsonify({'success': False, 'message': 'Owners cannot leave their group'})
+    
+    # Remove member
+    c.execute("DELETE FROM group_members WHERE group_id = ? AND user_id = ?", (group_id, user_id))
+    
+    # Update member count
+    c.execute("UPDATE community_groups SET member_count = member_count - 1 WHERE id = ? AND member_count > 0", (group_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': 'Left group successfully'})
+
+
+@app.route('/group/<int:group_id>/upload-icon', methods=['POST'])
+@login_required
+def upload_group_icon(group_id):
+    """Upload community group icon"""
+    user_id = session.get('user_id')
+    is_admin = session.get('role') == 'admin'
+    
+    if not can_edit_group_settings(group_id, user_id, is_admin):
+        return jsonify({'success': False, 'message': 'You do not have permission to edit this group'})
+    
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'success': False, 'message': 'No file uploaded'})
+    
+    from werkzeug.utils import secure_filename
+    import os
+    
+    UPLOAD_FOLDER = os.path.join("static", "uploads", "groups", "icons")
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    
+    ext = file.filename.rsplit(".", 1)[-1].lower()
+    if ext not in {"png", "jpg", "jpeg", "webp", "gif"}:
+        return jsonify({'success': False, 'message': 'Invalid image type. Use PNG/JPG/JPEG/WEBP/GIF.'})
+    
+    filename = secure_filename(f"group_{group_id}_icon.{ext}")
+    save_path = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(save_path)
+    
+    icon_url = f"/static/uploads/groups/icons/{filename}"
+    return jsonify({'success': True, 'url': icon_url})
+
+
+@app.route('/group/<int:group_id>/upload-banner', methods=['POST'])
+@login_required
+def upload_group_banner(group_id):
+    """Upload community group banner"""
+    user_id = session.get('user_id')
+    is_admin = session.get('role') == 'admin'
+    
+    if not can_edit_group_settings(group_id, user_id, is_admin):
+        return jsonify({'success': False, 'message': 'You do not have permission to edit this group'})
+    
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'success': False, 'message': 'No file uploaded'})
+    
+    from werkzeug.utils import secure_filename
+    import os
+    
+    UPLOAD_FOLDER = os.path.join("static", "uploads", "groups", "banners")
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    
+    ext = file.filename.rsplit(".", 1)[-1].lower()
+    if ext not in {"png", "jpg", "jpeg", "webp", "gif"}:
+        return jsonify({'success': False, 'message': 'Invalid image type. Use PNG/JPG/JPEG/WEBP/GIF.'})
+    
+    filename = secure_filename(f"group_{group_id}_banner.{ext}")
+    save_path = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(save_path)
+    
+    banner_url = f"/static/uploads/groups/banners/{filename}"
+    return jsonify({'success': True, 'url': banner_url})
+
+
+@app.route('/group/<int:group_id>/update', methods=['POST'])
+@login_required
+def update_group_settings(group_id):
+    """Update community group settings"""
+    user_id = session.get('user_id')
+    is_admin = session.get('role') == 'admin'
+    
+    if not can_edit_group_settings(group_id, user_id, is_admin):
+        return jsonify({'success': False, 'message': 'You do not have permission to edit this group'})
+    
+    data = request.get_json()
+    name = data.get('name')
+    description = data.get('description')
+    group_type = data.get('group_type')
+    category = data.get('category')
+    icon_url = data.get('icon_url')
+    banner_url = data.get('banner_url')
+    
+    if not name:
+        return jsonify({'success': False, 'message': 'Group name is required'})
+    
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        c.execute("""
+            UPDATE community_groups 
+            SET name = ?, description = ?, group_type = ?, category = ?, icon_url = ?, banner_url = ?
+            WHERE id = ?
+        """, (name, description, group_type, category, icon_url, banner_url, group_id))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Settings updated successfully'})
+    except Exception as e:
+        logger.error(f"Error updating group {group_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/group/<int:group_id>/post', methods=['POST'])
+@login_required
+def create_group_post(group_id):
+    """Create a post in a group with optional attachments"""
+    user_id = session.get('user_id')
+    
+    # Handle multipart form data if files are present, else JSON
+    if request.is_json:
+        data = request.get_json()
+        title = data.get('title', '')
+        content = data.get('content', '')
+        post_type = data.get('post_type', 'discussion')
+    else:
+        title = request.form.get('title', '')
+        content = request.form.get('content', '')
+        post_type = request.form.get('post_type', 'discussion')
+        channel_id = request.form.get('channel_id')
+    
+    if not content:
+        return jsonify({'success': False, 'message': 'Content is required'})
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Insert post
+        c.execute("""
+            INSERT INTO group_posts (group_id, user_id, title, content, post_type, channel_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (group_id, user_id, title, content, post_type, channel_id))
+        post_id = c.lastrowid
+        
+        # Handle attachments if any
+        if 'attachments' in request.files:
+            files = request.files.getlist('attachments')
+            from werkzeug.utils import secure_filename
+            import os
+            
+            UPLOAD_FOLDER = os.path.join("static", "uploads", "groups", "posts", str(post_id))
+            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+            
+            for file in files:
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    save_path = os.path.join(UPLOAD_FOLDER, filename)
+                    file.save(save_path)
+                    
+                    file_url = f"/static/uploads/groups/posts/{post_id}/{filename}"
+                    file_type = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'unknown'
+                    
+                    c.execute("""
+                        INSERT INTO group_post_attachments (post_id, file_url, file_type, file_name)
+                        VALUES (?, ?, ?, ?)
+                    """, (post_id, file_url, file_type, filename))
+        
+        # Handle manga links from form data (JSON or form)
+        manga_links = []
+        external_attachments = []
+        if request.is_json:
+            manga_links = data.get('manga_links', [])
+            external_attachments = data.get('external_attachments', [])
+        else:
+            m_links_raw = request.form.get('manga_links')
+            if m_links_raw:
+                import json
+                try:
+                    manga_links = json.loads(m_links_raw)
+                except:
+                    pass
+            
+            ext_raw = request.form.get('external_attachments')
+            if ext_raw:
+                import json
+                try:
+                    external_attachments = json.loads(ext_raw)
+                except:
+                    pass
+        
+        for m_id in manga_links:
+            c.execute("""
+                INSERT INTO group_post_attachments (post_id, file_url, file_type, file_name)
+                VALUES (?, ?, ?, ?)
+            """, (post_id, f"/manga/detail/{m_id}", "manga_link", f"Manga:{m_id}"))
+
+        for item in external_attachments:
+            url = item.get('url')
+            f_type = item.get('type')
+            if url and f_type:
+                c.execute("""
+                    INSERT INTO group_post_attachments (post_id, file_url, file_type, file_name)
+                    VALUES (?, ?, ?, ?)
+                """, (post_id, url, f_type, f"External {f_type.upper()}"))
+
+        # Update post count
+        c.execute("UPDATE community_groups SET post_count = post_count + 1 WHERE id = ?", (group_id,))
+        
+        conn.commit()
+        return jsonify({'success': True, 'post_id': post_id})
+    except Exception as e:
+        logger.error(f"Error creating post: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/group/post/<int:post_id>/edit', methods=['POST'])
+@login_required
+def edit_group_post(post_id):
+    """Edit a group post"""
+    user_id = session.get('user_id')
+    is_admin = session.get('role') == 'admin'
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Check ownership
+        c.execute("SELECT user_id, group_id FROM group_posts WHERE id = ?", (post_id,))
+        post = c.fetchone()
+        
+        if not post:
+            return jsonify({'success': False, 'message': 'Post not found'})
+        
+        if post[0] != user_id and not is_admin:
+            return jsonify({'success': False, 'message': 'You can only edit your own posts'})
+        
+        data = request.get_json()
+        content = data.get('content', '').strip()
+        
+        if not content:
+            return jsonify({'success': False, 'message': 'Content cannot be empty'})
+        
+        c.execute("UPDATE group_posts SET content = ? WHERE id = ?", (content, post_id))
+        conn.commit()
+        
+        return jsonify({'success': True, 'message': 'Post updated successfully'})
+    except Exception as e:
+        logger.error(f"Error editing post: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/group/post/<int:post_id>/delete', methods=['POST'])
+@login_required
+def delete_group_post(post_id):
+    """Delete a group post"""
+    user_id = session.get('user_id')
+    is_admin = session.get('role') == 'admin'
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Check ownership
+        c.execute("SELECT user_id, group_id FROM group_posts WHERE id = ?", (post_id,))
+        post = c.fetchone()
+        
+        if not post:
+            return jsonify({'success': False, 'message': 'Post not found'})
+        
+        if post[0] != user_id and not is_admin:
+            return jsonify({'success': False, 'message': 'You can only delete your own posts'})
+        
+        group_id = post[1]
+        
+        # Delete votes first to avoid foreign key constraints
+        c.execute("DELETE FROM group_post_votes WHERE post_id = ?", (post_id,))
+        
+        # Delete attachments
+        c.execute("DELETE FROM group_post_attachments WHERE post_id = ?", (post_id,))
+        
+        # Delete comments and their attachments
+        c.execute("SELECT id FROM group_comments WHERE post_id = ?", (post_id,))
+        comment_ids = [row[0] for row in c.fetchall()]
+        for cid in comment_ids:
+            c.execute("DELETE FROM group_comment_attachments WHERE comment_id = ?", (cid,))
+            c.execute("DELETE FROM group_comment_likes WHERE comment_id = ?", (cid,))
+        c.execute("DELETE FROM group_comments WHERE post_id = ?", (post_id,))
+        
+        # Delete the post
+        c.execute("DELETE FROM group_posts WHERE id = ?", (post_id,))
+        
+        # Update post count
+        c.execute("UPDATE community_groups SET post_count = post_count - 1 WHERE id = ? AND post_count > 0", (group_id,))
+        
+        conn.commit()
+        
+        return jsonify({'success': True, 'message': 'Post deleted successfully'})
+    except Exception as e:
+        logger.error(f"Error deleting post: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/group/post/<int:post_id>/vote', methods=['POST'])
+@login_required
+def vote_group_post(post_id):
+    """Vote on a group post (upvote or downvote)"""
+    user_id = session.get('user_id')
+    data = request.get_json()
+    vote = data.get('vote', 0)  # 1 for upvote, -1 for downvote
+    
+    if vote not in [1, -1]:
+        return jsonify({'success': False, 'message': 'Invalid vote'})
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Check current vote
+        c.execute("SELECT vote FROM group_post_votes WHERE post_id = ? AND user_id = ?", (post_id, user_id))
+        existing = c.fetchone()
+        
+        if existing:
+            if existing[0] == vote:
+                # Same vote = remove vote
+                c.execute("DELETE FROM group_post_votes WHERE post_id = ? AND user_id = ?", (post_id, user_id))
+                if vote == 1:
+                    c.execute("UPDATE group_posts SET upvotes = upvotes - 1 WHERE id = ?", (post_id,))
+                else:
+                    c.execute("UPDATE group_posts SET downvotes = downvotes - 1 WHERE id = ?", (post_id,))
+                new_vote = 0
+            else:
+                # Different vote = change vote
+                c.execute("UPDATE group_post_votes SET vote = ? WHERE post_id = ? AND user_id = ?", (vote, post_id, user_id))
+                if vote == 1:
+                    c.execute("UPDATE group_posts SET upvotes = upvotes + 1, downvotes = downvotes - 1 WHERE id = ?", (post_id,))
+                else:
+                    c.execute("UPDATE group_posts SET upvotes = upvotes - 1, downvotes = downvotes + 1 WHERE id = ?", (post_id,))
+                new_vote = vote
+        else:
+            # New vote
+            c.execute("INSERT INTO group_post_votes (post_id, user_id, vote) VALUES (?, ?, ?)", (post_id, user_id, vote))
+            if vote == 1:
+                c.execute("UPDATE group_posts SET upvotes = upvotes + 1 WHERE id = ?", (post_id,))
+            else:
+                c.execute("UPDATE group_posts SET downvotes = downvotes + 1 WHERE id = ?", (post_id,))
+            new_vote = vote
+        
+        # Get new counts
+        c.execute("SELECT upvotes, downvotes FROM group_posts WHERE id = ?", (post_id,))
+        counts = c.fetchone()
+        
+        conn.commit()
+        
+        return jsonify({
+            'success': True, 
+            'new_vote': new_vote,
+            'upvotes': counts[0],
+            'downvotes': counts[1],
+            'score': counts[0] - counts[1]
+        })
+    except Exception as e:
+        logger.error(f"Error voting on post: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/group/<int:group_id>/channels', methods=['GET'])
+@login_required
+def get_group_channels(group_id):
+    """Get channels for a group"""
+    conn = get_conn()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT id, name, description, channel_type, icon, position
+        FROM group_channels
+        WHERE group_id = ?
+        ORDER BY position ASC
+    """, (group_id,))
+    
+    channels = [dict(zip(['id', 'name', 'description', 'type', 'icon', 'position'], row)) for row in c.fetchall()]
+    conn.close()
+    
+    return jsonify({'success': True, 'channels': channels})
+
+
+@app.route('/group/<int:group_id>/channels', methods=['POST'])
+@login_required
+def create_group_channel(group_id):
+    """Create a new channel in a group"""
+    user_id = session.get('user_id')
+    is_admin = session.get('role') == 'admin'
+    
+    # Check if user can manage channels (admin or group owner)
+    if not can_edit_group_settings(group_id, user_id, is_admin):
+        return jsonify({'success': False, 'message': 'Not authorized'})
+    
+    data = request.get_json()
+    name = data.get('name', '').strip().lower().replace(' ', '-')
+    description = data.get('description', '')
+    channel_type = data.get('type', 'text')
+    
+    if not name:
+        return jsonify({'success': False, 'message': 'Channel name required'})
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Get next position
+        c.execute("SELECT MAX(position) FROM group_channels WHERE group_id = ?", (group_id,))
+        max_pos = c.fetchone()[0] or 0
+        
+        c.execute("""
+            INSERT INTO group_channels (group_id, name, description, channel_type, icon, position)
+            VALUES (?, ?, ?, ?, 'hash', ?)
+        """, (group_id, name, description, channel_type, max_pos + 1))
+        
+        channel_id = c.lastrowid
+        conn.commit()
+        
+        return jsonify({'success': True, 'channel_id': channel_id, 'name': name})
+    except Exception as e:
+        logger.error(f"Error creating channel: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/group/post/<int:post_id>/comments', methods=['GET'])
+@login_required
+def get_group_post_comments(post_id):
+    """Fetch comments for a post"""
+    user_id = session.get('user_id')
+    conn = get_conn()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT gc.id, gc.content, gc.created_at, u.username, u.avatar_url, u.id as user_id,
+               (SELECT COUNT(*) FROM group_comment_likes WHERE comment_id = gc.id) as like_count,
+               (SELECT 1 FROM group_comment_likes WHERE comment_id = gc.id AND user_id = ?) as is_liked
+        FROM group_comments gc
+        JOIN users u ON gc.user_id = u.id
+        WHERE gc.post_id = ?
+        ORDER BY gc.created_at ASC
+    """, (user_id, post_id))
+    
+    rows = c.fetchall()
+    comments = []
+    for r in rows:
+        comment_id = r[0]
+        # Get attachments for this comment
+        c.execute("SELECT file_url, file_type, file_name, manga_id, manga_title, manga_cover FROM group_comment_attachments WHERE comment_id = ?", (comment_id,))
+        attachments = []
+        for row in c.fetchall():
+            att = {'url': row[0], 'type': row[1], 'name': row[2]}
+            if row[3]:  # manga_id
+                att['manga_id'] = row[3]
+            if row[4]:  # manga_title
+                att['manga_title'] = row[4]
+            if row[5]:  # manga_cover
+                att['manga_cover'] = row[5]
+            attachments.append(att)
+        
+        # Apply mentions filter to comment content
+        comment_content = str(r[1])
+        try:
+            from app import mentions_filter
+            comment_content = mentions_filter(comment_content)
+        except:
+            pass
+
+        comments.append({
+            'id': r[0],
+            'content': comment_content,
+            'created_at': r[2],
+            'username': r[3],
+            'avatar': r[4],
+            'user_id': r[5],
+            'like_count': r[6],
+            'is_liked': bool(r[7]),
+            'attachments': attachments
+        })
+    
+    conn.close()
+    return jsonify(comments)
+
+
+@app.route('/group/comment/<int:comment_id>/like', methods=['POST'])
+@login_required
+def like_group_comment(comment_id):
+    """Toggle like on a group comment"""
+    user_id = session.get('user_id')
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        c.execute("SELECT 1 FROM group_comment_likes WHERE comment_id = ? AND user_id = ?", (comment_id, user_id))
+        liked = c.fetchone()
+        
+        if liked:
+            c.execute("DELETE FROM group_comment_likes WHERE comment_id = ? AND user_id = ?", (comment_id, user_id))
+            status = 'unliked'
+        else:
+            c.execute("INSERT INTO group_comment_likes (comment_id, user_id) VALUES (?, ?)", (comment_id, user_id))
+            status = 'liked'
+            
+        conn.commit()
+        
+        # Get new count
+        c.execute("SELECT COUNT(*) FROM group_comment_likes WHERE comment_id = ?", (comment_id,))
+        count = c.fetchone()[0]
+        
+        return jsonify({'success': True, 'status': status, 'like_count': count})
+    except Exception as e:
+        logger.error(f"Error liking comment: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/group/comment/<int:comment_id>/edit', methods=['POST'])
+@login_required
+def edit_group_comment(comment_id):
+    """Edit a group comment"""
+    user_id = session.get('user_id')
+    is_admin = session.get('role') == 'admin'
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Check ownership
+        c.execute("SELECT user_id, post_id FROM group_comments WHERE id = ?", (comment_id,))
+        comment = c.fetchone()
+        
+        if not comment:
+            return jsonify({'success': False, 'message': 'Comment not found'})
+        
+        if comment[0] != user_id and not is_admin:
+            return jsonify({'success': False, 'message': 'You can only edit your own comments'})
+        
+        data = request.get_json()
+        content = data.get('content', '').strip()
+        
+        if not content:
+            return jsonify({'success': False, 'message': 'Content cannot be empty'})
+        
+        c.execute("UPDATE group_comments SET content = ? WHERE id = ?", (content, comment_id))
+        conn.commit()
+        
+        return jsonify({'success': True, 'message': 'Comment updated successfully'})
+    except Exception as e:
+        logger.error(f"Error editing comment: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/group/comment/<int:comment_id>/delete', methods=['POST'])
+@login_required
+def delete_group_comment(comment_id):
+    """Delete a group comment"""
+    user_id = session.get('user_id')
+    is_admin = session.get('role') == 'admin'
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Check ownership
+        c.execute("SELECT user_id, post_id FROM group_comments WHERE id = ?", (comment_id,))
+        comment = c.fetchone()
+        
+        if not comment:
+            return jsonify({'success': False, 'message': 'Comment not found'})
+        
+        if comment[0] != user_id and not is_admin:
+            return jsonify({'success': False, 'message': 'You can only delete your own comments'})
+        
+        post_id = comment[1]
+        
+        # Delete attachments first
+        c.execute("DELETE FROM group_comment_attachments WHERE comment_id = ?", (comment_id,))
+        
+        # Delete likes
+        c.execute("DELETE FROM group_comment_likes WHERE comment_id = ?", (comment_id,))
+        
+        # Delete the comment
+        c.execute("DELETE FROM group_comments WHERE id = ?", (comment_id,))
+        
+        # Decrement comment count on the post
+        c.execute("UPDATE group_posts SET comment_count = comment_count - 1 WHERE id = ? AND comment_count > 0", (post_id,))
+        
+        conn.commit()
+        
+        return jsonify({'success': True, 'message': 'Comment deleted successfully'})
+    except Exception as e:
+        logger.error(f"Error deleting comment: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/group/post/<int:post_id>/comment', methods=['POST'])
+@login_required
+def post_group_comment(post_id):
+    """Post a comment on a post"""
+    user_id = session.get('user_id')
+    
+    if request.is_json:
+        data = request.get_json()
+        content = data.get('content', '')
+    else:
+        content = request.form.get('content', '')
+    
+    if not content:
+        return jsonify({'success': False, 'message': 'Comment cannot be empty'})
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Insert comment
+        c.execute("""
+            INSERT INTO group_comments (post_id, user_id, content)
+            VALUES (?, ?, ?)
+        """, (post_id, user_id, content))
+        comment_id = c.lastrowid
+        
+        # Handle attachments
+        if 'attachments' in request.files:
+            files = request.files.getlist('attachments')
+            from werkzeug.utils import secure_filename
+            import os
+            
+            UPLOAD_FOLDER = os.path.join("static", "uploads", "groups", "comments", str(comment_id))
+            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+            
+            for file in files:
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    save_path = os.path.join(UPLOAD_FOLDER, filename)
+                    file.save(save_path)
+                    
+                    file_url = f"/static/uploads/groups/comments/{comment_id}/{filename}"
+                    file_type = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'unknown'
+                    
+                    c.execute("""
+                        INSERT INTO group_comment_attachments (comment_id, file_url, file_type, file_name)
+                        VALUES (?, ?, ?, ?)
+                    """, (comment_id, file_url, file_type, filename))
+        
+        # Handle external attachments
+        external_attachments = []
+        if request.is_json:
+            external_attachments = data.get('external_attachments', [])
+        else:
+            ext_raw = request.form.get('external_attachments')
+            if ext_raw:
+                import json
+                try:
+                    external_attachments = json.loads(ext_raw)
+                except:
+                    pass
+        
+        for item in external_attachments:
+            url = item.get('url')
+            f_type = item.get('type')
+            if url and f_type:
+                manga_id = item.get('manga_id')
+                manga_title = item.get('manga_title')
+                manga_cover = item.get('manga_cover')
+                c.execute("""
+                    INSERT INTO group_comment_attachments (comment_id, file_url, file_type, file_name, manga_id, manga_title, manga_cover)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (comment_id, url, f_type, f"External {f_type.upper()}", manga_id, manga_title, manga_cover))
+
+        # Update comment count on post
+        c.execute("UPDATE group_posts SET comment_count = comment_count + 1 WHERE id = ?", (post_id,))
+        
+        conn.commit()
+        return jsonify({'success': True, 'comment_id': comment_id})
+    except Exception as e:
+        logger.error(f"Error posting comment: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/group/<int:group_id>/poll', methods=['POST'])
+@login_required
+def create_group_poll(group_id):
+    """Create a poll post in a group"""
+    user_id = session.get('user_id')
+    data = request.get_json()
+    
+    question = data.get('question')
+    options = data.get('options', [])
+    allow_multiple = data.get('allow_multiple', False)
+    expires_in = data.get('expires_in', 7)  # default 7 days
+    channel_id = data.get('channel_id')  # Get the selected channel
+    
+    if not question or not options or len(options) < 2:
+        return jsonify({'success': False, 'message': 'Question and at least 2 options are required'})
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Create the post first
+        c.execute("""
+            INSERT INTO group_posts (group_id, user_id, title, content, post_type, channel_id)
+            VALUES (?, ?, ?, ?, 'poll', ?)
+        """, (group_id, user_id, question, question, channel_id))
+        post_id = c.lastrowid
+        
+        # Calculate expiry
+        expires_at = (datetime.utcnow() + timedelta(days=int(expires_in))).isoformat()
+        
+        # Create the poll
+        c.execute("""
+            INSERT INTO group_polls (post_id, question, allow_multiple, expires_at)
+            VALUES (?, ?, ?, ?)
+        """, (post_id, question, 1 if allow_multiple else 0, expires_at))
+        poll_id = c.lastrowid
+        
+        # Create the options
+        for opt_text in options:
+            if opt_text.strip():
+                c.execute("INSERT INTO group_poll_options (poll_id, option_text) VALUES (?, ?)", (poll_id, opt_text.strip()))
+        
+        # Update post count
+        c.execute("UPDATE community_groups SET post_count = post_count + 1 WHERE id = ?", (group_id,))
+        
+        conn.commit()
+        return jsonify({'success': True, 'post_id': post_id})
+    except Exception as e:
+        logger.error(f"Error creating poll: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/group/poll/<int:poll_id>/vote', methods=['POST'])
+@login_required
+def vote_group_poll(poll_id):
+    """Vote on a poll"""
+    user_id = session.get('user_id')
+    data = request.get_json()
+    option_ids = data.get('option_ids', [])
+    
+    if not option_ids:
+        return jsonify({'success': False, 'message': 'No options selected'})
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        # Check if poll exists
+        c.execute("SELECT allow_multiple, expires_at FROM group_polls WHERE id = ?", (poll_id,))
+        poll = c.fetchone()
+        if not poll:
+            return jsonify({'success': False, 'message': 'Poll not found'})
+        
+        # Check expiry
+        from datetime import datetime
+        if poll[1] and datetime.fromisoformat(poll[1]) < datetime.utcnow():
+            return jsonify({'success': False, 'message': 'Poll has expired'})
+        
+        allow_multiple = poll[0]
+        if not allow_multiple and len(option_ids) > 1:
+            return jsonify({'success': False, 'message': 'Multiple choices not allowed'})
+        
+        # Remove existing votes for this user in this poll
+        c.execute("DELETE FROM group_poll_votes WHERE poll_id = ? AND user_id = ?", (poll_id, user_id))
+        
+        # Add new votes
+        for opt_id in option_ids:
+            c.execute("INSERT INTO group_poll_votes (poll_id, option_id, user_id) VALUES (?, ?, ?)", (poll_id, opt_id, user_id))
+        
+        # Get new results
+        c.execute("""
+            SELECT id, option_text, (SELECT COUNT(*) FROM group_poll_votes WHERE option_id = gpo.id) as votes
+            FROM group_poll_options gpo
+            WHERE poll_id = ?
+        """, (poll_id,))
+        options = [dict(zip(['id', 'text', 'votes'], row)) for row in c.fetchall()]
+        
+        conn.commit()
+        return jsonify({'success': True, 'options': options})
+    except Exception as e:
+        logger.error(f"Error voting on poll: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+
+@app.route('/discover')
+@login_required
+def discover_groups():
+    """Discovery page for community groups"""
+    sort_by = request.args.get('sort', 'all')
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Build query based on sort parameter
+    try:
+        # Base query - get all columns
+        base_query = "SELECT * FROM community_groups"
+        
+        # Add ORDER BY based on sort parameter
+        if sort_by == 'members':
+            base_query += " ORDER BY COALESCE(member_count, 0) DESC"
+        elif sort_by == 'popular':
+            base_query += " ORDER BY COALESCE(member_count, 0) DESC, COALESCE(post_count, 0) DESC"
+        elif sort_by == 'active':
+            base_query += " ORDER BY COALESCE(post_count, 0) DESC"
+        elif sort_by == 'new':
+            base_query += " ORDER BY created_at DESC"
+        elif sort_by == 'trending':
+            # Trending = combination of recent activity and growth
+            base_query += " ORDER BY COALESCE(post_count, 0) DESC, COALESCE(member_count, 0) DESC"
+        # 'all' = no specific order
+        
+        c.execute(base_query)
+        columns = [description[0] for description in c.description]
+        all_rows = c.fetchall()
+        groups = []
+        for row in all_rows:
+            g = dict(zip(columns, row))
+            # Add default fields if missing
+            if 'member_count' not in g or g['member_count'] is None:
+                g['member_count'] = 120
+            if 'icon_url' not in g:
+                g['icon_url'] = None
+            if 'post_count' not in g or g['post_count'] is None:
+                g['post_count'] = 0
+            groups.append(g)
+    except Exception as e:
+        logger.error(f"Error fetching groups: {e}")
+        groups = []
+    finally:
+        conn.close()
+    
+    # Organize by type
+    import random
+    featured_groups = groups[:4] 
+    if len(groups) > 4 and sort_by == 'all':
+        featured_groups = random.sample(groups, 4)
+    elif len(groups) > 4:
+        featured_groups = groups[:4]  # Top 4 based on sort
+        
+    genre_groups = [g for g in groups if g.get('group_type') == 'genre']
+    manga_groups = [g for g in groups if g.get('group_type') == 'manga']
+    
+    return render_template('discover_groups.html', 
+                          featured_groups=featured_groups,
+                          genre_groups=genre_groups, 
+                          manga_groups=manga_groups,
+                          current_sort=sort_by)
+
+
+@app.route('/api/community/posts', methods=['POST'])
+@login_required
+def api_create_community_post():
+    """API endpoint to create a new community post"""
+    try:
+        title = request.form.get('title', '').strip()
+        content = request.form.get('content', '').strip()
+        post_type = request.form.get('post_type', 'discussion')
+        group_id = request.form.get('group_id', '')
+        manga_id = request.form.get('manga_id', None)
+        gif_url = request.form.get('gif_url', None)
+        poll_options = request.form.getlist('poll_options[]')
+        
+        user_id = session.get('user_id')
+        
+        if not title or not content:
+            return jsonify({'error': 'Title and content are required'}), 400
+        
+        if not group_id:
+            return jsonify({'error': 'Please select a group to post to'}), 400
+            
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Insert post into group_posts
+        c.execute("""
+            INSERT INTO group_posts (user_id, group_id, title, content, post_type, manga_id, gif_url, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, DATETIME('now'))
+        """, (user_id, group_id, title, content, post_type, manga_id, gif_url))
+        
+        post_id = c.lastrowid
+
+        # Insert poll data if it's a poll (Standardized Schema)
+        if post_type == 'poll' and poll_options:
+            c.execute("""
+                INSERT INTO group_polls (post_id, question)
+                VALUES (?, ?)
+            """, (post_id, title))
+            poll_id = c.lastrowid
+            
+            for option in poll_options:
+                if option.strip():
+                    c.execute("""
+                        INSERT INTO group_poll_options (poll_id, option_text)
+                        VALUES (?, ?)
+                    """, (poll_id, option.strip()))
+        
+        # Handle file attachments
+        if 'attachments' in request.files:
+            files = request.files.getlist('attachments')
+            import os
+            from werkzeug.utils import secure_filename
+            import time
+            
+            for file in files:
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    upload_dir = os.path.join('static', 'uploads', 'groups', 'posts', str(post_id))
+                    os.makedirs(upload_dir, exist_ok=True)
+                    
+                    unique_name = f"{int(time.time())}_{filename}"
+                    file_path = os.path.join(upload_dir, unique_name)
+                    file.save(file_path)
+                    
+                    file_url = '/' + file_path.replace('\\', '/')
+                    file_type = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'image'
+                    
+                    c.execute("""
+                        INSERT INTO group_post_attachments (post_id, file_url, file_type, file_name)
+                        VALUES (?, ?, ?, ?)
+                    """, (post_id, file_url, file_type, filename))
+        
+        # Also handle manga link as an attachment if provided
+        if manga_id and post_type == 'recommendation':
+            file_url = f"/manga/detail/{manga_id}"
+            c.execute("""
+                INSERT INTO group_post_attachments (post_id, file_url, file_type, file_name)
+                VALUES (?, ?, ?, ?)
+            """, (post_id, file_url, 'manga_link', 'Linked Manga'))
+
+        # Update group post count
+        c.execute("UPDATE community_groups SET post_count = post_count + 1 WHERE id = ?", (group_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'post_id': post_id}), 201
+        
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        logger.error(f"Error creating post: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == "__main__":
 
     init_db()
     app.run(debug=True, host="0.0.0.0", port=5000)
+
 
 
