@@ -378,8 +378,8 @@
                         {{ group.description or 'A community for fans to discuss and share.' }}
                     </div>
                     <div class="discover-card-meta">
-                        <span class="online">{{ group.post_count }} Posts</span>
-                        <span class="members">{{ group.member_count }} Members</span>
+                        <span class="online">{{ group.post_count|format_count }} Posts</span>
+                        <span class="members">{{ group.member_count|format_count }} Members</span>
                     </div>
                 </div>
             </a>
@@ -419,8 +419,8 @@
                         {{ group.description or 'Discussion group for this title.' }}
                     </div>
                     <div class="discover-card-meta">
-                        <span class="online">{{ group.post_count }} Posts</span>
-                        <span class="members">{{ group.member_count }} Members</span>
+                        <span class="online">{{ group.post_count|format_count }} Posts</span>
+                        <span class="members">{{ group.member_count|format_count }} Members</span>
                     </div>
                 </div>
             </a>
@@ -457,8 +457,8 @@
                         {{ group.description or 'A community for ' + group.name + ' fans!' }}
                     </div>
                     <div class="discover-card-meta">
-                        <span class="online">{{ group.post_count }} Posts</span>
-                        <span class="members">{{ group.member_count }} Members</span>
+                        <span class="online">{{ group.post_count|format_count }} Posts</span>
+                        <span class="members">{{ group.member_count|format_count }} Members</span>
                     </div>
                 </div>
             </a>

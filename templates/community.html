@@ -36,7 +36,7 @@
                         </div>
                         <div class="browse-group-info">
                             <span class="browse-group-name">{{ group.name }}</span>
-                            <span class="browse-group-members">{{ group.member_count }} members</span>
+                            <span class="browse-group-members">{{ group.member_count|format_count }} members</span>
                         </div>
                     </a>
                     {% endfor %}
@@ -57,7 +57,7 @@
                         </div>
                         <div class="browse-group-info">
                             <span class="browse-group-name">{{ group.name }}</span>
-                            <span class="browse-group-members">{{ group.member_count }} members</span>
+                            <span class="browse-group-members">{{ group.member_count|format_count }} members</span>
                         </div>
                     </a>
                     {% endfor %}
@@ -125,7 +125,8 @@
             <div class="form-group">
                 <label for="groupSearchInput">Post to Group</label>
                 <div class="group-search-container">
-                    <input type="text" id="groupSearchInput" placeholder="Search for a group..." autocomplete="off">
+                    <input type="text" id="groupSearchInput" placeholder="Search for a group (defaults to World)..."
+                        autocomplete="off">
                     <input type="hidden" id="postGroup" name="group_id">
                     <div id="groupSearchResults" class="search-results-dropdown"></div>
                     <div id="selectedGroupPreview" class="selected-item-preview" style="display: none;">
@@ -189,7 +190,11 @@
             <div class="post-toolbar">
                 <div class="toolbar-left">
                     <button type="button" class="toolbar-btn" id="emojiBtn" title="Add Emoji">
-                        <i data-lucide="smile"></i>
+                        <i data-lucide="smile-plus"></i>
+                    </button>
+                    <button type="button" class="toolbar-btn" id="emoticonBtnMain" title="Add Emoticons"
+                        onclick="openCommentEmoticonPicker(this)">
+                        <i data-lucide="meh"></i>
                     </button>
                     <button type="button" class="toolbar-btn" id="gifBtn" title="Add GIF">
                         <i data-lucide="sticky-note"></i>
@@ -262,6 +267,306 @@
     .community-page * {
         font-family: 'Inter', sans-serif;
     }
+
+    .hashtag-link {
+        color: #00bcd4;
+        text-decoration: none;
+        font-weight: 500;
+        transition: opacity 0.2s;
+    }
+
+    .hashtag-link:hover {
+        opacity: 0.8;
+        text-decoration: underline;
+    }
+
+    /* Manga link attachment styling (from group.html) */
+    .post-attachment-manga {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(0, 188, 212, 0.05);
+        border: 1px solid rgba(0, 188, 212, 0.2);
+        border-radius: 10px;
+        width: 100%;
+        max-width: 400px;
+        text-decoration: none;
+        transition: transform 0.2s ease;
+    }
+
+    .post-attachment-manga:hover {
+        transform: translateY(-2px);
+        background: rgba(0, 188, 212, 0.1);
+    }
+
+    .manga-preview-img {
+        width: 60px;
+        height: 84px;
+        border-radius: 8px;
+        object-fit: cover;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .manga-link-info h4 {
+        color: #00bcd4;
+        margin: 0 0 4px;
+        font-size: 14px;
+    }
+
+    .manga-link-info p {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 12px;
+        margin: 0;
+    }
+
+    /* ========== UX ENHANCEMENTS ========== */
+
+    /* Post Card Hover Animation */
+    .post-card {
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .post-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 188, 212, 0.15);
+        border-color: rgba(0, 188, 212, 0.2);
+    }
+
+    /* Vote Button Pulse Animation */
+    @keyframes votePulse {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.3);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .vote-btn.pulse {
+        animation: votePulse 0.3s ease;
+    }
+
+    .vote-btn {
+        transition: transform 0.15s ease, color 0.2s ease, background 0.2s ease;
+    }
+
+    .vote-btn:hover {
+        transform: scale(1.1);
+    }
+
+    /* Skeleton Loader */
+    @keyframes shimmer {
+        0% {
+            background-position: -200% 0;
+        }
+
+        100% {
+            background-position: 200% 0;
+        }
+    }
+
+    .skeleton {
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 8px;
+    }
+
+    .skeleton-post {
+        height: 200px;
+        margin-bottom: 16px;
+        border-radius: 12px;
+    }
+
+    /* Fade In Animation for new posts */
+    @keyframes fadeSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .post-card.fade-in {
+        animation: fadeSlideIn 0.4s ease forwards;
+    }
+
+    /* Floating Action Button (FAB) */
+    .fab-new-post {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #00bcd4, #0097a7);
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 20px rgba(0, 188, 212, 0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        z-index: 100;
+    }
+
+    .fab-new-post:hover {
+        transform: scale(1.1) rotate(90deg);
+        box-shadow: 0 8px 30px rgba(0, 188, 212, 0.5);
+    }
+
+    /* Back to Top Button */
+    .back-to-top {
+        position: fixed;
+        bottom: 100px;
+        right: 30px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s, transform 0.2s;
+        z-index: 100;
+    }
+
+    .back-to-top.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .back-to-top:hover {
+        transform: translateY(-3px);
+        background: rgba(0, 188, 212, 0.2);
+    }
+
+    /* Toast Notification */
+    .toast-container {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .toast {
+        background: linear-gradient(135deg, rgba(30, 30, 50, 0.95), rgba(20, 20, 35, 0.95));
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 188, 212, 0.3);
+        padding: 14px 24px;
+        border-radius: 12px;
+        color: #fff;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: toastIn 0.3s ease;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .toast.success {
+        border-color: rgba(76, 175, 80, 0.5);
+    }
+
+    .toast.error {
+        border-color: rgba(244, 67, 54, 0.5);
+    }
+
+    @keyframes toastIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes toastOut {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        to {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+    }
+
+    /* Trending Topic Pulse */
+    .trending-item {
+        position: relative;
+        transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    .trending-item:hover {
+        transform: translateX(4px);
+        color: #00bcd4;
+    }
+
+    .trending-item::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 4px;
+        background: #00bcd4;
+        border-radius: 50%;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .trending-item:hover::before {
+        opacity: 1;
+    }
+
+    /* Comment Section Smooth Toggle */
+    .comments-section {
+        transition: max-height 0.3s ease, opacity 0.3s ease;
+        overflow: hidden;
+    }
+
+    /* Community Card Hover */
+    .community-card {
+        transition: border-color 0.2s ease;
+    }
+
+    .community-card:hover {
+        border-color: rgba(0, 188, 212, 0.15);
+    }
+
+    /* Create Group Button Glow */
+    .create-group-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 188, 212, 0.3);
+    }
 </style>
 {% endblock %}
 
@@ -270,7 +575,7 @@
     <div class="community-layout">
 
         <!-- ===== LEFT SIDEBAR ===== -->
-        <aside class="community-sidebar community-sidebar-left">
+        <aside class="community-sidebar">
 
             <!-- My Groups Section -->
             <div class="community-card">
@@ -421,7 +726,8 @@
             <!-- Search Bar -->
             <div class="community-search">
                 <i data-lucide="search" class="search-icon"></i>
-                <input type="text" placeholder="Search for book, manga, or anime discussions...">
+                <input type="text" id="communitySearchInput"
+                    placeholder="Search for book, manga, or anime discussions..." value="{{ search_query }}">
             </div>
 
             <!-- Filters Row -->
@@ -445,100 +751,7 @@
             <div class="posts-feed">
                 {% if posts %}
                 {% for post in posts %}
-                <article class="post-card" data-post-id="{{ post.id }}">
-                    <!-- Vote Column -->
-                    <div class="vote-column">
-                        <button class="vote-btn upvote {% if post.user_vote == 1 %}active{% endif %}" title="Upvote">
-                            <i data-lucide="thumbs-up"></i>
-                            <span class="vote-count">{{ post.upvotes }}</span>
-                        </button>
-                        <button class="vote-btn downvote {% if post.user_vote == -1 %}active{% endif %}"
-                            title="Downvote">
-                            <i data-lucide="thumbs-down"></i>
-                        </button>
-                    </div>
-
-                    <!-- Thumbnail / Meta -->
-                    <div class="post-main-content">
-                        <div class="post-header-meta">
-                            <div class="post-author">
-                                <img src="{{ post.avatar or url_for('static', filename='uploads/avatars/default.png') }}"
-                                    alt="{{ post.username }}" class="post-author-avatar">
-                                <div class="author-info">
-                                    <span class="post-author-name">{{ post.username }}</span>
-                                    <span class="posted-time">{{ post.created_at|time_ago }} in <a
-                                            href="{{ url_for('group_page', group_id=post.group_id) }}">{{
-                                            post.group_name }}</a></span>
-                                </div>
-                            </div>
-                            <span class="post-type-badge {{ post.post_type }}">{{ post.post_type|capitalize }}</span>
-                        </div>
-
-                        <h2 class="post-title">{{ post.title }}</h2>
-
-                        <div class="post-body">
-                            {{ post.content|truncate(300) }}
-                        </div>
-
-                        <!-- Attachments Rendering -->
-                        {% if post.attachments %}
-                        <div class="post-attachments-grid">
-                            {% for attach in post.attachments %}
-                            {% if attach.file_type == 'manga_link' %}
-                            <a href="{{ attach.file_url }}" class="manga-link-card">
-                                <img src="{{ attach.manga_cover }}" alt="{{ attach.manga_title }}">
-                                <div class="manga-link-info">
-                                    <span class="manga-link-title">{{ attach.manga_title }}</span>
-                                    <span class="manga-link-badge">Manga</span>
-                                </div>
-                            </a>
-                            {% elif attach.file_type in ['jpg', 'jpeg', 'png', 'webp', 'gif'] %}
-                            <div class="attachment-image">
-                                <img src="{{ attach.file_url }}" alt="Attachment" onclick="window.open(this.src)">
-                            </div>
-                            {% else %}
-                            <a href="{{ attach.file_url }}" class="attachment-file" download>
-                                <i data-lucide="file-text"></i>
-                                <span>{{ attach.file_name }}</span>
-                            </a>
-                            {% endif %}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-
-                        <!-- Poll Rendering -->
-                        {% if post.post_type == 'poll' and post.poll %}
-                        <div class="poll-container" data-poll-id="{{ post.poll.id }}">
-                            <div class="poll-options-display">
-                                {% for opt in post.poll.options %}
-                                <div class="poll-option-vote {% if opt.id in post.poll.user_votes %}voted{% endif %}"
-                                    data-option-id="{{ opt.id }}">
-                                    <div class="poll-option-bar"
-                                        style="width: {{ (opt.vote_count / post.poll.total_votes * 100)|round if post.poll.total_votes > 0 else 0 }}%">
-                                    </div>
-                                    <span class="poll-option-text">{{ opt.option_text }}</span>
-                                    <span class="poll-option-percent">{{ (opt.vote_count / post.poll.total_votes *
-                                        100)|round|int if post.poll.total_votes > 0 else 0 }}%</span>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            <div class="poll-footer">
-                                <span>{{ post.poll.total_votes }} votes</span>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <div class="post-actions">
-                            <button class="comments-btn">
-                                <i data-lucide="message-circle"></i>
-                                <span>{{ post.comment_count }} Comments</span>
-                            </button>
-                            <button class="share-btn" title="Share">
-                                <i data-lucide="share-2"></i>
-                            </button>
-                        </div>
-                    </div>
-                </article>
+                {% include 'post_card_partial.html' %}
                 {% endfor %}
                 {% else %}
                 <div class="empty-feed">
@@ -548,9 +761,9 @@
                 {% endif %}
             </div>
 
-            <!-- Load More Button -->
-            <div class="load-more-container">
-                <button class="load-more-btn">Load More Posts</button>
+            <!-- Infinite Scroll Sentinel -->
+            <div id="infinite-scroll-sentinel" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.3);">
+                <div class="loading-spinner" style="display: none;">Discovering more posts...</div>
             </div>
 
         </main>
@@ -584,47 +797,73 @@
             <div class="community-card">
                 <h3 class="community-card-title">Trending Topics</h3>
                 <div class="trending-list">
-                    <a href="#" class="trending-item">#OnePiece</a>
-                    <a href="#" class="trending-item">#JujutsuKaisen</a>
-                    <a href="#" class="trending-item">#Webtoons</a>
+                    {% if trending_hashtags %}
+                    {% for hashtag in trending_hashtags %}
+                    <a href="{{ url_for('community') }}?q=%23{{ hashtag.tag }}" class="trending-item">#{{ hashtag.tag
+                        }}</a>
+                    {% endfor %}
+                    {% else %}
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px;">No trending topics yet</p>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Who's Online Section -->
+            <!-- Most Active Groups Section -->
             <div class="community-card">
-                <h3 class="community-card-title">Who's Online</h3>
+                <h3 class="community-card-title">Most Active Groups</h3>
                 <div class="online-list">
-                    <div class="online-user">
+                    {% for group in active_groups %}
+                    <a href="{{ url_for('group_page', group_id=group.id) }}" class="online-user"
+                        style="text-decoration: none;">
                         <div class="online-avatar">
-                            <img src="https://i.pravatar.cc/150?img=15" alt="Monshoron">
-                            <span class="online-status"></span>
+                            {% if group.icon_url %}
+                            <img src="{{ group.icon_url }}" alt="{{ group.name }}">
+                            {% else %}
+                            <div class="group-icon-placeholder"
+                                style="width: 40px; height: 40px; border-radius: 8px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;">
+                                <i data-lucide="{{ 'tag' if group.group_type == 'genre' else 'book' }}" size="20"></i>
+                            </div>
+                            {% endif %}
                         </div>
                         <div class="online-info">
-                            <span class="online-name">Monshoron</span>
-                            <span class="online-handle">181entaos</span>
+                            <span class="online-name">{{ group.name }}</span>
+                            <span class="online-handle">{{ group.member_count }} members</span>
                         </div>
-                    </div>
-                    <div class="online-user">
-                        <div class="online-avatar">
-                            <img src="https://i.pravatar.cc/150?img=22" alt="JujutsuKaisen">
-                            <span class="online-status"></span>
-                        </div>
-                        <div class="online-info">
-                            <span class="online-name">JujutsuKaisen</span>
-                            <span class="online-handle">131entaos</span>
-                        </div>
-                    </div>
+                    </a>
+                    {% endfor %}
                 </div>
             </div>
+
+            {% if session.get('role') == 'admin' %}
+            <a href="{{ url_for('admin_create_group') }}" class="create-group-btn"
+                style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #00bcd4, #0097a7); color: #fff; border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 500; transition: transform 0.2s;">
+                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                Create New Group
+            </a>
+            {% endif %}
 
         </aside>
 
     </div>
 </div>
+
+<!-- FAB New Post Button -->
+<button class="fab-new-post" title="Create New Post">
+    <i data-lucide="plus" style="width: 24px; height: 24px;"></i>
+</button>
+
+<!-- Back to Top Button -->
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Back to Top">
+    <i data-lucide="arrow-up" style="width: 20px; height: 20px;"></i>
+</button>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    const CURRENT_USER_ID = {{ session.get('user_id') or 'null' }};
     document.addEventListener('DOMContentLoaded', function () {
         console.log('[DEBUG] Community JS: DOMContentLoaded fired');
 
@@ -632,36 +871,413 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
         console.log('[DEBUG] Community JS: Lucide icons initialized');
 
-        // Poll option toggle functionality
-        document.querySelectorAll('.poll-option').forEach(option => {
-            option.addEventListener('click', function () {
-                this.closest('.poll-options').querySelectorAll('.poll-option').forEach(o => {
-                    o.classList.remove('selected');
-                });
-                this.classList.add('selected');
-            });
+        // === UX ENHANCEMENTS ===
+
+        // Back to Top Button Visibility
+        const backToTopBtn = document.getElementById('backToTop');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 400) {
+                backToTopBtn.classList.add('visible');
+            } else {
+                backToTopBtn.classList.remove('visible');
+            }
         });
 
-        // Filter tab toggle
-        document.querySelectorAll('.filter-tab').forEach(tab => {
-            tab.addEventListener('click', function () {
-                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-            });
+        // Toast Notification System
+        window.showToast = function (message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'info'}" style="width:18px;height:18px;"></i> ${message}`;
+            container.appendChild(toast);
+            if (window.lucide) lucide.createIcons();
+            setTimeout(() => {
+                toast.style.animation = 'toastOut 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+
+        // Add fade-in class to existing posts
+        document.querySelectorAll('.post-card').forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.05}s`;
+            card.classList.add('fade-in');
         });
 
-        // Vote button toggle
-        document.querySelectorAll('.vote-btn').forEach(btn => {
-            btn.addEventListener('click', function () {
-                const isUpvote = this.classList.contains('upvote');
-                const parent = this.closest('.vote-column');
-                const oppositeBtn = parent.querySelector(isUpvote ? '.downvote' : '.upvote');
-                this.classList.toggle('active');
-                if (this.classList.contains('active')) {
-                    oppositeBtn.classList.remove('active');
+        // FAB New Post Button
+        const fabNewPost = document.querySelector('.fab-new-post');
+        if (fabNewPost) {
+            fabNewPost.addEventListener('click', () => {
+                const modal = document.getElementById('createPostModal');
+                if (modal) {
+                    modal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
             });
+        }
+
+        // === Poll Voting Logic ===
+        document.querySelectorAll('.poll-option-vote').forEach(option => {
+            option.addEventListener('click', async function () {
+                if (this.classList.contains('voted')) return;
+                const container = this.closest('.poll-container');
+                const pollId = container.dataset.pollId;
+                const optionId = this.dataset.optionId;
+
+                try {
+                    const response = await fetch(`/group/poll/${pollId}/vote`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ option_ids: [optionId] })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        location.reload(); // Refresh to show new percentages
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (e) { console.error('Poll error:', e); }
+            });
         });
+
+        // === Post Voting Logic ===
+        document.querySelectorAll('.vote-btn').forEach(btn => {
+            btn.addEventListener('click', async function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const column = this.closest('.vote-column');
+                const postId = column.dataset.postId;
+                const isUpvote = this.classList.contains('upvote');
+                const voteType = isUpvote ? 1 : -1;
+
+                try {
+                    const response = await fetch(`/group/post/${postId}/vote`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ vote: voteType })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        // Update counts
+                        const countSpan = column.querySelector('.upvote .vote-count');
+                        if (countSpan) countSpan.textContent = formatCount(data.upvotes);
+
+                        // Toggle classes
+                        const upBtn = column.querySelector('.upvote');
+                        const downBtn = column.querySelector('.downvote');
+
+                        if (data.new_vote === 1) {
+                            upBtn.classList.add('active');
+                            downBtn.classList.remove('active');
+                        } else if (data.new_vote === -1) {
+                            downBtn.classList.add('active');
+                            upBtn.classList.remove('active');
+                        } else {
+                            upBtn.classList.remove('active');
+                            downBtn.classList.remove('active');
+                        }
+                    }
+                } catch (e) { console.error('Vote error:', e); }
+            });
+        });
+
+        // === Comment Logic (Global) ===
+        window.toggleComments = async function (postId) {
+            const section = document.getElementById(`comments-section-${postId}`);
+            const list = document.getElementById(`comments-list-${postId}`);
+
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                // Load comments if strictly empty or just spinner
+                if (list.children.length === 0 || list.querySelector('.loading-spinner')) {
+                    loadComments(postId);
+                }
+            } else {
+                section.style.display = 'none';
+            }
+        };
+
+        const REACTION_MAP = {
+            'like': '👍',
+            'love': '❤️',
+            'haha': '😂',
+            'wow': '😮',
+            'sad': '😢',
+            'angry': '😡'
+        };
+
+        async function loadComments(postId, sortBy = 'oldest') {
+            const list = document.getElementById(`comments-list-${postId}`);
+            try {
+                const res = await fetch(`/group/post/${postId}/comments?sort=${sortBy}`);
+                const comments = await res.json();
+                list.innerHTML = '';
+                if (comments.length === 0) list.innerHTML = '<div class="no-comments">No comments yet.</div>';
+                comments.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'comment-item';
+                    div.id = `comment-${c.id}`;
+
+                    let attachmentsHtml = '';
+                    if (c.attachments && c.attachments.length > 0) {
+                        attachmentsHtml = '<div class="comment-attachments" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">';
+                        c.attachments.forEach(att => {
+                            if (att.type === 'sticker') {
+                                attachmentsHtml += `<img src="${att.url}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px;" title="Sticker">`;
+                            } else if (att.type === 'manga' || att.type === 'manga_link') {
+                                attachmentsHtml += `
+                                    <a href="${att.url}" class="comment-manga-link" style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: rgba(0,0,0,0.2); border-radius: 4px; text-decoration: none; border: 1px solid var(--community-purple);">
+                                        <img src="${att.manga_cover || ''}" style="width: 20px; height: 30px; object-fit: cover;">
+                                        <span style="color: var(--community-purple); font-size: 0.9em;">${att.manga_title || 'Manga'}</span>
+                                    </a>`;
+                            } else if (att.type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(att.type)) {
+                                attachmentsHtml += `<img src="${att.url}" style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer;" onclick="window.open(this.src, '_blank')">`;
+                            } else {
+                                attachmentsHtml += `
+                                    <a href="${att.url}" target="_blank" style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: rgba(255,255,255,0.1); border-radius: 4px; color: #ccc; text-decoration: none; font-size: 0.9em;">
+                                        <i data-lucide="file" style="width: 14px;"></i>
+                                        <span>${att.name}</span>
+                                    </a>`;
+                            }
+                        });
+                        attachmentsHtml += '</div>';
+                    }
+
+                    // Reactions HTML
+                    let reactionsHtml = '<div class="reactions-list">';
+                    if (c.reactions) {
+                        for (const [type, count] of Object.entries(c.reactions)) {
+                            const isUser = c.user_reaction === type;
+                            reactionsHtml += `
+                                <div class="reaction-badge ${isUser ? 'active' : ''}" onclick="voteGroupComment(${c.id}, '${type}')">
+                                    <span>${REACTION_MAP[type] || '👍'}</span>
+                                    <span>${formatCount(count)}</span>
+                                </div>
+                            `;
+                        }
+                    }
+                    reactionsHtml += '</div>';
+
+                    div.innerHTML = `
+                             <img src="${c.avatar || '/static/uploads/avatars/default.png'}" class="comment-avatar">
+                             <div class="comment-content">
+                                 <div class="comment-header">
+                                     <span class="comment-author">${c.username}</span>
+                                     <span class="comment-time">${new Date(c.created_at).toLocaleDateString()}</span>
+                                     ${c.user_id === CURRENT_USER_ID ? `
+                                        <div class="comment-manage-actions" style="margin-left: auto; display: flex; gap: 8px;">
+                                            <button onclick="editGroupComment(${c.id})" title="Edit" style="background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer;"><i data-lucide="edit-2" style="width: 14px; height: 14px;"></i></button>
+                                            <button onclick="deleteGroupComment(${c.id})" title="Delete" style="background: none; border: none; color: rgba(255,50,50,0.7); cursor: pointer;"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button>
+                                        </div>
+                                     ` : ''}
+                                 </div>
+                                 <div class="comment-text" id="comment-text-${c.id}">${c.content}</div>
+                                 ${attachmentsHtml}
+                                 
+                                 <div class="comment-footer">
+                                    <button class="reaction-btn" onclick="toggleReactionPicker(this, ${c.id})">
+                                        <i data-lucide="smile-plus" style="width: 14px; height: 14px;"></i>
+                                        <span>React</span>
+                                    </button>
+                                    ${reactionsHtml}
+                                 </div>
+                             </div>
+                         `;
+                    list.appendChild(div);
+                });
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } catch (e) {
+                list.innerHTML = '<div class="error">Failed to load comments</div>';
+            }
+        }
+
+        window.toggleReactionPicker = function (btn, commentId) {
+            let existing = btn.querySelector('.reaction-picker-popover');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            // Remove any other open pickers
+            document.querySelectorAll('.reaction-picker-popover').forEach(el => el.remove());
+
+            const picker = document.createElement('div');
+            picker.className = 'reaction-picker-popover';
+
+            Object.entries(REACTION_MAP).forEach(([type, emoji]) => {
+                const span = document.createElement('span');
+                span.className = 'reaction-option';
+                span.textContent = emoji;
+                span.onclick = (e) => {
+                    e.stopPropagation();
+                    voteGroupComment(commentId, type);
+                    picker.remove();
+                };
+                picker.appendChild(span);
+            });
+
+            btn.appendChild(picker);
+
+            // Close on outside click
+            setTimeout(() => {
+                document.addEventListener('click', function close(e) {
+                    if (!picker.contains(e.target) && !btn.contains(e.target)) {
+                        picker.remove();
+                        document.removeEventListener('click', close);
+                    }
+                });
+            }, 0);
+        };
+
+        window.voteGroupComment = async function (commentId, type) {
+            try {
+                const res = await fetch(`/group/comment/${commentId}/vote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reaction_type: type })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // Refresh just this comment's reactions? Or easier to find the div and update.
+                    // For simplicity, we can reload comments, but that's jarring.
+                    // Let's update the specific reaction list DOM.
+                    const commentDiv = document.getElementById(`comment-${commentId}`);
+                    if (commentDiv) {
+                        const listDiv = commentDiv.querySelector('.reactions-list');
+                        let html = '';
+                        for (const [rType, count] of Object.entries(data.reactions)) {
+                            const isUser = data.user_reaction === rType;
+                            html += `
+                                <div class="reaction-badge ${isUser ? 'active' : ''}" onclick="voteGroupComment(${commentId}, '${rType}')">
+                                    <span>${REACTION_MAP[rType] || '👍'}</span>
+                                    <span>${formatCount(count)}</span>
+                                </div>
+                            `;
+                        }
+                        listDiv.innerHTML = html;
+                    }
+                }
+            } catch (e) {
+                console.error("Vote failed", e);
+            }
+        };
+
+        window.triggerCommentFile = function (postId) {
+            document.getElementById(`comment-file-${postId}`).click();
+        };
+
+        window.previewCommentFiles = function (postId) {
+            const input = document.getElementById(`comment-file-${postId}`);
+            const preview = document.getElementById(`comment-preview-${postId}`);
+            preview.innerHTML = '';
+
+            Array.from(input.files).forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = 'comment-file-preview-item';
+
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        div.innerHTML = `
+                            <img src="${e.target.result}">
+                            <button type="button" onclick="removeCommentFile(${postId}, ${index})">&times;</button>
+                        `;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    div.innerHTML = `
+                        <i data-lucide="file" style="width:16px;height:16px;"></i>
+                        <span>${file.name}</span>
+                        <button type="button" onclick="removeCommentFile(${postId}, ${index})">&times;</button>
+                    `;
+                }
+                preview.appendChild(div);
+            });
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        };
+
+        // Note: Removing files from input.files is hard (read-only).
+        // For simple UX, if they remove one, we might just clear all or need DataTransfer.
+        // For this version, we'll keep it simple: "Clear Selection" if they click X?
+        // Actually, let's just make X clear the input for now to avoid complexity, 
+        // or accept that X just hides preview but file uploads (edge case).
+        // Better: X clears EVERYTHING for that post for now. 
+        window.removeCommentFile = function (postId, index) {
+            const input = document.getElementById(`comment-file-${postId}`);
+            input.value = ''; // Clear all
+            document.getElementById(`comment-preview-${postId}`).innerHTML = '';
+        }
+
+        window.insertAtCursor = function (btn, text) {
+            const form = btn.closest('form');
+            const textarea = form.querySelector('textarea[name="content"]');
+            if (!textarea) return;
+
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const val = textarea.value;
+
+            textarea.value = val.substring(0, start) + text + val.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + text.length;
+            textarea.focus();
+        };
+
+        window.submitComment = async function (e, postId) {
+            e.preventDefault();
+            const form = e.target;
+            // Updated selector to find textarea OR input (fallback)
+            const input = form.querySelector('textarea[name="content"]') || form.querySelector('input[name="content"]');
+            const fileInput = document.getElementById(`comment-file-${postId}`);
+            const content = input.value;
+            const btn = form.querySelector('button[type="submit"]'); // Generic selector for submit btn
+
+            // Check if empty (no content AND no files)
+            if (!content.trim() && (!fileInput.files || fileInput.files.length === 0)) {
+                return;
+            }
+
+            btn.disabled = true;
+
+            try {
+                // Use FormData for file support
+                const formData = new FormData();
+                formData.append('content', content);
+                if (fileInput.files) {
+                    Array.from(fileInput.files).forEach(file => {
+                        formData.append('attachments', file);
+                    });
+                }
+
+                const res = await fetch(`/group/post/${postId}/comment`, {
+                    method: 'POST',
+                    body: formData // No Content-Type header (browser sets it)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    input.value = '';
+                    fileInput.value = ''; // Clear files
+                    document.getElementById(`comment-preview-${postId}`).innerHTML = '';
+
+                    loadComments(postId); // Reload
+                    // Update count
+                    const countSpan = document.getElementById(`comment-count-${postId}`);
+                    if (countSpan) {
+                        // Parse "X Comments" or just "X"
+                        const text = countSpan.textContent;
+                        const match = text.match(/(\d+)/);
+                        const current = match ? parseInt(match[0]) : 0;
+                        countSpan.textContent = `${current + 1} Comments`;
+                    }
+                } else {
+                    alert(data.message || 'Failed to post comment');
+                }
+            } catch (e) {
+                alert('Error posting comment');
+            } finally {
+                btn.disabled = false;
+            }
+        };
 
         // Show More Groups toggle
         const showMoreBtn = document.getElementById('showMoreGroupsBtn');
@@ -1115,6 +1731,700 @@
             }
         });
     }
+
+    // === Comment Manga Link Logic ===
+
+    let currentCommentPostId = null;
+    window.commentExternalAttachments = {}; // { postId: [ {url, type, manga_id, ...} ] }
+
+    // Helper to open the modal
+    window.openCommentMangaSearch = function (postId) {
+        currentCommentPostId = postId;
+        const modal = document.getElementById('commentMangaModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            const input = document.getElementById('commentMangaSearchInput');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+            document.getElementById('commentMangaSearchResults').innerHTML = '';
+        }
+    };
+
+    // Filter logic for comment manga search
+    const commentMangaSearchInput = document.getElementById('commentMangaSearchInput');
+    if (commentMangaSearchInput) {
+        commentMangaSearchInput.addEventListener('input', function () {
+            const query = this.value.toLowerCase().trim();
+            const results = document.getElementById('commentMangaSearchResults');
+            results.innerHTML = '';
+
+            if (query.length < 2) return;
+
+            // Reuse existing mangaData global (available in this scope)
+            const filtered = mangaData.filter(m => (m.name || '').toLowerCase().includes(query)).slice(0, 5);
+
+            filtered.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'search-result-item';
+                div.style.padding = '8px';
+                div.style.cursor = 'pointer';
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.gap = '10px';
+                div.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+
+                div.innerHTML = `
+                    ${m.icon_url ? `<img src="${m.icon_url}" style="width:24px;height:36px;object-fit:cover;">` : '<i data-lucide="book" style="width:24px;"></i>'}
+                    <span style="color:#fff;font-size:14px;">${m.name}</span>
+                `;
+                div.addEventListener('click', () => {
+                    if (!currentCommentPostId) return;
+                    if (!window.commentExternalAttachments[currentCommentPostId]) window.commentExternalAttachments[currentCommentPostId] = [];
+
+                    // Check duplicate
+                    if (!window.commentExternalAttachments[currentCommentPostId].find(x => x.manga_id === m.id)) {
+                        const att = {
+                            type: 'manga_link',
+                            url: m.link || '#',
+                            manga_id: m.id,
+                            manga_title: m.name,
+                            manga_cover: m.icon_url
+                        };
+                        window.commentExternalAttachments[currentCommentPostId].push(att);
+                        renderAllCommentAttachments(currentCommentPostId);
+                    }
+
+                    document.getElementById('commentMangaModal').style.display = 'none';
+                });
+
+                div.addEventListener('mouseenter', () => div.style.background = 'rgba(255,255,255,0.1)');
+                div.addEventListener('mouseleave', () => div.style.background = 'transparent');
+
+                results.appendChild(div);
+            });
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        });
+    }
+
+    // Global Drag & Drop + Paste Listener for Images (Delegated)
+    const handleImageInput = (e, items, type) => {
+        let blob = null;
+        let handled = false;
+
+        // 1. Check for binary image files
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") === 0) {
+                blob = items[i].getAsFile();
+                handled = true;
+                e.preventDefault();
+                addFileToForm(e.target.closest('form'), blob);
+            }
+        }
+
+        // 2. Check for HTML (Windows GIF picker often sends <img src="...">)
+        if (!handled && type === 'paste') {
+            const html = e.clipboardData.getData('text/html');
+            if (html) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const img = doc.querySelector('img');
+                if (img && img.src) {
+                    e.preventDefault();
+                    addStickerToForm(e.target.closest('form'), img.src);
+                    handled = true;
+                }
+            }
+        }
+
+        // 3. Check for Plain Text URL (Windows/Tenor often just sends a URL)
+        if (!handled) {
+            let text = '';
+            if (type === 'paste') text = e.clipboardData.getData('text/plain');
+            else if (type === 'drop') text = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('text/uri-list');
+
+            if (text && text.match(/^https?:\/\/.*\.(gif|png|jpg|jpeg|webp)($|\?)/i)) {
+                e.preventDefault();
+                addStickerToForm(e.target.closest('form'), text);
+                handled = true;
+            }
+        }
+    };
+
+    document.addEventListener('paste', function (e) {
+        if ((e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') && e.target.name === 'content') {
+            handleImageInput(e, (e.clipboardData || e.originalEvent.clipboardData).items, 'paste');
+        }
     });
+
+    document.addEventListener('dragover', function (e) {
+        if ((e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') && e.target.name === 'content') {
+            e.preventDefault(); // allow drop
+            e.stopPropagation();
+        }
+    });
+
+    document.addEventListener('drop', function (e) {
+        if ((e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') && e.target.name === 'content') {
+            e.preventDefault(); // prevent navigation
+            e.stopPropagation();
+            handleImageInput(e, e.dataTransfer.items, 'drop');
+        }
+    });
+
+    function addStickerToForm(form, url) {
+        const fileInput = form.querySelector('input[type="file"]');
+        if (fileInput) {
+            const postId = fileInput.id.replace('comment-file-', '');
+            if (!window.commentExternalAttachments[postId]) window.commentExternalAttachments[postId] = [];
+            window.commentExternalAttachments[postId].push({
+                type: 'sticker',
+                url: url,
+                name: 'GIF'
+            });
+            window.renderAllCommentAttachments(postId);
+        }
+    }
+
+    function addFileToForm(form, file) {
+        const fileInput = form.querySelector('input[type="file"]');
+        if (fileInput) {
+            const dt = new DataTransfer();
+            if (fileInput.files) {
+                for (let j = 0; j < fileInput.files.length; j++) {
+                    dt.items.add(fileInput.files[j]);
+                }
+            }
+            dt.items.add(file);
+            fileInput.files = dt.files;
+
+            const postId = fileInput.id.replace('comment-file-', '');
+            window.renderAllCommentAttachments(postId);
+        }
+    }
+
+    // Render both Files and Manga and Sticker attachments
+    window.renderAllCommentAttachments = function (postId) {
+        const preview = document.getElementById(`comment-preview-${postId}`);
+        if (!preview) return;
+        preview.innerHTML = '';
+
+        // Render Files
+        const input = document.getElementById(`comment-file-${postId}`);
+        if (input && input.files) {
+            Array.from(input.files).forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = 'comment-file-preview-item';
+
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        div.innerHTML = `
+                            <img src="${e.target.result}">
+                            <button type="button" onclick="removeCommentFile(${postId}, ${index})">&times;</button>
+                        `;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    div.innerHTML = `
+                        <i data-lucide="file" style="width:16px;height:16px;"></i>
+                        <span>${file.name}</span>
+                        <button type="button" onclick="removeCommentFile(${postId}, ${index})">&times;</button>
+                    `;
+                }
+                preview.appendChild(div);
+            });
+        }
+
+        // Render External (Manga/Sticker)
+        const externals = window.commentExternalAttachments[postId] || [];
+        externals.forEach((ext, idx) => {
+            const div = document.createElement('div');
+            div.className = 'comment-file-preview-item';
+            div.style.borderColor = 'var(--community-purple)';
+
+            let contentHtml = '';
+            if (ext.type === 'manga' || ext.type === 'manga_link') {
+                contentHtml = `
+                    ${ext.manga_cover ? `<img src="${ext.manga_cover}">` : '<i data-lucide="book"></i>'}
+                    <span style="color: var(--community-purple); font-weight: 500;">${ext.manga_title || 'Manga'}</span>
+                 `;
+            } else if (ext.type === 'sticker') {
+                div.style.borderColor = 'var(--community-cyan)';
+                contentHtml = `
+                    <img src="${ext.url}" style="width:40px;height:40px;object-fit:contain;">
+                    <span style="color: var(--community-cyan); font-weight: 500;">Sticker</span>
+                 `;
+            }
+
+            div.innerHTML = `
+                ${contentHtml}
+                <button type="button" onclick="removeCommentExternal(${postId}, ${idx})">&times;</button>
+            `;
+            preview.appendChild(div);
+        });
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+
+    // Sticker Picker Logic
+    window.openCommentStickerPicker = function (postId, btn) {
+        let existing = document.querySelector('.sticker-picker-popup');
+        if (existing) { existing.remove(); return; }
+
+        const rect = btn.getBoundingClientRect();
+        const picker = document.createElement('div');
+        picker.className = 'sticker-picker-popup';
+        picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 8px; border-radius: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; z-index: 10001; width: 240px; margin-bottom: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3);`;
+
+        // Mock Stickers (GIFs)
+        const stickers = [
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKVUn7XYMgbzgB2/giphy.gif',
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlS697eB7j58pPO/giphy.gif',
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpx4vV6D6ZTG/giphy.gif',
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l41lTfuxV5F6e4JNu/giphy.gif'
+        ];
+
+        stickers.forEach(url => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.style.width = '48px';
+            img.style.height = '48px';
+            img.style.objectFit = 'contain';
+            img.style.cursor = 'pointer';
+            img.style.borderRadius = '4px';
+            img.onmouseover = () => img.style.background = 'rgba(255,255,255,0.1)';
+            img.onmouseout = () => img.style.background = 'transparent';
+
+            img.onclick = function (e) {
+                e.stopPropagation(); // prevent closing immediately
+                if (!window.commentExternalAttachments[postId]) window.commentExternalAttachments[postId] = [];
+                window.commentExternalAttachments[postId].push({
+                    type: 'sticker',
+                    url: url,
+                    name: 'Sticker'
+                });
+                renderAllCommentAttachments(postId);
+                picker.remove();
+            };
+            picker.appendChild(img);
+        });
+
+        document.body.appendChild(picker);
+
+        // Click outside to close
+        setTimeout(() => {
+            document.addEventListener('click', function close(e) {
+                if (!picker.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                    picker.remove();
+                    document.removeEventListener('click', close);
+                }
+            });
+        }, 100);
+    };
+
+    // Override existing preview function to use unified renderer
+    window.previewCommentFiles = function (postId) {
+        renderAllCommentAttachments(postId);
+    };
+
+    // Override existing remove file
+    window.removeCommentFile = function (postId, index) {
+        const input = document.getElementById(`comment-file-${postId}`);
+        input.value = ''; // Note: Clearing all because FileList is immutable
+        renderAllCommentAttachments(postId);
+    };
+
+    // New remove external
+    window.removeCommentExternal = function (postId, index) {
+        if (window.commentExternalAttachments[postId]) {
+            window.commentExternalAttachments[postId].splice(index, 1);
+            renderAllCommentAttachments(postId);
+        }
+    };
+
+    // Override submitComment to include external attachments
+    const originalSubmit = window.submitComment; // Backup if needed, but we redefine
+
+    window.submitComment = async function (e, postId) {
+        e.preventDefault();
+        const form = e.target;
+        const input = form.querySelector('textarea[name="content"]') || form.querySelector('input[name="content"]');
+        const fileInput = document.getElementById(`comment-file-${postId}`);
+        const content = input.value;
+        const btn = form.querySelector('button[type="submit"]');
+
+        const externals = window.commentExternalAttachments[postId] || [];
+
+        // Check delegated to backend to support attachments-only (GIFs/Stickers)
+        // if (!content.trim() && (!fileInput.files || fileInput.files.length === 0) && externals.length === 0) {
+        //    return;
+        // }
+
+        btn.disabled = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('content', content);
+            if (fileInput.files) {
+                Array.from(fileInput.files).forEach(file => {
+                    formData.append('attachments', file);
+                });
+            }
+
+            if (externals.length > 0) {
+                formData.append('external_attachments', JSON.stringify(externals));
+            }
+
+            const res = await fetch(`/group/post/${postId}/comment`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                input.value = '';
+                fileInput.value = '';
+                window.commentExternalAttachments[postId] = [];
+                renderAllCommentAttachments(postId);
+
+                loadComments(postId);
+                const countSpan = document.getElementById(`comment-count-${postId}`);
+                if (countSpan) {
+                    const text = countSpan.textContent;
+                    const match = text.match(/(\d+)/);
+                    const current = match ? parseInt(match[0]) : 0;
+                    countSpan.textContent = `${current + 1} Comments`;
+                }
+            } else {
+                alert(data.message || 'Failed to post comment');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error posting comment');
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    // Gift Picker Logic (Mock)
+    window.openCommentGiftPicker = function (postId, btn) {
+        let existing = document.querySelector('.picker-popup');
+        if (existing) { existing.remove(); return; }
+
+        const rect = btn.getBoundingClientRect();
+        const picker = document.createElement('div');
+        picker.className = 'picker-popup';
+        picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 8px; border-radius: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; z-index: 10001; width: 180px; margin-bottom: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3);`;
+
+        // Mock Gifts
+        const gifts = ['🎁', '💎', '🏆', '👑', '🌹', '🍰'];
+
+        gifts.forEach(icon => {
+            const div = document.createElement('div');
+            div.style.cssText = `font-size: 24px; cursor: pointer; text-align: center; padding: 4px; border-radius: 4px; transition: background 0.2s;`;
+            div.textContent = icon;
+            div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
+            div.onmouseout = () => div.style.background = 'transparent';
+
+            div.onclick = function (e) {
+                e.stopPropagation();
+                if (!window.commentExternalAttachments[postId]) window.commentExternalAttachments[postId] = [];
+                window.commentExternalAttachments[postId].push({
+                    type: 'gift',
+                    url: '#', // placeholder
+                    name: 'Gift ' + icon
+                });
+                renderAllCommentAttachments(postId);
+                picker.remove();
+            };
+            picker.appendChild(div);
+        });
+
+        document.body.appendChild(picker);
+
+        setTimeout(() => {
+            document.addEventListener('click', function close(e) {
+                if (!picker.contains(e.target) && e.target !== btn) {
+                    picker.remove();
+                    document.removeEventListener('click', close);
+                }
+            });
+        }, 100);
+    };
+
+    // Emoji Picker Logic (Simple Grid)
+    window.openCommentEmojiPicker = function (btn) {
+        let existing = document.querySelector('.picker-popup');
+        if (existing) { existing.remove(); return; }
+
+        const rect = btn.getBoundingClientRect();
+        const picker = document.createElement('div');
+        picker.className = 'picker-popup';
+        picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left - 50}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 8px; border-radius: 8px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; z-index: 10001; width: 220px; margin-bottom: 0; height: 150px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.3);`;
+
+        const emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
+
+        emojis.forEach(char => {
+            const div = document.createElement('div');
+            div.style.cssText = `font-size: 20px; cursor: pointer; text-align: center; padding: 2px; border-radius: 4px;`;
+            div.textContent = char;
+            div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
+            div.onmouseout = () => div.style.background = 'transparent';
+            div.onclick = function (e) {
+                e.stopPropagation();
+                window.insertAtCursor(btn, char);
+                picker.remove();
+            };
+            picker.appendChild(div);
+        });
+
+        document.body.appendChild(picker);
+
+        setTimeout(() => {
+            document.addEventListener('click', function close(e) {
+                if (!picker.contains(e.target) && e.target !== btn) {
+                    picker.remove();
+                    document.removeEventListener('click', close);
+                }
+            });
+        }, 100);
+    };
+
+    // Emoticon Picker Logic
+    window.openCommentEmoticonPicker = function (btn) {
+        let existing = document.querySelector('.picker-popup');
+        if (existing) { existing.remove(); return; }
+
+        const rect = btn.getBoundingClientRect();
+        const picker = document.createElement('div');
+        picker.className = 'picker-popup';
+        picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left - 100}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 8px; border-radius: 8px; display: flex; flex-direction: column; gap: 4px; z-index: 10001; width: 160px; margin-bottom: 0px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.3);`;
+
+        const emoticons = ['( ͡° ͜ʖ ͡°)', '(づ｡◕‿‿◕｡)づ', '¯\\_(ツ)_/¯', '( ͡° ʖ̯ ͡°)', '(╯°□°）╯︵ ┻━┻', '┬──┬◡ﾉ(° - °ﾉ)', '( ͡ᵔ ͜ʖ ͡ᵔ )', 'ಠ_ಠ', 'ಥ_ಥ', '༼ つ ◕_◕ ༽つ', 'ᕦ(ò_óˇ)ᕤ', '(•‿•)', '(｡◕‿◕｡)', '(^_^)b', '(o_O)', '(>_<)', '(^.^)', '(T_T)', '(~_~)', '(-_-)', '(X_X)', '(>﹏<)', '(✿◡‿◡)', '(∩^o^)⊃━☆', '(づ￣ ³￣)づ', '(´• ω •`)', '(＠＾◡＾)', '(o^▽^o)', '(´｡• ᵕ •｡`)', '(◕‿◕)', '(*^ω^*)', '(⌒▽⌒)☆', 'ヽ(・∀・)ﾉ', '(´｡• ω •｡`)', '(￣ω￣)', '(o･ω･o)', '(＠_＠)', '(´-ω-`)', '(￣o￣) zzZZ', '(－_－) zzZZ', '(＿ ＿*)'];
+
+        emoticons.forEach(emo => {
+            const div = document.createElement('div');
+            // Changed styles to ensure proper height and spacing
+            div.style.cssText = `font-size: 13px; font-family: monospace; cursor: pointer; padding: 8px; border-radius: 4px; color: var(--community-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.5; min-height: 32px; flex-shrink: 0; display: flex; align-items: center;`;
+            div.textContent = emo;
+            div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
+            div.onmouseout = () => div.style.background = 'transparent';
+            div.onclick = function (e) {
+                e.stopPropagation();
+                window.insertAtCursor(btn, emo);
+                picker.remove();
+            };
+            picker.appendChild(div);
+        });
+
+        document.body.appendChild(picker);
+
+        setTimeout(() => {
+            document.addEventListener('click', function close(e) {
+                if (!picker.contains(e.target) && e.target !== btn) {
+                    picker.remove();
+                    document.removeEventListener('click', close);
+                }
+            });
+        }, 100);
+    };
+
+    window.deleteGroupComment = async function (commentId) {
+        if (!confirm('Are you sure you want to delete this comment?')) return;
+        try {
+            const res = await fetch(`/group/comment/${commentId}/delete`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                const el = document.getElementById(`comment-${commentId}`);
+                if (el) el.remove();
+            } else {
+                alert(data.message);
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    window.editGroupComment = function (commentId) {
+        const textDiv = document.getElementById(`comment-text-${commentId}`);
+        const currentText = textDiv.innerText;
+        textDiv.dataset.original = currentText; // backup
+        textDiv.innerHTML = `
+            <div class="edit-comment-box">
+                <textarea id="edit-area-${commentId}" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 4px; padding: 8px; font-family: inherit;">${currentText}</textarea>
+                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                    <button type="button" onclick="saveCommentEdit(${commentId})" style="padding: 4px 8px; background: var(--community-cyan); border: none; border-radius: 4px; color: #000; font-size: 12px; cursor: pointer;">Save</button>
+                    <button type="button" onclick="cancelCommentEdit(${commentId})" style="padding: 4px 8px; background: rgba(255,255,255,0.1); border: none; border-radius: 4px; color: #fff; font-size: 12px; cursor: pointer;">Cancel</button>
+                </div>
+            </div>
+        `;
+    };
+
+    window.saveCommentEdit = async function (commentId) {
+        const newText = document.getElementById(`edit-area-${commentId}`).value;
+        try {
+            const res = await fetch(`/group/comment/${commentId}/edit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: newText })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const textDiv = document.getElementById(`comment-text-${commentId}`);
+                textDiv.innerText = newText;
+            } else {
+                alert(data.message);
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    window.cancelCommentEdit = function (commentId) {
+        const textDiv = document.getElementById(`comment-text-${commentId}`);
+        textDiv.innerText = textDiv.dataset.original || '';
+    };
+
+    }); // End DOMContentLoaded
+
+    // Voting Function
+    window.votePost = async function (postId, vote, btn) {
+        try {
+            const response = await fetch(`/group/post/${postId}/vote`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ vote })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                // Find post card and update UI
+                const postCard = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+                if (!postCard) return;
+
+                const upBtn = postCard.querySelector('.upvote');
+                const downBtn = postCard.querySelector('.downvote');
+                const countSpan = upBtn.querySelector('.vote-count');
+
+                // Update count
+                if (countSpan) {
+                    const count = result.upvotes;
+                    countSpan.textContent = count > 1000 ? (count / 1000).toFixed(1) + 'k' : count;
+                }
+
+                // Update button states
+                upBtn.classList.remove('active');
+                downBtn.classList.remove('active');
+
+                if (result.new_vote === 1) {
+                    upBtn.classList.add('active');
+                } else if (result.new_vote === -1) {
+                    downBtn.classList.add('active');
+                }
+            }
+        } catch (err) {
+            console.error('Vote error:', err);
+        }
+    };
+
+    // === Search Bar Logic ===
+    const communitySearchInput = document.getElementById('communitySearchInput');
+    if (communitySearchInput) {
+        communitySearchInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const query = this.value.trim();
+                if (query) {
+                    window.location.href = `/community?q=${encodeURIComponent(query)}`;
+                } else {
+                    window.location.href = '/community';
+                }
+            }
+        });
+    }
+
+    // === Infinite Scroll Logic ===
+    let isLoadingMore = false;
+    let hasMorePosts = true;
+    const sentinel = document.getElementById('infinite-scroll-sentinel');
+    const spinner = sentinel ? sentinel.querySelector('.loading-spinner') : null;
+
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !isLoadingMore && hasMorePosts) {
+            loadMorePosts();
+        }
+    }, { threshold: 0.1 });
+
+    if (sentinel) observer.observe(sentinel);
+
+    async function loadMorePosts() {
+        if (isLoadingMore || !hasMorePosts) return;
+
+        isLoadingMore = true;
+        if (spinner) spinner.style.display = 'block';
+
+        // Collect seen IDs to avoid duplicates in the random pool
+        const postElements = document.querySelectorAll('.post-card');
+        const seenIds = Array.from(postElements).map(p => p.dataset.postId).filter(id => id);
+
+        const params = new URLSearchParams();
+        seenIds.forEach(id => params.append('seen[]', id));
+
+        // Include search query in infinite scroll
+        const searchQuery = new URLSearchParams(window.location.search).get('q');
+        if (searchQuery) {
+            params.append('q', searchQuery);
+        }
+
+        try {
+            const response = await fetch(`/api/community/posts/more?${params.toString()}`);
+            if (!response.ok) throw new Error('Failed to fetch');
+
+            const html = await response.text();
+
+            if (!html.trim()) {
+                hasMorePosts = false;
+                sentinel.innerHTML = '<span style="font-size: 14px; opacity: 0.5;">✨ You have discovered all the stories.</span>';
+                if (spinner) spinner.style.display = 'none';
+            } else {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+
+                const postsFeed = document.querySelector('.posts-feed');
+                if (postsFeed) {
+                    // Append new posts
+                    while (tempDiv.firstChild) {
+                        postsFeed.appendChild(tempDiv.firstChild);
+                    }
+                }
+
+                // Re-initialize icons for new elements
+                if (window.lucide) window.lucide.createIcons();
+
+                isLoadingMore = false;
+                if (spinner) spinner.style.display = 'none';
+            }
+        } catch (e) {
+            console.error('Infinite scroll error:', e);
+            isLoadingMore = false;
+            if (spinner) spinner.style.display = 'none';
+            sentinel.innerHTML = '<button type="button" class="load-more-btn" onclick="location.reload()">Error. Click to retry</button>';
+        }
+    }
 </script>
+
+<!-- Comment Manga Search Modal -->
+<div id="commentMangaModal" class="modal-overlay"
+    style="display:none; z-index: 10000; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center;">
+    <div class="modal-container"
+        style="background: var(--community-card-bg); width: 400px; max-width: 90vw; padding: 20px; border-radius: 12px; border: 1px solid var(--community-card-border);">
+        <div class="modal-header"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; color: #fff;">Link Manga</h3>
+            <button type="button" onclick="document.getElementById('commentMangaModal').style.display='none'"
+                style="background: none; border: none; color: #aaa; cursor: pointer; font-size: 20px;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="text" id="commentMangaSearchInput" placeholder="Search manga title..." class="search-input"
+                style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--community-card-border); background: rgba(0,0,0,0.2); color: #fff; margin-bottom: 12px;">
+            <div id="commentMangaSearchResults" class="search-results-list"
+                style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+    </div>
+</div>
 {% endblock %}

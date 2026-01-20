@@ -48,11 +48,11 @@
                     <div class="group-meta">
                         <span class="group-meta-item">
                             <i data-lucide="users"></i>
-                            {{ group.member_count if group else '1,234' }} members
+                            {{ (group.member_count if group else 1234)|format_count }} members
                         </span>
                         <span class="group-meta-item">
                             <i data-lucide="message-circle"></i>
-                            {{ group.post_count if group else '456' }} posts
+                            {{ (group.post_count if group else 456)|format_count }} posts
                         </span>
                         <span class="group-meta-item">
                             <i data-lucide="clock"></i>
@@ -62,11 +62,13 @@
                 </div>
             </div>
             <div class="group-header-actions">
+                {% if not (group.name == 'World' and group.group_type == 'system') %}
                 <button class="btn-join {{ 'joined' if is_member else '' }}" id="joinBtn"
                     data-group-id="{{ group.id if group else 1 }}">
                     <i data-lucide="{{ 'check' if is_member else 'user-plus' }}" style="width:14px;height:14px;"></i>
                     <span>{{ 'Joined' if is_member else 'Join Group' }}</span>
                 </button>
+                {% endif %}
                 <button class="btn-settings" title="Group Settings">
                     <i data-lucide="settings"></i>
                 </button>
@@ -90,15 +92,15 @@
                 </p>
                 <div class="group-stats">
                     <div class="group-stat">
-                        <div class="group-stat-value">{{ group.member_count if group else '1.2K' }}</div>
+                        <div class="group-stat-value">{{ (group.member_count if group else 1200)|format_count }}</div>
                         <div class="group-stat-label">Members</div>
                     </div>
                     <div class="group-stat">
-                        <div class="group-stat-value">{{ group.post_count if group else '456' }}</div>
+                        <div class="group-stat-value">{{ (group.post_count if group else 456)|format_count }}</div>
                         <div class="group-stat-label">Posts</div>
                     </div>
                     <div class="group-stat">
-                        <div class="group-stat-value">{{ group.online_count if group else '89' }}</div>
+                        <div class="group-stat-value">{{ (group.online_count if group else 89)|format_count }}</div>
                         <div class="group-stat-label">Online</div>
                     </div>
                 </div>
@@ -239,6 +241,16 @@
                                     </div>
                                 </div>
 
+                                <div id="emoticonPicker" class="picker-popover">
+                                    <div class="picker-header">
+                                        <h4>Emoticons</h4>
+                                        <button class="picker-close" onclick="closePickers()">&times;</button>
+                                    </div>
+                                    <div class="picker-content">
+                                        <div class="emoticon-grid" id="emoticonGrid"></div>
+                                    </div>
+                                </div>
+
                                 <button class="post-action-icon" title="Gift"
                                     onclick="togglePicker('giftPicker', null, this)"><i data-lucide="gift"></i></button>
                                 <button class="post-action-icon" title="GIF"
@@ -247,6 +259,9 @@
                                 <button class="post-action-icon" title="Stickers"
                                     onclick="togglePicker('stickerPicker', null, this)"><i
                                         data-lucide="smile-plus"></i></button>
+                                <button class="post-action-icon" title="Emoticons"
+                                    onclick="togglePicker('emoticonPicker', null, this)"><i
+                                        data-lucide="meh"></i></button>
                                 <button class="post-action-icon" title="Emoji"
                                     onclick="togglePicker('emojiPicker', null, this)"><i
                                         data-lucide="smile"></i></button>
@@ -326,12 +341,12 @@
                         <button class="vote-btn upvote {{ 'active' if post.user_vote == 1 }}" title="Upvote"
                             onclick="votePost({{ post.id }}, 1, this)">
                             <i data-lucide="thumbs-up"></i>
-                            <span class="upvote-count">{{ post.upvotes }}</span>
+                            <span class="upvote-count">{{ post.upvotes|format_count }}</span>
                         </button>
                         <button class="vote-btn downvote {{ 'active' if post.user_vote == -1 }}" title="Downvote"
                             onclick="votePost({{ post.id }}, -1, this)">
                             <i data-lucide="thumbs-down"></i>
-                            <span class="downvote-count">{{ post.downvotes }}</span>
+                            <span class="downvote-count">{{ post.downvotes|format_count }}</span>
                         </button>
                     </div>
 
@@ -420,7 +435,9 @@
                         <div class="post-actions">
                             <button class="comments-btn" onclick="toggleComments({{ post.id }})">
                                 <i data-lucide="message-circle"></i>
-                                <span id="comment-count-{{ post.id }}">{{ post.comment_count }} Comments</span>
+                                <span id="comment-count-{{ post.id }}">{{ post.comment_count|format_count }}
+                                    Comments</span>
+                                Comments</span>
                             </button>
                             <button class="share-btn">
                                 <i data-lucide="corner-up-right"></i>
@@ -442,6 +459,20 @@
 
                         <!-- Comments Section -->
                         <div class="post-comments-section" id="comments-section-{{ post.id }}">
+                            <div class="comments-sort-header"
+                                style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <button onclick="toggleComments({{ post.id }})"
+                                    style="background: none; border: none; color: #aaa; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px;">
+                                    <i data-lucide="chevron-up" style="width: 14px; height: 14px;"></i>
+                                    <span>Hide</span>
+                                </button>
+                                <select onchange="loadComments({{ post.id }}, this.value)"
+                                    style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 12px;">
+                                    <option value="oldest">Oldest First</option>
+                                    <option value="newest">Newest First</option>
+                                    <option value="most_reacted">Most Reacted</option>
+                                </select>
+                            </div>
                             <div class="comment-list" id="comment-list-{{ post.id }}">
                                 <!-- Comments will be loaded here -->
                             </div>
@@ -453,6 +484,7 @@
                                     <div class="comment-previews" id="comment-previews-{{ post.id }}"></div>
                                     <div class="comment-input-box">
                                         <textarea class="comment-input" id="comment-input-{{ post.id }}"
+                                            data-post-id="{{ post.id }}"
                                             onfocus="window.activeInput=this; window.activePickerPostId={{ post.id }};"
                                             placeholder="Write a comment..."></textarea>
                                         <div class="comment-input-actions">
@@ -485,6 +517,10 @@
                                                 <button class="comment-extra-btn" title="Stickers"
                                                     onclick="togglePicker('stickerPicker', {{ post.id }}, this)">
                                                     <i data-lucide="smile-plus"></i>
+                                                </button>
+                                                <button class="comment-extra-btn" title="Emoticons"
+                                                    onclick="togglePicker('emoticonPicker', {{ post.id }}, this)">
+                                                    <i data-lucide="meh"></i>
                                                 </button>
                                                 <button class="comment-extra-btn" title="Emoji"
                                                     onclick="togglePicker('emojiPicker', {{ post.id }}, this)">
@@ -526,6 +562,7 @@
             <div class="decorative-star-large star-2">★</div>
 
             <!-- Members Section -->
+            {% if not (group.name == 'World' and group.group_type == 'system') %}
             <div class="group-card">
                 <h3 class="group-card-title">Members ({{ group.member_count if group else 0 }})</h3>
                 <div class="members-grid">
@@ -540,6 +577,7 @@
                 </div>
                 <a class="view-all-link">View All Members →</a>
             </div>
+            {% endif %}
 
             <!-- Related Groups -->
             <div class="group-card">
@@ -841,9 +879,17 @@
 
                     <div class="settings-form-group">
                         <label>Add New Admin/Moderator</label>
-                        <div class="add-admin-row">
-                            <input type="text" class="settings-input" placeholder="Search by username...">
-                            <button class="btn-add-admin"><i data-lucide="user-plus"></i></button>
+                        <div class="add-admin-row" style="position: relative;">
+                            <input type="text" class="settings-input" id="modSearchInput"
+                                placeholder="Search by username..." autocomplete="off">
+                            <select id="modRoleSelect" class="settings-input" style="width: 140px; margin-left: 8px;">
+                                <option value="moderator">Moderator</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button class="btn-add-admin" id="addModBtn"><i data-lucide="user-plus"></i></button>
+                            <div class="user-suggestions" id="modSuggestions"
+                                style="display: none; position: absolute; top: 100%; left: 0; right: 140px; margin-right: 8px; background: rgba(20, 20, 35, 0.98); border: 1px solid rgba(0, 188, 212, 0.3); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100;">
+                            </div>
                         </div>
                     </div>
 
@@ -1385,6 +1431,32 @@
         justify-content: center;
         cursor: pointer;
         font-size: 10px;
+        z-index: 2;
+    }
+
+    .attachment-type-badge {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        font-size: 8px;
+        text-align: center;
+        padding: 2px 0;
+        text-transform: uppercase;
+        font-weight: bold;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .gif-item {
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .gif-item:hover {
+        transform: scale(1.05);
     }
 
     /* Post Rendering Attachments */
@@ -1860,6 +1932,15 @@
         display: grid;
         grid-template-columns: repeat(8, 1fr);
         gap: 4px;
+        padding: 10px;
+        max-height: 250px;
+        overflow-y: auto;
+    }
+
+    .emoticon-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
         padding: 10px;
         max-height: 250px;
         overflow-y: auto;
@@ -2494,6 +2575,18 @@
         cursor: pointer;
     }
 
+    .hashtag-link {
+        color: #00bcd4;
+        text-decoration: none;
+        font-weight: 500;
+        transition: opacity 0.2s;
+    }
+
+    .hashtag-link:hover {
+        opacity: 0.8;
+        text-decoration: underline;
+    }
+
     .mention-tag.role-mention {
         color: #ff9800;
         background: rgba(255, 152, 0, 0.1);
@@ -3009,10 +3102,14 @@
 
 <script>
     window.activeGroupId = {{ group.id if group else 0 }};
+    window.currentUserId = {{ session.get('user_id', 0) }};
     window.activeInput = null;
     window.activePickerPostId = null;
 
     const popularEmojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
+    const popularEmoticons = [
+        '( ͡° ͜ʖ ͡°)', '(づ｡◕‿‿◕｡)づ', '¯\\_(ツ)_/¯', '( ͡° ʖ̯ ͡°)', '(╯°□°）╯︵ ┻━┻', '┬──┬◡ﾉ(° - °ﾉ)', '( ͡ᵔ ͜ʖ ͡ᵔ )', 'ಠ_ಠ', 'ಥ_ಥ', '༼ つ ◕_◕ ༽つ', 'ᕦ(ò_óˇ)ᕤ', '(•‿•)', '(｡◕‿◕｡)', '(^_^)b', '(o_O)', '(>_<)', '(^.^)', '(T_T)', '(~_~)', '(-_-)', '(X_X)', '(>﹏<)', '(✿◡‿◡)', '(∩^o^)⊃━☆', '(づ￣ ³￣)づ', '(´• ω •`)', '(＠＾◡＾)', '(o^▽^o)', '(´｡• ᵕ •｡`)', '(◕‿◕)', '(*^ω^*)', '(⌒▽⌒)☆', 'ヽ(・∀・)ﾉ', '(´｡• ω •｡`)', '(￣ω￣)', '(o･ω･o)', '(＠_＠)', '(´-ω-`)', '(￣o￣) zzZZ', '(－_－) zzZZ', '(＿ ＿*)'
+    ];
 
     function initPickers() {
         const emojiGrid = document.getElementById('emojiGrid');
@@ -3024,6 +3121,20 @@
                 span.textContent = emoji;
                 span.onclick = () => insertEmoji(emoji);
                 emojiGrid.appendChild(span);
+            });
+        }
+        const emoticonGrid = document.getElementById('emoticonGrid');
+        if (emoticonGrid) {
+            emoticonGrid.innerHTML = '';
+            popularEmoticons.forEach(emo => {
+                const span = document.createElement('span');
+                span.className = 'emoji-item';
+                span.style.padding = '5px';
+                span.style.fontSize = '14px';
+                span.style.width = 'auto';
+                span.textContent = emo;
+                span.onclick = () => insertEmoji(emo);
+                emoticonGrid.appendChild(span);
             });
         }
         const stickerGrid = document.getElementById('stickerGrid');
@@ -3038,6 +3149,45 @@
                 stickerGrid.appendChild(img);
             }
         }
+        const giftGrid = document.getElementById('giftGrid');
+        if (giftGrid) {
+            giftGrid.innerHTML = '';
+            const awards = [
+                { name: 'Gold', icon: 'award', color: '#ffd700' },
+                { name: 'Silver', icon: 'award', color: '#c0c0c0' },
+                { name: 'Bronze', icon: 'award', color: '#cd7f32' },
+                { name: 'Heart', icon: 'heart', color: '#ff4b2b' },
+                { name: 'Diamond', icon: 'gem', color: '#00d2ff' }
+            ];
+            awards.forEach(aw => {
+                const div = document.createElement('div');
+                div.className = 'sticker-item';
+                div.style.padding = '8px';
+                div.innerHTML = `<i data-lucide="${aw.icon}" style="color: ${aw.color}; width: 24px; height: 24px;"></i>`;
+                div.title = aw.name;
+                div.onclick = () => {
+                    console.log('Sending gift:', aw.name);
+                    // For now, treat as sticker/external attachment
+                    window.addExternalAttachment(`gift:${aw.name}:${aw.color}`, 'sticker');
+                    window.closePickers();
+                };
+                giftGrid.appendChild(div);
+            });
+            if (window.lucide) lucide.createIcons({ scope: giftGrid });
+        }
+
+        // Initialize GIFs
+        searchGIFs('');
+
+        // GIF Search Input Listener
+        const gifSearchInput = document.getElementById('gifSearchInput');
+        if (gifSearchInput) {
+            gifSearchInput.addEventListener('input', (e) => {
+                const query = e.target.value;
+                if (window.gifSearchTimeout) clearTimeout(window.gifSearchTimeout);
+                window.gifSearchTimeout = setTimeout(() => searchGIFs(query), 500);
+            });
+        }
     }
 
     // Initialize Lucide icons
@@ -3050,6 +3200,92 @@
         try {
             initPickers();
         } catch (e) { console.warn('Picker init failed', e); }
+
+        // === Moderator Search Autocomplete ===
+        const modSearchInput = document.getElementById('modSearchInput');
+        const modSuggestions = document.getElementById('modSuggestions');
+        const modRoleSelect = document.getElementById('modRoleSelect');
+        const addModBtn = document.getElementById('addModBtn');
+        let selectedUserId = null;
+
+        if (modSearchInput && modSuggestions) {
+            let debounceTimer;
+            modSearchInput.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                const query = this.value.trim();
+                if (query.length < 1) {
+                    modSuggestions.style.display = 'none';
+                    return;
+                }
+                debounceTimer = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}&group_id={{ group.id }}`);
+                        const data = await res.json();
+                        console.log(`Moderator Search results:`, data);
+                        // API returns direct array, not wrapped in results/users
+                        const users = Array.isArray(data) ? data : (data.users || data.results || []);
+
+                        if (users.length === 0) {
+                            modSuggestions.innerHTML = '<div style="padding:12px;color:rgba(255,255,255,0.5);">No users found</div>';
+                        } else {
+                            modSuggestions.innerHTML = users.filter(u => u.type !== 'special' && u.type !== 'role').map(u => `
+                                <div class="user-suggestion-item" data-user-id="${u.id}" data-username="${u.username}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:background 0.2s;">
+                                    <img src="${u.avatar || u.avatar_url || '/static/default-avatar.png'}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+                                    <div>
+                                        <div style="color:#fff;font-weight:500;">${u.username}</div>
+                                        <div style="color:rgba(255,255,255,0.5);font-size:11px;">${u.role || 'user'}</div>
+                                    </div>
+                                </div>
+                            `).join('');
+                        }
+                        modSuggestions.style.display = 'block';
+
+                        // Add click handlers
+                        modSuggestions.querySelectorAll('.user-suggestion-item').forEach(item => {
+                            item.addEventListener('mouseenter', () => item.style.background = 'rgba(0,188,212,0.1)');
+                            item.addEventListener('mouseleave', () => item.style.background = 'transparent');
+                            item.addEventListener('click', () => {
+                                selectedUserId = item.dataset.userId;
+                                modSearchInput.value = item.dataset.username;
+                                modSuggestions.style.display = 'none';
+                                console.log(`Selected User ID: ${selectedUserId}`);
+                            });
+                        });
+                    } catch (e) { console.error('Search error:', e); }
+                }, 300);
+            });
+
+            // Hide on click outside
+            document.addEventListener('click', (e) => {
+                if (!modSearchInput.contains(e.target) && !modSuggestions.contains(e.target)) {
+                    modSuggestions.style.display = 'none';
+                }
+            });
+        }
+
+        if (addModBtn) {
+            addModBtn.addEventListener('click', async () => {
+                if (!selectedUserId) {
+                    alert('Please select a user from the suggestions');
+                    return;
+                }
+                const role = modRoleSelect ? modRoleSelect.value : 'moderator';
+                try {
+                    const res = await fetch(`/group/{{ group.id }}/add-moderator`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: selectedUserId, role: role })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert(data.message || 'Failed to add');
+                    }
+                } catch (e) { alert('Error adding moderator'); }
+            });
+        }
 
         const postInput = document.getElementById('postInput');
         if (postInput) {
@@ -3131,19 +3367,44 @@
             window.filterAllPosts();
         }
 
-        // Vote button toggle
-        document.querySelectorAll('.vote-btn').forEach(btn => {
-            btn.addEventListener('click', function () {
-                const isUpvote = this.classList.contains('upvote');
-                const parent = this.closest('.vote-column');
-                const oppositeBtn = parent.querySelector(isUpvote ? '.downvote' : '.upvote');
+        // Vote button handler
+        window.votePost = async function (postId, voteType, btn) {
+            const column = btn.closest('.vote-column');
+            const isUpvote = btn.classList.contains('upvote');
 
-                this.classList.toggle('active');
-                if (this.classList.contains('active')) {
-                    oppositeBtn.classList.remove('active');
+            try {
+                const response = await fetch(`/group/post/${postId}/vote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vote: voteType })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    // Update counts
+                    const upCount = column.querySelector('.upvote .upvote-count');
+                    const downCount = column.querySelector('.downvote .downvote-count');
+                    if (upCount) upCount.textContent = formatCount(data.upvotes);
+                    if (downCount) downCount.textContent = formatCount(data.downvotes);
+
+                    // Toggle classes
+                    const upBtn = column.querySelector('.upvote');
+                    const downBtn = column.querySelector('.downvote');
+
+                    if (data.new_vote === 1) {
+                        upBtn.classList.add('active');
+                        downBtn.classList.remove('active');
+                    } else if (data.new_vote === -1) {
+                        downBtn.classList.add('active');
+                        upBtn.classList.remove('active');
+                    } else {
+                        upBtn.classList.remove('active');
+                        downBtn.classList.remove('active');
+                    }
                 }
-            });
-        });
+            } catch (e) {
+                console.error('Vote error:', e);
+            }
+        };
 
         // Join button - calls API to actually join/leave
         const joinBtn = document.getElementById('joinBtn');
@@ -3318,8 +3579,8 @@
         }
 
         // ===== ADVANCED POSTING FEATURES =====
-        let selectedMangaLinks = [];
-        let postAttachments = [];
+        window.selectedMangaLinks = [];
+        window.postAttachments = [];
 
         const attachImageBtn = document.getElementById('attachImageBtn');
         const attachFileBtn = document.getElementById('attachFileBtn');
@@ -3334,27 +3595,29 @@
         if (attachImageBtn) attachImageBtn.addEventListener('click', () => imageInput.click());
         if (attachFileBtn) attachFileBtn.addEventListener('click', () => fileInput.click());
 
-        function handleFileSelection(files, type) {
+        window.attachFilesToPost = function (files, type) {
             for (let file of files) {
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     const id = Date.now() + Math.random();
-                    postAttachments.push({ id, file, type });
+                    window.postAttachments.push({ id, file, type });
                     const div = document.createElement('div');
                     div.className = 'attachment-preview';
                     div.id = `attach-${id}`;
-                    if (type === 'image') div.innerHTML = `<img src="${e.target.result}"><div class="remove-attach" onclick="removeAttachment(${id})">×</div>`;
-                    else div.innerHTML = `<i data-lucide="file-text" style="width:30px;height:30px;margin:15px;color:rgba(255,255,255,0.5)"></i><div class="remove-attach" onclick="removeAttachment(${id})">×</div>`;
-                    attachmentPreviews.appendChild(div);
-                    if (window.lucide) lucide.createIcons();
-
+                    if (type === 'image' || file.type.startsWith('image/')) div.innerHTML = `<img src="${e.target.result}"><div class="remove-attach" onclick="window.removeAttachment(${id})">×</div>`;
+                    else div.innerHTML = `<i data-lucide="file-text" style="width:30px;height:30px;margin:15px;color:rgba(255,255,255,0.5)"></i><div class="remove-attach" onclick="window.removeAttachment(${id})">×</div>`;
+                    const attachmentPreviews = document.getElementById('attachmentPreviews');
+                    if (attachmentPreviews) {
+                        attachmentPreviews.appendChild(div);
+                        if (window.lucide) lucide.createIcons();
+                    }
                 }
                 reader.readAsDataURL(file);
             }
         }
 
-        if (imageInput) imageInput.addEventListener('change', (e) => handleFileSelection(e.target.files, 'image'));
-        if (fileInput) fileInput.addEventListener('change', (e) => handleFileSelection(e.target.files, 'file'));
+        if (imageInput) imageInput.addEventListener('change', (e) => window.attachFilesToPost(e.target.files, 'image'));
+        if (fileInput) fileInput.addEventListener('change', (e) => window.attachFilesToPost(e.target.files, 'file'));
 
         window.removeAttachment = function (id) {
             postAttachments = postAttachments.filter(a => a.id !== id);
@@ -3563,171 +3826,232 @@
             });
         }
 
-        // ===== COMMENTS LOGIC =====
-        window.toggleComments = async function (postId) {
-            const section = document.getElementById(`comments-section-${postId}`);
-            if (!section) return;
-            section.style.display = section.style.display === 'block' ? 'none' : 'block';
-            if (section.style.display === 'block') window.loadComments(postId);
+
+        // === Comment Logic (Global) ===
+        const REACTION_MAP = {
+            'like': '👍',
+            'love': '❤️',
+            'haha': '😂',
+            'wow': '😮',
+            'sad': '😢',
+            'angry': '😡'
         };
 
-        window.loadComments = async function (postId) {
-            const list = document.getElementById(`comment-list-${postId}`);
-            list.innerHTML = '<div style="padding:10px;text-align:center;"><i class="spin" data-lucide="loader"></i></div>';
-            if (window.lucide) lucide.createIcons();
+        window.toggleComments = async function (postId) {
+            const section = document.getElementById(`comments-section-${postId}`);
+            const list = document.getElementById(`comment-list-${postId}`); // Group page uses singular 'comment-list'
 
-            // Get current user ID from the page context
-            const currentUserId = window.currentUserId || {{ session.get('user_id', 0) }};
-            const isAdmin = {{ 'true' if session.get('role') == 'admin' else 'false' }};
+            if (section.style.display === 'none' || section.style.display === '') {
+                section.style.display = 'block';
+                // Load comments if strictly empty or just spinner
+                if (list.children.length === 0 || list.querySelector('.loading-spinner')) {
+                    loadComments(postId);
+                }
+            } else {
+                section.style.display = 'none';
+            }
+        };
+        window.loadComments = async function (postId, sortBy = 'oldest') {
+            const list = document.getElementById(`comment-list-${postId}`);
+            const currentUserId = window.currentUserId || {{ session.get('user_id', 0)
+        }
+    };
+
+    list.innerHTML = '<div style="padding:10px;text-align:center;"><i class="spin" data-lucide="loader"></i></div>';
+    if (window.lucide) lucide.createIcons();
 
     try {
-        const response = await fetch(`/group/post/${postId}/comments`);
-        const comments = await response.json();
+        const res = await fetch(`/group/post/${postId}/comments?sort=${sortBy}`);
+        const comments = await res.json();
         list.innerHTML = '';
+
         if (comments.length === 0) {
             list.innerHTML = '<div style="padding:10px;color:rgba(255,255,255,0.3);font-size:12px;">No comments yet</div>';
             return;
         }
+
         comments.forEach(c => {
-            const item = document.createElement('div');
-            item.className = 'comment-item';
-            item.id = `comment-${c.id}`;
+            const div = document.createElement('div');
+            div.className = 'comment-item';
+            div.id = `comment-${c.id}`;
 
             let attachmentsHtml = '';
             if (c.attachments && c.attachments.length > 0) {
-                attachmentsHtml = '<div class="comment-attachments">';
-                c.attachments.forEach(a => {
-                    if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'sticker'].includes(a.type)) {
-                        attachmentsHtml += `<img src="${a.url}" class="comment-attachment-img" onclick="window.open(this.src)">`;
-                    } else if (a.type === 'manga_link') {
-                        // Rich manga link preview
-                        const coverUrl = a.manga_cover || 'https://via.placeholder.com/40x56?text=No+Cover';
-                        const title = a.manga_title || 'Manga Link';
+                attachmentsHtml = '<div class="comment-attachments" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">';
+                c.attachments.forEach(att => {
+                    if (att.type === 'sticker') {
+                        attachmentsHtml += `<img src="${att.url}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px;" title="Sticker">`;
+                    } else if (att.type === 'manga_link') {
                         attachmentsHtml += `
-                                    <a href="${a.url}" class="comment-manga-link">
-                                        <img src="${coverUrl}" onerror="this.src='https://via.placeholder.com/40x56?text=No+Cover'">
-                                        <div class="manga-link-info">
-                                            <span class="manga-link-title">${title}</span>
-                                            <span class="manga-link-sub">View series →</span>
-                                        </div>
+                                    <a href="${att.url}" class="comment-manga-link" style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--community-purple, #9b59b6);">
+                                        <img src="${att.manga_cover || ''}" style="width: 20px; height: 30px; object-fit: cover;">
+                                        <span style="color: var(--community-purple, #9b59b6); font-size: 0.9em;">${att.manga_title || 'Manga'}</span>
                                     </a>`;
+                    } else if (att.type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(att.type)) {
+                        attachmentsHtml += `<img src="${att.url}" style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer;" onclick="window.open(this.src, '_blank')">`;
                     } else {
-                        attachmentsHtml += `<a href="${a.url}" class="comment-attachment-file" download><i data-lucide="file-text"></i><span>${a.name || 'File'}</span></a>`;
+                        attachmentsHtml += `
+                                    <a href="${att.url}" target="_blank" style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: rgba(255,255,255,0.1); border-radius: 4px; color: #ccc; text-decoration: none; font-size: 0.9em;">
+                                        <i data-lucide="file" style="width: 14px;"></i>
+                                        <span>${att.name || 'File'}</span>
+                                    </a>`;
                     }
                 });
                 attachmentsHtml += '</div>';
             }
 
-            // Show edit/delete buttons only for comment owner or admin
-            const canModify = c.user_id === currentUserId || isAdmin;
-            const editDeleteBtns = canModify ? `
-                        <button class="comment-edit-btn" onclick="editComment(${c.id}, this)" title="Edit">
-                            <i data-lucide="pencil" style="width:12px;height:12px;"></i>
-                        </button>
-                        <button class="comment-delete-btn" onclick="deleteComment(${c.id}, ${postId})" title="Delete">
-                            <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
-                        </button>
-                    ` : '';
+            let reactionsHtml = '<div class="reactions-list">';
+            if (c.reactions) {
+                for (const [type, count] of Object.entries(c.reactions)) {
+                    const isUser = c.user_reaction === type;
+                    reactionsHtml += `
+                                <div class="reaction-badge ${isUser ? 'active' : ''}" onclick="voteGroupComment(${c.id}, '${type}')">
+                                    <span>${REACTION_MAP[type] || '👍'}</span>
+                                    <span>${formatCount(count)}</span>
+                                </div>
+                            `;
+                }
+            }
+            reactionsHtml += '</div>';
 
-            // Escape content for safe display while preserving original for editing
-            const escapedContent = c.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-            item.innerHTML = `
-                        <img src="${c.avatar || 'https://i.pravatar.cc/150?img=1'}" class="comment-avatar">
+            div.innerHTML = `
+                        <img src="${c.avatar || '/static/uploads/avatars/default.png'}" class="comment-avatar">
                         <div class="comment-content-wrap">
                             <div class="comment-header">
                                 <span class="comment-user">${c.username}</span>
-                                <span class="comment-time">${c.created_at}</span>
+                                <span class="comment-time">${new Date(c.created_at).toLocaleDateString()}</span>
+                                ${c.user_id === currentUserId ? `
+                                    <div class="comment-manage-actions" style="margin-left: auto; display: flex; gap: 8px;">
+                                        <button onclick="editComment(${c.id})" title="Edit" style="background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer;"><i data-lucide="edit-2" style="width: 14px; height: 14px;"></i></button>
+                                        <button onclick="deleteComment(${c.id}, ${postId})" title="Delete" style="background: none; border: none; color: rgba(255,50,50,0.7); cursor: pointer;"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button>
+                                    </div>
+                                ` : ''}
                             </div>
-                            <div class="comment-body" data-original-content="${encodeURIComponent(c.content)}">${c.content}</div>
+                            <div class="comment-body" id="comment-text-${c.id}" data-original-content="${encodeURIComponent(c.content)}">${c.content}</div>
                             ${attachmentsHtml}
+                            
                             <div class="comment-actions">
-                                <button class="comment-like-btn ${c.is_liked ? 'active' : ''}" onclick="likeComment(${c.id}, this)">
-                                    <i data-lucide="heart" style="width:12px;height:12px;"></i>
-                                    <span class="like-count">${c.like_count}</span>
+                                <button class="reaction-btn" onclick="toggleReactionPicker(this, ${c.id})">
+                                    <i data-lucide="smile-plus" style="width: 14px; height: 14px;"></i>
+                                    <span>React</span>
                                 </button>
-                                ${editDeleteBtns}
+                                ${reactionsHtml}
                             </div>
-                        </div>`;
-            list.appendChild(item);
+                        </div>
+                    `;
+            list.appendChild(div);
         });
         if (window.lucide) lucide.createIcons();
-
-    } catch (err) {
-        console.error(err);
+    } catch (e) {
+        console.error(e);
         list.innerHTML = '<div style="color: #e74c3c;">Failed to load comments</div>';
     }
+        };
+
+    window.toggleReactionPicker = function (btn, commentId) {
+        let existing = btn.querySelector('.reaction-picker-popover');
+        if (existing) {
+            existing.remove();
+            return;
         }
 
-    window.likeComment = async function (commentId, btn) {
+        // Remove any other open pickers
+        document.querySelectorAll('.reaction-picker-popover').forEach(el => el.remove());
+
+        const picker = document.createElement('div');
+        picker.className = 'reaction-picker-popover';
+
+        Object.entries(REACTION_MAP).forEach(([type, emoji]) => {
+            const span = document.createElement('span');
+            span.className = 'reaction-option';
+            span.textContent = emoji;
+            span.onclick = (e) => {
+                e.stopPropagation();
+                voteGroupComment(commentId, type);
+                picker.remove();
+            };
+            picker.appendChild(span);
+        });
+
+        btn.appendChild(picker);
+
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', function close(e) {
+                if (!picker.contains(e.target) && !btn.contains(e.target)) {
+                    picker.remove();
+                    document.removeEventListener('click', close);
+                }
+            });
+        }, 0);
+    };
+
+    window.voteGroupComment = async function (commentId, type) {
         try {
-            const response = await fetch(`/group/comment/${commentId}/like`, { method: 'POST' });
-            const result = await response.json();
-            if (result.success) {
-                const countSpan = btn.querySelector('.like-count');
-                countSpan.textContent = result.like_count;
-                if (result.status === 'liked') btn.classList.add('active');
-                else btn.classList.remove('active');
+            const res = await fetch(`/group/comment/${commentId}/vote`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reaction_type: type })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const commentDiv = document.getElementById(`comment-${commentId}`);
+                if (commentDiv) {
+                    const listDiv = commentDiv.querySelector('.reactions-list');
+                    let html = '';
+                    for (const [rType, count] of Object.entries(data.reactions)) {
+                        const isUser = data.user_reaction === rType;
+                        html += `
+                            <div class="reaction-badge ${isUser ? 'active' : ''}" onclick="voteGroupComment(${commentId}, '${rType}')">
+                                <span>${REACTION_MAP[rType] || '👍'}</span>
+                                <span>${formatCount(count)}</span>
+                            </div>
+                        `;
+                    }
+                    listDiv.innerHTML = html;
+                }
             }
-        } catch (err) { console.error(err); }
+        } catch (e) {
+            console.error("Vote failed", e);
+        }
     };
 
     // Comment Edit Functions
-    window.editComment = function (commentId, btn) {
-        const commentItem = document.getElementById(`comment-${commentId}`);
-        if (!commentItem) return;
+    window.editComment = function (commentId) {
+        const textDiv = document.getElementById(`comment-text-${commentId}`);
+        const currentText = decodeURIComponent(textDiv.dataset.originalContent || textDiv.innerText); // Use stored content if available
 
-        const bodyDiv = commentItem.querySelector('.comment-body');
-        const originalContent = decodeURIComponent(bodyDiv.dataset.originalContent || bodyDiv.textContent);
+        // Backup original content if not already there (though loadComments sets it)
+        if (!textDiv.dataset.originalContent) textDiv.dataset.originalContent = encodeURIComponent(currentText);
 
-        // Replace body with textarea
-        bodyDiv.innerHTML = `
-                <textarea class="comment-edit-textarea" id="edit-textarea-${commentId}">${originalContent}</textarea>
-                <div class="comment-edit-actions">
-                    <button class="comment-save-btn" onclick="saveEditedComment(${commentId})">
-                        <i data-lucide="check" style="width:12px;height:12px;"></i> Save
-                    </button>
-                    <button class="comment-cancel-btn" onclick="cancelEditComment(${commentId}, '${encodeURIComponent(originalContent)}')">
-                        Cancel
-                    </button>
+        textDiv.innerHTML = `
+            <div class="edit-comment-box" style="margin-top: 8px;">
+                <textarea id="edit-area-${commentId}" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 4px; padding: 8px; font-family: inherit; min-height: 60px;">${currentText}</textarea>
+                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                    <button type="button" onclick="saveEditedComment(${commentId})" style="padding: 4px 12px; background: var(--community-cyan, #00bcd4); border: none; border-radius: 4px; color: #000; font-size: 12px; cursor: pointer; font-weight: 500;">Save</button>
+                    <button type="button" onclick="cancelEditComment(${commentId})" style="padding: 4px 12px; background: rgba(255,255,255,0.1); border: none; border-radius: 4px; color: #fff; font-size: 12px; cursor: pointer;">Cancel</button>
                 </div>
-            `;
-        bodyDiv.classList.add('editing');
-
-        // Focus the textarea
-        const textarea = document.getElementById(`edit-textarea-${commentId}`);
-        if (textarea) {
-            textarea.focus();
-            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-        }
-
-        if (window.lucide) lucide.createIcons();
+            </div>
+        `;
     };
 
     window.saveEditedComment = async function (commentId) {
-        const textarea = document.getElementById(`edit-textarea-${commentId}`);
+        const textarea = document.getElementById(`edit-area-${commentId}`);
         if (!textarea) return;
-
-        const content = textarea.value.trim();
-        if (!content) {
-            alert('Comment cannot be empty');
-            return;
-        }
+        const newContent = textarea.value.trim();
 
         try {
             const response = await fetch(`/group/comment/${commentId}/edit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content })
+                body: JSON.stringify({ content: newContent })
             });
             const result = await response.json();
 
             if (result.success) {
-                const commentItem = document.getElementById(`comment-${commentId}`);
-                const bodyDiv = commentItem.querySelector('.comment-body');
-                bodyDiv.classList.remove('editing');
-                bodyDiv.innerHTML = content;
-                bodyDiv.dataset.originalContent = encodeURIComponent(content);
+                const textDiv = document.getElementById(`comment-text-${commentId}`);
+                textDiv.innerText = newContent;
+                textDiv.dataset.originalContent = encodeURIComponent(newContent);
             } else {
                 alert(result.message || 'Failed to update comment');
             }
@@ -3737,39 +4061,29 @@
         }
     };
 
-    window.cancelEditComment = function (commentId, originalContentEncoded) {
-        const commentItem = document.getElementById(`comment-${commentId}`);
-        if (!commentItem) return;
-
-        const bodyDiv = commentItem.querySelector('.comment-body');
-        const originalContent = decodeURIComponent(originalContentEncoded);
-        bodyDiv.classList.remove('editing');
-        bodyDiv.innerHTML = originalContent;
+    window.cancelEditComment = function (commentId) {
+        const textDiv = document.getElementById(`comment-text-${commentId}`);
+        textDiv.innerText = decodeURIComponent(textDiv.dataset.originalContent || '');
     };
 
     window.deleteComment = async function (commentId, postId) {
-        if (!confirm('Are you sure you want to delete this comment? This cannot be undone.')) {
-            return;
-        }
+        if (!confirm('Are you sure you want to delete this comment?')) return;
 
         try {
             const response = await fetch(`/group/comment/${commentId}/delete`, {
-                method: 'POST'
+                method: 'DELETE' // Updated to DELETE method
             });
             const result = await response.json();
 
             if (result.success) {
-                // Remove the comment element from DOM
                 const commentItem = document.getElementById(`comment-${commentId}`);
-                if (commentItem) {
-                    commentItem.remove();
-                }
+                if (commentItem) commentItem.remove();
 
                 // Update comment count
                 const countSpan = document.getElementById(`comment-count-${postId}`);
                 if (countSpan) {
-                    const currentCount = parseInt(countSpan.textContent) || 0;
-                    countSpan.textContent = `${Math.max(0, currentCount - 1)} Comments`;
+                    const currentCount = parseInt(countSpan.innerText) || 0;
+                    countSpan.innerText = `${Math.max(0, currentCount - 1)} Comments`;
                 }
             } else {
                 alert(result.message || 'Failed to delete comment');
@@ -4002,8 +4316,8 @@
                 const downCount = downBtn.querySelector('.downvote-count');
 
                 // Update counts
-                upCount.textContent = result.upvotes;
-                downCount.textContent = result.downvotes;
+                upCount.textContent = formatCount(result.upvotes);
+                downCount.textContent = formatCount(result.downvotes);
 
                 // Update button states
                 upBtn.classList.remove('active');
@@ -4300,19 +4614,26 @@
 
         try {
             // Using a public proxy or placeholder for now if no API key
-            // For demonstration, we'll fetch from Tenor if we have a key, but here we mockup
-            const results = [
+            // Results for demonstration
+            let results = [
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRmMzc0NmIzZjRmMzc0NmIzZjRmMzc0NmIzZjRmMzc0NmIzZjRmMzcmZXA9djFfaW50ZXJuYWxfZ2lmX2J5X2lkJmN0PWc/3o7TKDkDbIDJieKbVm/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRmMzc0NmIzZjRmMzc0NmIzZjRmMzc0NmIzZjRmMzc0NmIzZjRmMzcmZXA9djFfaW50ZXJuYWxfZ2lmX2J5X2lkJmN0PWc/l0HlO4f8pI9o0hY8w/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRmMzc0NmIzZjRmMzc0NmIzZjRmMzc0NmIzZjRmMzc0NmIzZjRmMzcmZXA9djFfaW50ZXJuYWxfZ2lmX2J5X2lkJmN0PWc/3o7TKuylLbfwAFv7Tq/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRmMzc0NmIzZjRmMzc0NmIzZjRmMzc0NmIzZjRmMzc0NmIzZjRmMzcmZXA9djFfaW50ZXJuYWxfZ2lmX2J5X2lkJmN0PWc/l0HlHFRbZyYPC08D6/giphy.gif'
             ];
 
+            if (query && query.length > 0) {
+                // In a real app, this would be a fetch to Giphy/Tenor API
+                console.log('Searching GIFs for:', query);
+                // We'll just filter our mock list or keep it as is for demo
+            }
+
             grid.innerHTML = '';
             results.forEach(url => {
                 const img = document.createElement('img');
                 img.className = 'gif-item';
                 img.src = url;
+                img.loading = 'lazy';
                 img.onclick = () => window.insertGIF(url);
                 grid.appendChild(img);
             });
@@ -4336,7 +4657,7 @@
 
     window.addExternalAttachment = function (url, type) {
         let previewsContainerId = 'attachmentPreviews';
-        if (window.activePickerPostId) {
+        if (window.activePickerPostId !== null && window.activePickerPostId !== undefined) {
             previewsContainerId = `comment-previews-${window.activePickerPostId}`;
         }
 
@@ -4348,12 +4669,47 @@
             div.dataset.type = type;
             div.innerHTML = `
                     <img src="${url}" alt="${type}">
-                    <button class="remove-attachment" onclick="this.parentElement.remove()">&times;</button>
+                    <div class="remove-attach" onclick="this.parentElement.remove()">×</div>
                     <div class="attachment-type-badge">${type.toUpperCase()}</div>
                 `;
             previews.appendChild(div);
         }
     }
+
+    // --- Global Paste & Drop Handlers for OS GIF Pickers ---
+    document.addEventListener('paste', function (e) {
+        if (!e.clipboardData || !e.clipboardData.files || !e.clipboardData.files.length) return;
+        const target = e.target;
+        const isCommentInput = target.classList.contains('comment-input');
+        const isPostInput = target.id === 'postInput';
+        if (isCommentInput || isPostInput) {
+            e.preventDefault();
+            const files = e.clipboardData.files;
+            if (isPostInput) window.attachFilesToPost(files, 'image');
+            else {
+                const postId = target.dataset.postId;
+                if (postId) window.handleCommentFileSelection(postId, files, 'image');
+            }
+        }
+    });
+
+    document.addEventListener('dragover', (e) => e.preventDefault());
+    document.addEventListener('drop', function (e) {
+        // Only prevent default if it's a file drop
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            e.preventDefault();
+            const target = document.elementFromPoint(e.clientX, e.clientY);
+            const input = target ? target.closest('#postInput, .comment-input') : null;
+            if (input) {
+                const files = e.dataTransfer.files;
+                if (input.id === 'postInput') window.attachFilesToPost(files, 'image');
+                else {
+                    const postId = input.dataset.postId;
+                    if (postId) window.handleCommentFileSelection(postId, files, 'image');
+                }
+            }
+        }
+    });
 
     // Poll Modal - Initialize after a short delay to ensure modal exists
     setTimeout(function () {
@@ -4537,7 +4893,6 @@
         window.activeChannelId = channelId.toString();
         window.filterAllPosts();
     };
-
 
     });
 </script>

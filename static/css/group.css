@@ -682,3 +682,311 @@
         justify-content: center;
     }
 }
+
+/* =========================================================
+   Ported Comment Features (Matches Community Styles)
+   ========================================================= */
+
+/* --- Rich Comment Editor --- */
+.rich-comment-editor {
+    background: rgba(26, 26, 36, 0.95);
+    border: 1px solid var(--group-card-border);
+    border-radius: 12px;
+    padding: 0;
+    margin-top: 16px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.editor-input-area {
+    padding: 12px 16px;
+    background: transparent;
+}
+
+.editor-input-area textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--group-text-primary);
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    min-height: 48px;
+    font-family: inherit;
+    line-height: 1.5;
+}
+
+.editor-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(20, 20, 30, 0.5);
+}
+
+.editor-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.editor-tools button {
+    background: transparent;
+    border: none;
+    color: var(--group-text-muted);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.editor-tools button:hover {
+    color: var(--group-cyan);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.editor-tools button i {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2px;
+}
+
+.tool-separator {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0 4px;
+}
+
+.comment-submit-btn-pill {
+    background: var(--group-cyan);
+    color: #000;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.comment-submit-btn-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--group-cyan-glow);
+}
+
+/* --- Comment Tools & Attachments --- */
+.comment-tool-btn {
+    background: transparent;
+    border: none;
+    color: var(--group-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.comment-tool-btn:hover {
+    color: var(--group-cyan);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.comment-tool-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.comment-attachments-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 0 16px;
+}
+
+.comment-file-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--group-text-primary);
+    border: 1px solid var(--group-card-border);
+}
+
+.comment-file-preview-item img {
+    height: 40px;
+    width: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.comment-file-preview-item button {
+    background: transparent;
+    border: none;
+    color: var(--group-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 4px;
+}
+
+.comment-file-preview-item button:hover {
+    color: #ff5555;
+}
+
+/* --- Comment Reactions --- */
+.comment-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.reaction-btn {
+    background: none;
+    border: none;
+    color: var(--group-text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.reaction-btn:hover {
+    color: var(--group-text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.reactions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.reaction-badge {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--group-text-secondary);
+}
+
+.reaction-badge:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.reaction-badge.active {
+    background: rgba(0, 212, 255, 0.15);
+    /* using cyan */
+    border-color: rgba(0, 212, 255, 0.3);
+    color: var(--group-cyan);
+}
+
+.reaction-picker-popover {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 8px;
+    background: var(--group-card-bg);
+    border: 1px solid var(--group-card-border);
+    border-radius: 50px;
+    padding: 4px;
+    display: flex;
+    gap: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.reaction-option {
+    font-size: 20px;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.reaction-option:hover {
+    transform: scale(1.2);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- Comment Item Layout Updates --- */
+.comment-content-wrap {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 14px;
+    border-radius: 12px;
+    border-top-left-radius: 2px;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.comment-user {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--group-text-primary);
+}
+
+.comment-time {
+    font-size: 11px;
+    color: var(--group-text-muted);
+}
+
+.comment-body {
+    font-size: 13px;
+    color: var(--group-text-secondary);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.comment-body.editing {
+    display: none;
+    /* Hide when editing replaced by textarea */
+}
+
+.comment-edit-box {
+    margin-top: 8px;
+}

@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Create Group | Admin{% endblock %}
+
+{% block content %}
+<style>
+    .admin-create-group {
+        max-width: 700px;
+        margin: 40px auto;
+        padding: 0;
+    }
+
+    .admin-create-group h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+        color: #fff;
+    }
+
+    .admin-create-group .subtitle {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 14px;
+        margin-bottom: 28px;
+    }
+
+    .form-card {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 28px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        color: #fff;
+        font-size: 14px;
+        transition: border-color 0.2s, background 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #00bcd4;
+        background: rgba(0, 188, 212, 0.05);
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-group select option {
+        background: #1a1a2e;
+        color: #fff;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .drop-zone {
+        border: 2px dashed rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.3s, background 0.3s;
+        position: relative;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.dragover {
+        border-color: #00bcd4;
+        background: rgba(0, 188, 212, 0.05);
+    }
+
+    .drop-zone-icon {
+        color: rgba(255, 255, 255, 0.4);
+        margin-bottom: 10px;
+    }
+
+    .drop-zone-text {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 13px;
+    }
+
+    .drop-zone-text strong {
+        color: #00bcd4;
+    }
+
+    .drop-zone input[type="file"] {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        cursor: pointer;
+    }
+
+    .drop-zone-preview {
+        max-width: 100px;
+        max-height: 100px;
+        border-radius: 8px;
+        margin-top: 10px;
+        display: none;
+    }
+
+    .btn-create {
+        background: linear-gradient(135deg, #00bcd4, #0097a7);
+        color: #fff;
+        border: none;
+        padding: 16px 32px;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .btn-create:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 188, 212, 0.3);
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        margin-bottom: 20px;
+        font-size: 13px;
+        transition: color 0.2s;
+    }
+
+    .back-link:hover {
+        color: #00bcd4;
+    }
+</style>
+
+<div class="admin-create-group">
+    <a href="{{ url_for('community') }}" class="back-link">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Community
+    </a>
+
+    <h1>Create New Group</h1>
+    <p class="subtitle">Create a community space for your users to connect and share.</p>
+
+    <div class="form-card">
+        <form method="POST" action="{{ url_for('admin_create_group') }}" enctype="multipart/form-data"
+            id="createGroupForm">
+            <div class="form-group">
+                <label for="name">Group Name *</label>
+                <input type="text" id="name" name="name" required placeholder="e.g., Manga Lovers">
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" placeholder="What is this group about?"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="group_type">Group Type</label>
+                <select id="group_type" name="group_type">
+                    <option value="general">General</option>
+                    <option value="genre">Genre</option>
+                    <option value="manga">Manga</option>
+                    <option value="book">Book</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Group Icon</label>
+                    <div class="drop-zone" id="iconDropZone">
+                        <i data-lucide="image" class="drop-zone-icon" style="width: 32px; height: 32px;"></i>
+                        <div class="drop-zone-text">Drag & drop or <strong>browse</strong></div>
+                        <input type="file" name="icon_file" accept="image/*"
+                            onchange="previewFile(this, 'iconPreview')">
+                        <img id="iconPreview" class="drop-zone-preview">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Group Banner</label>
+                    <div class="drop-zone" id="bannerDropZone">
+                        <i data-lucide="image" class="drop-zone-icon" style="width: 32px; height: 32px;"></i>
+                        <div class="drop-zone-text">Drag & drop or <strong>browse</strong></div>
+                        <input type="file" name="banner_file" accept="image/*"
+                            onchange="previewFile(this, 'bannerPreview')">
+                        <img id="bannerPreview" class="drop-zone-preview">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-create">
+                <i data-lucide="plus-circle" style="width: 18px; height: 18px; margin-right: 8px;"></i>
+                Create Group
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    if (window.lucide) lucide.createIcons();
+
+    function previewFile(input, previewId) {
+        const preview = document.getElementById(previewId);
+        const dropZone = input.closest('.drop-zone');
+
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                dropZone.querySelector('.drop-zone-icon').style.display = 'none';
+                dropZone.querySelector('.drop-zone-text').style.display = 'none';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Drag and drop functionality
+    document.querySelectorAll('.drop-zone').forEach(zone => {
+        zone.addEventListener('dragover', e => {
+            e.preventDefault();
+            zone.classList.add('dragover');
+        });
+
+        zone.addEventListener('dragleave', () => {
+            zone.classList.remove('dragover');
+        });
+
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            const input = zone.querySelector('input[type="file"]');
+            if (e.dataTransfer.files.length > 0) {
+                input.files = e.dataTransfer.files;
+                input.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+</script>
+{% endblock %}

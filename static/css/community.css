@@ -72,9 +72,10 @@
     flex-direction: column;
     gap: 12px;
     position: sticky;
-    top: 75px;
+    top: 0;
     height: fit-content;
     margin-top: 0;
+    padding-top: 0;
 }
 
 .community-card {
@@ -261,6 +262,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    padding-top: 12px;
 }
 
 /* --- Header with Actions --- */
@@ -269,6 +271,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0;
+    margin-top: 0;
 }
 
 .community-title {
@@ -276,6 +279,9 @@
     font-weight: 700;
     color: var(--community-text-primary);
     letter-spacing: -0.3px;
+    margin-top: 0;
+    margin-bottom: 0;
+    line-height: 1;
 }
 
 .header-actions {
@@ -1820,4 +1826,372 @@
 
 .post-action-btn.active {
     color: var(--community-cyan);
+}
+
+/* --- Comments Section --- */
+.comments-section {
+    padding: 16px;
+    border-top: 1px solid var(--community-card-border);
+    margin-top: 12px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.comment-input-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 8px 12px;
+    border-radius: 24px;
+    border: 1px solid var(--community-card-border);
+}
+
+.comment-input-wrapper input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--community-text-primary);
+    font-size: 13px;
+    outline: none;
+}
+
+.comment-submit-btn {
+    background: transparent;
+    border: none;
+    color: var(--community-cyan);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    transition: transform 0.2s;
+}
+
+.comment-submit-btn:hover {
+    transform: scale(1.1);
+}
+
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.comment-item {
+    display: flex;
+    gap: 12px;
+}
+
+.comment-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--community-card-border);
+}
+
+.comment-content {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 14px;
+    border-radius: 12px;
+    border-top-left-radius: 2px;
+    flex: 1;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.comment-author {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--community-text-primary);
+}
+
+.comment-time {
+    font-size: 10px;
+    color: var(--community-text-muted);
+}
+
+.comment-text {
+    font-size: 13px;
+    color: var(--community-text-secondary);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.no-comments {
+    text-align: center;
+    color: var(--community-text-muted);
+    font-size: 12px;
+    padding: 20px;
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 20px;
+    color: var(--community-cyan);
+    font-size: 12px;
+}
+
+
+/* --- Comment Tools & Attachments --- */
+.comment-tool-btn {
+    background: transparent;
+    border: none;
+    color: var(--community-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.comment-tool-btn:hover {
+    color: var(--community-cyan);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.comment-tool-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.comment-attachments-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 0 16px;
+    /* Match comment section padding */
+}
+
+.comment-file-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    /* Slightly lighter than input */
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--community-text-primary);
+    border: 1px solid var(--community-card-border);
+}
+
+.comment-file-preview-item img {
+    height: 40px;
+    width: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.comment-file-preview-item button {
+    /* The X button */
+    background: transparent;
+    border: none;
+    color: var(--community-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 4px;
+}
+
+.comment-file-preview-item button:hover {
+    color: #ff5555;
+    /* distinct remove color */
+}
+
+
+/* --- Rich Comment Editor --- */
+.rich-comment-editor {
+    background: rgba(26, 26, 36, 0.95);
+    border: 1px solid var(--community-card-border);
+    border-radius: 12px;
+    padding: 0;
+    margin-top: 16px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.editor-input-area {
+    padding: 12px 16px;
+    background: transparent;
+}
+
+.editor-input-area textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--community-text-primary);
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    min-height: 48px;
+    font-family: inherit;
+    line-height: 1.5;
+}
+
+.editor-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    /* Separator line */
+    background: rgba(20, 20, 30, 0.5);
+}
+
+.editor-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* space between icons */
+}
+
+.editor-tools button {
+    background: transparent;
+    border: none;
+    color: var(--community-text-muted);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.editor-tools button:hover {
+    color: var(--community-cyan);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.editor-tools button i {
+    width: 18px;
+    /* Slightly larger icons */
+    height: 18px;
+    stroke-width: 2px;
+}
+
+.tool-separator {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0 4px;
+}
+
+.comment-submit-btn-pill {
+    background: var(--community-cyan);
+    color: #000;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 20px;
+    /* Pill shape */
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.comment-submit-btn-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--community-cyan-glow);
+}
+
+/* Comment Reactions */
+.comment-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.reaction-btn {
+    background: none;
+    border: none;
+    color: var(--community-text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.reaction-btn:hover {
+    color: var(--community-text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.reactions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.reaction-badge {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.reaction-badge:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.reaction-badge.active {
+    background: rgba(0, 188, 212, 0.15);
+    border-color: rgba(0, 188, 212, 0.3);
+}
+
+.reaction-picker-popover {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 8px;
+    background: var(--community-card-bg);
+    border: 1px solid var(--community-card-border);
+    border-radius: 50px;
+    padding: 4px;
+    display: flex;
+    gap: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.reaction-option {
+    font-size: 20px;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.reaction-option:hover {
+    transform: scale(1.2);
+    background: rgba(255, 255, 255, 0.1);
 }

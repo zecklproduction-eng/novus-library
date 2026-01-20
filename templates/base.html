@@ -1801,6 +1801,17 @@
       }, 3000); // Wait for 3 seconds (animation duration)
     });
 
+    // Count formatting helper
+    function formatCount(n) {
+      if (!n && n !== 0) return '0';
+      n = parseInt(n);
+      if (isNaN(n)) return '0';
+      if (n < 1000) return n.toString();
+      if (n < 1000000) return (n / 1000.0).toFixed(1).replace('.0', '') + 'k';
+      if (n < 1000000000) return (n / 1000000.0).toFixed(1).replace('.0', '') + 'm';
+      return (n / 1000000000.0).toFixed(1).replace('.0', '') + 'b';
+    }
+
     // User Interaction Modal Functions
     let currentUserId = null;
     let currentContext = null;

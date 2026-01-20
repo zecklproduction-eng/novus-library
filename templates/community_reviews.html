@@ -254,7 +254,7 @@
     const INITIAL_REVIEWS = {{ initial_reviews | tojson | safe if initial_reviews else '[]' }};
 
     // --- Shared Components ---
-
+    {% raw %}
     const StarRating = ({ rating, size = 'md', editable = false, onChange }) => {
         const [hover, setHover] = useState(0);
         return (
@@ -1033,5 +1033,6 @@
 
     const root = ReactDOM.createRoot(document.getElementById('review-feed-root'));
     root.render(<App />);
+    {% endraw %}
 </script>
 {% endblock %}
