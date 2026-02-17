@@ -1,0 +1,5 @@
+{
+  "name": "Lumina Book Summary Studio",
+  "description": "An AI-powered application that analyzes book PDFs and generates structured, hierarchical summaries by chapter, section, and subsection.",
+  "requestFramePermissions": []
+}

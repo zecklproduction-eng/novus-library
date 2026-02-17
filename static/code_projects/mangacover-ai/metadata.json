@@ -1,0 +1,5 @@
+{
+  "name": "MangaCover AI",
+  "description": "Generate stunning AI-powered cover pages for your manga or books by simply uploading your PDF content. Uses Gemini to analyze your story and create thematic artwork.",
+  "requestFramePermissions": []
+}

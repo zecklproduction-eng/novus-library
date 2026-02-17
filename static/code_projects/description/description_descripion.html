@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PageScript — Book Description Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --bg-elevated: #131316;
+      --fg: #f4f4f5;
+      --muted: #71717a;
+      --accent: #d4a574;
+      --accent-glow: rgba(212, 165, 116, 0.25);
+      --card: #18181b;
+      --border: #27272a;
+    }
+
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      margin: 0;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .font-display { font-family: 'Cormorant Garamond', serif; }
+
+    /* Background Atmosphere */
+    .bg-atmosphere {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(ellipse 800px 600px at 20% 20%, rgba(212, 165, 116, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 600px 800px at 80% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+    }
+
+    /* Grid Overlay */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.05;
+      background-image: linear-gradient(var(--accent) 1px, transparent 1px),
+        linear-gradient(90deg, var(--accent) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+    }
+
+    /* Animations */
+    .reveal { opacity: 0; transform: translateY(20px); transition: all 0.8s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* Upload Zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      background: var(--card);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(24, 24, 27, 0.9);
+      box-shadow: 0 0 30px var(--accent-glow);
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, #b8956a 100%);
+      color: #000;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px var(--accent-glow);
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--fg);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Progress Bar */
+    .progress-bg { background: var(--border); border-radius: 100px; overflow: hidden; }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+
+    /* Tags */
+    .tag {
+      background: rgba(212, 165, 116, 0.1);
+      border: 1px solid rgba(212, 165, 116, 0.3);
+      color: var(--accent);
+      font-size: 0.75rem;
+      padding: 4px 12px;
+      border-radius: 100px;
+      display: inline-block;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 24px; height: 24px;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <div class="bg-atmosphere"></div>
+  <div class="grid-overlay"></div>
+
+  <!-- Navigation -->
+  <nav class="relative z-10 px-6 py-6">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center shadow-lg">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
+        </div>
+        <span class="font-display text-xl font-semibold text-zinc-100">PageScript</span>
+      </div>
+      <div id="statusBar" class="text-xs text-zinc-500 hidden md:block">Ready</div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="relative z-10 pt-10 pb-16 px-6">
+    <div class="max-w-3xl mx-auto text-center">
+      <div class="reveal visible">
+        <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-amber-900/40 text-amber-400 border border-amber-700/50 mb-6">
+          Local AI Analysis
+        </span>
+        <h1 class="font-display text-4xl md:text-6xl font-bold mb-6 leading-tight text-zinc-50">
+          Transform Any Book Into<br>
+          <span class="text-amber-400">A Compelling Description</span>
+        </h1>
+        <p class="text-zinc-400 text-lg max-w-xl mx-auto">
+          Upload a manga or book PDF. Our engine extracts key themes and characters to generate a professional synopsis instantly.
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Upload Section -->
+  <main class="relative z-10 px-6 pb-20">
+    <div class="max-w-3xl mx-auto">
+      
+      <!-- Upload Box -->
+      <div id="uploadSection" class="reveal visible">
+        <div id="uploadZone" class="upload-zone rounded-2xl p-10 text-center cursor-pointer">
+          <input type="file" id="fileInput" accept=".pdf" class="hidden">
+          
+          <!-- Default UI -->
+          <div id="uploadUI">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700">
+              <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-zinc-200 mb-1">Drop your PDF here</h3>
+            <p class="text-sm text-zinc-500">or click to browse (Max 50MB)</p>
+          </div>
+          
+          <!-- Processing UI -->
+          <div id="processingUI" class="hidden">
+            <div class="flex justify-center mb-4"><div class="spinner"></div></div>
+            <h3 id="processingText" class="text-lg font-medium text-zinc-200">Reading file...</h3>
+            <div class="max-w-xs mx-auto mt-4 progress-bg h-1.5">
+              <div id="progressBar" class="progress-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- File Info -->
+      <div id="fileInfo" class="hidden mt-8 reveal visible">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+          <div class="flex gap-6 items-start flex-col md:flex-row">
+            <canvas id="pdfCanvas" class="w-32 h-44 rounded-lg bg-zinc-800 flex-shrink-0 border border-zinc-700"></canvas>
+            <div class="flex-1">
+              <h3 id="fileName" class="font-display text-2xl font-bold text-zinc-100 mb-1">Document Name</h3>
+              <div class="flex gap-2 mb-4 flex-wrap">
+                <span id="fileSize" class="tag">Size</span>
+                <span id="pageCount" class="tag">Pages</span>
+              </div>
+              <div class="flex gap-3 flex-wrap">
+                <button id="generateBtn" class="btn-primary px-5 py-2.5 rounded-lg text-sm flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  Generate Description
+                </button>
+                <button id="resetBtn" class="btn-secondary px-5 py-2.5 rounded-lg text-sm">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div id="resultSection" class="hidden mt-8 reveal visible">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-8 relative overflow-hidden">
+          <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="font-display text-xl font-semibold text-zinc-100">Generated Synopsis</h4>
+            <button id="copyBtn" class="btn-secondary px-3 py-1.5 rounded-md text-xs flex items-center gap-2">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              Copy
+            </button>
+          </div>
+          <p id="resultText" class="text-zinc-300 leading-relaxed mb-6"></p>
+          <div class="border-t border-zinc-800 pt-4">
+            <span class="text-xs text-zinc-500 uppercase tracking-wide">Suggested Tags</span>
+            <div id="tagContainer" class="flex gap-2 mt-2 flex-wrap"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // --- 1. SETUP & SAFETY ---
+    // We set up the UI immediately so users get feedback even if libraries fail.
+    
+    const statusBar = document.getElementById('statusBar');
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadUI = document.getElementById('uploadUI');
+    const processingUI = document.getElementById('processingUI');
+    const processingText = document.getElementById('processingText');
+    const progressBar = document.getElementById('progressBar');
+    const fileInfo = document.getElementById('fileInfo');
+    const resultSection = document.getElementById('resultSection');
+    
+    let pdfLibReady = false;
+    
+    // Check if PDF.js loaded
+    if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfLibReady = true;
+        statusBar.textContent = "Engine Ready";
+    } else {
+        statusBar.textContent = "Error: Engine failed to load";
+        console.error("PDF.js is missing.");
+    }
+
+    // --- 2. EVENT LISTENERS (Always Active) ---
+
+    // Click to upload
+    uploadZone.addEventListener('click', () => fileInput.click());
+
+    // Drag & Drop Visuals
+    ['dragenter', 'dragover'].forEach(eventName => {
+      uploadZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('drag-over');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      uploadZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('drag-over');
+      }, false);
+    });
+
+    // Handle File Drop
+    uploadZone.addEventListener('drop', (e) => {
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    });
+
+    // Handle File Selection
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) processFile(file);
+    });
+
+    // Reset Button
+    document.getElementById('resetBtn').addEventListener('click', resetState);
+    
+    // Generate Button
+    document.getElementById('generateBtn').addEventListener('click', generateDescription);
+    
+    // Copy Button
+    document.getElementById('copyBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(document.getElementById('resultText').textContent);
+        const btn = document.getElementById('copyBtn');
+        btn.innerHTML = 'Copied!';
+        setTimeout(() => btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> Copy', 2000);
+    });
+
+    // --- 3. CORE LOGIC ---
+
+    function processFile(file) {
+      if (!file) return;
+      
+      // Immediate UI Update
+      statusBar.textContent = "File selected: " + file.name;
+      uploadUI.classList.add('hidden');
+      processingUI.classList.remove('hidden');
+      uploadZone.style.pointerEvents = 'none';
+      progressBar.style.width = '10%';
+      processingText.textContent = "Initializing...";
+
+      if (!pdfLibReady) {
+        showError("PDF Engine is not loaded. Please check your internet connection and refresh.");
+        return;
+      }
+
+      if (file.size > 50 * 1024 * 1024) {
+        showError("File is too large (Max 50MB).");
+        return;
+      }
+
+      readPDF(file);
+    }
+
+    async function readPDF(file) {
+      try {
+        statusBar.textContent = "Reading bytes...";
+        const arrayBuffer = await file.arrayBuffer();
+        updateProgress(20, "Loading PDF...");
+        
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        updateProgress(40, "Scanning pages...");
+
+        // Render Preview
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 0.4 });
+        const canvas = document.getElementById('pdfCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+        updateProgress(60, "Extracting text...");
+
+        // Extract Text
+        let textContent = '';
+        const maxPages = Math.min(pdf.numPages, 15); 
+        for (let i = 1; i <= maxPages; i++) {
+          const p = await pdf.getPage(i);
+          const t = await p.getTextContent();
+          t.items.forEach(item => textContent += item.str + ' ');
+        }
+        updateProgress(100, "Complete");
+
+        // Store data
+        window.currentBook = {
+            text: textContent,
+            meta: {
+                name: file.name.replace('.pdf', ''),
+                pages: pdf.numPages,
+                size: file.size
+            }
+        };
+
+        // Switch UI
+        setTimeout(() => {
+          uploadZone.classList.add('hidden');
+          document.getElementById('fileName').textContent = window.currentBook.meta.name;
+          document.getElementById('fileSize').textContent = formatSize(window.currentBook.meta.size);
+          document.getElementById('pageCount').textContent = window.currentBook.meta.pages + ' Pages';
+          
+          fileInfo.classList.remove('hidden');
+          statusBar.textContent = "Analysis complete. Ready to generate.";
+        }, 500);
+
+      } catch (err) {
+        console.error(err);
+        showError("Could not read PDF. It might be corrupted or password protected.");
+      }
+    }
+
+    function generateDescription() {
+      if (!window.currentBook) return;
+      
+      const text = window.currentBook.text;
+      const meta = window.currentBook.meta;
+      
+      // Simple Analysis
+      const analysis = analyzeText(text, meta);
+      
+      document.getElementById('resultText').textContent = analysis.description;
+      const tagContainer = document.getElementById('tagContainer');
+      tagContainer.innerHTML = '';
+      analysis.tags.forEach(tag => {
+        const span = document.createElement('span');
+        span.className = 'tag';
+        span.textContent = tag;
+        tagContainer.appendChild(span);
+      });
+
+      resultSection.classList.remove('hidden');
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function analyzeText(text, meta) {
+      const lower = text.toLowerCase();
+      
+      // Theme Detection
+      const themes = [];
+      if (/sword|magic|dragon|quest|kingdom|wizard|spell/i.test(text)) themes.push('Fantasy');
+      if (/love|heart|kiss|romance|passion/i.test(text)) themes.push('Romance');
+      if (/murder|detective|crime|mystery|clue/i.test(text)) themes.push('Mystery');
+      if (/space|planet|future|robot|alien|galaxy/i.test(text)) themes.push('Sci-Fi');
+      if (/school|student|teacher|academy/i.test(text)) themes.push('School Life');
+      if (/action|fight|battle|warrior/i.test(text)) themes.push('Action');
+      if (themes.length === 0) themes.push('General Fiction');
+
+      // Tone
+      const tones = [];
+      if (/dark|blood|death|shadow|night/i.test(text)) tones.push('Dark');
+      if (/funny|laugh|comedy|humor/i.test(text)) tones.push('Comedic');
+      if (/hope|light|sun|bright/i.test(text)) tones.push('Uplifting');
+
+      // Generate Description
+      const desc = `"${meta.name}" is a ${meta.pages}-page narrative that explores themes of ${themes.join(' and ')}. ` +
+                   `Set in a richly developed world, the story draws readers in with its intricate plot and memorable characters. ` +
+                   `The writing style is engaging, balancing pacing with detailed exposition. ` +
+                   `Readers who enjoy ${themes[0]} stories with ${tones.length > 0 ? tones[0].toLowerCase() + ' undertones' : 'complex narratives'} will find this a compelling read. ` +
+                   `The work demonstrates strong storytelling craftsmanship, making it a noteworthy addition to its genre.`;
+
+      return {
+        description: desc,
+        tags: [...themes, ...tones, meta.pages + ' Pages']
+      };
+    }
+
+    // --- 4. UTILITIES ---
+
+    function updateProgress(pct, txt) {
+      progressBar.style.width = pct + '%';
+      processingText.textContent = txt;
+      statusBar.textContent = txt;
+    }
+
+    function formatSize(bytes) {
+      return bytes < 1024 * 1024 ? (bytes / 1024).toFixed(1) + ' KB' : (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function showError(msg) {
+      alert(msg);
+      resetState();
+    }
+
+    function resetState() {
+      uploadZone.classList.remove('hidden');
+      uploadZone.style.pointerEvents = 'auto';
+      uploadUI.classList.remove('hidden');
+      processingUI.classList.add('hidden');
+      fileInfo.classList.add('hidden');
+      resultSection.classList.add('hidden');
+      progressBar.style.width = '0%';
+      fileInput.value = '';
+      window.currentBook = null;
+      statusBar.textContent = "Ready";
+    }
+
+  </script>
+</body>
+</html>

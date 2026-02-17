@@ -1,0 +1,1426 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Achievements | Admin Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+    .admin-container {
+        max-width: 1200px;
+        padding: 40px 20px;
+    }
+
+    .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .card-dashboard {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 25px;
+        backdrop-filter: blur(10px);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        color: #aaa;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+
+    input,
+    select,
+    textarea {
+        width: 100%;
+        padding: 12px 15px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #fff;
+        transition: all 0.3s ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: #06b6d4;
+        background: rgba(0, 0, 0, 0.3);
+        box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+    }
+
+    .btn-create {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        color: #fff;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: transform 0.2s ease;
+    }
+
+    .btn-create:hover {
+        transform: translateY(-2px);
+    }
+
+    .achievements-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+        margin-top: 20px;
+    }
+
+    .achievements-table th {
+        text-align: left;
+        padding: 10px 15px;
+        color: #666;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .ach_row {
+        background: rgba(255, 255, 255, 0.02);
+        transition: background 0.3s ease;
+    }
+
+    .ach_row:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .ach_row td {
+        padding: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .ach_row td:first-child {
+        border-left: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 10px 0 0 10px;
+    }
+
+    .ach_row td:last-child {
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 0 10px 10px 0;
+    }
+
+    .ach-icon-cell {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .mini-badge {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .badge-cyan {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+    }
+
+    .badge-purple {
+        background: linear-gradient(135deg, #a855f7, #9333ea);
+    }
+
+    .badge-yellow {
+        background: linear-gradient(135deg, #fbbf24, #d97706);
+    }
+
+    .badge-orange {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+    }
+
+    .btn-delete {
+        background: none;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-delete:hover {
+        background: #ef4444;
+        color: #fff;
+    }
+
+    .tag {
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        background: rgba(255, 255, 255, 0.1);
+        text-transform: capitalize;
+    }
+
+    /* Rarity Tags */
+    .rarity-intermediate {
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.3) !important;
+        background: rgba(59, 130, 246, 0.1) !important;
+    }
+
+    .rarity-hardcore {
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.3) !important;
+        background: rgba(239, 68, 68, 0.1) !important;
+    }
+
+    .rarity-legend {
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.3) !important;
+        background: rgba(251, 191, 36, 0.1) !important;
+    }
+
+    .rarity-god {
+        color: #00d4ff;
+        border: 1px solid rgba(0, 212, 255, 0.3) !important;
+        background: rgba(0, 212, 255, 0.1) !important;
+        font-weight: 800;
+        text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    }
+
+    .rarity-limited {
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.5) !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        font-weight: 900;
+        text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 5px #fbbf24;
+    }
+
+    /* Live Preview Styles */
+    .preview-achievement-card {
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        width: 150px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .preview-achievement-card .achievement-icon-wrapper {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        border: 3px solid rgba(255, 255, 255, 0.2);
+        position: relative;
+        z-index: 2;
+    }
+
+    .preview-achievement-card .legendary-halo {
+        position: absolute;
+        top: -5px;
+        left: -5px;
+        width: calc(100% + 10px);
+        height: calc(100% + 10px);
+        border: 3px solid #fbbf24;
+        border-radius: 50%;
+        opacity: 0;
+        z-index: 1;
+        box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+    }
+
+    /* Animation CSS for Preview */
+    @keyframes preview-rotate {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+    }
+
+    @keyframes floating {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    .anim-rotating .legendary-halo {
+        animation: preview-rotate 4s linear infinite !important;
+        opacity: 1 !important;
+    }
+
+    .anim-angelic .legendary-halo {
+        animation: preview-rotate 8s linear infinite !important;
+        opacity: 1 !important;
+        border-style: double !important;
+    }
+
+    .anim-nebula .legendary-halo {
+        animation: preview-rotate 2s linear infinite !important;
+        opacity: 1 !important;
+        border-color: #a855f7 !important;
+        box-shadow: 0 0 30px #a855f7 !important;
+    }
+
+    .anim-lava .legendary-halo {
+        animation: preview-rotate 3s linear infinite !important;
+        opacity: 1 !important;
+        border-color: #ef4444 !important;
+        box-shadow: 0 0 30px #ef4444 !important;
+    }
+
+    .anim-electric .legendary-halo {
+        animation: preview-rotate 1s linear infinite !important;
+        opacity: 1 !important;
+        border-color: #06b6d4 !important;
+        box-shadow: 0 0 30px #06b6d4 !important;
+    }
+
+    .anim-void .achievement-icon-wrapper {
+        animation: void-gravitate 4s ease-in-out infinite !important;
+        background: radial-gradient(circle, #222 0%, #000 80%) !important;
+    }
+
+    @keyframes void-gravitate {
+
+        0%,
+        100% {
+            transform: scale(1) rotate(0deg);
+            filter: brightness(1);
+        }
+
+        50% {
+            transform: scale(0.85) rotate(180deg);
+            filter: brightness(0.4);
+        }
+    }
+
+    .anim-rainbow .achievement-icon-wrapper {
+        animation: rainbow-flow 4s linear infinite !important;
+    }
+
+    @keyframes rainbow-flow {
+        0% {
+            filter: hue-rotate(0deg);
+        }
+
+        100% {
+            filter: hue-rotate(360deg);
+        }
+    }
+
+    .anim-storm .achievement-icon-wrapper {
+        animation: storm-flash 3s infinite !important;
+    }
+
+    @keyframes storm-flash {
+
+        0%,
+        85%,
+        90%,
+        95%,
+        100% {
+            filter: brightness(1) drop-shadow(0 0 5px #00d2ff);
+        }
+
+        87%,
+        92% {
+            filter: brightness(4) drop-shadow(0 0 20px #fff);
+        }
+    }
+
+    .anim-zen .achievement-icon-wrapper {
+        animation: zen-breathe 6s ease-in-out infinite !important;
+    }
+
+    @keyframes zen-breathe {
+
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 0.8;
+        }
+
+        50% {
+            transform: scale(1.08);
+            opacity: 1;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
+        }
+    }
+
+    .anim-glitch .achievement-icon-wrapper {
+        animation: glitch-anim 0.5s infinite !important;
+    }
+
+    @keyframes glitch-anim {
+        0% {
+            transform: translate(0);
+            text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff;
+        }
+
+        50% {
+            transform: translate(2px, -2px);
+            text-shadow: 2px 0 #ff00ff, -2px 0 #00ffff;
+        }
+
+        100% {
+            transform: translate(0);
+        }
+    }
+
+    /* Sakura - Cherry Blossom Drift */
+    .anim-sakura .achievement-icon-wrapper {
+        animation: sakura-drift 5s ease-in-out infinite !important;
+        border-color: #f9a8d4 !important;
+    }
+
+    @keyframes sakura-drift {
+
+        0%,
+        100% {
+            transform: translateY(0) rotate(0deg);
+            filter: drop-shadow(0 0 8px rgba(249, 168, 212, 0.4));
+        }
+
+        25% {
+            transform: translateY(-5px) rotate(3deg);
+        }
+
+        50% {
+            filter: drop-shadow(0 0 15px rgba(249, 168, 212, 0.7));
+        }
+
+        75% {
+            transform: translateY(-3px) rotate(-2deg);
+        }
+    }
+
+    /* Cyber - Neon Glitch */
+    .anim-cyber .achievement-icon-wrapper {
+        animation: cyber-glitch 2s steps(1) infinite !important;
+        border-color: #00ff88 !important;
+        box-shadow: 0 0 10px #00ff88 !important;
+    }
+
+    @keyframes cyber-glitch {
+
+        0%,
+        100% {
+            filter: hue-rotate(0deg) drop-shadow(0 0 5px #00ff88);
+        }
+
+        10% {
+            transform: translate(-2px, 1px);
+            filter: hue-rotate(90deg);
+        }
+
+        20% {
+            transform: translate(0);
+            filter: hue-rotate(0deg);
+        }
+
+        50% {
+            filter: hue-rotate(180deg) brightness(1.5);
+        }
+
+        51% {
+            filter: hue-rotate(0deg);
+        }
+
+        85% {
+            transform: translate(2px, 0);
+            filter: brightness(2);
+        }
+
+        86% {
+            transform: translate(0);
+            filter: brightness(1);
+        }
+    }
+
+    /* Inferno - Fire Pulse */
+    .anim-inferno .achievement-icon-wrapper {
+        animation: inferno-blaze 3s ease-in-out infinite !important;
+        border-color: #ff4500 !important;
+    }
+
+    @keyframes inferno-blaze {
+
+        0%,
+        100% {
+            box-shadow: 0 0 10px #ff4500;
+        }
+
+        50% {
+            box-shadow: 0 0 30px #ff4500, 0 0 60px rgba(255, 69, 0, 0.6);
+            filter: brightness(1.3);
+            transform: scale(1.05);
+        }
+    }
+
+    /* Frost - Icy Shimmer */
+    .anim-frost .achievement-icon-wrapper {
+        animation: frost-shimmer 4s ease-in-out infinite !important;
+        border-color: #a5f3fc !important;
+    }
+
+    @keyframes frost-shimmer {
+
+        0%,
+        100% {
+            filter: brightness(1) drop-shadow(0 0 5px #a5f3fc);
+        }
+
+        33% {
+            filter: brightness(1.2) drop-shadow(0 0 12px #67e8f9);
+            transform: scale(1.02);
+        }
+
+        66% {
+            filter: brightness(0.95) saturate(1.3);
+        }
+    }
+
+    /* Shadow - Dark Aura */
+    .anim-shadow .achievement-icon-wrapper {
+        animation: shadow-pulse 4s ease-in-out infinite !important;
+        border-color: #6b21a8 !important;
+    }
+
+    @keyframes shadow-pulse {
+
+        0%,
+        100% {
+            box-shadow: 0 0 15px rgba(107, 33, 168, 0.3), 0 0 30px rgba(0, 0, 0, 0.5);
+            filter: brightness(0.9);
+        }
+
+        50% {
+            box-shadow: 0 0 30px rgba(107, 33, 168, 0.6), 0 0 60px rgba(0, 0, 0, 0.8);
+            filter: brightness(0.7) contrast(1.3);
+            transform: scale(0.97);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container admin-container">
+    <div class="admin-header">
+        <div>
+            <h1>Achievement Engine</h1>
+            <p class="text-muted">Create milestones and assign automated tasks.</p>
+        </div>
+        <a href="/achievements" class="btn btn-outline-light btn-sm">
+            <i class="fas fa-eye me-1"></i> View Trophy Room
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Create Form -->
+        <div class="col-md-4">
+            <div class="card-dashboard">
+                <h4 class="mb-4" id="form-title">New Milestone</h4>
+                <div id="edit-indicator" class="alert alert-info py-2 small mb-3" style="display: none;">
+                    <i class="fas fa-edit me-1"></i> Editing: <strong id="editing-name"></strong>
+                    <button class="btn-close float-end p-0" style="font-size: 0.6rem" onclick="cancelEdit()"></button>
+                </div>
+                <div id="addForm">
+                    <div class="form-group">
+                        <label>Display Name</label>
+                        <input type="text" id="ach_name" placeholder="e.g. Master Librarian">
+                    </div>
+                    <div class="form-group">
+                        <label>Unique Slug (Permanent)</label>
+                        <input type="text" id="ach_slug" placeholder="e.g. master_lib_1">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="ach_desc" rows="2" placeholder="What do they have to do?"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select id="ach_cat">
+                                    <option value="reading">Reading</option>
+                                    <option value="social">Social</option>
+                                    <option value="critic">Critic</option>
+                                    <option value="ai">AI</option>
+                                    <option value="tools">Tools</option>
+                                    <option value="general">General</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Level (1-10)</label>
+                                <input type="number" id="ach_lvl" value="1" min="1" max="10">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Badge Color</label>
+                                <select id="ach_color">
+                                    <option value="cyan">Cyan (Bronze)</option>
+                                    <option value="purple">Purple (Silver)</option>
+                                    <option value="yellow">Yellow (Gold)</option>
+                                    <option value="orange">Orange (Diamond)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Rarity</label>
+                                <select id="ach_rarity">
+                                    <option value="none">Standard (None)</option>
+                                    <option value="intermediate">Intermediate</option>
+                                    <option value="hardcore">Hardcore</option>
+                                    <option value="legend">Legend</option>
+                                    <option value="god">God</option>
+                                    <option value="limited">Limited</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Icon Configuration</label>
+                        <div class="icon-toggle-container mb-2">
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="icon_type" id="type_fa" value="fontawesome"
+                                    checked onchange="toggleIconInput()">
+                                <label class="btn btn-outline-cyan btn-sm" for="type_fa">FontAwesome</label>
+
+                                <input type="radio" class="btn-check" name="icon_type" id="type_img" value="image"
+                                    onchange="toggleIconInput()">
+                                <label class="btn btn-outline-cyan btn-sm" for="type_img">Custom Image</label>
+                            </div>
+                        </div>
+
+                        <div id="fa_input_group">
+                            <div style="position:relative; margin-bottom:8px;">
+                                <i class="fas fa-search"
+                                    style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#666; font-size:0.8rem;"></i>
+                                <input type="text" id="icon-search" placeholder="Search icons..."
+                                    style="width:100%; padding:8px 10px 8px 32px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#fff; font-size:0.8rem;"
+                                    oninput="filterIcons(this.value)">
+                            </div>
+                            <div id="icon-picker-grid"
+                                style="display:grid; grid-template-columns:repeat(8, 1fr); gap:4px; max-height:200px; overflow-y:auto; padding:4px; background:rgba(0,0,0,0.2); border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                            </div>
+                            <input type="hidden" id="ach_icon" value="fa-trophy">
+                            <div style="margin-top:6px; display:flex; align-items:center; gap:8px;">
+                                <span class="small text-muted">Selected:</span>
+                                <span id="selected-icon-display"
+                                    style="width:28px; height:28px; display:flex; align-items:center; justify-content:center; background:rgba(6,182,212,0.15); border:1px solid #06b6d4; border-radius:6px;">
+                                    <i class="fas fa-trophy" style="color:#06b6d4; font-size:0.85rem;"></i>
+                                </span>
+                                <code id="selected-icon-name" style="font-size:0.75rem; color:#888;">fa-trophy</code>
+                            </div>
+                        </div>
+
+                        <div id="img_input_group" style="display: none;">
+                            <div class="upload-wrapper">
+                                <input type="file" id="ach_icon_file" accept="image/*"
+                                    class="form-control form-control-sm bg-dark text-white border-secondary">
+                                <small class="text-muted">Recommended: Square PNG (128x128)</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-3" id="anim_group">
+                        <label>Max Level Animation (Lv 10)</label>
+                        <select id="ach_anim">
+                            <option value="rotating">Classic Rotating Border</option>
+                            <option value="angelic">Angelic Divine (Halo + Feathers)</option>
+                            <option value="nebula">Cosmic Nebula (Godlike FX)</option>
+                            <option value="lava">Lava Pulse (Hardcore FX)</option>
+                            <option value="electric">Electric Static (Intermediate FX)</option>
+                            <option value="glitch">Digital Glitch (Limited Edition)</option>
+                            <option value="void">The Void (Black Hole FX) 🕳️</option>
+                            <option value="rainbow">Rainbow Flow (Chromatic FX) 🌈</option>
+                            <option value="storm">Thunder Storm (Lightning FX) ⚡</option>
+                            <option value="zen">Zen Pulse (Ambient Glow) 🧘</option>
+                            <option value="sakura">Sakura Drift (Cherry Blossom) 🌸</option>
+                            <option value="cyber">Cyber Neon (Matrix Glitch) 💚</option>
+                            <option value="inferno">Inferno Blaze (Fire Pulse) 🔥</option>
+                            <option value="frost">Frost Shimmer (Icy Glow) ❄️</option>
+                            <option value="shadow">Shadow Aura (Dark Energy) 🌑</option>
+                        </select>
+                    </div>
+
+                    <hr class="my-4" style="opacity: 0.1">
+
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+                        <div
+                            style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.3); border-radius:8px;">
+                            <i class="fas fa-tasks" style="color:#06b6d4; font-size:0.85rem;"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 text-cyan" style="font-size:0.95rem;">Assignment Task</h6>
+                            <small class="text-muted">How users earn this achievement</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-7">
+                            <div class="form-group">
+                                <label>Requirement Type</label>
+                                <select id="ach_req_type" onchange="updateReqHint()">
+                                    <optgroup label="⭐ Manual">
+                                        <option value="">Manual Award Only</option>
+                                    </optgroup>
+                                    <optgroup label="📚 Reading">
+                                        <option value="reading">Books Read</option>
+                                        <option value="chapters">Chapters Read</option>
+                                        <option value="pages">Pages Read</option>
+                                        <option value="genres">Genres Explored</option>
+                                    </optgroup>
+                                    <optgroup label="👥 Social">
+                                        <option value="social">Groups Joined</option>
+                                        <option value="friends">Friends Added</option>
+                                        <option value="posts">Community Posts</option>
+                                    </optgroup>
+                                    <optgroup label="✍️ Content">
+                                        <option value="critic">Reviews Posted</option>
+                                        <option value="comments">Comments Made</option>
+                                        <option value="ratings">Ratings Given</option>
+                                    </optgroup>
+                                    <optgroup label="🤖 AI & Tools">
+                                        <option value="ai">AI Summaries Used</option>
+                                        <option value="tools">Projects Promoted</option>
+                                    </optgroup>
+                                    <optgroup label="🔥 Engagement">
+                                        <option value="login_streak">Login Streak (Days)</option>
+                                        <option value="hours_read">Hours Spent Reading</option>
+                                        <option value="favorites">Books Favorited</option>
+                                    </optgroup>
+                                    <optgroup label="💳 Subscription">
+                                        <option value="sub_pro">Pro Subscriber</option>
+                                        <option value="sub_ultimate">Ultimate Subscriber</option>
+                                        <option value="sub_months">Subscription Duration (Months)</option>
+                                    </optgroup>
+                                    <optgroup label="📦 Collections">
+                                        <option value="shelves">Reading Lists Created</option>
+                                        <option value="shelf_items">Books Added to Lists</option>
+                                        <option value="wishlist">Wishlist Items</option>
+                                        <option value="completed">Books Completed</option>
+                                    </optgroup>
+                                    <optgroup label="🎯 Milestones">
+                                        <option value="account_age">Account Age (Days)</option>
+                                        <option value="daily_reads">Daily Reading Goal Hits</option>
+                                        <option value="total_time">Total Time on Platform (Hours)</option>
+                                        <option value="achievements_earned">Achievements Earned</option>
+                                    </optgroup>
+                                    <optgroup label="🎉 Events">
+                                        <option value="event_attend">Events Attended</option>
+                                        <option value="challenge_complete">Challenges Completed</option>
+                                        <option value="poll_votes">Polls Voted In</option>
+                                    </optgroup>
+                                    <optgroup label="🪪 Profile & Identity">
+                                        <option value="avatar_uploads">Avatars Uploaded</option>
+                                        <option value="bio_update">Bio Updated</option>
+                                        <option value="profile_visits">Profile Visits Received</option>
+                                    </optgroup>
+                                    <optgroup label="📖 Manga">
+                                        <option value="manga_read">Manga Series Read</option>
+                                        <option value="manga_chapters">Manga Chapters Read</option>
+                                        <option value="manga_favorites">Manga Favorited</option>
+                                        <option value="reader_themes">Reader Themes Used</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-5">
+                            <div class="form-group">
+                                <label>Target Value</label>
+                                <div style="position:relative;">
+                                    <input type="number" id="ach_req_val" placeholder="e.g. 100" min="1">
+                                    <span id="req-unit-badge"
+                                        style="position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:0.65rem; color:#888; background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:4px;"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="req-hint"
+                        style="padding:10px 12px; background:rgba(6,182,212,0.05); border:1px solid rgba(6,182,212,0.1); border-radius:8px; margin-top:4px; display:none;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i id="req-hint-icon" class="fas fa-info-circle"
+                                style="color:#06b6d4; font-size:0.8rem;"></i>
+                            <span id="req-hint-text" class="small" style="color:#aaa;"></span>
+                        </div>
+                    </div>
+
+                    <div id="form-actions">
+                        <button class="btn-create mt-3 w-100" id="submit-btn" onclick="createAchievement()">
+                            <i class="fas fa-plus me-1"></i> Launch Achievement
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Preview Card -->
+            <div class="card-dashboard mt-4">
+                <h6 class="mb-3 text-cyan"><i class="fas fa-magic me-1"></i> Live Preview</h6>
+                <div class="d-flex justify-content-center py-4"
+                    style="background: rgba(0,0,0,0.3); border-radius: 10px;">
+                    <div id="preview-card" class="preview-achievement-card">
+                        <div id="preview-icon-wrapper" class="achievement-icon-wrapper badge-cyan">
+                            <div id="preview-halo" class="legendary-halo"></div>
+                            <i id="preview-icon" class="fas fa-trophy"></i>
+                            <img id="preview-img" src=""
+                                style="display: none; width:100%; height:100%; object-fit:contain; border-radius:8px;">
+                        </div>
+                        <div class="text-center mt-3">
+                            <div id="preview-name" class="fw-bold text-white small"
+                                style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Achievement Name
+                            </div>
+                            <div id="preview-rarity" class="tag mt-1">Standard</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3 small text-muted">
+                    Visuals update instantly as you design.
+                </div>
+            </div>
+        </div>
+
+        <!-- Achievement List -->
+        <div class="col-md-8">
+            <div class="card-dashboard">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="m-0">Existing Milestones</h4>
+                    <div class="search-wrapper position-relative" style="max-width: 250px;">
+                        <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"
+                            style="font-size: 0.8rem;"></i>
+                        <input type="text" id="ach_search"
+                            class="form-control form-control-sm bg-dark text-white border-secondary ps-5"
+                            placeholder="Search milestones..." onkeyup="filterAchievements()">
+                    </div>
+                    <span class="badge bg-dark">{{ achievements|length }} Total</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="achievements-table">
+                        <thead>
+                            <tr>
+                                <th>Achievement</th>
+                                <th>Task</th>
+                                <th>Tier</th>
+                                <th>Rarity</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ach in achievements %}
+                            <tr class="ach_row" id="row-{{ ach.id }}">
+                                <td>
+                                    <div class="ach-icon-cell">
+                                        <div class="mini-badge badge-{{ ach.badge_color }}">
+                                            {% if ach.icon_type == 'image' %}
+                                            <img src="{{ ach.icon }}"
+                                                style="width:100%; height:100%; object-fit:contain; border-radius:4px;">
+                                            {% else %}
+                                            <i class="fas {{ ach.icon }}"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ ach.name }}</div>
+                                            <div class="small text-muted">{{ ach.slug }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if ach.requirement_type %}
+                                    <div class="tag">{{ ach.requirement_type }}: {{ ach.requirement_value }}</div>
+                                    {% else %}
+                                    <span class="text-muted small">Manual</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill bg-dark">Lv {{ ach.level }}</span>
+                                </td>
+                                <td>
+                                    {% if ach.rarity and ach.rarity != 'none' %}
+                                    <span class="tag rarity-{{ ach.rarity }}">{{ ach.rarity }}</span>
+                                    {% else %}
+                                    <span class="text-muted small">None</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn-outline-light btn-sm me-2 border-0 bg-transparent"
+                                        title="Gift to User"
+                                        onclick="openGiftModal('{{ ach.slug }}', '{{ ach.name }}')">
+                                        <i class="fas fa-gift" style="color: #fbbf24;"></i>
+                                    </button>
+                                    <button class="btn-outline-light btn-sm me-2 border-0 bg-transparent"
+                                        onclick="editAchievement({{ ach.id }})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-delete"
+                                        onclick="deleteAchievement({{ ach.id }}, '{{ ach.name }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gift Achievement Modal -->
+<div id="gift-modal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; backdrop-filter:blur(8px);">
+    <div
+        style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#1a1a2e; border:1px solid rgba(251,191,36,0.3); border-radius:16px; padding:30px; width:420px; max-width:90vw; box-shadow: 0 0 40px rgba(251,191,36,0.15);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h5 style="margin:0; color:#fbbf24;"><i class="fas fa-gift me-2"></i>Gift Achievement</h5>
+            <button onclick="closeGiftModal()"
+                style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;"><i
+                    class="fas fa-times"></i></button>
+        </div>
+        <div
+            style="background:rgba(251,191,36,0.05); border:1px solid rgba(251,191,36,0.15); border-radius:10px; padding:12px; margin-bottom:20px;">
+            <div class="small text-muted">Gifting</div>
+            <div id="gift-ach-name" class="fw-bold" style="color:#fbbf24; font-size:1.1rem;"></div>
+        </div>
+        <label style="color:#aaa; font-size:0.85rem; margin-bottom:8px; display:block;">Search User</label>
+        <input type="text" id="gift-user-search" placeholder="Type a username..."
+            style="width:100%; padding:12px 15px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; margin-bottom:10px;"
+            oninput="searchUsersForGift(this.value)">
+        <div id="gift-user-results" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div>
+        <input type="hidden" id="gift-selected-user-id">
+        <div id="gift-selected-user"
+            style="display:none; background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.3); border-radius:10px; padding:12px; margin-bottom:15px;">
+            <div class="d-flex align-items-center gap-2">
+                <img id="gift-selected-avatar" src=""
+                    style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
+                <span id="gift-selected-name" class="fw-bold" style="color:#06b6d4;"></span>
+                <button onclick="clearGiftSelection()" class="ms-auto"
+                    style="background:none; border:none; color:#ef4444; font-size:0.8rem; cursor:pointer;"><i
+                        class="fas fa-times"></i> Remove</button>
+            </div>
+        </div>
+        <button id="gift-send-btn" onclick="sendGift()" disabled
+            style="width:100%; padding:12px; background:linear-gradient(135deg,#fbbf24,#d97706); color:#000; border:none; border-radius:8px; font-weight:700; cursor:pointer; transition:all 0.3s; opacity:0.5;">
+            <i class="fas fa-paper-plane me-1"></i> Send Gift
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.allAchievements = {{ achievements | tojson | safe }};
+    const allAchievements = window.allAchievements;
+    let isEditing = false;
+    let editingId = null;
+    let existingIcon = null;
+
+    // --- ICON PICKER ---
+    const iconList = [
+        // Trophies & Awards
+        'fa-trophy', 'fa-medal', 'fa-award', 'fa-crown', 'fa-gem', 'fa-star', 'fa-certificate',
+        // Reading & Knowledge
+        'fa-book', 'fa-book-open', 'fa-book-reader', 'fa-graduation-cap', 'fa-scroll', 'fa-brain', 'fa-lightbulb',
+        // Activities & Social
+        'fa-users', 'fa-user-astronaut', 'fa-user-ninja', 'fa-user-secret', 'fa-handshake', 'fa-comments', 'fa-heart',
+        // Nature & Elements
+        'fa-fire', 'fa-bolt', 'fa-snowflake', 'fa-sun', 'fa-moon', 'fa-cloud-moon', 'fa-seedling', 'fa-leaf', 'fa-mountain',
+        // Tech & Tools
+        'fa-robot', 'fa-code', 'fa-microchip', 'fa-terminal', 'fa-cog', 'fa-wrench', 'fa-magic', 'fa-wand-magic-sparkles',
+        // Combat & Adventure
+        'fa-shield-alt', 'fa-chess-knight', 'fa-dragon', 'fa-skull-crossbones', 'fa-hat-wizard', 'fa-dungeon', 'fa-fist-raised',
+        // Space & Cosmic 
+        'fa-rocket', 'fa-satellite', 'fa-meteor', 'fa-globe', 'fa-atom',
+        // Music & Art
+        'fa-palette', 'fa-music', 'fa-paint-brush', 'fa-camera', 'fa-film',
+        // Misc Power
+        'fa-infinity', 'fa-dice-d20', 'fa-ghost', 'fa-spider', 'fa-cat', 'fa-paw', 'fa-dove',
+        'fa-eye', 'fa-feather-alt', 'fa-hammer', 'fa-key', 'fa-lock-open', 'fa-compass'
+    ];
+
+    function buildIconGrid(filter = '') {
+        const grid = document.getElementById('icon-picker-grid');
+        const selected = document.getElementById('ach_icon').value;
+        const filtered = filter ? iconList.filter(i => i.includes(filter.toLowerCase())) : iconList;
+        grid.innerHTML = filtered.map(icon => {
+            const isSelected = icon === selected;
+            return `<div onclick="selectIcon('${icon}')" title="${icon}" 
+                style="width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:6px; cursor:pointer; transition:all 0.2s;
+                background:${isSelected ? 'rgba(6,182,212,0.2)' : 'rgba(255,255,255,0.03)'}; 
+                border:1px solid ${isSelected ? '#06b6d4' : 'rgba(255,255,255,0.05)'};"
+                onmouseover="this.style.background='rgba(6,182,212,0.1)'" 
+                onmouseout="this.style.background='${isSelected ? 'rgba(6,182,212,0.2)' : 'rgba(255,255,255,0.03)'}'">
+                <i class="fas ${icon}" style="color:${isSelected ? '#06b6d4' : '#aaa'}; font-size:0.85rem;"></i>
+            </div>`;
+        }).join('');
+    }
+
+    function selectIcon(icon) {
+        document.getElementById('ach_icon').value = icon;
+        document.getElementById('selected-icon-display').innerHTML = `<i class="fas ${icon}" style="color:#06b6d4; font-size:0.85rem;"></i>`;
+        document.getElementById('selected-icon-name').textContent = icon;
+        buildIconGrid(document.getElementById('icon-search').value);
+        updatePreview();
+    }
+
+    function filterIcons(query) {
+        buildIconGrid(query);
+    }
+
+    // Initialize icon grid on load
+    document.addEventListener('DOMContentLoaded', () => buildIconGrid());
+
+    // --- REQUIREMENT HINT SYSTEM ---
+    const reqHints = {
+        '': { hint: 'This achievement will only be awarded manually by an admin or via the Gift system.', icon: 'fa-hand-sparkles', unit: '' },
+        'reading': { hint: 'Awarded when a user finishes reading X books in the library.', icon: 'fa-book', unit: 'books' },
+        'chapters': { hint: 'Awarded after reading X chapters across any manga or book.', icon: 'fa-bookmark', unit: 'chapters' },
+        'pages': { hint: 'Tracks total pages read across all content.', icon: 'fa-file-alt', unit: 'pages' },
+        'genres': { hint: 'Awarded for exploring X different genres.', icon: 'fa-tags', unit: 'genres' },
+        'social': { hint: 'Tracks the number of groups a user has joined.', icon: 'fa-users', unit: 'groups' },
+        'friends': { hint: 'Awarded after adding X friends on the platform.', icon: 'fa-user-friends', unit: 'friends' },
+        'posts': { hint: 'Counts community posts created by the user.', icon: 'fa-pen', unit: 'posts' },
+        'critic': { hint: 'Awarded after posting X reviews on books or manga.', icon: 'fa-star', unit: 'reviews' },
+        'comments': { hint: 'Tracks comment activity across the platform.', icon: 'fa-comments', unit: 'comments' },
+        'ratings': { hint: 'Awarded for rating X books or chapters.', icon: 'fa-star-half-alt', unit: 'ratings' },
+        'ai': { hint: 'Tracks usage of AI-powered features like summaries and analysis.', icon: 'fa-robot', unit: 'uses' },
+        'tools': { hint: 'Awarded for promoting X projects to the Tools showcase.', icon: 'fa-tools', unit: 'projects' },
+        'login_streak': { hint: 'Requires logging in for X consecutive days.', icon: 'fa-fire', unit: 'days' },
+        'hours_read': { hint: 'Tracks total hours spent reading content.', icon: 'fa-clock', unit: 'hours' },
+        'favorites': { hint: 'Awarded after favoriting X books in the library.', icon: 'fa-heart', unit: 'books' },
+        'sub_pro': { hint: 'Awarded automatically when a user upgrades to Pro plan.', icon: 'fa-crown', unit: '' },
+        'sub_ultimate': { hint: 'Awarded automatically when a user upgrades to Ultimate plan.', icon: 'fa-gem', unit: '' },
+        'sub_months': { hint: 'Awarded after maintaining an active subscription for X months.', icon: 'fa-calendar-check', unit: 'months' },
+        'shelves': { hint: 'Awarded after creating X reading lists or shelves.', icon: 'fa-layer-group', unit: 'lists' },
+        'shelf_items': { hint: 'Tracks total books added across all reading lists.', icon: 'fa-plus-square', unit: 'books' },
+        'wishlist': { hint: 'Awarded after adding X items to the wishlist.', icon: 'fa-gift', unit: 'items' },
+        'completed': { hint: 'Tracks the number of books marked as completed.', icon: 'fa-check-double', unit: 'books' },
+        'account_age': { hint: 'Awarded when the account reaches X days old.', icon: 'fa-birthday-cake', unit: 'days' },
+        'daily_reads': { hint: 'Tracks how many times the daily reading goal was hit.', icon: 'fa-bullseye', unit: 'days' },
+        'total_time': { hint: 'Tracks total hours spent on the platform (reading + browsing).', icon: 'fa-hourglass-half', unit: 'hours' },
+        'achievements_earned': { hint: 'Meta-achievement: awarded after earning X other achievements.', icon: 'fa-trophy', unit: 'achievements' },
+        'event_attend': { hint: 'Awarded for attending or joining X community events.', icon: 'fa-calendar-alt', unit: 'events' },
+        'challenge_complete': { hint: 'Awarded for completing X reading or community challenges.', icon: 'fa-flag-checkered', unit: 'challenges' },
+        'poll_votes': { hint: 'Tracks participation in community polls.', icon: 'fa-poll', unit: 'votes' },
+        'avatar_uploads': { hint: 'Awarded after uploading X custom avatars.', icon: 'fa-user-circle', unit: 'avatars' },
+        'bio_update': { hint: 'Awarded for updating your bio X times.', icon: 'fa-id-card', unit: 'updates' },
+        'profile_visits': { hint: 'Awarded when your profile is visited X times by others.', icon: 'fa-eye', unit: 'visits' },
+        'manga_read': { hint: 'Tracks the number of manga series completed.', icon: 'fa-book-open', unit: 'series' },
+        'manga_chapters': { hint: 'Counts total manga chapters read across all series.', icon: 'fa-bookmark', unit: 'chapters' },
+        'manga_favorites': { hint: 'Awarded after favoriting X manga series.', icon: 'fa-heart', unit: 'manga' },
+        'reader_themes': { hint: 'Awarded for trying X different reader themes.', icon: 'fa-palette', unit: 'themes' }
+    };
+
+    function updateReqHint() {
+        const type = document.getElementById('ach_req_type').value;
+        const hintBox = document.getElementById('req-hint');
+        const unitBadge = document.getElementById('req-unit-badge');
+
+        if (reqHints[type]) {
+            const h = reqHints[type];
+            document.getElementById('req-hint-icon').className = 'fas ' + h.icon;
+            document.getElementById('req-hint-text').textContent = h.hint;
+            hintBox.style.display = 'block';
+            unitBadge.textContent = h.unit;
+        } else {
+            hintBox.style.display = 'none';
+            unitBadge.textContent = '';
+        }
+    }
+
+    function toggleIconInput() {
+        const type = document.querySelector('input[name="icon_type"]:checked').value;
+        document.getElementById('fa_input_group').style.display = type === 'fontawesome' ? 'block' : 'none';
+        document.getElementById('img_input_group').style.display = type === 'image' ? 'block' : 'none';
+    }
+
+    async function createAchievement() {
+        const iconType = document.querySelector('input[name="icon_type"]:checked').value;
+        let iconValue = document.getElementById('ach_icon').value;
+
+        // Handle Image Upload if needed
+        if (iconType === 'image') {
+            const fileInput = document.getElementById('ach_icon_file');
+            if (fileInput.files.length > 0) {
+                const formData = new FormData();
+                formData.append('icon', fileInput.files[0]);
+
+                try {
+                    const uploadRes = await fetch('/api/admin/achievements/upload_icon', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const uploadResult = await uploadRes.json();
+                    if (uploadResult.success) {
+                        iconValue = uploadResult.url;
+                    } else {
+                        alert('Upload failed: ' + uploadResult.message);
+                        return;
+                    }
+                } catch (err) {
+                    alert('Error uploading icon.');
+                    return;
+                }
+            } else if (isEditing && existingIcon) {
+                // Keep keeping current icon if no new one uploaded
+                iconValue = existingIcon;
+            } else {
+                alert('Please select an image for the icon.');
+                return;
+            }
+        }
+
+        const data = {
+            name: document.getElementById('ach_name').value,
+            slug: document.getElementById('ach_slug').value,
+            description: document.getElementById('ach_desc').value,
+            category: document.getElementById('ach_cat').value,
+            level: document.getElementById('ach_lvl').value,
+            badge_color: document.getElementById('ach_color').value,
+            icon: iconValue,
+            icon_type: iconType,
+            rarity: document.getElementById('ach_rarity').value,
+            animation_type: document.getElementById('ach_anim').value,
+            requirement_type: document.getElementById('ach_req_type').value || null,
+            requirement_value: document.getElementById('ach_req_val').value || null
+        };
+
+        if (!data.name || !data.slug) {
+            alert('Name and Slug are required.');
+            return;
+        }
+
+        const endpoint = isEditing ? `/api/admin/achievements/update/${editingId}` : '/api/admin/achievements/add';
+
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.success) {
+                window.location.reload();
+            } else {
+                alert(result.message);
+            }
+        } catch (err) {
+            alert(isEditing ? 'Error updating achievement.' : 'Error creating achievement.');
+        }
+    }
+
+    function editAchievement(id) {
+        const ach = allAchievements.find(a => a.id === id);
+        if (!ach) return;
+
+        isEditing = true;
+        editingId = ach.id;
+        existingIcon = ach.icon;
+
+        // Update UI
+        document.getElementById('form-title').innerText = 'Edit Milestone';
+        document.getElementById('edit-indicator').style.display = 'block';
+        document.getElementById('editing-name').innerText = ach.name;
+        document.getElementById('submit-btn').innerHTML = '<i class="fas fa-save me-1"></i> Save Changes';
+
+        // Fill Form
+        document.getElementById('ach_name').value = ach.name;
+        document.getElementById('ach_slug').value = ach.slug;
+        document.getElementById('ach_desc').value = ach.description;
+        document.getElementById('ach_cat').value = ach.category;
+        document.getElementById('ach_lvl').value = ach.level;
+        document.getElementById('ach_color').value = ach.badge_color;
+        document.getElementById('ach_rarity').value = ach.rarity || 'none';
+        document.getElementById('ach_anim').value = ach.animation_type || 'rotating';
+        document.getElementById('ach_req_type').value = ach.requirement_type || '';
+        document.getElementById('ach_req_val').value = ach.requirement_value || '';
+
+        // Handle Icon types
+        if (ach.icon_type === 'image') {
+            document.getElementById('type_img').checked = true;
+            document.getElementById('preview-img').src = ach.icon;
+        } else {
+            document.getElementById('type_fa').checked = true;
+            const iconVal = ach.icon || 'fa-trophy';
+            document.getElementById('ach_icon').value = iconVal;
+            document.getElementById('selected-icon-display').innerHTML = `<i class="fas ${iconVal}" style="color:#06b6d4; font-size:0.85rem;"></i>`;
+            document.getElementById('selected-icon-name').textContent = iconVal;
+            document.getElementById('icon-search').value = '';
+            buildIconGrid();
+        }
+        toggleIconInput();
+        updatePreview();
+
+        // Scroll to form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+        isEditing = false;
+        editingId = null;
+        window.location.reload(); // Simplest way to reset form and UI
+    }
+
+    function filterAchievements() {
+        const query = document.getElementById('ach_search').value.toLowerCase();
+        const rows = document.querySelectorAll('.ach_row');
+
+        rows.forEach(row => {
+            const name = row.querySelector('.fw-bold').innerText.toLowerCase();
+            const slug = row.querySelector('.text-muted').innerText.toLowerCase();
+            const categoryText = row.cells[1].innerText.toLowerCase();
+
+            if (name.includes(query) || slug.includes(query) || categoryText.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // --- LIVE PREVIEW LOGIC ---
+    function updatePreview() {
+        const name = document.getElementById('ach_name').value || 'Achievement Name';
+        const level = parseInt(document.getElementById('ach_lvl').value);
+        const color = document.getElementById('ach_color').value;
+        const rarity = document.getElementById('ach_rarity').value;
+        const anim = document.getElementById('ach_anim').value;
+        const iconType = document.querySelector('input[name="icon_type"]:checked').value;
+        const faIcon = document.getElementById('ach_icon').value;
+
+        // Update Text
+        document.getElementById('preview-name').innerText = name;
+        const rarityEl = document.getElementById('preview-rarity');
+        rarityEl.innerText = rarity === 'none' ? 'Standard' : rarity;
+        rarityEl.className = 'tag mt-1 rarity-' + rarity;
+
+        // Update Color & Icon
+        const wrapper = document.getElementById('preview-icon-wrapper');
+        wrapper.className = 'achievement-icon-wrapper badge-' + color;
+
+        if (iconType === 'fontawesome') {
+            const faEl = document.getElementById('preview-icon');
+            faEl.style.display = 'flex';
+            faEl.className = 'fas ' + faIcon;
+            document.getElementById('preview-img').style.display = 'none';
+        } else {
+            document.getElementById('preview-icon').style.display = 'none';
+            const imgEl = document.getElementById('preview-img');
+            imgEl.style.display = 'block';
+            if (isEditing && existingIcon && !document.getElementById('ach_icon_file').files.length) {
+                imgEl.src = existingIcon;
+            }
+        }
+
+        // Update Animation & Halo
+        const card = document.getElementById('preview-card');
+
+        // Clear previous animations
+        card.classList.forEach(cls => {
+            if (cls.startsWith('anim-')) card.classList.remove(cls);
+        });
+
+        const halo = document.getElementById('preview-halo');
+        halo.style.opacity = (level === 10) ? '1' : '0';
+
+        if (level === 10) {
+            card.classList.add('anim-' + anim);
+        }
+    }
+
+    // Listeners for Preview
+    ['ach_name', 'ach_lvl', 'ach_color', 'ach_rarity', 'ach_anim', 'ach_icon'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updatePreview);
+    });
+    document.querySelectorAll('input[name="icon_type"]').forEach(radio => {
+        radio.addEventListener('change', updatePreview);
+    });
+
+    document.getElementById('ach_icon_file').addEventListener('change', function (e) {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (ex) {
+                document.getElementById('preview-img').src = ex.target.result;
+                updatePreview();
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    // Initialize Preview on load
+    document.addEventListener('DOMContentLoaded', updatePreview);
+
+    async function deleteAchievement(id, name) {
+        if (!confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) return;
+
+        try {
+            const res = await fetch(`/api/admin/achievements/delete/${id}`, {
+                method: 'POST'
+            });
+            const result = await res.json();
+            if (result.success) {
+                document.getElementById(`row-${id}`).remove();
+            } else {
+                alert(result.message);
+            }
+        } catch (err) {
+            alert('Error deleting achievement.');
+        }
+    }
+
+    // --- GIFT ACHIEVEMENT LOGIC ---
+    let giftSlug = null;
+    let giftSearchTimeout = null;
+
+    function openGiftModal(slug, name) {
+        giftSlug = slug;
+        document.getElementById('gift-ach-name').innerText = name;
+        document.getElementById('gift-user-search').value = '';
+        document.getElementById('gift-user-results').innerHTML = '';
+        document.getElementById('gift-selected-user').style.display = 'none';
+        document.getElementById('gift-selected-user-id').value = '';
+        document.getElementById('gift-send-btn').disabled = true;
+        document.getElementById('gift-send-btn').style.opacity = '0.5';
+        document.getElementById('gift-modal').style.display = 'block';
+        setTimeout(() => document.getElementById('gift-user-search').focus(), 100);
+    }
+
+    function closeGiftModal() {
+        document.getElementById('gift-modal').style.display = 'none';
+        giftSlug = null;
+    }
+
+    function searchUsersForGift(query) {
+        clearTimeout(giftSearchTimeout);
+        const resultsDiv = document.getElementById('gift-user-results');
+        if (query.length < 2) {
+            resultsDiv.innerHTML = '<div class="text-muted small text-center py-2">Type at least 2 characters...</div>';
+            return;
+        }
+        giftSearchTimeout = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}`);
+                const users = await res.json();
+                if (users.length === 0) {
+                    resultsDiv.innerHTML = '<div class="text-muted small text-center py-2">No users found</div>';
+                    return;
+                }
+                resultsDiv.innerHTML = users.map(u => `
+                    <div onclick="selectGiftUser(${u.id}, '${u.username.replace(/'/g, "\\'")}', '${u.avatar_url || ''}')"
+                        style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; cursor:pointer; transition:background 0.2s; border-bottom:1px solid rgba(255,255,255,0.05);"
+                        onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='none'">
+                        <img src="${u.avatar_url || '/static/default_avatar.png'}" style="width:28px; height:28px; border-radius:50%; object-fit:cover;">
+                        <span class="fw-bold small">${u.username}</span>
+                        <span class="text-muted small ms-auto">ID: ${u.id}</span>
+                    </div>
+                `).join('');
+            } catch (err) {
+                resultsDiv.innerHTML = '<div class="text-danger small text-center py-2">Search failed</div>';
+            }
+        }, 300);
+    }
+
+    function selectGiftUser(id, username, avatar) {
+        document.getElementById('gift-selected-user-id').value = id;
+        document.getElementById('gift-selected-name').innerText = username;
+        document.getElementById('gift-selected-avatar').src = avatar || '/static/default_avatar.png';
+        document.getElementById('gift-selected-user').style.display = 'block';
+        document.getElementById('gift-user-results').innerHTML = '';
+        document.getElementById('gift-user-search').value = '';
+        document.getElementById('gift-send-btn').disabled = false;
+        document.getElementById('gift-send-btn').style.opacity = '1';
+    }
+
+    function clearGiftSelection() {
+        document.getElementById('gift-selected-user').style.display = 'none';
+        document.getElementById('gift-selected-user-id').value = '';
+        document.getElementById('gift-send-btn').disabled = true;
+        document.getElementById('gift-send-btn').style.opacity = '0.5';
+    }
+
+    async function sendGift() {
+        const userId = document.getElementById('gift-selected-user-id').value;
+        if (!userId || !giftSlug) return;
+
+        const btn = document.getElementById('gift-send-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Sending...';
+
+        try {
+            const res = await fetch('/api/admin/achievements/gift', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: parseInt(userId), slug: giftSlug })
+            });
+            const result = await res.json();
+            if (result.success) {
+                btn.innerHTML = '<i class="fas fa-check me-1"></i> Gifted!';
+                btn.style.background = 'linear-gradient(135deg, #34d399, #059669)';
+                setTimeout(() => closeGiftModal(), 1500);
+            } else {
+                btn.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> ' + result.message;
+                btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                btn.style.color = '#fff';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Send Gift';
+                    btn.style.background = 'linear-gradient(135deg,#fbbf24,#d97706)';
+                    btn.style.color = '#000';
+                    btn.disabled = false;
+                }, 2500);
+            }
+        } catch (err) {
+            alert('Error sending gift.');
+            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Send Gift';
+            btn.disabled = false;
+        }
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('gift-modal').addEventListener('click', function (e) {
+        if (e.target === this) closeGiftModal();
+    });
+</script>
+{% endblock %}

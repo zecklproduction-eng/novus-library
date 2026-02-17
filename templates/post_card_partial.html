@@ -1,14 +1,16 @@
-<article class="post-card" data-post-id="{{ post.id }}">
+<article class="post-card" data-post-id="{{ post.id }}" data-post-type="{{ post.post_type }}"
+    data-channel-id="{{ post.channel_id if post.channel_id else 'default' }}">
     <!-- Vote Column -->
     <div class="vote-column" data-post-id="{{ post.id }}">
         <button class="vote-btn upvote {% if post.user_vote == 1 %}active{% endif %}" title="Upvote"
             onclick="votePost({{ post.id }}, 1, this)">
             <i data-lucide="thumbs-up"></i>
-            <span class="vote-count">{{ post.upvotes|format_count }}</span>
+            <span class="upvote-count">{{ post.upvotes|format_count }}</span>
         </button>
         <button class="vote-btn downvote {% if post.user_vote == -1 %}active{% endif %}" title="Downvote"
             onclick="votePost({{ post.id }}, -1, this)">
             <i data-lucide="thumbs-down"></i>
+            <span class="downvote-count">{{ post.downvotes|format_count }}</span>
         </button>
     </div>
 
@@ -19,7 +21,18 @@
                 <img src="{{ post.avatar or url_for('static', filename='uploads/avatars/default.png') }}"
                     alt="{{ post.username }}" class="post-author-avatar">
                 <div class="author-info">
-                    <span class="post-author-name">{{ post.username }}</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="post-author-name">{{ post.username }}</span>
+                        {% if post.author_achievements %}
+                        <div class="author-badges" style="display: flex; gap: 4px;">
+                            {% for ach in post.author_achievements %}
+                            <i class="fas {{ ach.icon }}"
+                                style="font-size: 10px; color: {{ '#00d4ff' if ach.badge_color == 'cyan' else '#a855f7' if ach.badge_color == 'purple' else '#eab308' if ach.badge_color == 'yellow' else '#10b981' if ach.badge_color == 'green' else '#3b82f6' if ach.badge_color == 'blue' else '#f59e0b' if ach.badge_color == 'orange' else '#fff' }};"
+                                title="{{ ach.name }}"></i>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
                     <span class="posted-time">{{ post.created_at|time_ago }} in <a
                             href="{{ url_for('group_page', group_id=post.group_id) }}">{{
                             post.group_name }}</a></span>

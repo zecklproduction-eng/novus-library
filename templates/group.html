@@ -17,6 +17,193 @@
     .group-page * {
         font-family: 'Inter', sans-serif;
     }
+
+    /* Moderator Badges CSS */
+    .role-badge-mini {
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        z-index: 2;
+    }
+
+    .role-badge-mini.owner {
+        background: #e74c3c !important;
+    }
+
+    .role-badge-mini.admin {
+        background: #9b59b6 !important;
+    }
+
+    .role-badge-mini.moderator {
+        background: #3498db !important;
+    }
+
+    .role-badge-mini.tier1 {
+        background: #ff4757 !important;
+    }
+
+    .role-badge-mini.tier2 {
+        background: #ffa502 !important;
+    }
+
+    .role-badge-mini.tier3 {
+        background: #eccc68 !important;
+    }
+
+    .role-badge-mini.tier4 {
+        background: #1e90ff !important;
+    }
+
+    .role-badge-mini.tier5 {
+        background: #7bed9f !important;
+    }
+
+    .member-avatar-wrapper {
+        transition: transform 0.2s ease;
+        cursor: pointer;
+    }
+
+    .member-avatar-wrapper:hover {
+        transform: scale(1.1);
+    }
+
+    .member-avatar {
+        border: 2px solid rgba(255, 255, 255, 0.05);
+        transition: border-color 0.2s ease;
+    }
+
+    .member-avatar-wrapper:hover .member-avatar {
+        border-color: rgba(0, 188, 212, 0.5);
+    }
+
+    /* Moderator Role Modal */
+    .mod-role-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+        backdrop-filter: blur(8px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    .mod-role-modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .mod-role-modal {
+        background: #141423;
+        width: 100%;
+        max-width: 450px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+    }
+
+    .mod-role-modal-overlay.active .mod-role-modal {
+        transform: translateY(0);
+    }
+
+    .mod-role-header {
+        padding: 20px;
+        background: linear-gradient(to right, rgba(0, 188, 212, 0.1), transparent);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .mod-role-body {
+        padding: 24px;
+    }
+
+    .mod-target-user {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 24px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+    }
+
+    .mod-target-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid var(--community-cyan, #00bcd4);
+    }
+
+    .mod-permissions-list {
+        margin-top: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .mod-perm-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .perm-checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .perm-checkbox-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .perm-checkbox-item input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--community-cyan, #00bcd4);
+        cursor: pointer;
+    }
+
+    .perm-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .perm-info i {
+        color: var(--community-cyan, #00bcd4);
+    }
+
+    .mod-perm-item i {
+        color: #2ecc71;
+        width: 14px;
+    }
+
+    .mod-role-footer {
+        padding: 20px;
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        background: rgba(255, 255, 255, 0.02);
+    }
 </style>
 
 <div class="group-page">
@@ -106,26 +293,6 @@
                 </div>
             </div>
 
-            <!-- Admins Section -->
-            <div class="group-card">
-                <h3 class="group-card-title">Admins</h3>
-                <div class="admin-list">
-                    {% if admins %}
-                    {% for admin in admins %}
-                    <div class="admin-item">
-                        <img src="{{ admin.avatar or 'https://i.pravatar.cc/150?img=' ~ (loop.index + 30) }}"
-                            alt="{{ admin.name }}" class="admin-avatar">
-                        <div class="admin-info">
-                            <span class="admin-name">{{ admin.name }}</span>
-                            <span class="admin-role">{{ admin.role|capitalize }}</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                    {% else %}
-                    <p style="color: rgba(255,255,255,0.5); font-size: 12px;">No admins assigned</p>
-                    {% endif %}
-                </div>
-            </div>
 
             <!-- Rules Section -->
             <div class="group-card">
@@ -335,210 +502,9 @@
             <div class="group-posts-feed" id="postFeed">
                 {% if posts %}
                 {% for post in posts %}
-                <article class="post-card" data-post-id="{{ post.id }}" data-post-type="{{ post.post_type }}"
-                    data-channel-id="{{ post.channel_id if post.channel_id else 'default' }}">
-                    <div class="vote-column">
-                        <button class="vote-btn upvote {{ 'active' if post.user_vote == 1 }}" title="Upvote"
-                            onclick="votePost({{ post.id }}, 1, this)">
-                            <i data-lucide="thumbs-up"></i>
-                            <span class="upvote-count">{{ post.upvotes|format_count }}</span>
-                        </button>
-                        <button class="vote-btn downvote {{ 'active' if post.user_vote == -1 }}" title="Downvote"
-                            onclick="votePost({{ post.id }}, -1, this)">
-                            <i data-lucide="thumbs-down"></i>
-                            <span class="downvote-count">{{ post.downvotes|format_count }}</span>
-                        </button>
-                    </div>
-
-                    <div class="post-content">
-                        <div class="post-meta" style="margin-bottom: 8px;">
-                            <div class="post-author">
-                                <img src="{{ post.avatar or 'https://i.pravatar.cc/150?img=' ~ loop.index }}"
-                                    alt="Author" class="post-author-avatar">
-                                <span class="post-author-name">{{ post.username }}</span>
-                            </div>
-                            <span class="posted-time">• {{ post.created_at|time_ago if post.created_at else 'Just now'
-                                }}</span>
-                        </div>
-
-                        {% if post.title %}
-                        <h2 class="post-title">{{ post.title }}</h2>
-                        {% endif %}
-
-                        <p class="post-body">{{ post.content|mentions|safe }}</p>
-
-                        {% if post.post_type == 'poll' and post.poll %}
-                        <div class="poll-container" id="poll-{{ post.poll.id }}">
-                            <div class="poll-question">{{ post.poll.question }}</div>
-                            <div class="poll-options">
-                                {% set total_votes = post.poll.total_votes %}
-
-                                {% for opt in post.poll.options %}
-                                {% set pct = (opt.votes / total_votes * 100)|round(1) if total_votes > 0 else 0 %}
-                                {% set is_voted = opt.id in post.poll.user_votes %}
-                                <button
-                                    class="poll-option-btn {{ 'voted' if post.poll.user_votes else '' }} {{ 'selected' if is_voted else '' }}"
-                                    onclick="togglePollOption({{ post.poll.id }}, {{ opt.id }}, {{ 'true' if post.poll.allow_multiple else 'false' }})"
-                                    data-option-id="{{ opt.id }}">
-                                    <div class="poll-progress-bar"
-                                        style="width: {{ pct if post.poll.user_votes else 0 }}%;"></div>
-                                    <div class="poll-option-content">
-                                        <span>{{ opt.text }}</span>
-                                        {% if post.poll.user_votes %}
-                                        <span class="poll-vote-pct">{{ pct }}%</span>
-                                        {% endif %}
-                                    </div>
-                                </button>
-                                {% endfor %}
-                            </div>
-                            <div class="poll-footer">
-                                <span>{{ total_votes }} votes • Ends {{ post.poll.expires_at|time_ago if
-                                    post.poll.expires_at else 'Soon' }}</span>
-                                <button class="vote-submit-btn" onclick="submitPollVote({{ post.poll.id }})"
-                                    id="vote-btn-{{ post.poll.id }}" {{ 'disabled' if not post.poll.user_votes else ''
-                                    }}>
-                                    {{ 'Update Vote' if post.poll.user_votes else 'Vote' }}
-                                </button>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        {% if post.attachments %}
-                        <div class="post-attachments">
-                            {% for attach in post.attachments %}
-                            {% if attach.type in ['png', 'jpg', 'jpeg', 'webp', 'gif', 'sticker'] %}
-                            <img src="{{ attach.url }}" class="post-attachment-img" alt="Attachment"
-                                onclick="window.open(this.src)">
-                            {% elif attach.type == 'manga_link' %}
-                            <a href="{{ attach.url }}" class="post-attachment-manga">
-                                {% if attach.manga_cover %}
-                                <img src="{{ attach.manga_cover }}" class="manga-preview-img"
-                                    onerror="this.src='https://via.placeholder.com/200x300?text=No+Cover'">
-                                {% else %}
-                                <i data-lucide="book" style="width:32px;height:32px;color:#00bcd4;"></i>
-                                {% endif %}
-                                <div class="manga-link-info">
-                                    <h4>{{ attach.manga_title or 'Series Link' }}</h4>
-                                    <p>Click to view details</p>
-                                </div>
-                            </a>
-                            {% else %}
-                            <a href="{{ attach.url }}" class="post-attachment-file" download>
-                                <i data-lucide="file-text"></i>
-                                <span>{{ attach.name }}</span>
-                            </a>
-                            {% endif %}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-
-                        <div class="post-actions">
-                            <button class="comments-btn" onclick="toggleComments({{ post.id }})">
-                                <i data-lucide="message-circle"></i>
-                                <span id="comment-count-{{ post.id }}">{{ post.comment_count|format_count }}
-                                    Comments</span>
-                                Comments</span>
-                            </button>
-                            <button class="share-btn">
-                                <i data-lucide="corner-up-right"></i>
-                            </button>
-
-                            {% if post.user_id == session.get('user_id') or session.get('role') == 'admin' %}
-                            <div class="post-owner-actions">
-                                <button class="post-edit-btn"
-                                    onclick="editPost({{ post.id }}, '{{ post.content|replace("'", "\\'") }}')"
-                                    title="Edit Post">
-                                    <i data-lucide="pencil"></i>
-                                </button>
-                                <button class="post-delete-btn" onclick="deletePost({{ post.id }})" title="Delete Post">
-                                    <i data-lucide="trash-2"></i>
-                                </button>
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Comments Section -->
-                        <div class="post-comments-section" id="comments-section-{{ post.id }}">
-                            <div class="comments-sort-header"
-                                style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <button onclick="toggleComments({{ post.id }})"
-                                    style="background: none; border: none; color: #aaa; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px;">
-                                    <i data-lucide="chevron-up" style="width: 14px; height: 14px;"></i>
-                                    <span>Hide</span>
-                                </button>
-                                <select onchange="loadComments({{ post.id }}, this.value)"
-                                    style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 12px;">
-                                    <option value="oldest">Oldest First</option>
-                                    <option value="newest">Newest First</option>
-                                    <option value="most_reacted">Most Reacted</option>
-                                </select>
-                            </div>
-                            <div class="comment-list" id="comment-list-{{ post.id }}">
-                                <!-- Comments will be loaded here -->
-                            </div>
-
-                            <div class="comment-input-wrap">
-                                <img src="{{ user_avatar if user_avatar else 'https://i.pravatar.cc/150?img=12' }}"
-                                    class="comment-avatar">
-                                <div class="comment-input-container">
-                                    <div class="comment-previews" id="comment-previews-{{ post.id }}"></div>
-                                    <div class="comment-input-box">
-                                        <textarea class="comment-input" id="comment-input-{{ post.id }}"
-                                            data-post-id="{{ post.id }}"
-                                            onfocus="window.activeInput=this; window.activePickerPostId={{ post.id }};"
-                                            placeholder="Write a comment..."></textarea>
-                                        <div class="comment-input-actions">
-                                            <div class="comment-extra-btns">
-                                                <button class="comment-extra-btn" title="Attach Image"
-                                                    onclick="triggerCommentFile({{ post.id }}, 'image')">
-                                                    <i data-lucide="image"></i>
-                                                </button>
-                                                <button class="comment-extra-btn" title="Attach File"
-                                                    onclick="triggerCommentFile({{ post.id }}, 'file')">
-                                                    <i data-lucide="file-text"></i>
-                                                </button>
-                                                <button class="comment-extra-btn" title="Mention"
-                                                    onclick="insertMentionChar({{ post.id }})">
-                                                    <i data-lucide="at-sign"></i>
-                                                </button>
-                                                <button class="comment-extra-btn" title="Manga"
-                                                    onclick="toggleMangaSearch({{ post.id }})">
-                                                    <i data-lucide="book"></i>
-                                                </button>
-                                                <div class="input-actions-divider"></div>
-                                                <button class="comment-extra-btn" title="Gift"
-                                                    onclick="togglePicker('giftPicker', {{ post.id }}, this)">
-                                                    <i data-lucide="gift"></i>
-                                                </button>
-                                                <button class="comment-extra-btn" title="GIF"
-                                                    onclick="togglePicker('gifPicker', {{ post.id }}, this)">
-                                                    <i data-lucide="sticker"></i>
-                                                </button>
-                                                <button class="comment-extra-btn" title="Stickers"
-                                                    onclick="togglePicker('stickerPicker', {{ post.id }}, this)">
-                                                    <i data-lucide="smile-plus"></i>
-                                                </button>
-                                                <button class="comment-extra-btn" title="Emoticons"
-                                                    onclick="togglePicker('emoticonPicker', {{ post.id }}, this)">
-                                                    <i data-lucide="meh"></i>
-                                                </button>
-                                                <button class="comment-extra-btn" title="Emoji"
-                                                    onclick="togglePicker('emojiPicker', {{ post.id }}, this)">
-                                                    <i data-lucide="smile"></i>
-                                                </button>
-                                            </div>
-                                            <button class="create-post-btn" style="padding: 6px 14px;"
-                                                onclick="submitComment({{ post.id }}, event)">
-                                                Reply
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
+                {% include 'post_card_partial.html' %}
                 {% endfor %}
+
                 {% else %}
                 <div class="no-posts" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.3);">
                     <i data-lucide="message-square" style="width: 48px; height: 48px; margin-bottom: 16px;"></i>
@@ -561,21 +527,29 @@
             <div class="decorative-star-large star-1">★</div>
             <div class="decorative-star-large star-2">★</div>
 
-            <!-- Members Section -->
+            <!-- Moderators Section -->
             {% if not (group.name == 'World' and group.group_type == 'system') %}
             <div class="group-card">
-                <h3 class="group-card-title">Members ({{ group.member_count if group else 0 }})</h3>
+                <h3 class="group-card-title">MODERATORS</h3>
                 <div class="members-grid">
-                    {% if recent_members %}
-                    {% for member in recent_members %}
-                    <img src="{{ member.avatar or 'https://i.pravatar.cc/150?img=' ~ loop.index }}"
-                        alt="{{ member.name }}" class="member-avatar" title="{{ member.name }}">
+                    {% if admins %}
+                    {% for mod in admins %}
+                    <div class="member-avatar-wrapper" style="position: relative;">
+                        <img src="{{ mod.avatar or 'https://i.pravatar.cc/150?img=' ~ loop.index }}"
+                            alt="{{ mod.name }}" class="member-avatar"
+                            title="{{ mod.name }} ({{ mod.role|capitalize }})">
+                        <div class="role-badge-mini {{ mod.role }}"
+                            title="{{ mod.role|replace('tier', 'Tier ')|capitalize }}"
+                            style="position: absolute; bottom: -2px; right: -2px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #141423; background: {% if mod.role == 'owner' %}#e74c3c{% elif mod.role == 'admin' %}#9b59b6{% elif mod.role == 'tier1' %}#ff4757{% elif mod.role == 'tier2' %}#ffa502{% elif mod.role == 'tier3' %}#eccc68{% elif mod.role == 'tier4' %}#1e90ff{% elif mod.role == 'tier5' %}#7bed9f{% else %}#3498db{% endif %};">
+                        </div>
+                    </div>
                     {% endfor %}
                     {% else %}
-                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; grid-column: 1/-1;">No members yet</p>
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; grid-column: 1/-1;">No moderators yet</p>
                     {% endif %}
                 </div>
-                <a class="view-all-link">View All Members →</a>
+                <a class="view-all-link" href="{{ url_for('group_page', group_id=group.id) }}?tab=members">View All
+                    Members →</a>
             </div>
             {% endif %}
 
@@ -882,13 +856,10 @@
                         <div class="add-admin-row" style="position: relative;">
                             <input type="text" class="settings-input" id="modSearchInput"
                                 placeholder="Search by username..." autocomplete="off">
-                            <select id="modRoleSelect" class="settings-input" style="width: 140px; margin-left: 8px;">
-                                <option value="moderator">Moderator</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                            <button class="btn-add-admin" id="addModBtn"><i data-lucide="user-plus"></i></button>
+                            <button class="btn-add-admin" id="addModBtn" title="Assign Role & Add"><i
+                                    data-lucide="user-plus"></i></button>
                             <div class="user-suggestions" id="modSuggestions"
-                                style="display: none; position: absolute; top: 100%; left: 0; right: 140px; margin-right: 8px; background: rgba(20, 20, 35, 0.98); border: 1px solid rgba(0, 188, 212, 0.3); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(20, 20, 35, 0.98); border: 1px solid rgba(0, 188, 212, 0.3); border-radius: 8px; max-height: 250px; overflow-y: auto; z-index: 10010; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
                             </div>
                         </div>
                     </div>
@@ -985,6 +956,57 @@
         <div class="settings-modal-footer">
             <button class="btn-cancel" id="cancelSettingsBtn">Cancel</button>
             <button class="btn-save" id="saveSettingsBtn">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODERATOR ROLE MODAL ===== -->
+<div class="mod-role-modal-overlay" id="modRoleModal">
+    <div class="mod-role-modal">
+        <div class="mod-role-header">
+            <h3 style="margin:0; font-size: 18px; color: #fff;"><i data-lucide="shield-check"
+                    style="vertical-align: middle; margin-right: 8px;"></i>Assign Moderator Role</h3>
+            <button onclick="closeModRoleModal()"
+                style="background:none; border:none; color:#aaa; cursor:pointer; font-size:20px;">&times;</button>
+        </div>
+        <div class="mod-role-body">
+            <div class="mod-target-user" id="modTargetUser">
+                <img src="" class="mod-target-avatar" id="modTargetAvatar">
+                <div>
+                    <div style="color:#fff; font-weight:600; font-size:16px;" id="modTargetName">Username</div>
+                    <div style="color:rgba(255,255,255,0.5); font-size:12px;" id="modTargetRole">Current Member</div>
+                </div>
+            </div>
+
+            <div class="settings-form-group">
+                <label style="color: rgba(255,255,255,0.6); font-size: 12px; margin-bottom: 8px; display: block;">SELECT
+                    RANK</label>
+                <select id="modalModRoleSelect" class="settings-select" style="width: 100%;"
+                    onchange="updateModPermissionsUI()">
+                    <option value="tier1">Tier 1 Moderator (Highest)</option>
+                    <option value="tier2">Tier 2 Moderator</option>
+                    <option value="tier3">Tier 3 Moderator</option>
+                    <option value="tier4">Tier 4 Moderator</option>
+                    <option value="tier5">Tier 5 Moderator (Basic)</option>
+                    <option value="admin">System Admin</option>
+                </select>
+            </div>
+
+            <div style="margin-top: 24px;">
+                <label
+                    style="color: rgba(255,255,255,0.6); font-size: 12px; margin-bottom: 12px; display: block;">ACCESS
+                    PERMISSIONS</label>
+                <div class="mod-permissions-list" id="modPermissionsList">
+                    <!-- Dynamic permissions will be inserted here -->
+                </div>
+            </div>
+        </div>
+        <div class="mod-role-footer">
+            <button onclick="closeModRoleModal()"
+                style="padding: 10px 20px; background: rgba(255,255,255,0.05); border: none; color: #fff; border-radius: 8px; cursor: pointer; font-weight: 500;">Cancel</button>
+            <button id="confirmAddModBtn"
+                style="padding: 10px 24px; background: var(--community-cyan, #00bcd4); border: none; color: #000; border-radius: 8px; cursor: pointer; font-weight: 600;">Assign
+                & Add</button>
         </div>
     </div>
 </div>
@@ -3101,7 +3123,7 @@
 </style>
 
 <script>
-    window.activeGroupId = {{ group.id if group else 0 }};
+    const activeGroupId = {{ group.id if group else 0 }};
     window.currentUserId = {{ session.get('user_id', 0) }};
     window.activeInput = null;
     window.activePickerPostId = null;
@@ -3201,12 +3223,69 @@
             initPickers();
         } catch (e) { console.warn('Picker init failed', e); }
 
-        // === Moderator Search Autocomplete ===
+        // === Moderator Search & Role Assignment Modal ===
         const modSearchInput = document.getElementById('modSearchInput');
         const modSuggestions = document.getElementById('modSuggestions');
-        const modRoleSelect = document.getElementById('modRoleSelect');
         const addModBtn = document.getElementById('addModBtn');
-        let selectedUserId = null;
+        const modRoleModal = document.getElementById('modRoleModal');
+        const modalModRoleSelect = document.getElementById('modalModRoleSelect');
+        const modPermissionsList = document.getElementById('modPermissionsList');
+        const confirmAddModBtn = document.getElementById('confirmAddModBtn');
+
+        let selectedUserForMod = null;
+
+        const ROLE_PERMISSIONS = {
+            'tier1': ['delete_posts', 'manage_comments', 'pin_discussions', 'view_logs', 'edit_settings', 'manage_members'],
+            'tier2': ['delete_posts', 'manage_comments', 'pin_discussions', 'view_logs', 'manage_members'],
+            'tier3': ['delete_posts', 'manage_comments', 'pin_discussions', 'view_logs'],
+            'tier4': ['delete_posts', 'manage_comments'],
+            'tier5': ['manage_comments'],
+            'admin': ['delete_posts', 'manage_comments', 'pin_discussions', 'view_logs', 'edit_settings', 'manage_members']
+        };
+
+        const ALL_PERMS = [
+            { id: 'delete_posts', icon: 'trash-2', text: 'Delete inappropriate posts' },
+            { id: 'manage_comments', icon: 'message-square', text: 'Manage and delete comments' },
+            { id: 'pin_discussions', icon: 'pin', text: 'Pin important discussions' },
+            { id: 'view_logs', icon: 'shield', text: 'View member activity logs' },
+            { id: 'edit_settings', icon: 'settings', text: 'Edit group info and settings' },
+            { id: 'manage_members', icon: 'users', text: 'Manage members and moderators' }
+        ];
+
+        window.openModRoleModal = function (user) {
+            selectedUserForMod = user;
+            document.getElementById('modTargetAvatar').src = user.avatar || '/static/default-avatar.png';
+            document.getElementById('modTargetName').textContent = user.username;
+            document.getElementById('modTargetRole').textContent = `Member since today`; // Could fetch actual join date if needed
+
+            modRoleModal.classList.add('active');
+            updateModPermissionsUI();
+            if (window.lucide) lucide.createIcons({ scope: modRoleModal });
+        };
+
+        window.closeModRoleModal = function () {
+            modRoleModal.classList.remove('active');
+        };
+
+        window.updateModPermissionsUI = function () {
+            const role = modalModRoleSelect.value;
+            const activePerms = ROLE_PERMISSIONS[role] || [];
+
+            modPermissionsList.innerHTML = ALL_PERMS.map(p => {
+                const checked = activePerms.includes(p.id) ? 'checked' : '';
+                return `
+                    <label class="perm-checkbox-item">
+                        <div class="perm-info">
+                            <i data-lucide="${p.icon}" style="width:14px; height:14px;"></i>
+                            <span>${p.text}</span>
+                        </div>
+                        <input type="checkbox" name="permissions" value="${p.id}" ${checked}>
+                    </label>
+                `;
+            }).join('');
+
+            if (window.lucide) lucide.createIcons({ scope: modPermissionsList });
+        };
 
         if (modSearchInput && modSuggestions) {
             let debounceTimer;
@@ -3221,15 +3300,13 @@
                     try {
                         const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}&group_id={{ group.id }}`);
                         const data = await res.json();
-                        console.log(`Moderator Search results:`, data);
-                        // API returns direct array, not wrapped in results/users
                         const users = Array.isArray(data) ? data : (data.users || data.results || []);
 
                         if (users.length === 0) {
                             modSuggestions.innerHTML = '<div style="padding:12px;color:rgba(255,255,255,0.5);">No users found</div>';
                         } else {
                             modSuggestions.innerHTML = users.filter(u => u.type !== 'special' && u.type !== 'role').map(u => `
-                                <div class="user-suggestion-item" data-user-id="${u.id}" data-username="${u.username}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:background 0.2s;">
+                                <div class="user-suggestion-item" data-user-id="${u.id}" data-username="${u.username}" data-avatar="${u.avatar || u.avatar_url || ''}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:background 0.2s;">
                                     <img src="${u.avatar || u.avatar_url || '/static/default-avatar.png'}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
                                     <div>
                                         <div style="color:#fff;font-weight:500;">${u.username}</div>
@@ -3240,22 +3317,24 @@
                         }
                         modSuggestions.style.display = 'block';
 
-                        // Add click handlers
                         modSuggestions.querySelectorAll('.user-suggestion-item').forEach(item => {
                             item.addEventListener('mouseenter', () => item.style.background = 'rgba(0,188,212,0.1)');
                             item.addEventListener('mouseleave', () => item.style.background = 'transparent');
                             item.addEventListener('click', () => {
-                                selectedUserId = item.dataset.userId;
-                                modSearchInput.value = item.dataset.username;
+                                const user = {
+                                    id: item.dataset.userId,
+                                    username: item.dataset.username,
+                                    avatar: item.dataset.avatar
+                                };
+                                modSearchInput.value = user.username;
                                 modSuggestions.style.display = 'none';
-                                console.log(`Selected User ID: ${selectedUserId}`);
+                                openModRoleModal(user);
                             });
                         });
                     } catch (e) { console.error('Search error:', e); }
                 }, 300);
             });
 
-            // Hide on click outside
             document.addEventListener('click', (e) => {
                 if (!modSearchInput.contains(e.target) && !modSuggestions.contains(e.target)) {
                     modSuggestions.style.display = 'none';
@@ -3264,26 +3343,51 @@
         }
 
         if (addModBtn) {
-            addModBtn.addEventListener('click', async () => {
-                if (!selectedUserId) {
-                    alert('Please select a user from the suggestions');
+            addModBtn.addEventListener('click', () => {
+                const query = modSearchInput.value.trim();
+                if (!query) {
+                    alert('Please search for a user first');
                     return;
                 }
-                const role = modRoleSelect ? modRoleSelect.value : 'moderator';
+                // If they typed something but didn't click a suggestion, we could try to find exact match
+                // or just ask them to pick from the list.
+                if (!selectedUserForMod || selectedUserForMod.username !== query) {
+                    alert('Please select a user from the search results');
+                    return;
+                }
+                openModRoleModal(selectedUserForMod);
+            });
+        }
+
+        if (confirmAddModBtn) {
+            confirmAddModBtn.addEventListener('click', async () => {
+                if (!selectedUserForMod) return;
+
+                const role = modalModRoleSelect.value;
+                confirmAddModBtn.disabled = true;
+                confirmAddModBtn.textContent = 'Processing...';
+
                 try {
                     const res = await fetch(`/group/{{ group.id }}/add-moderator`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: selectedUserId, role: role })
+                        body: JSON.stringify({ user_id: selectedUserForMod.id, role: role })
                     });
                     const data = await res.json();
                     if (data.success) {
+                        closeModRoleModal();
                         alert(data.message);
                         location.reload();
                     } else {
                         alert(data.message || 'Failed to add');
+                        confirmAddModBtn.disabled = false;
+                        confirmAddModBtn.textContent = 'Assign & Add';
                     }
-                } catch (e) { alert('Error adding moderator'); }
+                } catch (e) {
+                    alert('Error adding moderator');
+                    confirmAddModBtn.disabled = false;
+                    confirmAddModBtn.textContent = 'Assign & Add';
+                }
             });
         }
 
@@ -3435,6 +3539,15 @@
                             this.classList.add('joined');
                             this.querySelector('span').textContent = 'Joined';
                             this.querySelector('i, svg').setAttribute('data-lucide', 'check');
+
+                            // Immediate achievement notification
+                            if (data.new_achievements && data.new_achievements.length > 0) {
+                                data.new_achievements.forEach(ach => {
+                                    if (window.showAchievementNotification) {
+                                        window.showAchievementNotification(ach);
+                                    }
+                                });
+                            }
                         }
 
                         // Re-render icons
@@ -3839,11 +3952,10 @@
 
         window.toggleComments = async function (postId) {
             const section = document.getElementById(`comments-section-${postId}`);
-            const list = document.getElementById(`comment-list-${postId}`); // Group page uses singular 'comment-list'
+            const list = document.getElementById(`comment-list-${postId}`);
 
             if (section.style.display === 'none' || section.style.display === '') {
                 section.style.display = 'block';
-                // Load comments if strictly empty or just spinner
                 if (list.children.length === 0 || list.querySelector('.loading-spinner')) {
                     loadComments(postId);
                 }
@@ -3851,11 +3963,15 @@
                 section.style.display = 'none';
             }
         };
+
         window.loadComments = async function (postId, sortBy = 'oldest') {
             const list = document.getElementById(`comment-list-${postId}`);
-            const currentUserId = window.currentUserId || {{ session.get('user_id', 0)
-        }
-    };
+            const currentUserId = {{ session.get('user_id', 0) }};
+
+
+
+
+
 
     list.innerHTML = '<div style="padding:10px;text-align:center;"><i class="spin" data-lucide="loader"></i></div>';
     if (window.lucide) lucide.createIcons();
@@ -3955,7 +4071,6 @@
             return;
         }
 
-        // Remove any other open pickers
         document.querySelectorAll('.reaction-picker-popover').forEach(el => el.remove());
 
         const picker = document.createElement('div');
@@ -3975,7 +4090,6 @@
 
         btn.appendChild(picker);
 
-        // Close on outside click
         setTimeout(() => {
             document.addEventListener('click', function close(e) {
                 if (!picker.contains(e.target) && !btn.contains(e.target)) {
@@ -4002,11 +4116,11 @@
                     for (const [rType, count] of Object.entries(data.reactions)) {
                         const isUser = data.user_reaction === rType;
                         html += `
-                            <div class="reaction-badge ${isUser ? 'active' : ''}" onclick="voteGroupComment(${commentId}, '${rType}')">
-                                <span>${REACTION_MAP[rType] || '👍'}</span>
-                                <span>${formatCount(count)}</span>
-                            </div>
-                        `;
+                                <div class="reaction-badge ${isUser ? 'active' : ''}" onclick="voteGroupComment(${commentId}, '${rType}')">
+                                    <span>${REACTION_MAP[rType] || '👍'}</span>
+                                    <span>${formatCount(count)}</span>
+                                </div>
+                            `;
                     }
                     listDiv.innerHTML = html;
                 }

@@ -520,6 +520,165 @@ def inject_user_avatar():
         logger.error(traceback.format_exc())
         return {'user_avatar': None, 'user_id': None}
 
+def sync_achievements_core(user_id):
+    """Core logic to check and award all automatic achievements for a user."""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Get user metrics
+        # Reading (Books)
+        c.execute("SELECT COUNT(DISTINCT book_id) FROM activity_log WHERE user_id = ? AND activity_type = 'read'", (user_id,))
+        read_count = c.fetchone()[0]
+        
+        # Social (Groups Joined)
+        c.execute("SELECT COUNT(*) FROM group_members WHERE user_id = ?", (user_id,))
+        group_count = c.fetchone()[0]
+        
+        # Critic (Reviews)
+        c.execute("SELECT COUNT(*) FROM reviews WHERE user_id = ?", (user_id,))
+        rev_count = c.fetchone()[0]
+        
+        # AI Usage
+        c.execute("SELECT COUNT(*) FROM activity_log WHERE user_id = ? AND (activity_type = 'summarized' OR summary_generated = 1)", (user_id,))
+        ai_count = c.fetchone()[0]
+        
+        # Tools (Promotions)
+        c.execute("SELECT COUNT(*) FROM activity_log WHERE user_id = ? AND activity_type = 'promoted'", (user_id,))
+        prom_count = c.fetchone()[0]
+
+        # --- NEW METRICS ---
+        
+        # Manga Read Count (Unique Series)
+        c.execute("SELECT COUNT(DISTINCT manga_id) FROM manga_progress WHERE user_id = ?", (user_id,))
+        manga_read_count = c.fetchone()[0]
+
+        # Manga Chapters Count
+        c.execute("SELECT COUNT(*) FROM manga_progress WHERE user_id = ?", (user_id,))
+        manga_chapters_count = c.fetchone()[0]
+
+        # Community Posts
+        c.execute("SELECT COUNT(*) FROM group_posts WHERE user_id = ?", (user_id,))
+        posts_count = c.fetchone()[0]
+
+        # Total Comments (Group + Manga + Chapter)
+        # We'll sum them up for a 'community engagement' metric
+        c.execute("SELECT (SELECT COUNT(*) FROM group_comments WHERE user_id = ?) + (SELECT COUNT(*) FROM manga_comments WHERE user_id = ?) + (SELECT COUNT(*) FROM chapter_comments WHERE user_id = ?)", (user_id, user_id, user_id))
+        comments_count = c.fetchone()[0]
+
+        # Favorites
+        c.execute("SELECT COUNT(*) FROM favorites WHERE user_id = ?", (user_id,))
+        fav_count = c.fetchone()[0]
+        
+        metrics = {
+            'reading': read_count,
+            'social': group_count,
+            'critic': rev_count,
+            'ai': ai_count,
+            'tools': prom_count,
+            'manga_read': manga_read_count,
+            'manga_chapters': manga_chapters_count,
+            'posts': posts_count,
+            'comments': comments_count,
+            'favorites': fav_count
+        }
+
+        # Fetch achievements with requirements
+        c.execute("SELECT slug, requirement_type, requirement_value FROM achievements WHERE requirement_type IS NOT NULL")
+        to_award = []
+        for slug, req_type, req_val in c.fetchall():
+            if req_type in metrics and metrics[req_type] >= req_val:
+                to_award.append(slug)
+            
+        conn.close()
+        
+        # Award them sequentially
+        for slug in to_award:
+            award_achievement(user_id, slug)
+            
+    except Exception as e:
+        logger.error(f"Error in sync_achievements_core for user {user_id}: {traceback.format_exc()}")
+
+def get_hex_for_badge(color):
+    """Helper to return hex color for common badge color names."""
+    colors = {
+        'cyan': '#06b6d4',
+        'purple': '#a855f7',
+        'yellow': '#eab308',
+        'green': '#22c55e',
+        'blue': '#3b82f6',
+        'orange': '#f97316',
+        'deepblue': '#1e3a8a'
+    }
+    return colors.get(color, '#06b6d4')
+
+def award_achievement(user_id, slug):
+    """
+    Grants an achievement to a user if they don't already have it.
+    Also auto-unlocks all lower-level achievements in the same category.
+    Returns the achievement dictionary if newly awarded, None otherwise.
+    """
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Get achievement details
+        c.execute("SELECT id, name, icon, badge_color, level, category FROM achievements WHERE slug = ?", (slug,))
+        ach = c.fetchone()
+        if not ach:
+            conn.close()
+            return None
+            
+        ach_id, ach_name, ach_icon, ach_color, ach_level, ach_category = ach
+        
+        # Check if already earned
+        c.execute("SELECT 1 FROM user_achievements WHERE user_id = ? AND achievement_id = ?", (user_id, ach_id))
+        if c.fetchone():
+            conn.close()
+            return None
+            
+        # Award it
+        c.execute("INSERT INTO user_achievements (user_id, achievement_id) VALUES (?, ?)", (user_id, ach_id))
+        
+        # Auto-unlock all lower-level achievements in the same category
+        if ach_category and ach_level and ach_level > 1:
+            c.execute("""
+                SELECT id FROM achievements 
+                WHERE category = ? AND level < ? AND id NOT IN (
+                    SELECT achievement_id FROM user_achievements WHERE user_id = ?
+                )
+            """, (ach_category, ach_level, user_id))
+            lower_achs = c.fetchall()
+            for (lower_id,) in lower_achs:
+                c.execute("INSERT INTO user_achievements (user_id, achievement_id) VALUES (?, ?)", (user_id, lower_id))
+            if lower_achs:
+                logger.info(f"Auto-unlocked {len(lower_achs)} lower-level achievements in category '{ach_category}' for user {user_id}")
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Awarded achievement: {ach_name} (Level {ach_level}) to user {user_id}")
+        
+        # Store in session for notification popup
+        ach_data = {
+            'name': ach_name,
+            'slug': slug,
+            'icon': ach_icon,
+            'color': get_hex_for_badge(ach_color),
+            'level': ach_level
+        }
+        
+        if 'new_achievements' not in session:
+            session['new_achievements'] = []
+        
+        session['new_achievements'].append(ach_data)
+        session.modified = True
+        
+        return ach_data
+    except Exception as e:
+        logger.error(f"Error awarding achievement {slug} to user {user_id}: {e}")
+        return None
+
 
 def allowed(filename, allowed_set):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_set
@@ -1715,6 +1874,119 @@ def init_db():
         conn.commit()
         logger.info(f"Synced {count} users to World system group")
 
+    # achievements table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS achievements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            slug TEXT UNIQUE NOT NULL,
+            description TEXT,
+            icon TEXT NOT NULL,
+            badge_color TEXT DEFAULT 'cyan',
+            level INTEGER DEFAULT 1,
+            category TEXT,
+            requirement_type TEXT,
+            requirement_value INTEGER,
+            rarity TEXT DEFAULT 'none',
+            icon_type TEXT DEFAULT 'fontawesome',
+            animation_type TEXT DEFAULT 'rotating',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # user_achievements table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS user_achievements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            achievement_id INTEGER NOT NULL,
+            earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE,
+            UNIQUE(user_id, achievement_id)
+        )
+    """)
+
+    # Seed tiered achievements (Ultimate 10-Tiers)
+    c.execute("SELECT COUNT(*) FROM achievements")
+    if c.fetchone()[0] < 50: # If full 50+ don't exist, re-seed
+        c.execute("DELETE FROM achievements")
+        tiered_achievements = [
+            # Reading (Milestones: 1, 5, 10, 20, 35, 50, 75, 100, 150, 250)
+            ('First Steps', 'first_read', 'Read your first book', 'fa-walking', 'cyan', 1, 'reading', 'reading', 1),
+            ('Bookworm', 'read_5_books', 'Read 5 different books', 'fa-book', 'cyan', 2, 'reading', 'reading', 5),
+            ('Bibliophile', 'read_lv3', 'Read 10 different books', 'fa-book-open', 'cyan', 3, 'reading', 'reading', 10),
+            ('Library Regular', 'read_20_books', 'Read 20 different books', 'fa-book-reader', 'purple', 4, 'reading', 'reading', 20),
+            ('Scholar', 'read_lv5', 'Read 35 different books', 'fa-graduation-cap', 'purple', 5, 'reading', 'reading', 35),
+            ('Professor', 'read_50_books', 'Read 50 different books', 'fa-university', 'purple', 6, 'reading', 'reading', 50),
+            ('Sage', 'read_lv7', 'Read 75 different books', 'fa-lightbulb', 'yellow', 7, 'reading', 'reading', 75),
+            ('Library Legend', 'read_100_books', 'Read 100 different books', 'fa-scroll', 'yellow', 8, 'reading', 'reading', 100),
+            ('Grand Librarian', 'read_lv9', 'Read 150 different books', 'fa-landmark', 'yellow', 9, 'reading', 'reading', 150),
+            ('Omniscient Reader', 'read_lv10', 'Read 250 different books', 'fa-globe-asia', 'orange', 10, 'reading', 'reading', 250),
+            
+            # Groups (Milestones: 1, 2, 3, 5, 8, 12, 18, 25, 45, 75)
+            ('New Member', 'social_lv1', 'Join your first group', 'fa-user-plus', 'cyan', 1, 'social', 'social', 1),
+            ('Social Explorer', 'social_lv2', 'Join 2 community groups', 'fa-hiking', 'cyan', 2, 'social', 'social', 2),
+            ('Socialite', 'join_3_groups', 'Join 3 community groups', 'fa-users', 'cyan', 3, 'social', 'social', 3),
+            ('Active Hub', 'social_lv4', 'Join 5 community groups', 'fa-comments', 'purple', 4, 'social', 'social', 5),
+            ('Networker', 'social_lv5', 'Join 8 community groups', 'fa-network-wired', 'purple', 5, 'social', 'social', 8),
+            ('Influencer', 'social_lv6', 'Join 12 community groups', 'fa-bullhorn', 'purple', 6, 'social', 'social', 12),
+            ('Community Pillar', 'social_lv7', 'Join 18 community groups', 'fa-columns', 'yellow', 7, 'social', 'social', 18),
+            ('Networker Extraordinaire', 'join_25_groups', 'Join 25 groups', 'fa-globe', 'yellow', 8, 'social', 'social', 25),
+            ('Social Architect', 'social_lv9', 'Join 45 groups', 'fa-city', 'yellow', 9, 'social', 'social', 45),
+            ('Social Maven', 'social_lv10', 'Join 75 groups', 'fa-crown', 'orange', 10, 'social', 'social', 75),
+            
+            # Reviews (Milestones: 1, 3, 5, 10, 15, 20, 30, 45, 65, 100)
+            ('First Opinion', 'first_review_lv1', 'Post your first review', 'fa-pen', 'cyan', 1, 'critic', 'critic', 1),
+            ('Reviewer', 'rev_lv2', 'Post 3 reviews', 'fa-comment-alt', 'cyan', 2, 'critic', 'critic', 3),
+            ('Honest Critic', 'first_review', 'Post 5 reviews', 'fa-star', 'cyan', 3, 'critic', 'critic', 5),
+            ('Deep Analyst', 'rev_lv4', 'Post 10 reviews', 'fa-microscope', 'purple', 4, 'critic', 'critic', 10),
+            ('Trusted Reviewer', 'reviews_15', 'Post 15 reviews', 'fa-check-double', 'purple', 5, 'critic', 'critic', 15),
+            ('Connoisseur', 'rev_lv6', 'Post 20 reviews', 'fa-wine-glass', 'purple', 6, 'critic', 'critic', 20),
+            ('Master Critic', 'reviews_30', 'Post 30 reviews', 'fa-award', 'yellow', 7, 'critic', 'critic', 30),
+            ('Thought Leader', 'rev_lv8', 'Post 45 reviews', 'fa-brain', 'yellow', 8, 'critic', 'critic', 45),
+            ('Philosopher', 'rev_lv9', 'Post 65 reviews', 'fa-pray', 'yellow', 9, 'critic', 'critic', 65),
+            ('Grand Inquisitor', 'rev_lv10', 'Post 100 reviews', 'fa-gavel', 'orange', 10, 'critic', 'critic', 100),
+            
+            # AI (Milestones: 1, 5, 10, 15, 25, 40, 60, 90, 130, 200)
+            ('Curious Mind', 'first_summary_lv1', 'Generate 1 summary', 'fa-lightbulb', 'cyan', 1, 'ai', 'ai', 1),
+            ('Tech Explorer', 'ai_lv2', 'Generate 5 summaries', 'fa-search', 'cyan', 2, 'ai', 'ai', 5),
+            ('AI Pioneer', 'first_summary', 'Generate 10 summaries', 'fa-sparkles', 'cyan', 3, 'ai', 'ai', 10),
+            ('Logic Master', 'ai_lv4', 'Generate 15 summaries', 'fa-cogs', 'purple', 4, 'ai', 'ai', 15),
+            ('AI Assistant', 'ai_lv5', 'Generate 25 summaries', 'fa-robot', 'purple', 5, 'ai', 'ai', 25),
+            ('Neural Tinkerer', 'ai_lv6', 'Generate 40 summaries', 'fa-microchip', 'purple', 6, 'ai', 'ai', 40),
+            ('AI Strategist', 'ai_lv7', 'Generate 60 summaries', 'fa-chess', 'yellow', 7, 'ai', 'ai', 60),
+            ('Neural Architect', 'ai_lv8', 'Generate 90 summaries', 'fa-project-diagram', 'yellow', 8, 'ai', 'ai', 90),
+            ('AI Visionary', 'ai_lv9', 'Generate 130 summaries', 'fa-eye', 'yellow', 9, 'ai', 'ai', 130),
+            ('Digitized Soul', 'ai_lv10', 'Generate 200 summaries', 'fa-atom', 'orange', 10, 'ai', 'ai', 200),
+            
+            # Tools (Milestones: 1, 2, 3, 4, 5, 7, 10, 15, 25, 40)
+            ('Apprentice', 'first_promote', 'Promote 1 project', 'fa-hammer', 'cyan', 1, 'tools', 'tools', 1),
+            ('Tinkerer', 'tool_lv2', 'Promote 2 projects', 'fa-wrench', 'cyan', 2, 'tools', 'tools', 2),
+            ('Tool Specialist', 'promote_project', 'Promote 3 projects', 'fa-tools', 'cyan', 3, 'tools', 'tools', 3),
+            ('Senior Maker', 'tool_lv4', 'Promote 4 projects', 'fa-user-cog', 'purple', 4, 'tools', 'tools', 4),
+            ('Senior Engineer', 'promote_5', 'Promote 5 projects', 'fa-cogs', 'purple', 5, 'tools', 'tools', 5),
+            ('Lead Developer', 'tool_lv6', 'Promote 7 projects', 'fa-vial', 'purple', 6, 'tools', 'tools', 7),
+            ('Grand Architect', 'promote_10', 'Promote 10 projects', 'fa-city', 'yellow', 7, 'tools', 'tools', 10),
+            ('Master Builder', 'tool_lv8', 'Promote 15 projects', 'fa-archway', 'yellow', 8, 'tools', 'tools', 15),
+            ('Chief Engineer', 'tool_lv9', 'Promote 25 projects', 'fa-hard-hat', 'yellow', 9, 'tools', 'tools', 25),
+            ('Creator of Worlds', 'tool_lv10', 'Promote 40 projects', 'fa-infinity', 'orange', 10, 'tools', 'tools', 40)
+        ]
+        c.executemany("""
+            INSERT INTO achievements (name, slug, description, icon, badge_color, level, category, requirement_type, requirement_value)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, tiered_achievements)
+        conn.commit()
+        logger.info("Seeded 10-tier achievements successfully")
+    else:
+        # Simple migration for existing columns
+        try:
+            c.execute("ALTER TABLE achievements ADD COLUMN level INTEGER DEFAULT 1")
+            c.execute("ALTER TABLE achievements ADD COLUMN category TEXT")
+            conn.commit()
+        except:
+            pass
+
     conn.close()
     
     # Sync groups with existing content
@@ -1728,6 +2000,13 @@ def init_db():
 def home():
     if "user_id" not in session:
         return redirect(url_for("login"))
+
+    # Silent Auto-Sync on home page (once per day or session)
+    user_id = session["user_id"]
+    if not session.get('ach_synced'):
+        sync_achievements_core(user_id)
+        session['ach_synced'] = True
+        session.modified = True
 
     selected = (request.args.get("category") or "").strip()
     query = (request.args.get("q") or "").strip()
@@ -3089,8 +3368,12 @@ def add_review(id):
     )
     conn.commit()
     conn.close()
+    
+    # Trigger achievement
+    new_ach = award_achievement(user_id, 'first_review')
 
     flash("Review added.", "success")
+    # If it was an AJAX (it's not here, it's a redirect, so session handles it)
     return redirect(url_for("view_book", id=id))
 
 @app.post("/review/<int:review_id>/delete")
@@ -3825,13 +4108,21 @@ def profile():
         LIMIT 7
     """, (user_id,))
     activity_raw = c.fetchall()
-
-    # Calculate average rating given by user
-    c.execute("""
-        SELECT AVG(rating) FROM reviews WHERE user_id = ?
-    """, (user_id,))
+    
+    # Calculate avg rating
+    c.execute("SELECT AVG(rating) FROM reviews WHERE user_id = ?", (user_id,))
     avg_rating_row = c.fetchone()
-    avg_rating = round(avg_rating_row[0], 1) if avg_rating_row[0] else None
+    avg_rating = round(avg_rating_row[0], 1) if avg_rating_row and avg_rating_row[0] else None
+
+    # Get achievements
+    c.execute("""
+        SELECT a.name, a.icon, a.badge_color, a.description, ua.earned_at
+        FROM user_achievements ua
+        JOIN achievements a ON ua.achievement_id = a.id
+        WHERE ua.user_id = ?
+        ORDER BY ua.earned_at DESC
+    """, (user_id,))
+    achievements_raw = c.fetchall()
 
     conn.close()
 
@@ -3912,7 +4203,14 @@ def profile():
         avg_rating=avg_rating,
         currently_reading=currently_reading,
         recent_finished=recent_finished,
-        recent_activity=recent_activity
+        recent_activity=recent_activity,
+        achievements=[{
+            "name": r[0],
+            "icon": r[1],
+            "color": r[2],
+            "desc": r[3],
+            "earned_at": r[4]
+        } for r in achievements_raw]
     )
 
 # ---------- Public Profile ----------
@@ -3951,8 +4249,6 @@ def public_profile(username):
         LIMIT 10
     """, (user_id,))
     activity_raw = c.fetchall()
-    
-    conn.close()
 
     # Format activity
     activity_icons = {
@@ -3992,8 +4288,52 @@ def public_profile(username):
             'icon': activity_icons.get(activity_type, 'fa-circle')
         })
 
+    # Fetch achievements
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("""
+        SELECT a.id, a.name, a.icon, a.badge_color, a.description, a.level, a.rarity, a.icon_type, a.animation_type, ua.earned_at
+        FROM user_achievements ua
+        JOIN achievements a ON ua.achievement_id = a.id
+        WHERE ua.user_id = ?
+        ORDER BY a.level DESC, a.rarity DESC
+    """, (user_id,))
+    all_earned = [dict(row) for row in c.fetchall()]
+
+    # Fetch showcase badges (user-selected in Avatar Studio)
+    try:
+        c.execute("SELECT showcase_badges FROM users WHERE id = ?", (user_id,))
+        row = c.fetchone()
+        showcase_ids = []
+        if row and row['showcase_badges']:
+            showcase_ids = json.loads(row['showcase_badges'])
+    except:
+        showcase_ids = []
+
+    # Build showcase list
+    if showcase_ids:
+        # Show user-selected badges in their chosen order
+        id_map = {a['id']: a for a in all_earned}
+        showcase_badges = [id_map[bid] for bid in showcase_ids if bid in id_map]
+    elif all_earned:
+        # Fallback: top 10 highest-level earned badges
+        showcase_badges = all_earned[:10]
+    else:
+        showcase_badges = []
+
+    # Legacy achievements list for the achievements section
+    achievements = [{
+        "name": a["name"],
+        "icon": a["icon"],
+        "color": a["badge_color"],
+        "description": a["description"],
+        "earned_at": a["earned_at"]
+    } for a in all_earned]
+
     # Fetch avatar settings for the VIEWED user
     profile_avatar_settings = fetch_user_avatar_settings(user_id)
+    
+    conn.close()
 
     return render_template(
         "user_profile.html",
@@ -4001,8 +4341,9 @@ def public_profile(username):
         read_count=read_count,
         watchlist_stats=watchlist_stats,
         fav_count=fav_count,
-        recent_activity=recent_activity,
-        profile_avatar_settings=profile_avatar_settings
+        showcase_badges=showcase_badges,
+        profile_avatar_settings=profile_avatar_settings,
+        achievements=achievements
     )
 
 
@@ -4112,7 +4453,304 @@ def settings():
     return render_template("settings.html", user=user_data)
 
 
+@app.route("/api/achievements")
+def get_user_achievements():
+    """Get earned achievements for the current user"""
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+        
+    user_id = session["user_id"]
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        SELECT a.name, a.icon, a.badge_color, a.description, ua.earned_at
+        FROM user_achievements ua
+        JOIN achievements a ON ua.achievement_id = a.id
+        WHERE ua.user_id = ?
+        ORDER BY ua.earned_at DESC
+    """, (user_id,))
+    
+    achievements = []
+    for row in c.fetchall():
+        achievements.append({
+            "name": row[0],
+            "icon": row[1],
+            "color": row[2],
+            "description": row[3],
+            "earned_at": row[4]
+        })
+    conn.close()
+    return jsonify(achievements)
+
+
 # ---------- Activity Log ----------
+@app.route("/achievements")
+def achievements_page():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    # Get user's plan
+    c.execute("SELECT plan FROM users WHERE id = ?", (user_id,))
+    user_row = c.fetchone()
+    user_plan = user_row['plan'] if user_row and user_row['plan'] else 'free'
+
+    # Get all possible achievements (include requirement_type for filtering)
+    c.execute("SELECT id, name, slug, description, icon, badge_color, level, category, rarity, icon_type, animation_type, requirement_type FROM achievements ORDER BY category, level ASC")
+    all_achievements_raw = [dict(row) for row in c.fetchall()]
+
+    # Get user's earned achievements
+    c.execute("SELECT achievement_id, earned_at FROM user_achievements WHERE user_id = ?", (user_id,))
+    earned_map = {row[0]: row[1] for row in c.fetchall()}
+
+    # Filter out achievements the user cannot access based on their plan
+    # Requirement types that are plan-gated:
+    #   pro        -> requires pro or ultimate plan
+    #   ultimate   -> requires ultimate plan
+    #   sub_duration -> requires any paid plan (pro or ultimate)
+    #   ai         -> AI features require pro or ultimate
+    plan_gated_types = {
+        'pro': ['pro', 'ultimate'],
+        'ultimate': ['ultimate'],
+        'sub_duration': ['pro', 'ultimate'],
+        'ai': ['pro', 'ultimate'],
+    }
+
+    all_achievements = []
+    for ach in all_achievements_raw:
+        req = ach.get('requirement_type') or ''
+        is_earned = ach['id'] in earned_map
+
+        # If already earned, always show it
+        if is_earned:
+            all_achievements.append(ach)
+            continue
+
+        # Check if this requirement type is plan-gated
+        if req in plan_gated_types:
+            allowed_plans = plan_gated_types[req]
+            if user_plan not in allowed_plans:
+                continue  # Skip — user can't access this
+
+        all_achievements.append(ach)
+
+    conn.close()
+
+    # Combine data
+    for ach in all_achievements:
+        ach['earned'] = ach['id'] in earned_map
+        ach['earned_at'] = earned_map.get(ach['id'])
+
+    # Group achievements by category (same category = same kind)
+    groups = {}
+    for ach in all_achievements:
+        group_key = ach.get('category', 'general')
+        if group_key not in groups:
+            groups[group_key] = []
+        groups[group_key].append(ach)
+
+    # Build display list: for groups with >1 achievement, show only the highest earned (or highest overall if none earned)
+    display_achievements = []
+    for group_key, achs in groups.items():
+        if len(achs) <= 1:
+            achs[0]['group_count'] = 1
+            achs[0]['group_key'] = group_key
+            display_achievements.append(achs[0])
+        else:
+            earned_in_group = [a for a in achs if a['earned']]
+            if earned_in_group:
+                representative = max(earned_in_group, key=lambda a: a['level'])
+            else:
+                representative = min(achs, key=lambda a: a['level'])
+            representative['group_count'] = len(achs)
+            representative['group_key'] = group_key
+            representative['earned_count'] = len(earned_in_group)
+            display_achievements.append(representative)
+
+    unlocked_count = sum(1 for a in all_achievements if a['earned'])
+    total_count = len(all_achievements)
+    progress_percent = int((unlocked_count / total_count * 100)) if total_count > 0 else 0
+
+    return render_template(
+        "achievements.html",
+        achievements=display_achievements,
+        all_achievements_json=all_achievements,
+        unlocked_count=unlocked_count,
+        total_count=total_count,
+        progress_percent=progress_percent,
+        username=session.get("username"),
+        avatar_url=session.get("avatar_url")
+    )
+
+
+# ---------- Admin Achievement Management ----------
+@app.route("/admin/achievements")
+@admin_required
+def admin_achievements():
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT * FROM achievements ORDER BY category, level")
+    achievements = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return render_template("admin_achievements.html", achievements=achievements)
+
+@app.route("/api/admin/achievements/add", methods=['POST'])
+@admin_required
+def admin_add_achievement():
+    try:
+        data = request.json
+        name = data.get('name')
+        slug = data.get('slug') # Usually auto-generated or manual
+        desc = data.get('description')
+        icon = data.get('icon', 'fa-trophy')
+        color = data.get('badge_color', 'cyan')
+        level = int(data.get('level', 1))
+        category = data.get('category', 'general')
+        req_type = data.get('requirement_type')
+        req_val = int(data.get('requirement_value', 0)) if data.get('requirement_value') else None
+        rarity = data.get('rarity', 'none')
+        icon_type = data.get('icon_type', 'fontawesome')
+        anim_type = data.get('animation_type', 'rotating')
+
+        if not name or not slug:
+            return jsonify({"success": False, "message": "Name and Slug are required"}), 400
+
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO achievements (name, slug, description, icon, badge_color, level, category, requirement_type, requirement_value, rarity, icon_type, animation_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (name, slug, desc, icon, color, level, category, req_type, req_val, rarity, icon_type, anim_type))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True, "message": f"Achievement '{name}' created!"})
+    except sqlite3.IntegrityError:
+        return jsonify({"success": False, "message": "Achievement with this slug already exists"}), 400
+    except Exception as e:
+        logger.error(f"Error adding achievement: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/admin/achievements/delete/<int:ach_id>", methods=['POST'])
+@admin_required
+def admin_delete_achievement(ach_id):
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("DELETE FROM achievements WHERE id = ?", (ach_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "Achievement deleted"})
+    except Exception as e:
+        logger.error(f"Error deleting achievement: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/api/admin/achievements/upload_icon', methods=['POST'])
+@admin_required
+def admin_upload_achievement_icon():
+    try:
+        import time, os
+        from werkzeug.utils import secure_filename
+        if 'icon' not in request.files:
+            return jsonify({"success": False, "message": "No file part"}), 400
+        
+        file = request.files['icon']
+        if file.filename == '':
+            return jsonify({"success": False, "message": "No selected file"}), 400
+            
+        if file:
+            filename = secure_filename(f"ach_{int(time.time())}_{file.filename}")
+            upload_dir = os.path.join(app.root_path, 'static', 'uploads', 'achievements')
+            os.makedirs(upload_dir, exist_ok=True)
+            file_path = os.path.join(upload_dir, filename)
+            file.save(file_path)
+            
+            return jsonify({
+                "success": True, 
+                "message": "Icon uploaded", 
+                "url": f"/static/uploads/achievements/{filename}"
+            })
+            
+    except Exception as e:
+        logger.error(f"Error uploading achievement icon: {str(e)}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/admin/achievements/update/<int:ach_id>", methods=['POST'])
+@admin_required
+def admin_update_achievement(ach_id):
+    try:
+        data = request.json
+        name = data.get('name')
+        slug = data.get('slug')
+        desc = data.get('description')
+        icon = data.get('icon')
+        color = data.get('badge_color')
+        level = int(data.get('level', 1))
+        category = data.get('category')
+        req_type = data.get('requirement_type')
+        req_val = int(data.get('requirement_value', 0)) if data.get('requirement_value') else None
+        rarity = data.get('rarity', 'none')
+        icon_type = data.get('icon_type', 'fontawesome')
+        anim_type = data.get('animation_type', 'rotating')
+
+        if not name or not slug:
+            return jsonify({"success": False, "message": "Name and Slug are required"}), 400
+
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("""
+            UPDATE achievements 
+            SET name = ?, slug = ?, description = ?, icon = ?, badge_color = ?, 
+                level = ?, category = ?, requirement_type = ?, requirement_value = ?, 
+                rarity = ?, icon_type = ?, animation_type = ?
+            WHERE id = ?
+        """, (name, slug, desc, icon, color, level, category, req_type, req_val, rarity, icon_type, anim_type, ach_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True, "message": "Achievement updated successfully!"})
+    except Exception as e:
+        logger.error(f"Error updating achievement: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+@app.route("/api/admin/users/search")
+@admin_required
+def admin_search_users():
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify([])
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT id, username, avatar_url FROM users WHERE username LIKE ? LIMIT 10", (f"%{query}%",))
+    users = [{"id": r[0], "username": r[1], "avatar_url": r[2]} for r in c.fetchall()]
+    conn.close()
+    return jsonify(users)
+
+@app.route("/api/admin/achievements/gift", methods=['POST'])
+@admin_required
+def admin_gift_achievement():
+    try:
+        data = request.json
+        user_id = data.get('user_id')
+        slug = data.get('slug')
+        
+        if not user_id or not slug:
+            return jsonify({"success": False, "message": "User ID and Slug are required"}), 400
+            
+        res = award_achievement(user_id, slug)
+        if res:
+            return jsonify({"success": True, "message": f"Achievement gifted successfully to user {user_id}!"})
+        else:
+            return jsonify({"success": False, "message": "User already has this achievement or it doesn't exist."})
+    except Exception as e:
+        logger.error(f"Error gifting achievement: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @app.route("/api/activity-log")
 def get_activity_log():
     """Get user's activity log for the modal"""
@@ -4142,7 +4780,6 @@ def get_activity_log():
     
     activities = []
     for row in c.fetchall():
-        activity_id, activity_type, summary_gen, title, timestamp = row
         
         # Format timestamp to relative time
         from datetime import datetime
@@ -4207,9 +4844,29 @@ def log_activity():
         """, (user_id, book_id, activity_type, summary_generated))
         conn.commit()
         conn.close()
-        return jsonify({"success": True})
-    except Exception as e:
+        
+        # Trigger achievements
+        new_achs = []
+        res = award_achievement(user_id, 'first_read')
+        if res: new_achs.append(res)
+        
+        # Check for 5 books read
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT COUNT(DISTINCT book_id) FROM activity_log WHERE user_id = ? AND activity_type = 'read'", (user_id,))
+        read_counts = c.fetchone()[0]
         conn.close()
+        if read_counts >= 5:
+            res = award_achievement(user_id, 'read_5_books')
+            if res: new_achs.append(res)
+            
+        if activity_type == 'summarized' or summary_generated == 1:
+            res = award_achievement(user_id, 'first_summary')
+            if res: new_achs.append(res)
+            
+        return jsonify({"success": True, "new_achievements": new_achs})
+    except Exception as e:
+        if 'conn' in locals() and conn: conn.close()
         return jsonify({"error": str(e)}), 500
 
 
@@ -7964,7 +8621,60 @@ def delete_animation(animation_id):
 def avatar_studio():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    return render_template("avatar_studio.html")
+    
+    user_id = session["user_id"]
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    # Get user's earned achievements with details
+    c.execute("""
+        SELECT a.id, a.name, a.slug, a.icon, a.badge_color, a.level, a.category, a.rarity, a.icon_type, a.animation_type
+        FROM user_achievements ua
+        JOIN achievements a ON ua.achievement_id = a.id
+        WHERE ua.user_id = ?
+        ORDER BY a.level DESC, a.rarity DESC
+    """, (user_id,))
+    earned_achievements = [dict(row) for row in c.fetchall()]
+    
+    # Get user's current showcase badge selection
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN showcase_badges TEXT DEFAULT '[]'")
+        conn.commit()
+    except:
+        pass
+    c.execute("SELECT showcase_badges FROM users WHERE id = ?", (user_id,))
+    row = c.fetchone()
+    showcase_badges = []
+    if row and row['showcase_badges']:
+        try:
+            showcase_badges = json.loads(row['showcase_badges'])
+        except:
+            showcase_badges = []
+    
+    conn.close()
+    return render_template("avatar_studio.html", 
+                           earned_achievements=earned_achievements,
+                           showcase_badges=showcase_badges)
+
+@app.route("/api/avatar/badges", methods=["POST"])
+def save_showcase_badges():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    badge_ids = data.get('badge_ids', [])
+    
+    # Limit to 10
+    badge_ids = badge_ids[:10]
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE users SET showcase_badges = ? WHERE id = ?", 
+              (json.dumps(badge_ids), session["user_id"]))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "count": len(badge_ids)})
 
 @app.route("/api/avatar/save", methods=["POST"])
 def save_avatar_settings():
@@ -8545,7 +9255,16 @@ def project_view(project_name):
         flash("Project not found.", "danger")
         return redirect(url_for("tools"))
     
-    return render_template("project_view.html", project_name=project_name)
+    # Auto-detect entry point
+    entry_point = "index.html"
+    if not os.path.exists(os.path.join(project_path, entry_point)):
+        # Fallback to any .html file in the root
+        html_files = [f for f in os.listdir(project_path) if f.lower().endswith(".html")]
+        if html_files:
+            entry_point = html_files[0]
+            logger.info(f"Auto-detected entry point '{entry_point}' for project '{project_name}'")
+    
+    return render_template("project_view.html", project_name=project_name, entry_point=entry_point)
 
 
 @app.route("/api/tools/links", methods=["POST"])
@@ -10464,41 +11183,21 @@ def api_users_search():
     
     # Search actual users
     if query:
-        if group_id:
-            c.execute("""
-                SELECT u.id, u.username, u.avatar_url, u.role
-                FROM users u
-                JOIN group_members gm ON u.id = gm.user_id
-                WHERE gm.group_id = ? AND u.username LIKE ? 
-                ORDER BY u.username
-                LIMIT 8
-            """, (group_id, f"%{query}%"))
-        else:
-            c.execute("""
-                SELECT id, username, avatar_url, role
-                FROM users
-                WHERE username LIKE ? 
-                ORDER BY username
-                LIMIT 8
-            """, (f"%{query}%",))
+        c.execute("""
+            SELECT id, username, avatar_url, role
+            FROM users
+            WHERE username LIKE ? 
+            ORDER BY username
+            LIMIT 8
+        """, (f"%{query}%",))
     else:
-        # Show recent/active users if no query
-        if group_id:
-            c.execute("""
-                SELECT u.id, u.username, u.avatar_url, u.role
-                FROM users u
-                JOIN group_members gm ON u.id = gm.user_id
-                WHERE gm.group_id = ?
-                ORDER BY u.id DESC
-                LIMIT 8
-            """, (group_id,))
-        else:
-            c.execute("""
-                SELECT id, username, avatar_url, role
-                FROM users
-                ORDER BY id DESC
-                LIMIT 8
-            """)
+        # Show recent/active users
+        c.execute("""
+            SELECT id, username, avatar_url, role
+            FROM users
+            ORDER BY id DESC
+            LIMIT 8
+        """)
     
     for row in c.fetchall():
         u_id, username, avatar, role = row
@@ -10699,6 +11398,21 @@ def get_enriched_posts(c, user_id, raw_rows):
                 poll['user_votes'] = [v['option_id'] for v in c.fetchall()]
                 post['poll'] = poll
         
+        # Fetch author achievements (top 3)
+        author_id = post.get('user_id')
+        if author_id:
+            c.execute("""
+                SELECT a.icon, a.badge_color, a.name
+                FROM user_achievements ua
+                JOIN achievements a ON ua.achievement_id = a.id
+                WHERE ua.user_id = ?
+                ORDER BY ua.earned_at DESC
+                LIMIT 3
+            """, (author_id,))
+            post['author_achievements'] = [dict(ach) for ach in c.fetchall()]
+        else:
+            post['author_achievements'] = []
+            
         posts.append(post)
     return posts
 
@@ -10899,13 +11613,38 @@ def api_get_more_posts():
         return str(e), 500
 
 
+@app.route('/api/achievements/clear', methods=['POST'])
+@login_required
+def clear_new_achievements():
+    """Clear newly earned achievements from session after they've been displayed"""
+    if 'new_achievements' in session:
+        session.pop('new_achievements')
+        session.modified = True
+    return jsonify({'success': True})
+
+
+@app.route('/api/achievements/recheck', methods=['POST'])
+@login_required
+def recheck_achievements():
+    """Manually re-check all automatic achievement triggers for the current user."""
+    user_id = session.get('user_id')
+    try:
+        sync_achievements_core(user_id)
+        return jsonify({'success': True, 'message': 'Achievements re-evaluated!'})
+    except Exception as e:
+        logger.error(f"Error in recheck_achievements: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
 @app.route('/group/<int:group_id>')
 @login_required
 def group_page(group_id):
     """Individual group page"""
     try:
         conn = get_conn()
+        conn.row_factory = sqlite3.Row
         c = conn.cursor()
+
         
         # Get group details
         c.execute("""
@@ -10971,64 +11710,17 @@ def group_page(group_id):
         # Get group posts
         c.execute("""
             SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at,
-                   u.id as user_id, u.username, u.avatar_url, gp.channel_id
+                   u.id as user_id, u.username, u.avatar_url as avatar, gp.channel_id,
+                   cg.id as group_id, cg.name as group_name
             FROM group_posts gp
             JOIN users u ON gp.user_id = u.id
+            JOIN community_groups cg ON gp.group_id = cg.id
             WHERE gp.group_id = ?
             ORDER BY gp.created_at DESC
             LIMIT 20
         """, (group_id,))
-        posts = []
-        for r in c.fetchall():
-            p_obj = dict(zip(['id', 'title', 'content', 'post_type', 'upvotes', 'downvotes', 'comment_count', 'created_at',
-                               'user_id', 'username', 'avatar', 'channel_id'], r))
-            # Get attachments
-            c.execute("SELECT file_url, file_type, file_name FROM group_post_attachments WHERE post_id = ?", (p_obj['id'],))
-            attachments = []
-            for row in c.fetchall():
-                a_url, a_type, a_name = row
-                attach = {'url': a_url, 'type': a_type, 'name': a_name}
-                
-                # If it's a manga link, try to fetch cover and title
-                if a_type == 'manga_link' and '/manga/detail/' in a_url:
-                    try:
-                        m_id = a_url.split('/')[-1]
-                        c.execute("SELECT title, cover_path FROM books WHERE id = ?", (m_id,))
-                        m_row = c.fetchone()
-                        if m_row:
-                            attach['manga_title'] = m_row[0]
-                            m_cover = m_row[1]
-                            if m_cover and not m_cover.startswith('http') and not m_cover.startswith('/'):
-                                m_cover = f'/static/{m_cover}'
-                            attach['manga_cover'] = m_cover or 'https://via.placeholder.com/200x300?text=No+Cover'
-                    except:
-                        pass
-                attachments.append(attach)
-            p_obj['attachments'] = attachments
-
-            # Fetch poll data if post_type is poll
-            if p_obj['post_type'] == 'poll':
-                c.execute("""
-                    SELECT id, question, allow_multiple, expires_at 
-                    FROM group_polls WHERE post_id = ?
-                """, (p_obj['id'],))
-                poll_row = c.fetchone()
-                if poll_row:
-                    poll = dict(zip(['id', 'question', 'allow_multiple', 'expires_at'], poll_row))
-                    c.execute("""
-                        SELECT id, option_text, (SELECT COUNT(*) FROM group_poll_votes WHERE option_id = gpo.id) as votes
-                        FROM group_poll_options gpo WHERE poll_id = ?
-                    """, (poll['id'],))
-                    poll['options'] = [dict(zip(['id', 'text', 'votes'], row)) for row in c.fetchall()]
-                    poll['total_votes'] = sum(opt['votes'] for opt in poll['options'])
-                    
-                    # User's current votes
-                    c.execute("SELECT option_id FROM group_poll_votes WHERE poll_id = ? AND user_id = ?", (poll['id'], user_id))
-                    poll['user_votes'] = [row[0] for row in c.fetchall()]
-                    
-                    p_obj['poll'] = poll
-
-            posts.append(p_obj)
+        raw_rows = c.fetchall()
+        posts = get_enriched_posts(c, user_id, raw_rows)
         
         # Get related groups (same type or category)
         c.execute("""
@@ -11038,7 +11730,7 @@ def group_page(group_id):
             ORDER BY member_count DESC
             LIMIT 3
         """, (group_id, group['group_type'], group.get('category')))
-        related_groups = [dict(zip(['id', 'name', 'icon_url', 'member_count', 'group_type'], row)) for row in c.fetchall()]
+        related_groups = [dict(row) for row in c.fetchall()]
         
         # Get channels for this group
         c.execute("""
@@ -11047,15 +11739,10 @@ def group_page(group_id):
             WHERE group_id = ?
             ORDER BY position ASC
         """, (group_id,))
-        channels = [dict(zip(['id', 'name', 'description', 'type', 'icon', 'position'], row)) for row in c.fetchall()]
-        
-        # Add user vote status to posts
-        for post in posts:
-            c.execute("SELECT vote FROM group_post_votes WHERE post_id = ? AND user_id = ?", (post['id'], user_id))
-            vote_row = c.fetchone()
-            post['user_vote'] = vote_row[0] if vote_row else 0
+        channels = [dict(row) for row in c.fetchall()]
         
         conn.close()
+
         
         return render_template('group.html', 
                              group=group, 
@@ -11097,9 +11784,20 @@ def join_group(group_id):
     c.execute("UPDATE community_groups SET member_count = member_count + 1 WHERE id = ?", (group_id,))
     
     conn.commit()
-    conn.close()
     
-    return jsonify({'success': True, 'message': 'Joined group successfully'})
+    # TRIGGERS: Socialite (Join 3 groups)
+    # Re-open or use separate logic to avoid "locked" error if award_achievement uses new connection
+    c.execute("SELECT COUNT(*) FROM group_members WHERE user_id = ?", (user_id,))
+    group_count = c.fetchone()[0]
+    
+    conn.close() # Close here so award_achievement can open its own
+    
+    new_achs = []
+    if group_count >= 3:
+        res = award_achievement(user_id, 'join_3_groups')
+        if res: new_achs.append(res)
+    
+    return jsonify({'success': True, 'message': 'Joined group successfully', 'new_achievements': new_achs})
 
 
 @app.route('/group/<int:group_id>/leave', methods=['POST'])
@@ -11185,7 +11883,7 @@ def add_group_moderator(group_id):
     if not target_user_id:
         return jsonify({'success': False, 'message': 'User ID required'})
     
-    if role not in ['admin', 'moderator']:
+    if role not in ['admin', 'moderator', 'tier1', 'tier2', 'tier3', 'tier4', 'tier5']:
         return jsonify({'success': False, 'message': 'Invalid role'})
     
     conn = get_conn()

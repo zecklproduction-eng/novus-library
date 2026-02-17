@@ -4,17 +4,19 @@
 
 {% block content %}
 <div class="avatar-studio-container fade-in">
-    
+
     <!-- LEFT COLUMN: Profile Card Preview -->
     <div class="studio-col studio-left">
-        <div class="studio-card profile-preview-card {{ session.get('plan', 'basic') }}" style="position: relative; overflow: hidden;">
+        <div class="studio-card profile-preview-card {{ session.get('plan', 'basic') }}"
+            style="position: relative; overflow: hidden;">
             <!-- Background Layers -->
             <div class="studio-bg-layer" id="profileBgLayer"></div>
             <div class="studio-overlay-layer" id="profileOverlayLayer"></div>
 
             <div class="studio-avatar-container" id="profileCardAvatar">
                 <div class="studio-avatar-frame {{ avatar_settings.avatar_frame|default('none') }}">
-                    <div class="studio-avatar-img-wrapper" style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
+                    <div class="studio-avatar-img-wrapper"
+                        style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
                         {% if user_avatar %}
                         <img src="{{ user_avatar }}" alt="User Avatar" class="studio-avatar-img">
                         {% else %}
@@ -23,14 +25,14 @@
                     </div>
                 </div>
             </div>
-            
+
             <h2 class="studio-username">{{ session.get('username') }}</h2>
             <div class="studio-role">{{ session.get('role')|capitalize }}</div>
-            
+
             <div class="studio-plan-badge {{ session.get('plan') }}">
                 <i class="fas fa-crown"></i> {{ session.get('plan')|capitalize }} Member
             </div>
-            
+
             <a href="{{ url_for('profile') }}" class="studio-edit-link">
                 <i class="fas fa-pen"></i> Edit Profile
             </a>
@@ -41,7 +43,8 @@
     <div class="studio-col studio-center">
         <div class="studio-main-preview">
             <div class="studio-preview-header">
-                <div class="preview-tab active" onclick="openPublicPreview()" style="cursor: pointer;"><i class="fas fa-eye"></i> Preview</div>
+                <div class="preview-tab active" onclick="openPublicPreview()" style="cursor: pointer;"><i
+                        class="fas fa-eye"></i> Preview</div>
                 <div class="preview-actions">
                     <label class="switch-label">
                         <input type="checkbox" id="slipToggle">
@@ -51,11 +54,13 @@
                     <button class="icon-btn"><i class="fas fa-cog"></i></button>
                 </div>
             </div>
-            
+
             <div class="studio-preview-canvas">
                 <div class="studio-avatar-large-container">
-                    <div class="studio-avatar-frame large {{ avatar_settings.avatar_frame|default('none') }}" id="mainPreviewFrame">
-                        <div class="studio-avatar-img-wrapper large" id="mainPreviewWrapper" style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
+                    <div class="studio-avatar-frame large {{ avatar_settings.avatar_frame|default('none') }}"
+                        id="mainPreviewFrame">
+                        <div class="studio-avatar-img-wrapper large" id="mainPreviewWrapper"
+                            style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
                             {% if user_avatar %}
                             <img src="{{ user_avatar }}" alt="User Avatar" class="studio-avatar-img">
                             {% else %}
@@ -65,16 +70,17 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="studio-preview-footer">
-                <button class="studio-btn-outline" onclick="document.getElementById('avatarInput').click()">Replace Avatar</button>
+                <button class="studio-btn-outline" onclick="document.getElementById('avatarInput').click()">Replace
+                    Avatar</button>
                 <button class="studio-btn-outline" onclick="setFrame('none')">Remove Frame</button>
                 <form id="avatarUploadForm" style="display:none">
-                     <input type="file" id="avatarInput" accept="image/*" onchange="handleAvatarUpload(this)">
+                    <input type="file" id="avatarInput" accept="image/*" onchange="handleAvatarUpload(this)">
                 </form>
             </div>
         </div>
-        
+
         <!-- Quick Frame Style Selector in Center (Optional, but in reference) -->
         <div class="studio-quick-selector">
             <h3>Frame Style</h3>
@@ -90,14 +96,14 @@
                 <div class="frame-option mini" onclick="setFrame('gold')" title="Gold">
                     <div class="frame-preview-mini gold"></div>
                 </div>
-                 <div class="frame-option mini" onclick="setFrame('blue_fire')" title="Blue Fire">
+                <div class="frame-option mini" onclick="setFrame('blue_fire')" title="Blue Fire">
                     <div class="frame-preview-mini blue_fire"></div>
                 </div>
-                 <div class="frame-option mini" onclick="setFrame('red_pulse')" title="Red Pulse">
+                <div class="frame-option mini" onclick="setFrame('red_pulse')" title="Red Pulse">
                     <div class="frame-preview-mini red_pulse"></div>
                 </div>
             </div>
-             <button class="studio-btn-link"><i class="fas fa-link"></i> Share Preview Link</button>
+            <button class="studio-btn-link"><i class="fas fa-link"></i> Share Preview Link</button>
         </div>
     </div>
 
@@ -107,21 +113,22 @@
             <div class="studio-settings-header">
                 <h3>Avatar Settings</h3>
             </div>
-            
+
             <div class="studio-tabs">
                 <div class="studio-tab active" data-tab="frames" onclick="switchTab('frames')">Frames</div>
                 <div class="studio-tab" data-tab="backgrounds" onclick="switchTab('backgrounds')">Backgrounds</div>
                 <div class="studio-tab" data-tab="badges" onclick="switchTab('badges')">Badges</div>
             </div>
-            
+
             <div class="studio-tab-content active" id="tab-frames">
                 <!-- Frame Style Grid -->
                 <div class="settings-section">
                     <div class="section-header">
                         <h4>Frame Style</h4>
-                        <button class="btn-text-small" onclick="setFrame('none')"><i class="fas fa-layer-group"></i> Remove Frame</button>
+                        <button class="btn-text-small" onclick="setFrame('none')"><i class="fas fa-layer-group"></i>
+                            Remove Frame</button>
                     </div>
-                    
+
                     <div class="frame-grid">
                         <div class="frame-option" onclick="setFrame('none')">
                             <div class="frame-preview none"></div>
@@ -130,57 +137,60 @@
                         <div class="frame-option" onclick="setFrame('simple_ring')">
                             <div class="frame-preview simple_ring"></div>
                         </div>
-                         <div class="frame-option" onclick="setFrame('gold_crown')">
+                        <div class="frame-option" onclick="setFrame('gold_crown')">
                             <div class="frame-preview gold_crown"></div>
                         </div>
                         <div class="frame-option" onclick="setFrame('neon_hex')">
                             <div class="frame-preview neon_hex"></div>
                         </div>
-                        
-                         <div class="frame-option" onclick="setFrame('fire_ring')">
+
+                        <div class="frame-option" onclick="setFrame('fire_ring')">
                             <div class="frame-preview fire_ring"></div>
                         </div>
-                         <div class="frame-option" onclick="setFrame('ice_crystals')">
+                        <div class="frame-option" onclick="setFrame('ice_crystals')">
                             <div class="frame-preview ice_crystals"></div>
                         </div>
-                         <div class="frame-option" onclick="setFrame('dark_wings')">
+                        <div class="frame-option" onclick="setFrame('dark_wings')">
                             <div class="frame-preview dark_wings"></div>
                         </div>
 
                         <!-- New Frames -->
-                         <div class="frame-option" onclick="setFrame('steampunk')">
+                        <div class="frame-option" onclick="setFrame('steampunk')">
                             <div class="frame-preview steampunk"></div>
                         </div>
-                         <div class="frame-option" onclick="setFrame('nature')">
+                        <div class="frame-option" onclick="setFrame('nature')">
                             <div class="frame-preview nature"></div>
                         </div>
-                         <div class="frame-option" onclick="setFrame('cosmic')">
+                        <div class="frame-option" onclick="setFrame('cosmic')">
                             <div class="frame-preview cosmic"></div>
                         </div>
-                         <div class="frame-option" onclick="setFrame('cyber')">
+                        <div class="frame-option" onclick="setFrame('cyber')">
                             <div class="frame-preview cyber"></div>
                         </div>
-                         <div class="frame-option" onclick="setFrame('rainbow')">
+                        <div class="frame-option" onclick="setFrame('rainbow')">
                             <div class="frame-preview rainbow"></div>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Border Style -->
                 <div class="settings-section">
                     <h4>Border Style</h4>
                     <div class="toggle-group">
-                        <button class="toggle-btn active" onclick="setBorderType('solid')" id="btn-border-solid"><span class="dot solid"></span> Solid</button>
-                        <button class="toggle-btn" onclick="setBorderType('gradient')" id="btn-border-gradient"><span class="dot gradient"></span> Gradient</button>
-                        <button class="toggle-btn" onclick="setBorderType('none')" id="btn-border-none"><span class="dot none"></span> None</button>
+                        <button class="toggle-btn active" onclick="setBorderType('solid')" id="btn-border-solid"><span
+                                class="dot solid"></span> Solid</button>
+                        <button class="toggle-btn" onclick="setBorderType('gradient')" id="btn-border-gradient"><span
+                                class="dot gradient"></span> Gradient</button>
+                        <button class="toggle-btn" onclick="setBorderType('none')" id="btn-border-none"><span
+                                class="dot none"></span> None</button>
                     </div>
                 </div>
-                
+
                 <!-- Border Color -->
                 <div class="settings-section">
                     <h4>Border Color</h4>
                     <div class="color-slider-container">
-                         <div class="color-slider" id="colorSlider"></div>
+                        <div class="color-slider" id="colorSlider"></div>
                     </div>
                     <div class="color-swatches">
                         <div class="swatch" style="--c: #ff9900" onclick="setColor('#ff9900')"></div>
@@ -192,9 +202,9 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="studio-tab-content active" id="tab-backgrounds">
-                
+
                 <!-- Advanced Controls (Top) -->
                 <div class="settings-section">
                     <div class="section-header">
@@ -206,23 +216,27 @@
                     </div>
                     <div class="control-group">
                         <label>Brightness <span id="val-bright">100%</span></label>
-                        <input type="range" class="studio-range" min="0" max="200" value="100" id="rng-bright" oninput="setBgAdjust('brightness', this.value)">
+                        <input type="range" class="studio-range" min="0" max="200" value="100" id="rng-bright"
+                            oninput="setBgAdjust('brightness', this.value)">
                     </div>
                     <div class="control-group">
                         <label>Overlay Opacity <span id="val-opac">0%</span></label>
-                        <input type="range" class="studio-range" min="0" max="100" value="0" id="rng-opac" oninput="setBgAdjust('opacity', this.value)">
+                        <input type="range" class="studio-range" min="0" max="100" value="0" id="rng-opac"
+                            oninput="setBgAdjust('opacity', this.value)">
                     </div>
                     <div class="control-group">
                         <label>Blur <span id="val-blur">0px</span></label>
-                        <input type="range" class="studio-range" min="0" max="20" value="0" id="rng-blur" oninput="setBgAdjust('blur', this.value)">
+                        <input type="range" class="studio-range" min="0" max="20" value="0" id="rng-blur"
+                            oninput="setBgAdjust('blur', this.value)">
                     </div>
                 </div>
 
                 <!-- Admin Actions & Custom Upload (Restricted) -->
                 {% if session.get('role') == 'admin' %}
                 <div class="settings-section">
-                     <h4>Admin Actions</h4>
-                      <button class="studio-btn-outline" onclick="openAdminUploadModal()" style="width:100%"><i class="fas fa-plus-circle"></i> Add New Background</button>
+                    <h4>Admin Actions</h4>
+                    <button class="studio-btn-outline" onclick="openAdminUploadModal()" style="width:100%"><i
+                            class="fas fa-plus-circle"></i> Add New Background</button>
                 </div>
                 {% endif %}
 
@@ -235,17 +249,21 @@
                 </div>
 
                 <!-- Admin Upload Modal -->
-                <div id="adminBgModal" class="studio-modal" style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center;">
-                    <div class="studio-modal-content" style="background: #1e1e1e; padding: 20px; border-radius: 12px; width: 400px; max-width: 90%;">
+                <div id="adminBgModal" class="studio-modal"
+                    style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center;">
+                    <div class="studio-modal-content"
+                        style="background: #1e1e1e; padding: 20px; border-radius: 12px; width: 400px; max-width: 90%;">
                         <h3 style="margin-top:0; color:#fff;">Upload Background</h3>
                         <form id="adminBgForm" onsubmit="handleAdminBgSubmit(event)">
                             <div class="form-group" style="margin-bottom: 15px;">
                                 <label style="display:block; color:#ccc; margin-bottom: 5px;">Name</label>
-                                <input type="text" name="name" required style="width: 100%; padding: 8px; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px;">
+                                <input type="text" name="name" required
+                                    style="width: 100%; padding: 8px; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px;">
                             </div>
                             <div class="form-group" style="margin-bottom: 15px;">
                                 <label style="display:block; color:#ccc; margin-bottom: 5px;">Access Tag</label>
-                                <select name="access_tag" style="width: 100%; padding: 8px; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px;">
+                                <select name="access_tag"
+                                    style="width: 100%; padding: 8px; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px;">
                                     <option value="basic">Basic</option>
                                     <option value="pro">Pro</option>
                                     <option value="ultimate">Ultimate</option>
@@ -254,11 +272,14 @@
                             </div>
                             <div class="form-group" style="margin-bottom: 20px;">
                                 <label style="display:block; color:#ccc; margin-bottom: 5px;">File (Img/Vid/Gif)</label>
-                                <input type="file" name="file" accept="image/*,video/mp4,video/webm,.jfif" required style="width: 100%; color: #ccc;">
+                                <input type="file" name="file" accept="image/*,video/mp4,video/webm,.jfif" required
+                                    style="width: 100%; color: #ccc;">
                             </div>
                             <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                                <button type="button" class="studio-btn-outline" onclick="closeAdminUploadModal()">Cancel</button>
-                                <button type="submit" class="studio-btn-solid" style="background: #00d4ff; color: #000; border: none; padding: 8px 16px; border-radius: 4px;">Upload</button>
+                                <button type="button" class="studio-btn-outline"
+                                    onclick="closeAdminUploadModal()">Cancel</button>
+                                <button type="submit" class="studio-btn-solid"
+                                    style="background: #00d4ff; color: #000; border: none; padding: 8px 16px; border-radius: 4px;">Upload</button>
                             </div>
                         </form>
                     </div>
@@ -269,44 +290,124 @@
                     <h4>Clean Defaults</h4>
                     <div class="bg-grid">
                         <div class="bg-option" onclick="setBgClass('none')" style="background: #222;">None</div>
-                        <div class="bg-option" onclick="setBgClass('avatar-bg-midnight-grain')" title="Midnight Grain">Mid</div>
-                        <div class="bg-option" onclick="setBgClass('avatar-bg-charcoal-vig')" title="Charcoal Vignette">Char</div>
-                        <div class="bg-option" onclick="setBgClass('avatar-bg-navy-spot')" title="Navy Spotlight">Navy</div>
-                        <div class="bg-option" onclick="setBgClass('avatar-bg-steel-diag')" title="Steel Diagonal">Steel</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-midnight-grain')" title="Midnight Grain">
+                            Mid</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-charcoal-vig')" title="Charcoal Vignette">
+                            Char</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-navy-spot')" title="Navy Spotlight">Navy
+                        </div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-steel-diag')" title="Steel Diagonal">Steel
+                        </div>
                     </div>
                 </div>
 
-                 <!-- Starter Pack: Library -->
+                <!-- Starter Pack: Library -->
                 <div class="settings-section">
                     <h4>Library & Reading</h4>
                     <div class="bg-grid">
-                        <div class="bg-option" onclick="setBgClass('avatar-bg-book-pattern')" title="Book Pattern">Book</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-book-pattern')" title="Book Pattern">Book
+                        </div>
                         <div class="bg-option" onclick="setBgClass('avatar-bg-bookshelf')" title="Bookshelf">Shelf</div>
-                        <div class="bg-option" onclick="setBgClass('avatar-bg-parchment-dark')" title="Parchment">Old</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-parchment-dark')" title="Parchment">Old
+                        </div>
                     </div>
                 </div>
 
-                 <!-- Starter Pack: Premium -->
+                <!-- Starter Pack: Premium -->
                 <div class="settings-section">
                     <h4>Premium & Status</h4>
                     <div class="bg-grid">
                         <div class="bg-option" onclick="setBgClass('avatar-bg-gold-aura')" title="Gold Aura">Gold</div>
                         <div class="bg-option" onclick="setBgClass('avatar-bg-laurel')" title="Laurel">Laurel</div>
-                        <div class="bg-option" onclick="setBgClass('avatar-bg-neon-match')" title="Neon Match">Match</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-neon-match')" title="Neon Match">Match
+                        </div>
                     </div>
                 </div>
 
-                 <!-- Starter Pack: Fun -->
+                <!-- Starter Pack: Fun -->
                 <div class="settings-section">
                     <h4>Fun & Modern</h4>
                     <div class="bg-grid">
-                        <div class="bg-option" onclick="setBgClass('avatar-bg-aurora-blobs')" title="Aurora">Aurora</div>
-                        <div class="bg-option" onclick="setBgClass('avatar-bg-galaxy-reader')" title="Galaxy">Galax</div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-aurora-blobs')" title="Aurora">Aurora
+                        </div>
+                        <div class="bg-option" onclick="setBgClass('avatar-bg-galaxy-reader')" title="Galaxy">Galax
+                        </div>
                     </div>
                 </div>
             </div>
 
-            
+            <!-- Badges Tab -->
+            <div class="studio-tab-content" id="tab-badges">
+                <div class="settings-section">
+                    <div class="section-header"
+                        style="display:flex; justify-content:space-between; align-items:center;">
+                        <h4><i class="fas fa-medal" style="color:#fbbf24;"></i> Badge Showcase</h4>
+                        <span id="badge-counter" style="font-size:0.7rem; color:#06b6d4; font-weight:600;">0 / 10</span>
+                    </div>
+                    <p style="font-size:0.7rem; color:#666; margin:4px 0 12px;">Select up to 10 achievements to display
+                        on your profile. Click to toggle.</p>
+
+                    <!-- Selected Showcase Preview -->
+                    <div id="showcase-preview"
+                        style="display:flex; gap:6px; flex-wrap:wrap; min-height:40px; padding:10px; background:rgba(6,182,212,0.03); border:1px dashed rgba(6,182,212,0.15); border-radius:10px; margin-bottom:14px;">
+                        <span style="color:#555; font-size:0.65rem; font-style:italic;" id="showcase-empty-msg">No
+                            badges selected yet</span>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4 style="font-size:0.75rem; color:#888;">Your Earned Achievements</h4>
+                    <div id="badge-select-grid"
+                        style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; max-height:320px; overflow-y:auto; padding:4px;">
+                        {% if earned_achievements %}
+                        {% for ach in earned_achievements %}
+                        <div class="badge-select-item {% if ach.id in showcase_badges %}selected{% endif %}"
+                            data-id="{{ ach.id }}" onclick="toggleBadge(this, {{ ach.id }})"
+                            style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:rgba(255,255,255,0.03); border:1px solid {% if ach.id in showcase_badges %}rgba(6,182,212,0.5){% else %}rgba(255,255,255,0.06){% endif %}; border-radius:8px; cursor:pointer; transition:all 0.2s;">
+                            <div
+                                style="width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.05); border-radius:6px; flex-shrink:0;">
+                                {% if ach.icon_type == 'image' %}
+                                <img src="{{ ach.icon }}"
+                                    style="width:20px; height:20px; border-radius:4px; object-fit:cover;">
+                                {% else %}
+                                <i class="fas {{ ach.icon }}"
+                                    style="font-size:0.8rem; color:{{ ach.badge_color or '#06b6d4' }};"></i>
+                                {% endif %}
+                            </div>
+                            <div style="flex:1; min-width:0;">
+                                <div
+                                    style="font-size:0.7rem; font-weight:600; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    {{ ach.name }}</div>
+                                <div style="font-size:0.55rem; color:#666;">Lv.{{ ach.level }} {% if ach.rarity and
+                                    ach.rarity != 'none' %}· {{ ach.rarity }}{% endif %}</div>
+                            </div>
+                            <div class="badge-check"
+                                style="width:18px; height:18px; display:flex; align-items:center; justify-content:center; border-radius:50%; flex-shrink:0; font-size:0.6rem;">
+                                {% if ach.id in showcase_badges %}
+                                <i class="fas fa-check" style="color:#06b6d4;"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div style="grid-column:1/-1; text-align:center; padding:30px; color:#555;">
+                            <i class="fas fa-trophy"
+                                style="font-size:2rem; opacity:0.3; margin-bottom:8px; display:block;"></i>
+                            <p style="font-size:0.75rem;">No achievements earned yet</p>
+                            <a href="/achievements" style="font-size:0.7rem; color:#06b6d4;">View Trophy Room →</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <button onclick="saveShowcaseBadges()"
+                    style="width:100%; padding:10px; background:linear-gradient(135deg, #06b6d4, #8b5cf6); color:#fff; border:none; border-radius:8px; font-weight:600; font-size:0.8rem; cursor:pointer; margin-top:10px; transition:opacity 0.2s;"
+                    id="save-badges-btn">
+                    <i class="fas fa-save me-1"></i> Save Badge Showcase
+                </button>
+            </div>
+
+
             <!-- Bottom Actions -->
             <div class="studio-actions-footer">
                 <div class="action-row">
@@ -323,15 +424,19 @@
             </div>
         </div>
     </div>
-    
+
 </div>
 
 <!-- Public Preview Modal -->
-<div id="previewModal" class="studio-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center;">
-    <div class="studio-modal-content" style="background: #1a1a1a; width: 90%; height: 90%; max-width: 1200px; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 0 30px rgba(0,0,0,0.5); border: 1px solid #333;">
-        <div class="modal-header" style="padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; background: #222; border-radius: 12px 12px 0 0;">
+<div id="previewModal" class="studio-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="studio-modal-content"
+        style="background: #1a1a1a; width: 90%; height: 90%; max-width: 1200px; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 0 30px rgba(0,0,0,0.5); border: 1px solid #333;">
+        <div class="modal-header"
+            style="padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; background: #222; border-radius: 12px 12px 0 0;">
             <h3 style="margin: 0; font-size: 1.1rem; color: #fff;"><i class="fas fa-globe"></i> Public View</h3>
-            <button onclick="closePublicPreview()" style="background:none; border:none; color:#888; font-size:1.5rem; cursor:pointer; padding: 0 5px;">&times;</button>
+            <button onclick="closePublicPreview()"
+                style="background:none; border:none; color:#888; font-size:1.5rem; cursor:pointer; padding: 0 5px;">&times;</button>
         </div>
         <div style="flex: 1; position: relative; background: #0f0f0f;">
             <iframe id="previewFrame" style="width: 100%; height: 100%; border: none;"></iframe>
@@ -361,31 +466,31 @@
         currentSettings.frame = frameName;
         updatePreview();
     }
-    
+
     function setBorderType(type) {
         currentSettings.borderType = type;
         document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
         const btn = document.getElementById(`btn-border-${type}`);
-        if(btn) btn.classList.add('active');
+        if (btn) btn.classList.add('active');
         updatePreview();
     }
-    
+
     function setColor(color) {
         currentSettings.color = color;
         updatePreview();
     }
-    
+
     // Background Class
     function setBgClass(cls) {
         currentSettings.bgClass = cls;
-        currentSettings.bgUrl = ''; 
+        currentSettings.bgUrl = '';
         currentSettings.filter = 'none';
         updatePreview();
     }
-    
+
     // Custom Upload Filter (Legacy function, keeping for compatibility if utilized)
     function setBgFilter(filter) {
-        currentSettings.filter = filter; 
+        currentSettings.filter = filter;
         updatePreview();
     }
 
@@ -393,9 +498,9 @@
     function setBgAdjust(type, value) {
         currentSettings[type] = value;
         // Update Label
-        if(type === 'brightness') document.getElementById('val-bright').innerText = value + '%';
-        if(type === 'opacity') document.getElementById('val-opac').innerText = value + '%';
-        if(type === 'blur') document.getElementById('val-blur').innerText = value + 'px';
+        if (type === 'brightness') document.getElementById('val-bright').innerText = value + '%';
+        if (type === 'opacity') document.getElementById('val-opac').innerText = value + '%';
+        if (type === 'blur') document.getElementById('val-blur').innerText = value + 'px';
         updatePreview();
     }
 
@@ -418,28 +523,28 @@
             method: 'POST',
             body: formData
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                currentSettings.bgUrl = data.path;
-                currentSettings.bgClass = 'custom';
-                updatePreview();
-            } else {
-                alert('Upload failed: ' + data.error);
-            }
-        })
-        .finally(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        });
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    currentSettings.bgUrl = data.path;
+                    currentSettings.bgClass = 'custom';
+                    updatePreview();
+                } else {
+                    alert('Upload failed: ' + data.error);
+                }
+            })
+            .finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
     }
-    
+
     function updatePreview() {
         // Update both previews (left and center)
         const frames = document.querySelectorAll('.studio-avatar-frame');
         const wrappers = document.querySelectorAll('.studio-avatar-img-wrapper');
         const largeContainer = document.querySelector('.studio-avatar-large-container');
-        
+
         // Left Profile Card Elements
         const profileCard = document.querySelector('.studio-card.profile-preview-card');
         const profileBgLayer = document.getElementById('profileBgLayer');
@@ -448,7 +553,7 @@
         frames.forEach(el => {
             el.className = `studio-avatar-frame ${el.classList.contains('large') ? 'large' : ''} ${currentSettings.frame}`;
         });
-        
+
         wrappers.forEach(el => {
             el.style.setProperty('--border-color', currentSettings.color);
             el.classList.remove('border-solid', 'border-gradient', 'border-none');
@@ -459,18 +564,18 @@
         // Center Container
         largeContainer.className = 'studio-avatar-large-container';
         largeContainer.style.background = ''; // reset
-        largeContainer.style.backgroundImage = ''; 
+        largeContainer.style.backgroundImage = '';
         largeContainer.style.filter = ''; // reset filters
-        
+
         // Left Card Layer Reset
-        if(profileBgLayer) {
+        if (profileBgLayer) {
             profileBgLayer.className = 'studio-bg-layer';
             profileBgLayer.style.background = '';
             profileBgLayer.style.backgroundImage = '';
             profileBgLayer.style.filter = '';
         }
-        if(profileOverlayLayer) {
-             profileOverlayLayer.style.opacity = '0';
+        if (profileOverlayLayer) {
+            profileOverlayLayer.style.opacity = '0';
         }
 
         // 1. Base Background (Image vs Class)
@@ -478,10 +583,10 @@
         if (currentSettings.bgUrl) {
             bgStyle = `url('${currentSettings.bgUrl}') center/cover no-repeat`;
             // largeContainer.style.background = bgStyle; // This will be applied to centerBgLayer
-            if(profileBgLayer) profileBgLayer.style.background = bgStyle;
+            if (profileBgLayer) profileBgLayer.style.background = bgStyle;
         } else if (currentSettings.bgClass && currentSettings.bgClass !== 'none') {
             // largeContainer.classList.add(currentSettings.bgClass); // This will be applied to centerBgLayer
-            if(profileBgLayer) profileBgLayer.classList.add(currentSettings.bgClass);
+            if (profileBgLayer) profileBgLayer.classList.add(currentSettings.bgClass);
         }
 
         // 2. Adjustments (Brightness, Blur)
@@ -491,32 +596,32 @@
         // We implemented layers for CENTER preview via JS check in previous turn! 
         // Let's re-run that check or ensure consistency.
         // Step 174 added JS to create layers in largeContainer if missing!
-        
+
         let centerBgLayer = largeContainer.querySelector('.studio-bg-layer');
-        if(!centerBgLayer) {
-             // Create if missing (ensures Center preview works like Left preview)
-             centerBgLayer = document.createElement('div');
-             centerBgLayer.className = 'studio-bg-layer';
-             largeContainer.insertBefore(centerBgLayer, largeContainer.firstChild);
-             largeContainer.style.position = 'relative';
-             centerBgLayer.style.position = 'absolute';
-             centerBgLayer.style.inset = '0';
-             centerBgLayer.style.zIndex = '0';
-             
-             const fr = largeContainer.querySelector('.studio-avatar-frame');
-             if(fr) fr.style.zIndex = '2';
+        if (!centerBgLayer) {
+            // Create if missing (ensures Center preview works like Left preview)
+            centerBgLayer = document.createElement('div');
+            centerBgLayer.className = 'studio-bg-layer';
+            largeContainer.insertBefore(centerBgLayer, largeContainer.firstChild);
+            largeContainer.style.position = 'relative';
+            centerBgLayer.style.position = 'absolute';
+            centerBgLayer.style.inset = '0';
+            centerBgLayer.style.zIndex = '0';
+
+            const fr = largeContainer.querySelector('.studio-avatar-frame');
+            if (fr) fr.style.zIndex = '2';
         }
         // Also overlay
         let centerOverlay = largeContainer.querySelector('.studio-overlay-layer');
-        if(!centerOverlay) {
-             centerOverlay = document.createElement('div');
-             centerOverlay.className = 'studio-overlay-layer';
-             centerOverlay.style.position = 'absolute';
-             centerOverlay.style.inset = '0';
-             centerOverlay.style.zIndex = '1';
-             centerOverlay.style.background = '#000';
-             centerOverlay.style.pointerEvents = 'none';
-             largeContainer.insertBefore(centerOverlay, centerBgLayer.nextSibling);
+        if (!centerOverlay) {
+            centerOverlay = document.createElement('div');
+            centerOverlay.className = 'studio-overlay-layer';
+            centerOverlay.style.position = 'absolute';
+            centerOverlay.style.inset = '0';
+            centerOverlay.style.zIndex = '1';
+            centerOverlay.style.background = '#000';
+            centerOverlay.style.pointerEvents = 'none';
+            largeContainer.insertBefore(centerOverlay, centerBgLayer.nextSibling);
         }
 
         // Helper to update layer content
@@ -526,33 +631,33 @@
             layer.style.background = '';
             layer.style.backgroundImage = '';
             layer.innerHTML = ''; // clear previous video
-            
+
             if (currentSettings.bgUrl) {
                 if (currentSettings.bgUrl.match(/\.(mp4|webm)$/i)) {
-                     const v = document.createElement('video');
-                     v.src = currentSettings.bgUrl;
-                     
-                     // Attributes for strict autoplay
-                     v.setAttribute('autoplay', '');
-                     v.setAttribute('muted', '');
-                     v.setAttribute('loop', '');
-                     v.setAttribute('playsinline', '');
-                     
-                     v.muted = true;
-                     v.autoplay = true;
-                     v.loop = true;
-                     v.playsInline = true;
-                     
-                     v.style.width = '100%';
-                     v.style.height = '100%';
-                     v.style.objectFit = 'cover';
-                     
-                     layer.appendChild(v);
-                     
-                     // Force play
-                     v.play().catch(e => console.log('Preview Play Error:', e));
+                    const v = document.createElement('video');
+                    v.src = currentSettings.bgUrl;
+
+                    // Attributes for strict autoplay
+                    v.setAttribute('autoplay', '');
+                    v.setAttribute('muted', '');
+                    v.setAttribute('loop', '');
+                    v.setAttribute('playsinline', '');
+
+                    v.muted = true;
+                    v.autoplay = true;
+                    v.loop = true;
+                    v.playsInline = true;
+
+                    v.style.width = '100%';
+                    v.style.height = '100%';
+                    v.style.objectFit = 'cover';
+
+                    layer.appendChild(v);
+
+                    // Force play
+                    v.play().catch(e => console.log('Preview Play Error:', e));
                 } else {
-                     layer.style.background = `url('${currentSettings.bgUrl}') center/cover no-repeat`;
+                    layer.style.background = `url('${currentSettings.bgUrl}') center/cover no-repeat`;
                 }
             } else if (currentSettings.bgClass && currentSettings.bgClass !== 'none') {
                 layer.classList.add(currentSettings.bgClass);
@@ -562,50 +667,50 @@
         // Apply to Both Layers
         updateLayerContent(profileBgLayer);
         updateLayerContent(centerBgLayer);
-        
+
         // Reset container overrides just in case
         largeContainer.style.background = '';
 
         // Filters
         let filters = [];
-        if(currentSettings.brightness !== '100') filters.push(`brightness(${currentSettings.brightness}%)`);
-        if(currentSettings.blur !== '0') filters.push(`blur(${currentSettings.blur}px`);
+        if (currentSettings.brightness !== '100') filters.push(`brightness(${currentSettings.brightness}%)`);
+        if (currentSettings.blur !== '0') filters.push(`blur(${currentSettings.blur}px`);
         const filterStr = filters.join(' ');
-        
-        if(centerBgLayer) centerBgLayer.style.filter = filterStr;
-        if(profileBgLayer) profileBgLayer.style.filter = filterStr;
+
+        if (centerBgLayer) centerBgLayer.style.filter = filterStr;
+        if (profileBgLayer) profileBgLayer.style.filter = filterStr;
 
         // Opacity Overlay
         const opac = parseInt(currentSettings.opacity) / 100;
-        if(centerOverlay) centerOverlay.style.opacity = opac;
-        if(profileOverlayLayer) profileOverlayLayer.style.opacity = opac;
+        if (centerOverlay) centerOverlay.style.opacity = opac;
+        if (profileOverlayLayer) profileOverlayLayer.style.opacity = opac;
 
         // Match Color Override
         if (currentSettings.matchColor) {
             largeContainer.style.setProperty('--border-color', currentSettings.color);
-            if(profileCard) profileCard.style.setProperty('--border-color', currentSettings.color);
-            
+            if (profileCard) profileCard.style.setProperty('--border-color', currentSettings.color);
+
             // For CSS vars to work in BG layer, they must inherit or be set on layer
             // Usually they inherit from parent if defined
         }
     }
-    
+
     function switchTab(tabName) {
         document.querySelectorAll('.studio-tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.studio-tab-content').forEach(c => c.classList.remove('active'));
         document.querySelector(`.studio-tab[data-tab="${tabName}"]`).classList.add('active');
         document.getElementById(`tab-${tabName}`).classList.add('active');
     }
-    
+
     function publishAvatar() {
         const btn = document.querySelector('.btn-publish');
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
         btn.disabled = true;
-        
+
         fetch('/api/avatar/save', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 avatar_frame: currentSettings.frame,
                 avatar_border: currentSettings.borderType,
@@ -619,22 +724,22 @@
                 avatar_bg_match_color: String(currentSettings.matchColor)
             })
         })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) {
-                btn.innerHTML = 'Saved!';
-                setTimeout(() => {
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    btn.innerHTML = 'Saved!';
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    alert('Error saving');
                     btn.innerHTML = originalText;
                     btn.disabled = false;
-                }, 2000);
-            } else {
-                alert('Error saving');
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
-        });
+                }
+            });
     }
-    
+
     // Video Thumbnail Generator (Canvas)
     function generateVideoThumbnail(src, container) {
         const video = document.createElement('video');
@@ -642,9 +747,9 @@
         video.muted = true;
         video.currentTime = 0.5; // Seek to frame
         video.preload = 'metadata';
-        
+
         video.onloadeddata = () => {
-            if(video.readyState >= 2) {
+            if (video.readyState >= 2) {
                 video.currentTime = 0.5;
             }
         };
@@ -655,12 +760,12 @@
             canvas.height = 200;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
+
             canvas.style.width = '100%';
             canvas.style.height = '100%';
             canvas.style.objectFit = 'cover';
             canvas.style.borderRadius = '6px';
-            
+
             // Overlay Play Icon
             const icon = document.createElement('div');
             icon.innerHTML = '<i class="fas fa-play"></i>';
@@ -672,21 +777,21 @@
             icon.style.fontSize = '2rem';
             icon.style.pointerEvents = 'none';
             icon.style.textShadow = '0 2px 4px rgba(0,0,0,0.5)';
-            
+
             container.innerHTML = '';
             container.appendChild(canvas);
             container.appendChild(icon);
         };
-        
+
         // Handle error/timeout
         setTimeout(() => {
-             if(container.innerHTML === '' || container.innerText === 'VID') {
-                 // Fallback if seek fails
-                 container.innerHTML = '<i class="fas fa-video" style="color:#555; font-size:2rem;"></i>';
-             }
+            if (container.innerHTML === '' || container.innerText === 'VID') {
+                // Fallback if seek fails
+                container.innerHTML = '<i class="fas fa-video" style="color:#555; font-size:2rem;"></i>';
+            }
         }, 3000);
     }
-    
+
     // Admin & Library Functions
     function openAdminUploadModal() {
         // Use flex instead of block for centering if using flex in style
@@ -705,7 +810,7 @@
         const formData = new FormData(form);
         const btn = form.querySelector('button[type="submit"]');
         const originalText = btn.innerHTML;
-        
+
         btn.innerHTML = 'Uploading...';
         btn.disabled = true;
 
@@ -713,112 +818,112 @@
             method: 'POST',
             body: formData
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert('Upload successful!');
-                closeAdminUploadModal();
-                loadLibrary(); // Refresh library
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(err => alert('Upload failed'))
-        .finally(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        });
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Upload successful!');
+                    closeAdminUploadModal();
+                    loadLibrary(); // Refresh library
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(err => alert('Upload failed'))
+            .finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
     }
 
     function deleteBg(e, id) {
         e.stopPropagation();
-        if(!confirm('Delete this background?')) return;
-        
+        if (!confirm('Delete this background?')) return;
+
         fetch(`/api/admin/background/${id}`, { method: 'DELETE' })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) loadLibrary();
-            else alert('Error deleting');
-        });
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) loadLibrary();
+                else alert('Error deleting');
+            });
     }
 
     function editBg(e, id, currentName, currentTag) {
         e.stopPropagation();
         const newName = prompt("New Name:", currentName);
-        if(!newName) return;
-        
+        if (!newName) return;
+
         const newTag = prompt("New Access Tag (basic/pro/ultimate/admin_only):", currentTag);
-        if(!newTag) return;
-        
+        if (!newTag) return;
+
         fetch(`/api/admin/background/${id}`, {
             method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: newName, access_tag: newTag })
         })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) loadLibrary();
-            else alert('Error updating');
-        });
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) loadLibrary();
+                else alert('Error updating');
+            });
     }
 
     function loadLibrary() {
         fetch('/api/avatar/backgrounds')
-        .then(res => res.json())
-        .then(data => {
-            const grid = document.getElementById('libraryGrid');
-            const section = document.getElementById('librarySection');
-            
-            if (data.backgrounds && data.backgrounds.length > 0) {
-                section.style.display = 'block';
-                grid.innerHTML = '';
-                data.backgrounds.forEach(bg => {
-                    const div = document.createElement('div');
-                    div.className = 'bg-option ' + (bg.tag || 'basic');
-                    div.style.position = 'relative'; // For absolute buttons
-                    div.title = `${bg.name} (${bg.tag})`; // Tooltip
-                    div.innerText = bg.name.substring(0, 4); // Short name
-                    
-                    if(bg.path.match(/\.(mp4|webm)$/i)) {
-                         // Use Canvas Thumbnail generator
-                         div.innerText = ''; // Clear text
-                         generateVideoThumbnail(bg.path, div);
-                    } else {
-                        // Image fallback (inc. jfif)
-                        div.style.background = `url('${bg.path}') center/cover`;
-                        div.innerText = ''; 
-                    }
-                    
-                    div.onclick = () => {
-                        currentSettings.bgUrl = bg.path;
-                        currentSettings.bgClass = 'custom';
-                        updatePreview();
-                    };
-                    
-                    // Admin Controls
-                    if (typeof IS_ADMIN !== 'undefined' && IS_ADMIN) {
-                        const controls = document.createElement('div');
-                        controls.className = 'admin-controls';
-                        controls.innerHTML = `
+            .then(res => res.json())
+            .then(data => {
+                const grid = document.getElementById('libraryGrid');
+                const section = document.getElementById('librarySection');
+
+                if (data.backgrounds && data.backgrounds.length > 0) {
+                    section.style.display = 'block';
+                    grid.innerHTML = '';
+                    data.backgrounds.forEach(bg => {
+                        const div = document.createElement('div');
+                        div.className = 'bg-option ' + (bg.tag || 'basic');
+                        div.style.position = 'relative'; // For absolute buttons
+                        div.title = `${bg.name} (${bg.tag})`; // Tooltip
+                        div.innerText = bg.name.substring(0, 4); // Short name
+
+                        if (bg.path.match(/\.(mp4|webm)$/i)) {
+                            // Use Canvas Thumbnail generator
+                            div.innerText = ''; // Clear text
+                            generateVideoThumbnail(bg.path, div);
+                        } else {
+                            // Image fallback (inc. jfif)
+                            div.style.background = `url('${bg.path}') center/cover`;
+                            div.innerText = '';
+                        }
+
+                        div.onclick = () => {
+                            currentSettings.bgUrl = bg.path;
+                            currentSettings.bgClass = 'custom';
+                            updatePreview();
+                        };
+
+                        // Admin Controls
+                        if (typeof IS_ADMIN !== 'undefined' && IS_ADMIN) {
+                            const controls = document.createElement('div');
+                            controls.className = 'admin-controls';
+                            controls.innerHTML = `
                             <i class="fas fa-edit" onclick="editBg(event, ${bg.id}, '${bg.name}', '${bg.tag}')"></i>
                             <i class="fas fa-trash" onclick="deleteBg(event, ${bg.id})"></i>
                         `;
-                        div.appendChild(controls);
-                    }
-                    
-                    grid.appendChild(div);
-                });
-            } else {
-                section.style.display = 'none';
-            }
-        });
+                            div.appendChild(controls);
+                        }
+
+                        grid.appendChild(div);
+                    });
+                } else {
+                    section.style.display = 'none';
+                }
+            });
     }
 
     // Public Preview Modal Functions
     function openPublicPreview() {
         const modal = document.getElementById('previewModal');
         const iframe = document.getElementById('previewFrame');
-        if(iframe) {
+        if (iframe) {
             // Reload to capture latest published changes
             iframe.src = "/u/{{ session.username }}";
         }
@@ -828,8 +933,8 @@
     function closePublicPreview() {
         const modal = document.getElementById('previewModal');
         const iframe = document.getElementById('previewFrame');
-        if(modal) modal.style.display = 'none';
-        if(iframe) iframe.src = ''; // Stop content
+        if (modal) modal.style.display = 'none';
+        if (iframe) iframe.src = ''; // Stop content
     }
 
     // Init state
@@ -837,18 +942,103 @@
         // Restore controls
         document.getElementById('rng-bright').value = currentSettings.brightness;
         document.getElementById('val-bright').innerText = currentSettings.brightness + '%';
-        
+
         document.getElementById('rng-opac').value = currentSettings.opacity;
         document.getElementById('val-opac').innerText = currentSettings.opacity + '%';
-        
+
         document.getElementById('rng-blur').value = currentSettings.blur;
         document.getElementById('val-blur').innerText = currentSettings.blur + 'px';
-        
+
         document.getElementById('matchColorToggle').checked = currentSettings.matchColor;
 
         setBorderType(currentSettings.borderType);
         updatePreview();
         loadLibrary(); // Load dynamic backgrounds
+        updateShowcasePreview(); // Initialize badge showcase
     });
+
+    // --- BADGE SHOWCASE ---
+    let selectedBadges = {{ showcase_badges | tojson | safe }};
+    const earnedData = {{ earned_achievements | tojson | safe }};
+
+    function toggleBadge(el, id) {
+        const idx = selectedBadges.indexOf(id);
+        if (idx > -1) {
+            // Remove
+            selectedBadges.splice(idx, 1);
+            el.style.borderColor = 'rgba(255,255,255,0.06)';
+            el.classList.remove('selected');
+            el.querySelector('.badge-check').innerHTML = '';
+        } else {
+            if (selectedBadges.length >= 10) {
+                // Shake the counter to indicate limit
+                const counter = document.getElementById('badge-counter');
+                counter.style.color = '#ef4444';
+                counter.style.transform = 'scale(1.2)';
+                setTimeout(() => { counter.style.color = '#06b6d4'; counter.style.transform = ''; }, 600);
+                return;
+            }
+            selectedBadges.push(id);
+            el.style.borderColor = 'rgba(6,182,212,0.5)';
+            el.classList.add('selected');
+            el.querySelector('.badge-check').innerHTML = '<i class="fas fa-check" style="color:#06b6d4;"></i>';
+        }
+        updateShowcasePreview();
+    }
+
+    function updateShowcasePreview() {
+        const preview = document.getElementById('showcase-preview');
+        const counter = document.getElementById('badge-counter');
+        counter.textContent = `${selectedBadges.length} / 10`;
+
+        if (selectedBadges.length === 0) {
+            preview.innerHTML = '<span style="color:#555; font-size:0.65rem; font-style:italic;">No badges selected yet</span>';
+            return;
+        }
+
+        let html = '';
+        selectedBadges.forEach(id => {
+            const ach = earnedData.find(a => a.id === id);
+            if (!ach) return;
+            const iconHtml = ach.icon_type === 'image'
+                ? `<img src="${ach.icon}" style="width:14px; height:14px; border-radius:3px; object-fit:cover;">`
+                : `<i class="fas ${ach.icon}" style="font-size:0.6rem; color:${ach.badge_color || '#06b6d4'};"></i>`;
+            html += `<div style="display:flex; align-items:center; gap:4px; padding:3px 8px; background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.2); border-radius:12px; font-size:0.6rem; color:#e2e8f0;" title="${ach.name}">${iconHtml} <span style="max-width:60px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${ach.name}</span></div>`;
+        });
+        preview.innerHTML = html;
+    }
+
+    function saveShowcaseBadges() {
+        const btn = document.getElementById('save-badges-btn');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        btn.disabled = true;
+
+        fetch('/api/avatar/badges', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ badge_ids: selectedBadges })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+                    btn.style.background = 'linear-gradient(135deg, #34d399, #06b6d4)';
+                    setTimeout(() => {
+                        btn.innerHTML = orig;
+                        btn.style.background = '';
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    btn.innerHTML = orig;
+                    btn.disabled = false;
+                    alert('Error saving badges');
+                }
+            })
+            .catch(() => {
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            });
+    }
 </script>
 {% endblock %}
