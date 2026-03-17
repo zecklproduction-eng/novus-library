@@ -207,6 +207,18 @@
               <label class="form-label">Author</label>
               <input type="text" name="author" class="form-control" value="{{ book.author }}" />
             </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Content Type</label>
+              <select name="book_type" class="form-select">
+                <option value="book" {{ 'selected' if book.book_type=='book' }}>Book</option>
+                <option value="research_paper" {{ 'selected' if book.book_type=='research_paper' }}>Research Paper
+                </option>
+                <option value="manga" {{ 'selected' if book.book_type=='manga' }}>Manga</option>
+                <option value="manhwa" {{ 'selected' if book.book_type=='manhwa' }}>Manhwa</option>
+                <option value="light_novel" {{ 'selected' if book.book_type=='light_novel' }}>Light Novel</option>
+              </select>
+            </div>
           </div>
 
           <div class="mb-3">

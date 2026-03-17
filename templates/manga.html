@@ -2,6 +2,70 @@
 {% block title %}Manga Universe | NOVUS{% endblock %}
 
 {% block content %}
+<style>
+  .manga-realm-filter {
+    margin-top: -30px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    z-index: 100;
+  }
+
+  .realm-tabs {
+    display: flex;
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(15px);
+    padding: 8px;
+    border-radius: 50px;
+    border: 1px solid rgba(255, 0, 255, 0.2);
+    box-shadow: 0 0 25px rgba(255, 0, 255, 0.1), inset 0 0 10px rgba(0, 212, 255, 0.05);
+    gap: 8px;
+  }
+
+  .realm-tab {
+    padding: 12px 28px;
+    border-radius: 40px;
+    color: #a0a0c0;
+    text-decoration: none !important;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid transparent;
+  }
+
+  .realm-tab i {
+    font-size: 1.1rem;
+    transition: transform 0.3s ease;
+  }
+
+  .realm-tab:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.07);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  }
+
+  .realm-tab:hover i {
+    transform: rotate(15deg) scale(1.2);
+  }
+
+  .realm-tab.active {
+    background: linear-gradient(135deg, #ff00ff, #00d4ff);
+    color: #000;
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.4), 0 0 40px rgba(0, 212, 255, 0.2);
+  }
+
+  .realm-tab.active i {
+    transform: scale(1.1);
+  }
+</style>
+
 <div class="manga-page">
 
   <!-- ================= HERO ================= -->
@@ -41,6 +105,28 @@
           <div class="p4"></div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ================= DIMENSIONAL REALMS (SUBTYPES) ================= -->
+  <section class="manga-realm-filter container">
+    <div class="realm-tabs">
+      <a href="{{ url_for('manga', type='all', category=selected_category, q=q) }}"
+        class="realm-tab {{ 'active' if selected_type == 'all' or not selected_type }}">
+        <i class="fas fa-certificate"></i> All Worlds
+      </a>
+      <a href="{{ url_for('manga', type='manga', category=selected_category, q=q) }}"
+        class="realm-tab {{ 'active' if selected_type == 'manga' }}">
+        <i class="fas fa-book-open"></i> Manga
+      </a>
+      <a href="{{ url_for('manga', type='manhwa', category=selected_category, q=q) }}"
+        class="realm-tab {{ 'active' if selected_type == 'manhwa' }}">
+        <i class="fas fa-scroll"></i> Manhwa
+      </a>
+      <a href="{{ url_for('manga', type='light_novel', category=selected_category, q=q) }}"
+        class="realm-tab {{ 'active' if selected_type == 'light_novel' }}">
+        <i class="fas fa-feather-alt"></i> Light Novels
+      </a>
     </div>
   </section>
 
@@ -157,35 +243,6 @@
             <a href="{{ url_for('manga', category=cat) }}"
               class="chip {% if cat == selected_category %}chip-active{% endif %}">{{ cat }}</a>
             {% endfor %}
-          </div>
-        </div>
-
-        <div class="filter-group" style="margin-top: 20px;">
-          <label class="filter-label">Art Style</label>
-          <div class="chip-row">
-            <span class="chip">Realistic</span>
-            <span class="chip">Stylized</span>
-            <span class="chip">Noir</span>
-            <span class="chip">Vibrant</span>
-          </div>
-        </div>
-
-        <div class="filter-group" style="margin-top: 20px;">
-          <label class="filter-label">Story Status</label>
-          <div class="chip-row">
-            <span class="chip">Ongoing</span>
-            <span class="chip">Completed</span>
-            <span class="chip">Hiatus</span>
-          </div>
-        </div>
-
-        <div class="filter-group" style="margin-top: 20px;">
-          <label class="filter-label">Atmosphere</label>
-          <div class="chip-row">
-            <span class="chip">Wholesome</span>
-            <span class="chip">Gritty</span>
-            <span class="chip">Epic</span>
-            <span class="chip">Cerebral</span>
           </div>
         </div>
       </div>

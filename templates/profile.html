@@ -1115,7 +1115,7 @@
         <div class="stats-section-title">
             <i class="fas fa-chart-bar"></i> Reading Statistics
         </div>
-        <div class="stats-grid-enhanced">
+        <div class="stats-grid-enhanced" style="grid-template-columns: repeat(5, 1fr);">
             <div class="stat-card-enhanced">
                 <div class="stat-icon books"><i class="fas fa-book"></i></div>
                 <div class="stat-number" data-count="{{ count or 0 }}">{{ count or 0 }}</div>
@@ -1135,6 +1135,11 @@
                 <div class="stat-icon genre"><i class="fas fa-bookmark"></i></div>
                 <div class="stat-number" style="font-size: 1.5rem;">{{ fav or '—' }}</div>
                 <div class="stat-label-enhanced">Top Genre</div>
+            </div>
+            <div class="stat-card-enhanced">
+                <div class="stat-icon" style="background: rgba(255, 64, 129, 0.15); color: #ff4081;"><i class="fas fa-fire"></i></div>
+                <div class="stat-number">{{ charisma or 0 }}</div>
+                <div class="stat-label-enhanced">Charisma</div>
             </div>
         </div>
     </div>

@@ -1,6 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}{{ group.name if group else 'Group' }} | NOVUS Community{% endblock %}
+{% block title %}{{ group.name if group else 'Group' }} | NOVUS Community<!-- Comment Manga Search Modal -->
+<div id="commentMangaModal" class="modal-overlay"
+    style="display:none; z-index: 10000; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center;">
+    <div class="modal-container"
+        style="background: var(--community-card-bg); width: 400px; max-width: 90vw; padding: 20px; border-radius: 12px; border: 1px solid var(--community-card-border);">
+        <div class="modal-header"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; color: #fff;">Link Manga</h3>
+            <button type="button" onclick="document.getElementById('commentMangaModal').style.display='none'"
+                style="background: none; border: none; color: #aaa; cursor: pointer; font-size: 20px;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="text" id="commentMangaSearchInput" placeholder="Search manga title..." class="search-input"
+                style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--community-card-border); background: rgba(0,0,0,0.2); color: #fff; margin-bottom: 12px;">
+            <div id="commentMangaSearchResults" class="search-results-list"
+                style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
 
 {% block content %}
 <!-- Lucide Icons CDN -->
@@ -584,39 +604,75 @@
                 </div>
             </div>
 
-            <!-- Online Now -->
+            <!-- Most Charismatic Members -->
             <div class="group-card">
-                <h3 class="group-card-title">Online Now</h3>
-                <div class="online-list">
+                <h3 class="group-card-title">Most Charismatic</h3>
+                <div id="charismaticMembersList" class="online-list" style="display:flex; flex-direction:column; gap:12px;">
+                    {% if top_charisma_members %}
+                    {% for cm in top_charisma_members %}
                     <div class="online-user">
                         <div class="online-avatar">
-                            <img src="https://i.pravatar.cc/150?img=15" alt="User">
-                            <span class="online-status"></span>
+                            <img src="{{ cm.avatar or 'https://i.pravatar.cc/150?u=' ~ cm.name }}" alt="{{ cm.name }}">
+                            <span class="online-status" style="background:#ff4081; border-color:#ff4081; display:flex; align-items:center; justify-content:center;"><i class="fas fa-fire" style="font-size:8px;color:#fff;"></i></span>
                         </div>
                         <div class="online-info">
-                            <span class="online-name">Monshoron</span>
-                            <span class="online-handle">Active now</span>
+                            <span class="online-name">{{ cm.name }}</span>
+                            <span class="online-handle" style="color:#ff4081;">✨ {{ cm.charisma or 0 }}</span>
                         </div>
                     </div>
-                    <div class="online-user">
-                        <div class="online-avatar">
-                            <img src="https://i.pravatar.cc/150?img=22" alt="User">
-                            <span class="online-status"></span>
-                        </div>
-                        <div class="online-info">
-                            <span class="online-name">JujutsuKaisen</span>
-                            <span class="online-handle">Active now</span>
+                    {% endfor %}
+                    {% else %}
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px;">No members yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Shortcuts Sidebar -->
+            <div class="group-card" style="margin-top: 20px;">
+                <h3 class="group-card-title">Shortcuts</h3>
+                <div class="shortcuts-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <span style="color: rgba(255,255,255,0.7);">New Post</span>
+                        <div style="display: flex; gap: 4px;">
+                            <kbd style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #00d4ff;">Alt</kbd>
+                            <kbd style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #00d4ff;">N</kbd>
                         </div>
                     </div>
-                    <div class="online-user">
-                        <div class="online-avatar">
-                            <img src="https://i.pravatar.cc/150?img=33" alt="User">
-                            <span class="online-status"></span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <span style="color: rgba(255,255,255,0.7);">Search</span>
+                        <div style="display: flex; gap: 4px;">
+                            <kbd style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #00d4ff;">Alt</kbd>
+                            <kbd style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #00d4ff;">S</kbd>
                         </div>
-                        <div class="online-info">
-                            <span class="online-name">OnePieceFan</span>
-                            <span class="online-handle">Active 5m ago</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <span style="color: rgba(255,255,255,0.7);">Link Manga</span>
+                        <div style="display: flex; gap: 4px;">
+                            <kbd style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #00d4ff;">Alt</kbd>
+                            <kbd style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #00d4ff;">L</kbd>
                         </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <span style="color: rgba(255,255,255,0.7);">Mention</span>
+                        <div style="display: flex; gap: 4px;">
+                            <kbd style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #00d4ff;">Alt</kbd>
+                            <kbd style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #00d4ff;">M</kbd>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <span style="color: rgba(255,255,255,0.7);">Close All</span>
+                        <kbd style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #ff85c2;">Esc</kbd>
+                    </div>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.05); margin: 5px 0; padding-top: 5px;">
+                        <span style="color: rgba(255,255,255,0.4); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Inline Triggers</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <span style="color: rgba(255,255,255,0.7);">Mention User</span>
+                        <kbd style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #ffca28;">@</kbd>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <span style="color: rgba(255,255,255,0.7);">Link Manga</span>
+                        <kbd style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #ffca28;">#@</kbd>
                     </div>
                 </div>
             </div>
@@ -3120,6 +3176,169 @@
             display: none;
         }
     }
+
+    /* Gifters Popup Styles */
+    .gifters-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        width: 350px;
+        max-height: 500px;
+        background: #1a1a1a;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 20px rgba(255,133,194,0.1);
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+    }
+
+    .gifters-popup.active {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+        pointer-events: all;
+    }
+
+    .gifters-header {
+        padding: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .gifters-header h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #ff85c2;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .gifters-list {
+        padding: 12px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .gifter-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px;
+        border-radius: 8px;
+        transition: background 0.2s;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .gifter-item:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .gifter-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .gifter-info {
+        flex: 1;
+    }
+
+    .gifter-name {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #eee;
+    }
+
+    .gift-info {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.5);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .gift-mini-icon {
+        width: 14px;
+        height: 14px;
+        object-fit: contain;
+    }
+
+    .close-gifters {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        padding: 4px;
+        transition: color 0.2s;
+    }
+
+    .close-gifters:hover {
+        color: #fff;
+    }
+
+    .gifters-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+    }
+
+    .gifters-overlay.active {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    /* Godly Animation Styles */
+    @keyframes godly-burst {
+        0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; filter: drop-shadow(0 0 30px #ff00ff); }
+        100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+    }
+
+    @keyframes godly-glow {
+        0%, 100% { filter: drop-shadow(0 0 10px #ff00ff); }
+        50% { filter: drop-shadow(0 0 40px #ff00ff); }
+    }
+
+    .godly-anim-container {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(circle, rgba(255, 0, 255, 0.1) 0%, transparent 70%);
+        z-index: 20000;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeOut 3s forwards;
+    }
+
+    .godly-star {
+        font-size: 150px;
+        animation: godly-burst 2s ease-out forwards;
+        position: absolute;
+        top: 50%; left: 50%;
+    }
+
+    @keyframes fadeOut {
+        0% { opacity: 1; }
+        100% { opacity: 0; }
+    }
 </style>
 
 <script>
@@ -3952,7 +4171,7 @@
 
         window.toggleComments = async function (postId) {
             const section = document.getElementById(`comments-section-${postId}`);
-            const list = document.getElementById(`comment-list-${postId}`);
+            const list = document.getElementById(`comments-list-${postId}`);
 
             if (section.style.display === 'none' || section.style.display === '') {
                 section.style.display = 'block';
@@ -3965,7 +4184,7 @@
         };
 
         window.loadComments = async function (postId, sortBy = 'oldest') {
-            const list = document.getElementById(`comment-list-${postId}`);
+            const list = document.getElementById(`comments-list-${postId}`);
             const currentUserId = {{ session.get('user_id', 0) }};
 
 
@@ -4052,6 +4271,11 @@
                                     <span>React</span>
                                 </button>
                                 ${reactionsHtml}
+                                <button class="reaction-btn" onclick="openCommentGiftPicker('comment', ${c.id}, this, ${postId})" style="margin-left: auto;" title="Send Gift">
+                                    <i data-lucide="gift" style="width: 14px; height: 14px;"></i>
+                                    <span>Gift</span>
+                                </button>
+                                ${c.charisma > 0 ? `<span title="Charisma earned from gifts" style="font-size:11px; color:#ff85c2; display:flex; align-items:center; gap:3px;">✨ ${c.charisma}</span>` : ''}
                             </div>
                         </div>
                     `;
@@ -4952,6 +5176,709 @@
             btn.textContent = 'Vote';
         }
     };
+    
+    // Copied from community.html
+        window.insertAtCursor = function (btn, text) {
+            const form = btn.closest('form');
+            const textarea = form.querySelector('textarea[name="content"]');
+            if (!textarea) return;
+
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const val = textarea.value;
+
+            textarea.value = val.substring(0, start) + text + val.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + text.length;
+            textarea.focus();
+        };
+
+    const mangaData = {{ all_manga_groups | tojson | safe }};
+    // === Comment Manga Link Logic ===
+
+    let currentCommentPostId = null;
+    window.commentExternalAttachments = {}; // { postId: [ {url, type, manga_id, ...} ] }
+
+    // Helper to open the modal
+    window.openCommentMangaSearch = function (postId) {
+        currentCommentPostId = postId;
+        const modal = document.getElementById('commentMangaModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            const input = document.getElementById('commentMangaSearchInput');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+            document.getElementById('commentMangaSearchResults').innerHTML = '';
+        }
+    };
+
+    // Filter logic for comment manga search
+    const commentMangaSearchInput = document.getElementById('commentMangaSearchInput');
+    if (commentMangaSearchInput) {
+        commentMangaSearchInput.addEventListener('input', function () {
+            const query = this.value.toLowerCase().trim();
+            const results = document.getElementById('commentMangaSearchResults');
+            results.innerHTML = '';
+
+            if (query.length < 2) return;
+
+            // Reuse existing mangaData global (available in this scope)
+            const filtered = mangaData.filter(m => (m.name || '').toLowerCase().includes(query)).slice(0, 5);
+
+            filtered.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'search-result-item';
+                div.style.padding = '8px';
+                div.style.cursor = 'pointer';
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.gap = '10px';
+                div.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+
+                div.innerHTML = `
+                    ${m.icon_url ? `<img src="${m.icon_url}" style="width:24px;height:36px;object-fit:cover;">` : '<i data-lucide="book" style="width:24px;"></i>'}
+                    <span style="color:#fff;font-size:14px;">${m.name}</span>
+                `;
+                div.addEventListener('click', () => {
+                    if (!currentCommentPostId) return;
+                    if (!window.commentExternalAttachments[currentCommentPostId]) window.commentExternalAttachments[currentCommentPostId] = [];
+
+                    // Check duplicate
+                    if (!window.commentExternalAttachments[currentCommentPostId].find(x => x.manga_id === m.id)) {
+                        const att = {
+                            type: 'manga_link',
+                            url: m.link || '#',
+                            manga_id: m.id,
+                            manga_title: m.name,
+                            manga_cover: m.icon_url
+                        };
+                        window.commentExternalAttachments[currentCommentPostId].push(att);
+                        renderAllCommentAttachments(currentCommentPostId);
+                    }
+
+                    document.getElementById('commentMangaModal').style.display = 'none';
+                });
+
+                div.addEventListener('mouseenter', () => div.style.background = 'rgba(255,255,255,0.1)');
+                div.addEventListener('mouseleave', () => div.style.background = 'transparent');
+
+                results.appendChild(div);
+            });
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        });
+    }
+
+    // Global Drag & Drop + Paste Listener for Images (Delegated)
+    const handleImageInput = (e, items, type) => {
+        let blob = null;
+        let handled = false;
+
+        // 1. Check for binary image files
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") === 0) {
+                blob = items[i].getAsFile();
+                handled = true;
+                e.preventDefault();
+                addFileToForm(e.target.closest('form'), blob);
+            }
+        }
+
+        // 2. Check for HTML (Windows GIF picker often sends <img src="...">)
+        if (!handled && type === 'paste') {
+            const html = e.clipboardData.getData('text/html');
+            if (html) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const img = doc.querySelector('img');
+                if (img && img.src) {
+                    e.preventDefault();
+                    addStickerToForm(e.target.closest('form'), img.src);
+                    handled = true;
+                }
+            }
+        }
+
+        // 3. Check for Plain Text URL (Windows/Tenor often just sends a URL)
+        if (!handled) {
+            let text = '';
+            if (type === 'paste') text = e.clipboardData.getData('text/plain');
+            else if (type === 'drop') text = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('text/uri-list');
+
+            if (text && text.match(/^https?:\/\/.*\.(gif|png|jpg|jpeg|webp)($|\?)/i)) {
+                e.preventDefault();
+                addStickerToForm(e.target.closest('form'), text);
+                handled = true;
+            }
+        }
+    };
+
+    document.addEventListener('paste', function (e) {
+        if ((e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') && e.target.name === 'content') {
+            handleImageInput(e, (e.clipboardData || e.originalEvent.clipboardData).items, 'paste');
+        }
+    });
+
+    document.addEventListener('dragover', function (e) {
+        if ((e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') && e.target.name === 'content') {
+            e.preventDefault(); // allow drop
+            e.stopPropagation();
+        }
+    });
+
+    document.addEventListener('drop', function (e) {
+        if ((e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') && e.target.name === 'content') {
+            e.preventDefault(); // prevent navigation
+            e.stopPropagation();
+            handleImageInput(e, e.dataTransfer.items, 'drop');
+        }
+    });
+
+    function addStickerToForm(form, url) {
+        const fileInput = form.querySelector('input[type="file"]');
+        if (fileInput) {
+            const postId = fileInput.id.replace('comment-file-', '');
+            if (!window.commentExternalAttachments[postId]) window.commentExternalAttachments[postId] = [];
+            window.commentExternalAttachments[postId].push({
+                type: 'sticker',
+                url: url,
+                name: 'GIF'
+            });
+            window.renderAllCommentAttachments(postId);
+        }
+    }
+
+    function addFileToForm(form, file) {
+        const fileInput = form.querySelector('input[type="file"]');
+        if (fileInput) {
+            const dt = new DataTransfer();
+            if (fileInput.files) {
+                for (let j = 0; j < fileInput.files.length; j++) {
+                    dt.items.add(fileInput.files[j]);
+                }
+            }
+            dt.items.add(file);
+            fileInput.files = dt.files;
+
+            const postId = fileInput.id.replace('comment-file-', '');
+            window.renderAllCommentAttachments(postId);
+        }
+    }
+
+    // Render both Files and Manga and Sticker attachments
+    window.renderAllCommentAttachments = function (postId) {
+        const preview = document.getElementById(`comment-preview-${postId}`);
+        if (!preview) return;
+        preview.innerHTML = '';
+
+        // Render Files
+        const input = document.getElementById(`comment-file-${postId}`);
+        if (input && input.files) {
+            Array.from(input.files).forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = 'comment-file-preview-item';
+
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        div.innerHTML = `
+                            <img src="${e.target.result}">
+                            <button type="button" onclick="removeCommentFile(${postId}, ${index})">&times;</button>
+                        `;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    div.innerHTML = `
+                        <i data-lucide="file" style="width:16px;height:16px;"></i>
+                        <span>${file.name}</span>
+                        <button type="button" onclick="removeCommentFile(${postId}, ${index})">&times;</button>
+                    `;
+                }
+                preview.appendChild(div);
+            });
+        }
+
+        // Render External (Manga/Sticker)
+        const externals = window.commentExternalAttachments[postId] || [];
+        externals.forEach((ext, idx) => {
+            const div = document.createElement('div');
+            div.className = 'comment-file-preview-item';
+            div.style.borderColor = 'var(--community-purple)';
+
+            let contentHtml = '';
+            if (ext.type === 'manga' || ext.type === 'manga_link') {
+                contentHtml = `
+                    ${ext.manga_cover ? `<img src="${ext.manga_cover}">` : '<i data-lucide="book"></i>'}
+                    <span style="color: var(--community-purple); font-weight: 500;">${ext.manga_title || 'Manga'}</span>
+                 `;
+            } else if (ext.type === 'sticker') {
+                div.style.borderColor = 'var(--community-cyan)';
+                contentHtml = `
+                    <img src="${ext.url}" style="width:40px;height:40px;object-fit:contain;">
+                    <span style="color: var(--community-cyan); font-weight: 500;">Sticker</span>
+                 `;
+            }
+
+            div.innerHTML = `
+                ${contentHtml}
+                <button type="button" onclick="removeCommentExternal(${postId}, ${idx})">&times;</button>
+            `;
+            preview.appendChild(div);
+        });
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+
+    // Sticker Picker Logic
+    window.openCommentStickerPicker = function (postId, btn) {
+        let existing = document.querySelector('.sticker-picker-popup');
+        if (existing) { existing.remove(); return; }
+
+        const rect = btn.getBoundingClientRect();
+        const picker = document.createElement('div');
+        picker.className = 'sticker-picker-popup';
+        picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 8px; border-radius: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; z-index: 10001; width: 240px; margin-bottom: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3);`;
+
+        // Mock Stickers (GIFs)
+        const stickers = [
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKVUn7XYMgbzgB2/giphy.gif',
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlS697eB7j58pPO/giphy.gif',
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpx4vV6D6ZTG/giphy.gif',
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6bnB6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l41lTfuxV5F6e4JNu/giphy.gif'
+        ];
+
+        stickers.forEach(url => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.style.width = '48px';
+            img.style.height = '48px';
+            img.style.objectFit = 'contain';
+            img.style.cursor = 'pointer';
+            img.style.borderRadius = '4px';
+            img.onmouseover = () => img.style.background = 'rgba(255,255,255,0.1)';
+            img.onmouseout = () => img.style.background = 'transparent';
+
+            img.onclick = function (e) {
+                e.stopPropagation(); // prevent closing immediately
+                if (!window.commentExternalAttachments[postId]) window.commentExternalAttachments[postId] = [];
+                window.commentExternalAttachments[postId].push({
+                    type: 'sticker',
+                    url: url,
+                    name: 'Sticker'
+                });
+                renderAllCommentAttachments(postId);
+                picker.remove();
+            };
+            picker.appendChild(img);
+        });
+
+        document.body.appendChild(picker);
+
+        // Click outside to close
+        setTimeout(() => {
+            document.addEventListener('click', function close(e) {
+                if (!picker.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                    picker.remove();
+                    document.removeEventListener('click', close);
+                }
+            });
+        }, 100);
+    };
+
+    // Override existing preview function to use unified renderer
+    window.previewCommentFiles = function (postId) {
+        renderAllCommentAttachments(postId);
+    };
+
+    // Override existing remove file
+    window.removeCommentFile = function (postId, index) {
+        const input = document.getElementById(`comment-file-${postId}`);
+        input.value = ''; // Note: Clearing all because FileList is immutable
+        renderAllCommentAttachments(postId);
+    };
+
+    // New remove external
+    window.removeCommentExternal = function (postId, index) {
+        if (window.commentExternalAttachments[postId]) {
+            window.commentExternalAttachments[postId].splice(index, 1);
+            renderAllCommentAttachments(postId);
+        }
+    };
+
+    // Override submitComment to include external attachments
+    const originalSubmit = window.submitComment; // Backup if needed, but we redefine
+
+    window.submitComment = async function (e, postId) {
+        e.preventDefault();
+        const form = e.target;
+        const input = form.querySelector('textarea[name="content"]') || form.querySelector('input[name="content"]');
+        const fileInput = document.getElementById(`comment-file-${postId}`);
+        const content = input.value;
+        const btn = form.querySelector('button[type="submit"]');
+
+        const externals = window.commentExternalAttachments[postId] || [];
+
+        // Check delegated to backend to support attachments-only (GIFs/Stickers)
+        // if (!content.trim() && (!fileInput.files || fileInput.files.length === 0) && externals.length === 0) {
+        //    return;
+        // }
+
+        btn.disabled = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('content', content);
+            if (fileInput.files) {
+                Array.from(fileInput.files).forEach(file => {
+                    formData.append('attachments', file);
+                });
+            }
+
+            if (externals.length > 0) {
+                formData.append('external_attachments', JSON.stringify(externals));
+            }
+
+            const res = await fetch(`/group/post/${postId}/comment`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                input.value = '';
+                fileInput.value = '';
+                window.commentExternalAttachments[postId] = [];
+                renderAllCommentAttachments(postId);
+
+                loadComments(postId);
+                const countSpan = document.getElementById(`comment-count-${postId}`);
+                if (countSpan) {
+                    const text = countSpan.textContent;
+                    const match = text.match(/(\d+)/);
+                    const current = match ? parseInt(match[0]) : 0;
+                    countSpan.textContent = `${current + 1} Comments`;
+                }
+            } else {
+                alert(data.message || 'Failed to post comment');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error posting comment');
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    // Gift Picker Logic (Mock)
+    
+    // Gift Picker Logic (Enhanced)
+    window.openCommentGiftPicker = function (targetType, targetId, btn, postId) {
+        let existing = document.querySelector('.picker-popup');
+        if (existing) { existing.remove(); return; }
+
+        const rect = btn.getBoundingClientRect();
+        const picker = document.createElement('div');
+        picker.className = 'picker-popup';
+        picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 12px; z-index: 10001; width: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); font-family: inherit;`;
+
+        // Header with Buy Coins button and balance
+        picker.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+                <div style="display: flex; flex-direction: column;">
+                    <span style="color: #fff; font-weight: bold; font-size: 14px;">Gift Shop</span>
+                    <span id="userBalanceDisplay" style="color: gold; font-size: 11px; font-weight: 600;">Loading balance...</span>
+                </div>
+                <button id="buyCoinsBtn" style="background: var(--community-cyan); color: #000; border: none; border-radius: 4px; padding: 4px 8px; font-size: 12px; font-weight: bold; cursor: pointer;">
+                    Buy Coins (+500)
+                </button>
+            </div>
+            <div id="giftGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; min-height: 100px;"></div>
+        `;
+
+        document.body.appendChild(picker);
+
+        const updateBalance = async () => {
+            try {
+                const res = await fetch('/api/user/balance');
+                const data = await res.json();
+                if (data.success) {
+                    const el = document.getElementById('userBalanceDisplay');
+                    if (el) el.textContent = `Balance: 🪙 ${data.coins}`;
+                }
+            } catch (err) { console.error(err); }
+        };
+
+        updateBalance();
+
+        document.getElementById('buyCoinsBtn').onclick = async (e) => {
+            e.stopPropagation();
+            try {
+                const res = await fetch('/api/buy_coins', { method: 'POST' });
+                const data = await res.json();
+                if(data.success) {
+                    alert(`Success! You now have ${data.coins} coins.`);
+                    updateBalance();
+                } else {
+                    alert(data.message);
+                }
+            } catch(err) { console.error(err); }
+        };
+
+        const giftGrid = picker.querySelector('#giftGrid');
+        const gifts = [
+            { icon: '🥈', name: 'Silver Award', price: 50, charisma: 25, color: '#94a3b8' },
+            { icon: '🥇', name: 'Gold Award', price: 200, charisma: 100, color: '#fbbf24' },
+            { icon: '💎', name: 'Platinum Award', price: 500, charisma: 250, color: '#38bdf8' },
+            { icon: '👏', name: 'Bravo', price: 80, charisma: 40, color: '#4ade80' },
+            { icon: '🌟', name: 'Starry', price: 150, charisma: 75, color: '#fcd34d' },
+            { icon: '🦭', name: 'Wholesome', price: 125, charisma: 65, color: '#e2e8f0' },
+            { icon: '🚀', name: 'Rocket Like', price: 300, charisma: 150, color: '#f87171' },
+            { icon: '👑', name: 'Godly Award', price: 10000, charisma: 5000, color: '#ff00ff', rarity: 'legendary' }
+        ];
+
+        gifts.forEach(gift => {
+            const div = document.createElement('div');
+            div.style.cssText = `display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; padding: 12px 8px; border-radius: 12px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden;`;
+            
+            div.innerHTML = `
+                <div style="font-size: 32px; filter: drop-shadow(0 0 8px ${gift.color}44); transition: transform 0.2s;">${gift.icon}</div>
+                <div style="font-size: 9px; font-weight: 700; color: #fff; margin-top: 6px; white-space: nowrap; opacity: 0.9;">${gift.name}</div>
+                <div style="font-size: 10px; color: #aaa; margin-top: 4px; text-align: center; line-height: 1.2;">
+                    <span style="color: #ffd700; font-weight: 800;">🪙 ${gift.price}</span><br>
+                    <span style="color: #ff4081; font-weight: bold;">✨ +${gift.charisma}</span>
+                </div>
+            `;
+            
+            div.onmouseover = () => {
+                div.style.background = 'rgba(255,255,255,0.08)';
+                div.style.borderColor = gift.color;
+                div.style.boxShadow = `0 0 15px ${gift.color}22`;
+                div.querySelector('div').style.transform = 'scale(1.2)';
+            };
+            div.onmouseout = () => {
+                div.style.background = 'rgba(255,255,255,0.03)';
+                div.style.borderColor = 'rgba(255,255,255,0.08)';
+                div.style.boxShadow = 'none';
+                div.querySelector('div').style.transform = 'scale(1)';
+            };
+
+            div.onclick = async function (e) {
+                e.stopPropagation();
+                if (!confirm(`Send ${gift.name} for ${gift.price} coins?`)) return;
+                
+                try {
+                    const endpoint = targetType === 'comment'
+                        ? `/group/comment/${targetId}/send_gift`
+                        : `/group/post/${targetId}/send_gift`;
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            gift_name: gift.name,
+                            price: gift.price,
+                            charisma: gift.charisma,
+                            url: gift.icon
+                        })
+                    });
+                    const data = await res.json();
+                    if(data.success) {
+                        if (gift.rarity === 'legendary') {
+                            triggerGodlyAnimation(gift.icon);
+                        }
+                        alert(`Gift sent! Your balance: ${data.coins} coins.`);
+                        picker.remove();
+                        const cSec = document.getElementById(`comments-section-${postId}`);
+                        if(cSec) cSec.style.display = 'block';
+                        if(window.loadComments) window.loadComments(postId);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                } catch(err) { console.error(err); alert('Failed to send gift'); }
+            };
+            giftGrid.appendChild(div);
+        });
+
+        setTimeout(() => {
+            document.addEventListener('click', function close(e) {
+                if (!picker.contains(e.target) && e.target !== btn) {
+                    picker.remove();
+                    document.removeEventListener('click', close);
+                }
+            });
+        }, 100);
+    };
+
+    window.openCommentEmojiPicker = function (btn) {
+        let existing = document.querySelector('.picker-popup');
+        if (existing) { existing.remove(); return; }
+
+        const rect = btn.getBoundingClientRect();
+        const picker = document.createElement('div');
+        picker.className = 'picker-popup';
+        picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left - 50}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 8px; border-radius: 8px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; z-index: 10001; width: 220px; margin-bottom: 0; height: 150px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.3);`;
+
+        const emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
+
+        emojis.forEach(char => {
+            const div = document.createElement('div');
+            div.style.cssText = `font-size: 20px; cursor: pointer; text-align: center; padding: 2px; border-radius: 4px;`;
+            div.textContent = char;
+            div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
+            div.onmouseout = () => div.style.background = 'transparent';
+            div.onclick = function (e) {
+                e.stopPropagation();
+                window.insertAtCursor(btn, char);
+                picker.remove();
+            };
+            picker.appendChild(div);
+        });
+
+        document.body.appendChild(picker);
+
+        setTimeout(() => {
+            document.addEventListener('click', function close(e) {
+                if (!picker.contains(e.target) && e.target !== btn) {
+                    picker.remove();
+                    document.removeEventListener('click', close);
+                }
+            });
+        }, 100);
+    };
+
+    // Real-time Most Charismatic Update
+    async function updateMostCharismatic() {
+        const list = document.getElementById('charismaticMembersList');
+        if (!list || typeof activeGroupId === 'undefined') return;
+
+        try {
+            const res = await fetch(`/api/group/${activeGroupId}/top_charisma`);
+            const data = await res.json();
+            if (data.success && data.members) {
+                // simple check to avoid flicker
+                const currentContent = list.innerHTML;
+                let newHtml = '';
+                
+                if (data.members.length === 0) {
+                    newHtml = '<p style="color: rgba(255,255,255,0.5); font-size: 12px;">No members yet.</p>';
+                } else {
+                    data.members.forEach(m => {
+                        newHtml += `
+                        <div class="online-user" style="animation: fadeIn 0.5s ease-out forwards;">
+                            <div class="online-avatar">
+                                <img src="${m.avatar || 'https://i.pravatar.cc/150?u=' + m.name}" alt="${m.name}">
+                                <span class="online-status" style="background:#ff4081; border-color:#ff4081; display:flex; align-items:center; justify-content:center;"><i class="fas fa-fire" style="font-size:8px;color:#fff;"></i></span>
+                            </div>
+                            <div class="online-info">
+                                <span class="online-name">${m.name}</span>
+                                <span class="online-handle" style="color:#ff4081;">✨ ${m.charisma || 0}</span>
+                            </div>
+                        </div>`;
+                    });
+                }
+                
+                if (list.dataset.lastJson !== JSON.stringify(data.members)) {
+                    list.innerHTML = newHtml;
+                    list.dataset.lastJson = JSON.stringify(data.members);
+                }
+            }
+        } catch (err) { console.error('Charisma update error:', err); }
+    }
+
+    // Refresh charisma every 10 seconds
+    if (typeof activeGroupId !== 'undefined') {
+        setInterval(updateMostCharismatic, 10000);
+    }
+
+    // Emoticon Picker Logic
+    window.openCommentEmoticonPicker = function (btn) {
+        let existing = document.querySelector('.picker-popup');
+        if (existing) { existing.remove(); return; }
+
+        const rect = btn.getBoundingClientRect();
+        const picker = document.createElement('div');
+        picker.className = 'picker-popup';
+        picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left - 100}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 8px; border-radius: 8px; display: flex; flex-direction: column; gap: 4px; z-index: 10001; width: 160px; margin-bottom: 0px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.3);`;
+
+        const emoticons = ['( ͡° ͜ʖ ͡°)', '(づ｡◕‿‿◕｡)づ', '¯\\_(ツ)_/¯', '( ͡° ʖ̯ ͡°)', '(╯°□°）╯︵ ┻━┻', '┬──┬◡ﾉ(° - °ﾉ)', '( ͡ᵔ ͜ʖ ͡ᵔ )', 'ಠ_ಠ', 'ಥ_ಥ', '༼ つ ◕_◕ ༽つ', 'ᕦ(ò_óˇ)ᕤ', '(•‿•)', '(｡◕‿◕｡)', '(^_^)b', '(o_O)', '(>_<)', '(^.^)', '(T_T)', '(~_~)', '(-_-)', '(X_X)', '(>﹏<)', '(✿◡‿◡)', '(∩^o^)⊃━☆', '(づ￣ ³￣)づ', '(´• ω •`)', '(＠＾◡＾)', '(o^▽^o)', '(´｡• ᵕ •｡`)', '(◕‿◕)', '(*^ω^*)', '(⌒▽⌒)☆', 'ヽ(・∀・)ﾉ', '(´｡• ω •｡`)', '(￣ω￣)', '(o･ω･o)', '(＠_＠)', '(´-ω-`)', '(￣o￣) zzZZ', '(－_－) zzZZ', '(＿ ＿*)'];
+
+        emoticons.forEach(emo => {
+            const div = document.createElement('div');
+            // Changed styles to ensure proper height and spacing
+            div.style.cssText = `font-size: 13px; font-family: monospace; cursor: pointer; padding: 8px; border-radius: 4px; color: var(--community-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.5; min-height: 32px; flex-shrink: 0; display: flex; align-items: center;`;
+            div.textContent = emo;
+            div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
+            div.onmouseout = () => div.style.background = 'transparent';
+            div.onclick = function (e) {
+                e.stopPropagation();
+                window.insertAtCursor(btn, emo);
+                picker.remove();
+            };
+            picker.appendChild(div);
+        });
+
+        document.body.appendChild(picker);
+
+        setTimeout(() => {
+            document.addEventListener('click', function close(e) {
+                if (!picker.contains(e.target) && e.target !== btn) {
+                    picker.remove();
+                    document.removeEventListener('click', close);
+                }
+            });
+        }, 100);
+    };
+
+    window.deleteGroupComment = async function (commentId) {
+        if (!confirm('Are you sure you want to delete this comment?')) return;
+        try {
+            const res = await fetch(`/group/comment/${commentId}/delete`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                const el = document.getElementById(`comment-${commentId}`);
+                if (el) el.remove();
+            } else {
+                alert(data.message);
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    window.editGroupComment = function (commentId) {
+        const textDiv = document.getElementById(`comment-text-${commentId}`);
+        const currentText = textDiv.innerText;
+        textDiv.dataset.original = currentText; // backup
+        textDiv.innerHTML = `
+            <div class="edit-comment-box">
+                <textarea id="edit-area-${commentId}" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 4px; padding: 8px; font-family: inherit;">${currentText}</textarea>
+                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                    <button type="button" onclick="saveCommentEdit(${commentId})" style="padding: 4px 8px; background: var(--community-cyan); border: none; border-radius: 4px; color: #000; font-size: 12px; cursor: pointer;">Save</button>
+                    <button type="button" onclick="cancelCommentEdit(${commentId})" style="padding: 4px 8px; background: rgba(255,255,255,0.1); border: none; border-radius: 4px; color: #fff; font-size: 12px; cursor: pointer;">Cancel</button>
+                </div>
+            </div>
+        `;
+    };
+
+    window.saveCommentEdit = async function (commentId) {
+        const newText = document.getElementById(`edit-area-${commentId}`).value;
+        try {
+            const res = await fetch(`/group/comment/${commentId}/edit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: newText })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const textDiv = document.getElementById(`comment-text-${commentId}`);
+                textDiv.innerText = newText;
+            } else {
+                alert(data.message);
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    window.cancelCommentEdit = function (commentId) {
+        const textDiv = document.getElementById(`comment-text-${commentId}`);
+        textDiv.innerText = textDiv.dataset.original || '';
+    };
+
+
     window.activeChannelId = 'default';
     window.activeTabType = 'all';
 
@@ -5008,6 +5935,124 @@
         window.filterAllPosts();
     };
 
+    // Gifter List Logic
+    window.openGiftersList = async function(postId) {
+        // Create overlay and popup if they don't exist
+        let overlay = document.querySelector('.gifters-overlay');
+        let popup = document.querySelector('.gifters-popup');
+
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'gifters-overlay';
+            overlay.onclick = closeGiftersList;
+            document.body.appendChild(overlay);
+        }
+
+        if (!popup) {
+            popup = document.createElement('div');
+            popup.className = 'gifters-popup';
+            popup.innerHTML = `
+                <div class="gifters-header">
+                    <h3><i class="fas fa-gift"></i> Post Gifters</h3>
+                    <button class="close-gifters" onclick="closeGiftersList()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="gifters-list" id="giftersListContent">
+                    <div style="text-align:center; padding: 20px; color: rgba(255,255,255,0.5);">
+                        <i class="fas fa-spinner fa-spin"></i> Loading...
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(popup);
+        }
+
+        overlay.classList.add('active');
+        popup.classList.add('active');
+
+        const listContent = document.getElementById('giftersListContent');
+        try {
+            const res = await fetch(`/api/post/${postId}/gifters`);
+            const data = await res.json();
+
+            if (data.success && data.gifters) {
+                if (data.gifters.length === 0) {
+                    listContent.innerHTML = '<div style="text-align:center; padding: 20px; color: rgba(255,255,255,0.5);">No gifts yet. Be the first!</div>';
+                } else {
+                    let html = '';
+                    data.gifters.forEach(g => {
+                        html += `
+                            <div class="gifter-item">
+                                <img src="${g.avatar_url || '/static/uploads/avatars/default.png'}" class="gifter-avatar">
+                                <div class="gifter-info">
+                                    <span class="gifter-name">${g.username}</span>
+                                    <div class="gift-info">
+                                        <img src="${g.gift_url}" class="gift-mini-icon">
+                                        <span>Sent a ${g.gift_name}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listContent.innerHTML = html;
+                }
+            } else {
+                listContent.innerHTML = `<div style="text-align:center; padding: 20px; color: #ff4d4d;">${data.message || 'Error loading gifters'}</div>`;
+            }
+        } catch (err) {
+            console.error('Error:', err);
+            listContent.innerHTML = '<div style="text-align:center; padding: 20px; color: #ff4d4d;">Failed to load.</div>';
+        }
+    };
+
+    window.triggerGodlyAnimation = function(icon) {
+        const container = document.createElement('div');
+        container.className = 'godly-anim-container';
+        
+        const star = document.createElement('div');
+        star.className = 'godly-star';
+        star.textContent = icon;
+        container.appendChild(star);
+        
+        // Add some random particles
+        for (let i = 0; i < 20; i++) {
+            const p = document.createElement('div');
+            p.style.position = 'absolute';
+            p.style.top = '50%';
+            p.style.left = '50%';
+            p.style.width = '4px';
+            p.style.height = '4px';
+            p.style.background = '#ff00ff';
+            p.style.borderRadius = '50%';
+            p.style.boxShadow = '0 0 10px #ff00ff';
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 100 + Math.random() * 300;
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+            
+            p.animate([
+                { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+                { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)`, opacity: 0 }
+            ], {
+                duration: 1000 + Math.random() * 2000,
+                easing: 'ease-out',
+                fill: 'forwards'
+            });
+            container.appendChild(p);
+        }
+
+        document.body.appendChild(container);
+        setTimeout(() => container.remove(), 4000);
+    };
+
+    window.closeGiftersList = function() {
+        const overlay = document.querySelector('.gifters-overlay');
+        const popup = document.querySelector('.gifters-popup');
+        if (overlay) overlay.classList.remove('active');
+        if (popup) popup.classList.remove('active');
+    };
+
     });
 </script>
 
@@ -5042,6 +6087,26 @@
                     style="background: rgba(255, 255, 255, 0.05);">Cancel</button>
                 <button class="create-post-btn" id="createRealPollBtn" style="padding: 10px 20px;">Create Poll</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comment Manga Search Modal -->
+<div id="commentMangaModal" class="modal-overlay"
+    style="display:none; z-index: 10000; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center;">
+    <div class="modal-container"
+        style="background: var(--community-card-bg); width: 400px; max-width: 90vw; padding: 20px; border-radius: 12px; border: 1px solid var(--community-card-border);">
+        <div class="modal-header"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; color: #fff;">Link Manga</h3>
+            <button type="button" onclick="document.getElementById('commentMangaModal').style.display='none'"
+                style="background: none; border: none; color: #aaa; cursor: pointer; font-size: 20px;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="text" id="commentMangaSearchInput" placeholder="Search manga title..." class="search-input"
+                style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--community-card-border); background: rgba(0,0,0,0.2); color: #fff; margin-bottom: 12px;">
+            <div id="commentMangaSearchResults" class="search-results-list"
+                style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
     </div>
 </div>

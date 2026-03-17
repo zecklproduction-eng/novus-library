@@ -364,15 +364,19 @@
 
   /* RIGHT SIDEBAR */
   .reader-right {
-    width: 360px;
-    background: rgba(10, 10, 12, 0.98);
-    backdrop-filter: blur(20px);
+    width: 320px;
+    background: #15151a;
     border-left: 1px solid var(--glass-border);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    padding: 20px;
-    gap: 16px;
+    padding: 24px;
+    gap: 24px;
+    transition: all 0.3s ease;
+  }
+  
+  .reader-right.hidden {
+    display: none !important;
   }
 
   .reader-right::-webkit-scrollbar {
@@ -1461,13 +1465,132 @@
   .reaction-emoji {
     font-size: 14px;
   }
+
+  /* Custom Chapter Dropdown */
+  .chapter-dropdown-toggle {
+    background: #1a1a24;
+    color: #e0e0e0;
+    border: 1px solid var(--neon-blue);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    transition: all 0.2s;
+  }
+  
+  .chapter-dropdown-toggle:hover {
+    background: rgba(0, 212, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+  }
+
+  .chapter-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 280px;
+    background: #1a1a24;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 212, 255, 0.1);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+  }
+
+  .chapter-dropdown-menu.show {
+    display: block;
+    animation: slideDownFade 0.2s ease forwards;
+  }
+
+  @keyframes slideDownFade {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .chapter-dropdown-search {
+    position: relative;
+    padding: 12px;
+    border-bottom: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  .chapter-dropdown-search i {
+    position: absolute;
+    left: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .chapter-dropdown-search input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 8px 12px 8px 32px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .chapter-dropdown-search input:focus {
+    border-color: var(--neon-blue);
+    background: rgba(0, 212, 255, 0.05);
+  }
+
+  .chapter-dropdown-list {
+    max-height: 350px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .chapter-dropdown-list::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .chapter-dropdown-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+  }
+
+  .chapter-dropdown-item {
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chapter-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    transform: translateX(2px);
+  }
+
+  .chapter-dropdown-item.active {
+    background: rgba(0, 212, 255, 0.15);
+    color: var(--neon-blue);
+    font-weight: 600;
+  }
 </style>
 
 <div class="manga-reader-container">
   <!-- TOP BAR -->
   <div class="reader-top-bar">
     <div class="top-bar-left">
-      <a href="/manga/{{ manga[0] }}" class="btn-icon" title="Go Back">
+      <a href="/manga/detail/{{ manga[0] }}" class="btn-icon" title="Go Back">
         <i class="fas fa-arrow-left"></i>
       </a>
       <div class="chapter-title">
@@ -1495,7 +1618,7 @@
       <button class="btn-icon" id="fullscreenBtn" title="Fullscreen (F)">
         <i class="fas fa-expand"></i>
       </button>
-      <button class="btn-icon" title="Menu">
+      <button class="btn-icon" id="menuToggleBtn" title="Toggle Sidebar">
         <i class="fas fa-bars"></i>
       </button>
     </div>
@@ -2890,28 +3013,99 @@
         if (chapters.length > 1) {
           const topBarLeft = document.querySelector('.top-bar-left');
           if (topBarLeft) {
-            const selector = document.createElement('select');
-            selector.id = 'chapterSelector';
-            selector.style.cssText = 'background: #2a2a4e; color: #e0e0e0; border: 2px solid #00d4ff; padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; margin-left: 10px;';
+            // Create custom dropdown container
+            const dropdownContainer = document.createElement('div');
+            dropdownContainer.className = 'chapter-dropdown-container';
+            dropdownContainer.style.cssText = 'position: relative; margin-left: 10px; z-index: 1000;';
 
+            // Create toggle button
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'chapter-dropdown-toggle';
+            toggleBtn.innerHTML = `<span>Ch ${chapter[1]}</span> <i class="fas fa-chevron-down"></i>`;
+            
+            // Create dropdown menu
+            const dropdownMenu = document.createElement('div');
+            dropdownMenu.className = 'chapter-dropdown-menu';
+            
+            // Create search box inside menu
+            const searchBox = document.createElement('div');
+            searchBox.className = 'chapter-dropdown-search';
+            searchBox.innerHTML = `
+                <i class="fas fa-search"></i>
+                <input type="text" id="readerChapterSearch" placeholder="Search chapter..." onclick="event.stopPropagation()">
+            `;
+            dropdownMenu.appendChild(searchBox);
+
+            // Create chapter list container
+            const listContainer = document.createElement('div');
+            listContainer.className = 'chapter-dropdown-list';
+
+            // Populate chapters
             chapters.forEach(ch => {
-              const option = document.createElement('option');
-              option.value = ch[0];
-              option.textContent = `Ch ${ch[1]}: ${ch[2]}`;
-              if (ch[0] === chapter[0]) option.selected = true;
-              selector.appendChild(option);
+                const item = document.createElement('div');
+                item.className = 'chapter-dropdown-item';
+                if (ch[0] === chapter[0]) item.classList.add('active');
+                
+                const chText = `Ch ${ch[1]}: ${ch[2]}`;
+                item.innerHTML = chText;
+                item.setAttribute('data-search', chText.toLowerCase());
+                
+                item.addEventListener('click', () => {
+                    const selectedId = ch[0];
+                    currentChapterId = selectedId;
+                    
+                    // Update UI
+                    toggleBtn.querySelector('span').textContent = `Ch ${ch[1]}`;
+                    if (chapterDisplay) chapterDisplay.textContent = `Chapter ${ch[1]}: ${ch[2]}`;
+                    
+                    // Update active state
+                    listContainer.querySelectorAll('.chapter-dropdown-item').forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+                    
+                    dropdownMenu.classList.remove('show');
+                    loadChapter(selectedId, ch[1]);
+                });
+                
+                listContainer.appendChild(item);
+            });
+            
+            dropdownMenu.appendChild(listContainer);
+            dropdownContainer.appendChild(toggleBtn);
+            dropdownContainer.appendChild(dropdownMenu);
+
+            // Dropdown logic
+            toggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdownMenu.classList.toggle('show');
+                if (dropdownMenu.classList.contains('show')) {
+                    document.getElementById('readerChapterSearch').focus();
+                }
             });
 
-            selector.addEventListener('change', (e) => {
-              const selectedId = parseInt(e.target.value);
-              const selectedChapter = chapters.find(ch => ch[0] === selectedId);
-              if (selectedChapter) {
-                currentChapterId = selectedId;
-                if (chapterDisplay) chapterDisplay.textContent = `Chapter ${selectedChapter[1]}: ${selectedChapter[2]}`;
-                loadChapter(selectedId, selectedChapter[1]);
-              }
+            // Search logic
+            const searchInput = searchBox.querySelector('input');
+            searchInput.addEventListener('keyup', (e) => {
+                const filter = e.target.value.toLowerCase();
+                const items = listContainer.getElementsByClassName('chapter-dropdown-item');
+                
+                for (let i = 0; i < items.length; i++) {
+                    const searchData = items[i].getAttribute('data-search') || "";
+                    if (searchData.indexOf(filter) > -1) {
+                        items[i].style.display = "";
+                    } else {
+                        items[i].style.display = "none";
+                    }
+                }
             });
-            topBarLeft.appendChild(selector);
+
+            // Close when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!dropdownContainer.contains(e.target)) {
+                    dropdownMenu.classList.remove('show');
+                }
+            });
+
+            topBarLeft.appendChild(dropdownContainer);
           }
         }
       } else {
@@ -3893,6 +4087,17 @@
   // More Options Menu Toggle
   const moreBtn = document.getElementById('moreRatingOptionsBtn');
   const moreMenu = document.getElementById('moreRatingMenu');
+  
+  // Right Sidebar Toggle (Menu Button)
+  const menuToggleBtn = document.getElementById('menuToggleBtn');
+  if (menuToggleBtn) {
+    menuToggleBtn.addEventListener('click', () => {
+      const sidebar = document.querySelector('.reader-right');
+      if (sidebar) {
+        sidebar.classList.toggle('hidden');
+      }
+    });
+  }
 
   moreBtn?.addEventListener('click', (e) => {
     e.stopPropagation();

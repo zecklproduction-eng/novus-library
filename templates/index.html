@@ -7,9 +7,9 @@
   {% set banner_bg = animations.banner.path if animations.banner else 'img/banner_default.png' %}
   {% set is_video = banner_bg.lower().endswith(('.mp4', '.webm')) %}
 
-  <div class="catalog-hero {{ 'glitch-banner' if anim_styles.dashboard == 'cyber' }}" 
-       {% if not is_video %}style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"{% endif %}>
-    
+  <div class="catalog-hero {{ 'glitch-banner' if anim_styles.dashboard == 'cyber' }}" {% if not is_video
+    %}style="background-image: url('{{ url_for('static', filename=banner_bg) }}');" {% endif %}>
+
     {% if is_video %}
     <video class="hero-video-bg" autoplay loop muted playsinline>
       <source src="{{ url_for('static', filename=banner_bg) }}">
@@ -17,11 +17,11 @@
     {% endif %}
 
     {% if anim_styles.dashboard == 'cyber' %}
-      <div class="glitch-layers">
-        <div class="glitch-layer" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"></div>
-        <div class="glitch-layer" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"></div>
-        <div class="glitch-layer" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"></div>
-      </div>
+    <div class="glitch-layers">
+      <div class="glitch-layer" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"></div>
+      <div class="glitch-layer" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"></div>
+      <div class="glitch-layer" style="background-image: url('{{ url_for('static', filename=banner_bg) }}');"></div>
+    </div>
     {% endif %}
 
     <!-- Text Overlay (Always shown) -->
@@ -32,41 +32,41 @@
 
     <!-- CRITICAL: Apply Bundle Banner Immediately to Prevent Flash -->
     <script>
-      (function() {
+      (function () {
         try {
           const saved = localStorage.getItem('appThemeSettings');
           if (saved) {
             const theme = JSON.parse(saved);
             if (theme && theme.banner_path) {
-                const hero = document.querySelector('.catalog-hero');
-                const path = theme.banner_path;
-                const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
-                if (hero) {
-                    if (isVideo) {
-                        hero.style.backgroundImage = 'none';
-                        // Check if video background exists
-                        let video = hero.querySelector('video.hero-video-bg');
-                        if (video) {
-                            const source = video.querySelector('source');
-                            if (source) source.src = '/static/' + path;
-                            video.load();
-                        } else {
-                            // Prepend video background
-                            const v = document.createElement('video');
-                            v.className = 'hero-video-bg';
-                            v.autoplay = true;
-                            v.loop = true;
-                            v.muted = true;
-                            v.playsInline = true;
-                            v.innerHTML = `<source src="/static/${path}">`;
-                            hero.prepend(v);
-                        }
-                    } else {
-                        hero.style.backgroundImage = `url('/static/${path}')`;
-                        const video = hero.querySelector('video.hero-video-bg');
-                        if (video) video.remove();
-                    }
+              const hero = document.querySelector('.catalog-hero');
+              const path = theme.banner_path;
+              const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
+              if (hero) {
+                if (isVideo) {
+                  hero.style.backgroundImage = 'none';
+                  // Check if video background exists
+                  let video = hero.querySelector('video.hero-video-bg');
+                  if (video) {
+                    const source = video.querySelector('source');
+                    if (source) source.src = '/static/' + path;
+                    video.load();
+                  } else {
+                    // Prepend video background
+                    const v = document.createElement('video');
+                    v.className = 'hero-video-bg';
+                    v.autoplay = true;
+                    v.loop = true;
+                    v.muted = true;
+                    v.playsInline = true;
+                    v.innerHTML = `<source src="/static/${path}">`;
+                    hero.prepend(v);
+                  }
+                } else {
+                  hero.style.backgroundImage = `url('/static/${path}')`;
+                  const video = hero.querySelector('video.hero-video-bg');
+                  if (video) video.remove();
                 }
+              }
             }
           }
         } catch (e) {
@@ -75,12 +75,67 @@
       })();
     </script>
 
-    <!-- Animated Icon Indicator (shown if banner has animations) -->
-    {% if animations.banner and animations.banner.has_animated %}
-    <div class="banner-animated-indicator">
-      <i class="fas fa-film"></i>
-    </div>
-    {% endif %}
+    <style>
+      /* Animated Icon Indicator (shown if banner has animations) */
+        {
+        % if animations.banner and animations.banner.has_animated %
+      }
+
+      .banner-animated-indicator {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 1.5rem;
+        z-index: 2;
+      }
+
+        {
+        % endif %
+      }
+
+      .content-type-filter {
+        display: flex;
+        justify-content: center;
+        margin-top: -20px;
+        position: relative;
+        z-index: 10;
+      }
+
+      .filter-group {
+        display: flex;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(12px);
+        padding: 6px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      }
+
+      .filter-tab {
+        padding: 10px 24px;
+        border-radius: 10px;
+        color: #94a3b8;
+        text-decoration: none !important;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .filter-tab:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .filter-tab.active {
+        background: linear-gradient(135deg, #00d4ff, #0ea5e9);
+        color: #000;
+        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+      }
+    </style>
 
     <!-- Breadcrumb at bottom spanning full width -->
     <nav class="breadcrumb-row-inline">
@@ -100,11 +155,31 @@
       <!-- Left: Grid -->
       <div class="grid-col">
 
+        <div class="content-type-filter mb-4 animate-in">
+          <div class="filter-group">
+            <a href="{{ url_for('home', type='all', category=selected_category, q=search_query) }}"
+              class="filter-tab {{ 'active' if selected_type == 'all' or not selected_type }}">
+              <i class="fas fa-th-large"></i> All Content
+            </a>
+            <a href="{{ url_for('home', type='book', category=selected_category, q=search_query) }}"
+              class="filter-tab {{ 'active' if selected_type == 'book' }}">
+              <i class="fas fa-book"></i> Books
+            </a>
+            <a href="{{ url_for('home', type='research_paper', category=selected_category, q=search_query) }}"
+              class="filter-tab {{ 'active' if selected_type == 'research_paper' }}">
+              <i class="fas fa-file-alt"></i> Research Papers
+            </a>
+          </div>
+        </div>
+
         <!-- Grid header -->
         <div class="grid-toolbar">
           <div class="result-count">
             Showing <strong>{{ books|length }}</strong> result{{ books|length != 1 and 's' or '' }}
-            {% if selected_category %} in <strong>{{ selected_category }}</strong>{% endif %}
+            {% if selected_type and selected_type != 'all' %}
+            in <strong>{{ 'Research Papers' if selected_type == 'research_paper' else 'Books' }}</strong>
+            {% endif %}
+            {% if selected_category %} in category <strong>{{ selected_category }}</strong>{% endif %}
           </div>
 
           <form method="get" class="sort-form" style="display:flex; gap:8px; align-items:center;">
@@ -177,23 +252,154 @@
 
       </div>
 
-      <!-- Right: Sidebar categories -->
+      <!-- Right: Sidebar categories (Enhanced) -->
       <aside class="sidebar-col">
-        <div class="sidebar-card">
-          <div class="sidebar-title">Product Categories</div>
-          <ul class="category-list">
+        <div class="sidebar-card enhanced-categories-card">
+          <div class="enhanced-cat-header">
+            <div class="enhanced-cat-title">
+              <i class="fas fa-layer-group"></i>
+              <span>Categories</span>
+            </div>
+            <span class="enhanced-cat-count">{{ categories|length }}</span>
+          </div>
+
+          <!-- Category Search -->
+          <div class="cat-search-wrapper">
+            <i class="fas fa-search cat-search-icon"></i>
+            <input type="text" id="catSearchInput" class="cat-search-input" placeholder="Filter categories..." autocomplete="off" />
+          </div>
+
+          <ul class="category-list enhanced-category-list" id="categoryList">
             <li>
-              <a class="{{ ''==selected_category and 'is-active' or '' }}" href="{{ url_for('home') }}">All</a>
+              <a class="enhanced-cat-item {{ ''==selected_category and 'is-active' or '' }}" href="{{ url_for('home') }}">
+                <span class="cat-icon-wrap"><i class="fas fa-globe"></i></span>
+                <span class="cat-name">All Categories</span>
+                <span class="cat-arrow"><i class="fas fa-chevron-right"></i></span>
+              </a>
             </li>
             {% for cat in categories %}
-            <li>
-              <a class="{{ cat==selected_category and 'is-active' or '' }}"
-                href="{{ url_for('home') }}?category={{ cat|urlencode }}">{{ cat }}</a>
+            <li class="cat-li" data-cat="{{ cat|lower }}">
+              <a class="enhanced-cat-item {{ cat==selected_category and 'is-active' or '' }}"
+                href="{{ url_for('home') }}?category={{ cat|urlencode }}">
+                <span class="cat-icon-wrap"><i class="fas {{ {
+                  'Action': 'fa-bolt',
+                  'Adventure': 'fa-compass',
+                  'Biography': 'fa-user-tie',
+                  'Business': 'fa-briefcase',
+                  'Children': 'fa-child',
+                  'Comedy': 'fa-laugh-squint',
+                  'Cooking': 'fa-utensils',
+                  'Crime': 'fa-skull-crossbones',
+                  'Cyberpunk': 'fa-robot',
+                  'Documentary': 'fa-film',
+                  'Drama': 'fa-theater-masks',
+                  'Dystopian': 'fa-city',
+                  'Fantasy': 'fa-dragon',
+                  'General': 'fa-book',
+                  'Graphic Novel': 'fa-palette',
+                  'Health': 'fa-heartbeat',
+                  'Historical': 'fa-landmark',
+                  'Horror': 'fa-ghost',
+                  'Isekai': 'fa-portal-enter',
+                  'Josei': 'fa-venus',
+                  'Lifestyle': 'fa-spa',
+                  'Magic': 'fa-hat-wizard',
+                  'Martial Arts': 'fa-fist-raised',
+                  'Mecha': 'fa-cogs',
+                  'Memoir': 'fa-feather-alt',
+                  'Mystery': 'fa-mask',
+                  'Philosophy': 'fa-brain',
+                  'Poetry': 'fa-pen-fancy',
+                  'Politics': 'fa-balance-scale',
+                  'Psychological': 'fa-comments',
+                  'Religion': 'fa-pray',
+                  'Romance': 'fa-heart',
+                  'School Life': 'fa-graduation-cap',
+                  'Science': 'fa-atom',
+                  'Science Fiction': 'fa-rocket',
+                  'Seinen': 'fa-male',
+                  'Shoujo': 'fa-star',
+                  'Shounen': 'fa-fire',
+                  'Slice of Life': 'fa-coffee',
+                  'Sports': 'fa-running',
+                  'Supernatural': 'fa-moon',
+                  'Suspense': 'fa-exclamation-triangle',
+                  'Technology': 'fa-microchip',
+                  'Thriller': 'fa-crosshairs',
+                  'Travel': 'fa-plane',
+                  'Vampire': 'fa-teeth',
+                  'Western': 'fa-hat-cowboy',
+                  'Young Adult': 'fa-user-graduate'
+                }.get(cat, 'fa-tag') }}"></i></span>
+                <span class="cat-name">{{ cat }}</span>
+                <span class="cat-arrow"><i class="fas fa-chevron-right"></i></span>
+              </a>
             </li>
             {% endfor %}
           </ul>
+
+          <div id="catNoResults" class="cat-no-results" style="display:none;">
+            <i class="fas fa-search"></i>
+            <span>No categories found</span>
+          </div>
+
+          {% if categories|length > 8 %}
+          <button class="cat-show-more-btn" id="catShowMoreBtn" onclick="toggleCategoryList()">
+            <span id="catShowMoreText">Show All</span>
+            <i id="catShowMoreIcon" class="fas fa-chevron-down"></i>
+          </button>
+          {% endif %}
         </div>
       </aside>
+
+      <script>
+        // Category search filter
+        document.getElementById('catSearchInput')?.addEventListener('input', function() {
+          const query = this.value.toLowerCase().trim();
+          const items = document.querySelectorAll('#categoryList .cat-li');
+          const noResults = document.getElementById('catNoResults');
+          let visibleCount = 0;
+
+          items.forEach(item => {
+            const catName = item.getAttribute('data-cat') || '';
+            const match = !query || catName.includes(query);
+            item.style.display = match ? '' : 'none';
+            if (match) visibleCount++;
+          });
+
+          // Always show "All Categories"
+          const allItem = document.querySelector('#categoryList li:first-child');
+          if (allItem) allItem.style.display = '';
+
+          if (noResults) {
+            noResults.style.display = (visibleCount === 0 && query) ? 'flex' : 'none';
+          }
+
+          // When searching, expand all
+          const list = document.getElementById('categoryList');
+          if (query && list) {
+            list.classList.add('expanded');
+            const btn = document.getElementById('catShowMoreBtn');
+            if (btn) btn.style.display = 'none';
+          } else {
+            const btn = document.getElementById('catShowMoreBtn');
+            if (btn) btn.style.display = '';
+          }
+        });
+
+        // Show more / less toggle
+        function toggleCategoryList() {
+          const list = document.getElementById('categoryList');
+          const text = document.getElementById('catShowMoreText');
+          const icon = document.getElementById('catShowMoreIcon');
+          if (!list) return;
+
+          list.classList.toggle('expanded');
+          const isExpanded = list.classList.contains('expanded');
+          if (text) text.textContent = isExpanded ? 'Show Less' : 'Show All';
+          if (icon) icon.style.transform = isExpanded ? 'rotate(180deg)' : '';
+        }
+      </script>
     </div>
   </div>
 </div>

@@ -802,7 +802,9 @@ def init_db():
             username TEXT UNIQUE,
             email    TEXT UNIQUE,
             password TEXT,
-            role     TEXT
+            role     TEXT,
+            coins    INTEGER DEFAULT 1000,
+            charisma INTEGER DEFAULT 0
         )
     """)
 
@@ -830,6 +832,16 @@ def init_db():
         pass
     try:
         c.execute("ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN coins INTEGER DEFAULT 100")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN charisma INTEGER DEFAULT 0")
         conn.commit()
     except sqlite3.OperationalError:
         pass
@@ -1657,7 +1669,8 @@ def init_db():
         ("channel_id", "INTEGER"),
         ("manga_id", "INTEGER"),
         ("gif_url", "TEXT"),
-        ("poll_question", "TEXT")
+        ("poll_question", "TEXT"),
+        ("charisma", "INTEGER DEFAULT 0")
     ]
     for col_name, col_type in columns_to_add:
         try:
@@ -1715,6 +1728,13 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
     """)
+
+    # group_comments migration: add charisma column
+    try:
+        c.execute("ALTER TABLE group_comments ADD COLUMN charisma INTEGER DEFAULT 0")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
 
     # group_comment_attachments
     c.execute("""
@@ -1970,7 +1990,13 @@ def init_db():
             ('Grand Architect', 'promote_10', 'Promote 10 projects', 'fa-city', 'yellow', 7, 'tools', 'tools', 10),
             ('Master Builder', 'tool_lv8', 'Promote 15 projects', 'fa-archway', 'yellow', 8, 'tools', 'tools', 15),
             ('Chief Engineer', 'tool_lv9', 'Promote 25 projects', 'fa-hard-hat', 'yellow', 9, 'tools', 'tools', 25),
-            ('Creator of Worlds', 'tool_lv10', 'Promote 40 projects', 'fa-infinity', 'orange', 10, 'tools', 'tools', 40)
+            ('Creator of Worlds', 'tool_lv10', 'Promote 40 projects', 'fa-infinity', 'orange', 10, 'tools', 'tools', 40),
+            
+            # Charisma (Milestones: 100, 500, 1000)
+            ('Rising Star', 'rising_star', 'Earn 100 charisma', 'fa-star-of-life', 'cyan', 1, 'charisma', 'charisma', 100),
+            ('Charismatic Icon', 'charismatic_icon', 'Earn 500 charisma', 'fa-gem', 'purple', 2, 'charisma', 'charisma', 500),
+            ('Legendary Presence', 'legendary_presence', 'Earn 1000 charisma', 'fa-crown', 'yellow', 3, 'charisma', 'charisma', 1000),
+            ('Top 3 Legend', 'top_3_charismatic', 'Become one of the top 3 charismatic members', 'fa-trophy', 'yellow', 1, 'charisma', 'top_3', 1)
         ]
         c.executemany("""
             INSERT INTO achievements (name, slug, description, icon, badge_color, level, category, requirement_type, requirement_value)
@@ -2009,6 +2035,7 @@ def home():
         session.modified = True
 
     selected = (request.args.get("category") or "").strip()
+    content_type = (request.args.get("type") or "all").lower().strip()
     query = (request.args.get("q") or "").strip()
 
     conn = get_conn()
@@ -2048,9 +2075,14 @@ def home():
                audio_filename,
                cover_path
         FROM books
-        WHERE COALESCE(book_type, 'book') != 'manga'
+        WHERE COALESCE(book_type, 'book') NOT IN ('manga', 'manhwa', 'light_novel')
     """
     params = []
+
+    if content_type == 'book':
+        base_sql += " AND COALESCE(book_type, 'book') = 'book'"
+    elif content_type == 'research_paper':
+        base_sql += " AND book_type = 'research_paper'"
 
     if selected:
         # Improved search for multi-category support
@@ -2066,7 +2098,10 @@ def home():
         likeq = f"%{query}%"
         params.extend([likeq, likeq])
 
-    base_sql += " ORDER BY datetime(created_at) DESC"
+    if selected or query:
+        base_sql += " ORDER BY datetime(created_at) DESC"
+    else:
+        base_sql += " ORDER BY RANDOM()"
 
     c.execute(base_sql, params)
     books_raw = c.fetchall()
@@ -2092,6 +2127,7 @@ def home():
         categories=categories,
         selected_category=selected,
         search_query=query,
+        selected_type=content_type,
         page_endpoint="home",
     )
 
@@ -3039,8 +3075,14 @@ def community_reviews():
     for r in manga_reviews:
         combined_raw.append(list(r) + ['manga'])
 
-    # Sort DESC by created_at (index 5)
-    combined_raw.sort(key=lambda x: x[5], reverse=True)
+    # Sort or randomize
+    if manga_id_filter:
+        # When filtering by specific manga, sort newest first
+        combined_raw.sort(key=lambda x: x[5], reverse=True)
+    else:
+        # When browsing all reviews, randomize like YouTube
+        import random
+        random.shuffle(combined_raw)
     
     reviews_raw = combined_raw
     
@@ -3537,7 +3579,7 @@ def add_book():
         flash("Title is required.", "danger")
         return redirect(url_for("add_book"))
 
-    if book_type not in ("book", "manga"):
+    if book_type not in ("book", "manga", "research_paper", "manhwa", "light_novel"):
         book_type = "book"
 
     pdf_filename   = None
@@ -3929,6 +3971,10 @@ def edit_book(id):
                 cover_path = f"covers/{fname}"   # relative to /static
 
             # Save everything back
+            new_book_type = (request.form.get("book_type") or book["book_type"]).lower().strip()
+            if new_book_type not in ("book", "research_paper", "manga", "manhwa", "light_novel"):
+                new_book_type = book["book_type"]
+
             c.execute("""
                 UPDATE books
                    SET title = ?,
@@ -3940,14 +3986,15 @@ def edit_book(id):
                        cover_path = ?,
                        transcript = ?,
                        toc = ?,
-                       custom_summary = ?
+                       custom_summary = ?,
+                       book_type = ?
                  WHERE id = ?
-            """, (title, author, category, description, pdf_filename, audio_filename, cover_path, transcript, toc, custom_summary, id))
+            """, (title, author, category, description, pdf_filename, audio_filename, cover_path, transcript, toc, custom_summary, new_book_type, id))
 
             conn.commit()
             conn.close()
             flash("Book updated successfully.", "success")
-            return redirect(url_for("view_book", id=id))
+            return redirect(url_for("edit_book", id=id))
 
         # GET: show the form
         # prepare category list for template (avoid depending on Jinja split filter)
@@ -4114,6 +4161,11 @@ def profile():
     avg_rating_row = c.fetchone()
     avg_rating = round(avg_rating_row[0], 1) if avg_rating_row and avg_rating_row[0] else None
 
+    # Get user charisma
+    c.execute("SELECT charisma FROM users WHERE id = ?", (user_id,))
+    charisma_row = c.fetchone()
+    charisma = charisma_row[0] if charisma_row and charisma_row[0] is not None else 0
+
     # Get achievements
     c.execute("""
         SELECT a.name, a.icon, a.badge_color, a.description, ua.earned_at
@@ -4197,6 +4249,7 @@ def profile():
         email=session.get("email"),
         plan=session.get("plan", "basic"),
         role=session.get("role", "member"),
+        charisma=charisma,
         count=total_read,
         fav=fav_genre,
         pages_read=None,  # Could be calculated from progress, but leaving as None for now
@@ -4219,15 +4272,23 @@ def public_profile(username):
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute("SELECT id, username, role, avatar_url, plan FROM users WHERE username=?", (username,))
-    user = c.fetchone()
+    c.execute("SELECT id, username, role, avatar_url, plan, charisma FROM users WHERE username=?", (username,))
+    row = c.fetchone()
+    
+    if row:
+        user = {
+            'id': row[0], 'username': row[1], 'role': row[2], 
+            'avatar_url': row[3], 'plan': row[4], 'charisma': row[5] or 0
+        }
+    else:
+        user = None
 
     if not user:
         conn.close()
         flash("User not found.", "error")
         return redirect(url_for("home"))
     
-    user_id = user[0]
+    user_id = user['id']
     
     # Get stats
     c.execute("SELECT COUNT(*) FROM history WHERE user_id=?", (user_id,))
@@ -4905,7 +4966,7 @@ def reading_history():
 
 # ---------- Watchlist ----------
 @app.route("/watchlist")
-@admin_required
+@login_required
 def watchlist():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -4963,7 +5024,7 @@ def watchlist():
 
 
 @app.post("/watchlist/add")
-@admin_required
+@login_required
 def watchlist_add():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -5008,7 +5069,7 @@ def watchlist_add():
 
 
 @app.post("/watchlist/update")
-@admin_required
+@login_required
 def watchlist_update():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -5054,7 +5115,7 @@ def watchlist_update():
 
 
 @app.post("/watchlist/remove")
-@admin_required
+@login_required
 def watchlist_remove():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -5429,6 +5490,7 @@ def manga():
             return redirect(url_for("login"))
 
         selected = (request.args.get("category") or "").strip()
+        subtype = (request.args.get("type") or "all").lower().strip()
         q = (request.args.get("q") or "").strip()
 
         conn = get_conn()
@@ -5438,7 +5500,7 @@ def manga():
         c.execute("""
             SELECT DISTINCT COALESCE(category,'General')
             FROM books
-            WHERE COALESCE(book_type,'book')='manga'
+            WHERE COALESCE(book_type,'book') IN ('manga', 'manhwa', 'light_novel')
         """)
         raw_cats = [row[0] for row in c.fetchall()]
         categories_set = set()
@@ -5456,9 +5518,16 @@ def manga():
                    COUNT(ch.id) as chapter_count
             FROM books b
             LEFT JOIN chapters ch ON b.id = ch.manga_id
-            WHERE COALESCE(b.book_type,'book')='manga'
+            WHERE COALESCE(b.book_type,'book') IN ('manga', 'manhwa', 'light_novel')
         """
         params = []
+
+        if subtype == 'manga':
+            base_sql += " AND b.book_type = 'manga'"
+        elif subtype == 'manhwa':
+            base_sql += " AND b.book_type = 'manhwa'"
+        elif subtype == 'light_novel':
+            base_sql += " AND b.book_type = 'light_novel'"
 
         if selected:
             base_sql += " AND ',' || REPLACE(COALESCE(b.category,'General'), ' ', '') || ',' LIKE ?"
@@ -5469,7 +5538,10 @@ def manga():
             search_term = f"%{q}%"
             params.extend([search_term, search_term])
 
-        base_sql += " GROUP BY b.id ORDER BY datetime(b.created_at) DESC"
+        if selected or q:
+            base_sql += " GROUP BY b.id ORDER BY datetime(b.created_at) DESC"
+        else:
+            base_sql += " GROUP BY b.id ORDER BY RANDOM()"
 
         c.execute(base_sql, params)
         mangas = c.fetchall()
@@ -5496,6 +5568,7 @@ def manga():
             mangas=mangas,
             categories=categories,
             selected_category=selected,
+            selected_type=subtype,
             q=q,
             body_class="manga-theme",
             continue_reading=continue_reading
@@ -5531,7 +5604,7 @@ def manga_detail(id):
                u.username as publisher_name
         FROM books b
         LEFT JOIN users u ON b.uploader_id = u.id
-        WHERE b.id = ? AND COALESCE(b.book_type,'book')='manga'
+        WHERE b.id = ? AND COALESCE(b.book_type,'book') IN ('manga', 'manhwa', 'light_novel')
     """, (id,))
     manga = c.fetchone()
 
@@ -5550,6 +5623,16 @@ def manga_detail(id):
     """, (id,))
     avg_rating_row = c.fetchone()
     avg_rating = avg_rating_row[0] if avg_rating_row and avg_rating_row[0] else None
+
+    # Get Chapters
+    c.execute("""
+        SELECT id, chapter_num, title, created_at,
+               (SELECT COUNT(*) FROM manga_progress WHERE chapter_id = chapters.id) as views
+        FROM chapters 
+        WHERE manga_id = ? 
+        ORDER BY chapter_num DESC
+    """, (id,))
+    chapters = c.fetchall()
 
     # Get recommendations (same category, excluding current)
     categories = manga[3].split(',') if manga[3] else []
@@ -5590,7 +5673,8 @@ def manga_detail(id):
         chapter_count=chapter_count,
         avg_rating=avg_rating,
         recommendations=recommendations,
-        popular_manga=popular_manga
+        popular_manga=popular_manga,
+        chapters=chapters
     )
 
 
@@ -5724,7 +5808,7 @@ def read_manga(id):
     c.execute("""
         SELECT id, title, author, category, pdf_filename, cover_path, description, book_type
         FROM books
-        WHERE id = ? AND COALESCE(book_type, 'book') = 'manga'
+        WHERE id = ? AND COALESCE(book_type, 'book') IN ('manga', 'manhwa', 'light_novel')
     """, (id,))
     manga = c.fetchone()
 
@@ -5778,7 +5862,7 @@ def manga_reader_v2(id):
     c.execute("""
         SELECT id, title, author, category, pdf_filename, cover_path, description, book_type
         FROM books
-        WHERE id = ? AND COALESCE(book_type, 'book') = 'manga'
+        WHERE id = ? AND COALESCE(book_type, 'book') IN ('manga', 'manhwa', 'light_novel')
     """, (id,))
     manga = c.fetchone()
 
@@ -10728,6 +10812,10 @@ def admin_create_group():
         c.execute("UPDATE community_groups SET member_count = 1 WHERE id = ?", (new_group_id,))
         
         conn.commit()
+        
+        # Initialize default channels
+        initialize_group_channels(new_group_id, conn)
+        
         conn.close()
         
         flash(f"Group '{name}' created successfully!", "success")
@@ -11265,6 +11353,10 @@ def create_group_for_content(title, description, group_type, reference_id=None, 
         """, (group_id, owner_id))
     
     conn.commit()
+    
+    # Initialize default channels
+    initialize_group_channels(group_id, conn)
+    
     conn.close()
     return group_id
 
@@ -11303,6 +11395,42 @@ def can_edit_group_settings(group_id, user_id, is_admin):
     
     # Owner can edit
     return group[0] == user_id
+
+def initialize_group_channels(group_id, conn=None):
+    """Initialize a set of default channels for a new group"""
+    should_close = False
+    if conn is None:
+        conn = get_conn()
+        should_close = True
+    
+    c = conn.cursor()
+    
+    # Default channels setup
+    default_channels = [
+        ('general', 'General discussion for the group', 'text', 'message-circle', 1),
+        ('announcements', 'Official updates and news from the group', 'text', 'megaphone', 2),
+        ('events', 'Upcoming events, meetups and milestones', 'text', 'calendar', 3),
+        ('media', 'Share and view images, videos and galleries', 'text', 'image', 4),
+        ('off-topic', 'Casual conversations and random discussions', 'text', 'coffee', 5),
+        ('recommendations', 'Share and discover new stories and series', 'text', 'star', 6),
+    ]
+    
+    try:
+        for name, desc, ctype, icon, pos in default_channels:
+            # check if exists just in case
+            c.execute("SELECT id FROM group_channels WHERE group_id = ? AND name = ?", (group_id, name))
+            if not c.fetchone():
+                c.execute("""
+                    INSERT INTO group_channels (group_id, name, description, channel_type, icon, position)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (group_id, name, desc, ctype, icon, pos))
+        
+        conn.commit()
+    except Exception as e:
+        logger.error(f"Error initializing channels for group {group_id}: {e}")
+    finally:
+        if should_close:
+            conn.close()
 
 
 def sync_community_groups():
@@ -11477,7 +11605,7 @@ def community():
         
         # Get recent posts from all groups with detailed info
         query = """
-            SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at,
+            SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at, gp.charisma,
                    u.id as user_id, u.username, u.avatar_url as avatar,
                    cg.id as group_id, cg.name as group_name
             FROM group_posts gp
@@ -11568,7 +11696,7 @@ def api_get_more_posts():
         c = conn.cursor()
         
         query = """
-            SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at,
+            SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at, gp.charisma,
                    u.id as user_id, u.username, u.avatar_url as avatar,
                    cg.id as group_id, cg.name as group_name
             FROM group_posts gp
@@ -11707,9 +11835,20 @@ def group_page(group_id):
         """, (group_id,))
         recent_members = [dict(zip(['id', 'name', 'avatar'], row)) for row in c.fetchall()]
         
+        # Get most charismatic members
+        c.execute("""
+            SELECT u.id, u.username, u.avatar_url, u.charisma
+            FROM group_members gm
+            JOIN users u ON gm.user_id = u.id
+            WHERE gm.group_id = ?
+            ORDER BY COALESCE(u.charisma, 0) DESC, u.username ASC
+            LIMIT 3
+        """, (group_id,))
+        top_charisma_members = [dict(zip(['id', 'name', 'avatar', 'charisma'], row)) for row in c.fetchall()]
+        
         # Get group posts
         c.execute("""
-            SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at,
+            SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at, gp.charisma,
                    u.id as user_id, u.username, u.avatar_url as avatar, gp.channel_id,
                    cg.id as group_id, cg.name as group_name
             FROM group_posts gp
@@ -11741,6 +11880,10 @@ def group_page(group_id):
         """, (group_id,))
         channels = [dict(row) for row in c.fetchall()]
         
+        # Get all manga groups for comment manga search
+        c.execute("SELECT id, name, icon_url, member_count FROM community_groups WHERE group_type = 'manga' ORDER BY member_count DESC")
+        all_manga_groups = [dict(row) for row in c.fetchall()]
+        
         conn.close()
 
         
@@ -11751,9 +11894,11 @@ def group_page(group_id):
                              can_edit_settings=can_edit_settings,
                              admins=admins,
                              recent_members=recent_members,
+                             top_charisma_members=top_charisma_members,
                              posts=posts,
                              related_groups=related_groups,
-                             channels=channels)
+                             channels=channels,
+                             all_manga_groups=all_manga_groups)
     except Exception as e:
         import traceback
         error_msg = f"Group page error for group {group_id}: {str(e)}"
@@ -11761,6 +11906,38 @@ def group_page(group_id):
         logger.error(f"Full traceback: {traceback.format_exc()}")
         flash(f'Error loading group: {str(e)}', 'error')
         return redirect(url_for('community'))
+
+@app.route('/api/group/<int:group_id>/top_charisma')
+@login_required
+def api_group_top_charisma(group_id):
+    """API endpoint to get the top charismatic members of a group for real-time updates"""
+    try:
+        conn = get_conn()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        c.execute("""
+            SELECT u.id, u.username, u.avatar_url, u.charisma
+            FROM group_members gm
+            JOIN users u ON gm.user_id = u.id
+            WHERE gm.group_id = ?
+            ORDER BY COALESCE(u.charisma, 0) DESC, u.username ASC
+            LIMIT 3
+        """, (group_id,))
+        
+        top_charisma_members = []
+        for row in c.fetchall():
+            member = dict(zip(['id', 'name', 'avatar', 'charisma'], row))
+            top_charisma_members.append(member)
+            # Award Top 3 Legend achievement
+            award_achievement(member['id'], 'top_3_charismatic')
+            
+        conn.close()
+        
+        return jsonify({'success': True, 'members': top_charisma_members})
+    except Exception as e:
+        logger.error(f"Error fetching top charisma members: {e}")
+        return jsonify({'success': False, 'message': str(e)})
 
 
 @app.route('/group/<int:group_id>/join', methods=['POST'])
@@ -12329,7 +12506,8 @@ def get_group_post_comments(post_id):
     query = f"""
         SELECT gc.id, gc.content, gc.created_at, u.username, u.avatar_url, u.id as user_id,
                (SELECT reaction_type FROM group_comment_likes WHERE comment_id = gc.id AND user_id = ?) as user_reaction,
-               (SELECT COUNT(*) FROM group_comment_likes WHERE comment_id = gc.id) as reaction_count
+               (SELECT COUNT(*) FROM group_comment_likes WHERE comment_id = gc.id) as reaction_count,
+               gc.charisma
         FROM group_comments gc
         JOIN users u ON gc.user_id = u.id
         WHERE gc.post_id = ?
@@ -12382,7 +12560,8 @@ def get_group_post_comments(post_id):
             'user_reaction': r[6],
             'reactions': reactions,
             'total_reactions': total_reactions,
-            'attachments': attachments
+            'attachments': attachments,
+            'charisma': r[8] if len(r) > 8 and r[8] is not None else 0
         })
     
     conn.close()
@@ -12836,6 +13015,246 @@ def discover_groups():
                           genre_groups=genre_groups, 
                           manga_groups=manga_groups,
                           current_sort=sort_by)
+
+
+@app.route('/api/buy_coins', methods=['POST'])
+@login_required
+def api_buy_coins():
+    """Mock endpoint to give the user coins to buy gifts"""
+    user_id = session.get('user_id')
+    amount = 500 # Give 500 coins per click for testing
+    
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("UPDATE users SET coins = COALESCE(coins, 0) + ? WHERE id = ?", (amount, user_id))
+        c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
+        new_balance = c.fetchone()[0]
+        conn.commit()
+        return jsonify({'success': True, 'coins': new_balance})
+    except Exception as e:
+        logger.error(f"Error buying coins: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/group/post/<int:post_id>/send_gift', methods=['POST'])
+@login_required
+def send_group_post_gift(post_id):
+    """Send a gift on a post, deducting coins and adding charisma"""
+    user_id = session.get('user_id')
+    data = request.get_json() or {}
+    
+    gift_name = data.get('gift_name', 'Gift')
+    gift_price = int(data.get('price', 0))
+    gift_charisma = int(data.get('charisma', 0))
+    gift_url = data.get('url', '')
+    
+    if not gift_url:
+        return jsonify({'success': False, 'message': 'Missing gift info'})
+        
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        # Check coins
+        c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
+        row = c.fetchone()
+        user_coins = row[0] if row and row[0] is not None else 0
+        
+        if user_coins < gift_price:
+            return jsonify({'success': False, 'message': 'Not enough coins'})
+            
+        # Get post author
+        c.execute("SELECT user_id FROM group_posts WHERE id = ?", (post_id,))
+        post_row = c.fetchone()
+        if not post_row:
+            return jsonify({'success': False, 'message': 'Post not found'})
+            
+        post_author_id = post_row[0]
+        
+        # Deduct coins from sender
+        c.execute("UPDATE users SET coins = coins - ? WHERE id = ?", (gift_price, user_id))
+        
+        # Add charisma to post author
+        c.execute("UPDATE users SET charisma = COALESCE(charisma, 0) + ? WHERE id = ?", (gift_charisma, post_author_id))
+        
+        # Add charisma to the post itself
+        c.execute("UPDATE group_posts SET charisma = COALESCE(charisma, 0) + ? WHERE id = ?", (gift_charisma, post_id))
+        
+        # Add a comment the user sent a gift
+        content = f"🎁 Sent a {gift_name}!"
+        c.execute("""
+            INSERT INTO group_comments (post_id, user_id, content)
+            VALUES (?, ?, ?)
+        """, (post_id, user_id, content))
+        comment_id = c.lastrowid
+        
+        # Add the gift as an attachment
+        c.execute("""
+            INSERT INTO group_comment_attachments (comment_id, file_url, file_type, file_name)
+            VALUES (?, ?, 'sticker', ?)
+        """, (comment_id, gift_url, gift_name))
+        
+        # Update post comment count
+        c.execute("UPDATE group_posts SET comment_count = comment_count + 1 WHERE id = ?", (post_id,))
+        
+        # Get sender's new balance
+        c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
+        new_balance = c.fetchone()[0]
+        
+        # Check for achievements
+        c.execute("SELECT charisma FROM users WHERE id = ?", (post_author_id,))
+        author_charisma = c.fetchone()[0] or 0
+        if author_charisma >= 1000:
+            award_achievement(post_author_id, 'legendary_presence')
+        elif author_charisma >= 500:
+            award_achievement(post_author_id, 'charismatic_icon')
+        elif author_charisma >= 100:
+            award_achievement(post_author_id, 'rising_star')
+
+        conn.commit()
+        return jsonify({'success': True, 'coins': new_balance, 'comment_id': comment_id})
+    except Exception as e:
+        logger.error(f"Error sending gift: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+@app.route('/api/post/<int:post_id>/gifters')
+@login_required
+def api_post_gifters(post_id):
+    """Returns a list of users who sent gifts to this post. Only for the author."""
+    user_id = session.get('user_id')
+    try:
+        conn = get_conn()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        # Verify ownership
+        c.execute("SELECT user_id FROM group_posts WHERE id = ?", (post_id,))
+        post = c.fetchone()
+        if not post or post[0] != user_id:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Unauthorized or post not found'})
+            
+        # Get gifters via comments that have gift attachments
+        c.execute("""
+            SELECT DISTINCT u.username, u.avatar_url, gca.file_name as gift_name, gca.file_url as gift_url
+            FROM group_comments gc
+            JOIN users u ON gc.user_id = u.id
+            JOIN group_comment_attachments gca ON gc.id = gca.comment_id
+            WHERE gc.post_id = ? AND gca.file_type = 'sticker'
+            ORDER BY gc.created_at DESC
+        """, (post_id,))
+        
+        gifters = [dict(row) for row in c.fetchall()]
+        conn.close()
+        
+        return jsonify({'success': True, 'gifters': gifters})
+    except Exception as e:
+        logger.error(f"Error fetching gifters: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/group/comment/<int:comment_id>/send_gift', methods=['POST'])
+@login_required
+def send_group_comment_gift(comment_id):
+    """Send a gift to a specific comment, deducting coins and adding charisma"""
+    user_id = session.get('user_id')
+    data = request.get_json() or {}
+
+    gift_name = data.get('gift_name', 'Gift')
+    gift_price = int(data.get('price', 0))
+    gift_charisma = int(data.get('charisma', 0))
+    gift_url = data.get('url', '')
+
+    if not gift_url:
+        return jsonify({'success': False, 'message': 'Missing gift info'})
+
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        # Check coins
+        c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
+        row = c.fetchone()
+        user_coins = row[0] if row and row[0] is not None else 0
+
+        if user_coins < gift_price:
+            return jsonify({'success': False, 'message': 'Not enough coins'})
+
+        # Get comment author and post_id
+        c.execute("SELECT user_id, post_id FROM group_comments WHERE id = ?", (comment_id,))
+        comment_row = c.fetchone()
+        if not comment_row:
+            return jsonify({'success': False, 'message': 'Comment not found'})
+
+        comment_author_id = comment_row[0]
+        post_id = comment_row[1]
+
+        # Deduct coins from sender
+        c.execute("UPDATE users SET coins = coins - ? WHERE id = ?", (gift_price, user_id))
+
+        # Add charisma to comment author
+        c.execute("UPDATE users SET charisma = COALESCE(charisma, 0) + ? WHERE id = ?", (gift_charisma, comment_author_id))
+
+        # Track charisma on the comment itself
+        c.execute("UPDATE group_comments SET charisma = COALESCE(charisma, 0) + ? WHERE id = ?", (gift_charisma, comment_id))
+
+        # Add a reply comment indicating the gift was sent
+        content = f"🎁 Sent a {gift_name}!"
+        c.execute("""
+            INSERT INTO group_comments (post_id, user_id, content)
+            VALUES (?, ?, ?)
+        """, (post_id, user_id, content))
+        new_comment_id = c.lastrowid
+
+        # Attach the gift sticker image to that reply
+        c.execute("""
+            INSERT INTO group_comment_attachments (comment_id, file_url, file_type, file_name)
+            VALUES (?, ?, 'sticker', ?)
+        """, (new_comment_id, gift_url, gift_name))
+
+        c.execute("UPDATE group_posts SET comment_count = comment_count + 1 WHERE id = ?", (post_id,))
+
+        c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
+        new_balance = c.fetchone()[0]
+
+        # Check for achievements
+        c.execute("SELECT charisma FROM users WHERE id = ?", (comment_author_id,))
+        author_charisma = c.fetchone()[0] or 0
+        if author_charisma >= 1000:
+            award_achievement(comment_author_id, 'legendary_presence')
+        elif author_charisma >= 500:
+            award_achievement(comment_author_id, 'charismatic_icon')
+        elif author_charisma >= 100:
+            award_achievement(comment_author_id, 'rising_star')
+
+        conn.commit()
+        return jsonify({'success': True, 'coins': new_balance, 'comment_id': new_comment_id})
+    except Exception as e:
+        logger.error(f"Error sending gift to comment: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
+
+
+@app.route('/api/user/balance')
+@login_required
+def get_user_balance():
+    """Fetch current user's coin balance"""
+    user_id = session.get('user_id')
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
+        row = c.fetchone()
+        coins = row[0] if row and row[0] is not None else 0
+        return jsonify({'success': True, 'coins': coins})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
 
 
 @app.route('/api/community/posts', methods=['POST'])

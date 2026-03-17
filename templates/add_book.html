@@ -41,6 +41,18 @@
             <i class="fas fa-images"></i>
             <span>Manga</span>
         </button>
+        <button class="type-tab" onclick="switchTab('research_paper')">
+            <i class="fas fa-file-contract"></i>
+            <span>Research Paper</span>
+        </button>
+        <button class="type-tab" onclick="switchTab('manhwa')">
+            <i class="fas fa-scroll"></i>
+            <span>Manhwa</span>
+        </button>
+        <button class="type-tab" onclick="switchTab('light_novel')">
+            <i class="fas fa-feather-alt"></i>
+            <span>Light Novel</span>
+        </button>
     </div>
 
     <!-- ===== BOOK UPLOAD FORM ===== -->
@@ -261,7 +273,7 @@
                     </div>
                 </div>
             </div>
-            <input type="hidden" name="book_type" value="book">
+            <input type="hidden" name="book_type" id="book_type_field" value="book">
         </form>
     </div>
 
@@ -1018,17 +1030,51 @@
             const bookTab = document.getElementById('bookTab');
             const mangaTab = document.getElementById('mangaTab');
             const tabs = document.querySelectorAll('.type-tab');
+            const bookTypeField = document.getElementById('book_type_field');
 
-            if (tab === 'book') {
+            if (tab === 'book' || tab === 'research_paper') {
                 bookTab.style.display = 'block';
                 mangaTab.style.display = 'none';
-                tabs[0].classList.add('active');
-                tabs[1].classList.remove('active');
+                if (tab === 'book') {
+                    tabs[0].classList.add('active');
+                    tabs[1].classList.remove('active');
+                    tabs[2].classList.remove('active');
+                    tabs[3].classList.remove('active');
+                    tabs[4].classList.remove('active');
+                    if (bookTypeField) bookTypeField.value = 'book';
+                } else {
+                    tabs[2].classList.add('active');
+                    tabs[1].classList.remove('active');
+                    tabs[0].classList.remove('active');
+                    tabs[3].classList.remove('active');
+                    tabs[4].classList.remove('active');
+                    if (bookTypeField) bookTypeField.value = 'research_paper';
+                }
             } else {
                 bookTab.style.display = 'none';
                 mangaTab.style.display = 'block';
-                tabs[1].classList.add('active');
-                tabs[0].classList.remove('active');
+                if (tab === 'manga') {
+                    tabs[1].classList.add('active');
+                    tabs[0].classList.remove('active');
+                    tabs[2].classList.remove('active');
+                    tabs[3].classList.remove('active');
+                    tabs[4].classList.remove('active');
+                    if (bookTypeField) bookTypeField.value = 'manga';
+                } else if (tab === 'manhwa') {
+                    tabs[3].classList.add('active');
+                    tabs[0].classList.remove('active');
+                    tabs[1].classList.remove('active');
+                    tabs[2].classList.remove('active');
+                    tabs[4].classList.remove('active');
+                    if (bookTypeField) bookTypeField.value = 'manhwa';
+                } else if (tab === 'light_novel') {
+                    tabs[4].classList.add('active');
+                    tabs[0].classList.remove('active');
+                    tabs[1].classList.remove('active');
+                    tabs[2].classList.remove('active');
+                    tabs[3].classList.remove('active');
+                    if (bookTypeField) bookTypeField.value = 'light_novel';
+                }
             }
         }
 

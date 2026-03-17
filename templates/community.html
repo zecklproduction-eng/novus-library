@@ -1081,6 +1081,11 @@
                                         <span>React</span>
                                     </button>
                                     ${reactionsHtml}
+                                    <button class="reaction-btn" onclick="openCommentGiftPicker('comment', ${c.id}, this, ${postId})" style="margin-left: auto;" title="Send Gift">
+                                        <i data-lucide="gift" style="width: 14px; height: 14px;"></i>
+                                        <span>Gift</span>
+                                    </button>
+                                    ${c.charisma > 0 ? `<span title="Charisma earned from gifts" style="font-size:11px; color:#ff85c2; display:flex; align-items:center; gap:3px;">✨ ${c.charisma}</span>` : ''}
                                  </div>
                              </div>
                          `;
@@ -1277,6 +1282,142 @@
             } finally {
                 btn.disabled = false;
             }
+        };
+
+        window.openCommentGiftPicker = function (targetType, targetId, btn, postId) {
+            let existing = document.querySelector('.picker-popup');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            const rect = btn.getBoundingClientRect();
+            const picker = document.createElement('div');
+            picker.className = 'picker-popup';
+            picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left - 150}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 12px; z-index: 10001; width: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); font-family: inherit;`;
+
+            // Header with Buy Coins button and balance
+            picker.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="color: #fff; font-weight: bold; font-size: 14px;">Gift Shop</span>
+                        <span id="userBalanceDisplay" style="color: gold; font-size: 11px; font-weight: 600;">Loading balance...</span>
+                    </div>
+                    <button id="buyCoinsBtn" style="background: var(--community-cyan); color: #000; border: none; border-radius: 4px; padding: 4px 8px; font-size: 12px; font-weight: bold; cursor: pointer;">
+                        Buy Coins (+500)
+                    </button>
+                </div>
+                <div id="giftGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; min-height: 100px;"></div>
+            `;
+
+            document.body.appendChild(picker);
+
+            const updateBalance = async () => {
+                try {
+                    const res = await fetch('/api/user/balance');
+                    const data = await res.json();
+                    if (data.success) {
+                        const el = document.getElementById('userBalanceDisplay');
+                        if (el) el.textContent = `Balance: 🪙 ${data.coins}`;
+                    }
+                } catch (err) { console.error(err); }
+            };
+
+            updateBalance();
+
+            document.getElementById('buyCoinsBtn').onclick = async (e) => {
+                e.stopPropagation();
+                try {
+                    const res = await fetch('/api/buy_coins', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert(`Success! You now have ${data.coins} coins.`);
+                        updateBalance();
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (err) { console.error(err); }
+            };
+
+            const giftGrid = picker.querySelector('#giftGrid');
+            const gifts = [
+                { icon: '🥈', name: 'Silver Award', price: 50, charisma: 25, color: '#94a3b8' },
+                { icon: '🥇', name: 'Gold Award', price: 200, charisma: 100, color: '#fbbf24' },
+                { icon: '💎', name: 'Platinum Award', price: 500, charisma: 250, color: '#38bdf8' },
+                { icon: '💡', name: 'Helpful Award', price: 100, charisma: 50, color: '#facc15' },
+                { icon: '🦭', name: 'Wholesome', price: 125, charisma: 65, color: '#e2e8f0' },
+                { icon: '🚀', name: 'Rocket Like', price: 300, charisma: 150, color: '#f87171' },
+                { icon: '💖', name: 'Love', price: 30, charisma: 15, color: '#fb7185' },
+                { icon: '👑', name: 'Ternion', price: 5000, charisma: 2500, color: '#f472b6' }
+            ];
+
+            gifts.forEach(gift => {
+                const div = document.createElement('div');
+                div.style.cssText = `display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; padding: 12px 8px; border-radius: 12px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden;`;
+                
+                div.innerHTML = `
+                    <div style="font-size: 32px; filter: drop-shadow(0 0 8px ${gift.color}44); transition: transform 0.2s;">${gift.icon}</div>
+                    <div style="font-size: 9px; font-weight: 700; color: #fff; margin-top: 6px; white-space: nowrap; opacity: 0.9;">${gift.name}</div>
+                    <div style="font-size: 10px; color: #aaa; margin-top: 4px; text-align: center; line-height: 1.2;">
+                        <span style="color: #ffd700; font-weight: 800;">🪙 ${gift.price}</span><br>
+                        <span style="color: #ff4081; font-weight: bold;">✨ +${gift.charisma}</span>
+                    </div>
+                `;
+                
+                div.onmouseover = () => {
+                    div.style.background = 'rgba(255,255,255,0.08)';
+                    div.style.borderColor = gift.color;
+                    div.style.boxShadow = `0 0 15px ${gift.color}22`;
+                    div.querySelector('div').style.transform = 'scale(1.2)';
+                };
+                div.onmouseout = () => {
+                    div.style.background = 'rgba(255,255,255,0.03)';
+                    div.style.borderColor = 'rgba(255,255,255,0.08)';
+                    div.style.boxShadow = 'none';
+                    div.querySelector('div').style.transform = 'scale(1)';
+                };
+
+                div.onclick = async function (e) {
+                    e.stopPropagation();
+                    if (!confirm(`Send ${gift.name} for ${gift.price} coins?`)) return;
+
+                    try {
+                        const endpoint = targetType === 'comment'
+                            ? `/group/comment/${targetId}/send_gift`
+                            : `/group/post/${targetId}/send_gift`;
+                        const res = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                gift_name: gift.name,
+                                price: gift.price,
+                                charisma: gift.charisma,
+                                url: gift.icon
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            alert(`Gift sent! Your balance: ${data.coins} coins.`);
+                            picker.remove();
+                            const cSec = document.getElementById(`comments-section-${postId}`);
+                            if (cSec) cSec.style.display = 'block';
+                            if (window.loadComments) window.loadComments(postId);
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    } catch (err) { console.error(err); alert('Failed to send gift'); }
+                };
+                giftGrid.appendChild(div);
+            });
+
+            setTimeout(() => {
+                document.addEventListener('click', function close(e) {
+                    if (!picker.contains(e.target) && e.target !== btn) {
+                        picker.remove();
+                        document.removeEventListener('click', close);
+                    }
+                });
+            }, 100);
         };
 
         // Show More Groups toggle
@@ -1537,8 +1678,7 @@
         }
 
         // Pre-parse the manga groups passed from Jinja
-        const mangaData = {{ all_manga_groups | tojson | safe
-    }};
+        const mangaData = {{ all_manga_groups | tojson | safe }};
 
 
     if (mangaSearchInput) {
@@ -2106,7 +2246,7 @@
         }
     };
 
-    // Gift Picker Logic (Mock)
+    // Gift Picker Logic (Enhanced)
     window.openCommentGiftPicker = function (postId, btn) {
         let existing = document.querySelector('.picker-popup');
         if (existing) { existing.remove(); return; }
@@ -2114,33 +2254,88 @@
         const rect = btn.getBoundingClientRect();
         const picker = document.createElement('div');
         picker.className = 'picker-popup';
-        picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 8px; border-radius: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; z-index: 10001; width: 180px; margin-bottom: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3);`;
+        picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 12px; z-index: 10001; width: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); font-family: inherit;`;
 
-        // Mock Gifts
-        const gifts = ['🎁', '💎', '🏆', '👑', '🌹', '🍰'];
-
-        gifts.forEach(icon => {
-            const div = document.createElement('div');
-            div.style.cssText = `font-size: 24px; cursor: pointer; text-align: center; padding: 4px; border-radius: 4px; transition: background 0.2s;`;
-            div.textContent = icon;
-            div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
-            div.onmouseout = () => div.style.background = 'transparent';
-
-            div.onclick = function (e) {
-                e.stopPropagation();
-                if (!window.commentExternalAttachments[postId]) window.commentExternalAttachments[postId] = [];
-                window.commentExternalAttachments[postId].push({
-                    type: 'gift',
-                    url: '#', // placeholder
-                    name: 'Gift ' + icon
-                });
-                renderAllCommentAttachments(postId);
-                picker.remove();
-            };
-            picker.appendChild(div);
-        });
+        // Header with Buy Coins button
+        picker.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+                <span style="color: #fff; font-weight: bold; font-size: 14px;">Gift Shop</span>
+                <button id="buyCoinsBtn" style="background: var(--community-cyan); color: #000; border: none; border-radius: 4px; padding: 4px 8px; font-size: 12px; font-weight: bold; cursor: pointer;">
+                    Buy Coins (+500)
+                </button>
+            </div>
+            <div id="giftGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;"></div>
+        `;
 
         document.body.appendChild(picker);
+
+        document.getElementById('buyCoinsBtn').onclick = async (e) => {
+            e.stopPropagation();
+            try {
+                const res = await fetch('/api/buy_coins', { method: 'POST' });
+                const data = await res.json();
+                if(data.success) {
+                    alert(`Success! You now have ${data.coins} coins.`);
+                } else {
+                    alert(data.message);
+                }
+            } catch(err) { console.error(err); }
+        };
+
+        const giftGrid = document.getElementById('giftGrid');
+        const gifts = [
+            { icon: '🌹', name: 'Rose', price: 10, charisma: 5 },
+            { icon: '🍰', name: 'Cake', price: 20, charisma: 10 },
+            { icon: '🍻', name: 'Beer', price: 30, charisma: 15 },
+            { icon: '🎁', name: 'Mystery Box', price: 50, charisma: 25 },
+            { icon: '💖', name: 'Heart', price: 80, charisma: 40 },
+            { icon: '💎', name: 'Diamond', price: 100, charisma: 50 },
+            { icon: '🏆', name: 'Trophy', price: 500, charisma: 250 },
+            { icon: '👑', name: 'Crown', price: 1000, charisma: 500 }
+        ];
+
+        gifts.forEach(gift => {
+            const div = document.createElement('div');
+            div.style.cssText = `display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; padding: 8px 4px; border-radius: 8px; transition: background 0.2s; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05);`;
+            div.innerHTML = `
+                <span style="font-size: 28px; line-height: 1;">${gift.icon}</span>
+                <span style="font-size: 10px; color: #aaa; margin-top: 4px; text-align: center; line-height: 1.2;">
+                    <span style="color: gold;">🪙 ${gift.price}</span><br>
+                    <span style="color: #ff4081;">✨ +${gift.charisma}</span>
+                </span>
+            `;
+            div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
+            div.onmouseout = () => div.style.background = 'rgba(0,0,0,0.2)';
+
+            div.onclick = async function (e) {
+                e.stopPropagation();
+                if (!confirm(`Send ${gift.name} for ${gift.price} coins?`)) return;
+                
+                try {
+                    const res = await fetch(`/group/post/${postId}/send_gift`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            gift_name: gift.name,
+                            price: gift.price,
+                            charisma: gift.charisma,
+                            url: gift.icon
+                        })
+                    });
+                    const data = await res.json();
+                    if(data.success) {
+                        alert(`Gift sent! Your balance: ${data.coins} coins.`);
+                        picker.remove();
+                        const cSec = document.getElementById(`comments-section-${postId}`);
+                        if(cSec) cSec.style.display = 'block';
+                        if(window.loadComments) window.loadComments(postId);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                } catch(err) { console.error(err); alert('Failed to send gift'); }
+            };
+            giftGrid.appendChild(div);
+        });
 
         setTimeout(() => {
             document.addEventListener('click', function close(e) {
@@ -2152,7 +2347,6 @@
         }, 100);
     };
 
-    // Emoji Picker Logic (Simple Grid)
     window.openCommentEmojiPicker = function (btn) {
         let existing = document.querySelector('.picker-popup');
         if (existing) { existing.remove(); return; }
