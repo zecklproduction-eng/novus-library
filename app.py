@@ -679,6 +679,201 @@ def award_achievement(user_id, slug):
         logger.error(f"Error awarding achievement {slug} to user {user_id}: {e}")
         return None
 
+def sync_achievements(user_id):
+    """
+    Checks all achievement requirements for the user and grants any that qualify.
+    Called on profile/achievements page refresh to ensure auto-unlocking.
+    """
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        
+        stats = {}
+        
+        # Charisma
+        c.execute("SELECT charisma FROM users WHERE id = ?", (user_id,))
+        res = c.fetchone()
+        stats['charisma'] = res[0] if res and res[0] is not None else 0
+        
+        # Reading (Books)
+        c.execute("SELECT COUNT(*) FROM history WHERE user_id = ?", (user_id,))
+        stats['reading'] = c.fetchone()[0]
+        
+        # Social (Groups joined)
+        c.execute("SELECT COUNT(*) FROM group_members WHERE user_id = ?", (user_id,))
+        stats['social'] = c.fetchone()[0]
+        
+        # Critic (Reviews)
+        c.execute("SELECT COUNT(*) FROM reviews WHERE user_id = ?", (user_id,))
+        stats['critic'] = c.fetchone()[0]
+        
+        # AI (Summaries)
+        c.execute("SELECT COUNT(*) FROM activity_log WHERE user_id = ? AND activity_type = 'summarized'", (user_id,))
+        stats['ai'] = c.fetchone()[0]
+        
+        # Manga Read (Series)
+        c.execute("SELECT COUNT(DISTINCT manga_id) FROM manga_progress WHERE user_id = ?", (user_id,))
+        stats['manga_read'] = c.fetchone()[0]
+        
+        # Manga Chapters
+        c.execute("SELECT COUNT(*) FROM manga_progress WHERE user_id = ?", (user_id,))
+        stats['manga_chapters'] = c.fetchone()[0]
+        
+        # Community Posts
+        c.execute("SELECT COUNT(*) FROM group_posts WHERE user_id = ?", (user_id,))
+        stats['posts'] = c.fetchone()[0]
+        
+        # Community Comments
+        c.execute("SELECT COUNT(*) FROM group_comments WHERE user_id = ?", (user_id,))
+        stats['comments'] = c.fetchone()[0]
+        
+        # Favorites
+        c.execute("SELECT COUNT(*) FROM favorites WHERE user_id = ?", (user_id,))
+        stats['favorites'] = c.fetchone()[0]
+        
+        # Top 3 Charisma status
+        c.execute("SELECT id FROM users ORDER BY COALESCE(charisma, 0) DESC LIMIT 3")
+        top_3_ids = [row[0] for row in c.fetchall()]
+        stats['top_3'] = 1 if user_id in top_3_ids else 0
+        
+        stats['tools'] = 0 # No direct user link in tool_links yet
+        
+        # Get all achievements and check requirements
+        c.execute("SELECT slug, requirement_type, requirement_value FROM achievements")
+        all_achs = c.fetchall()
+        conn.close()
+        
+        newly_awarded = []
+        for slug, req_type, req_val in all_achs:
+            if not req_type or req_type not in stats:
+                continue
+                
+            user_val = stats[req_type]
+            if user_val >= req_val:
+                # award_achievement is safe to call repeatedly
+                res = award_achievement(user_id, slug)
+                if res and isinstance(res, dict):
+                    newly_awarded.append(res['name'])
+                    
+        if newly_awarded:
+            logger.info(f"Auto-synced {len(newly_awarded)} achievements for user {user_id}: {', '.join(newly_awarded)}")
+            
+    except Exception as e:
+        logger.error(f"Error syncing achievements for user {user_id}: {e}")
+
+def sync_events(user_id):
+    """
+    Checks progress for all active events and their associated tasks,
+    awarding immediate coin rewards and final prizes.
+    """
+    try:
+        from datetime import datetime
+        now = datetime.now()
+        
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # 1. Get active events the user hasn't completed
+        c.execute("""
+            SELECT e.id, e.name, e.event_type, e.group_id, e.start_date, e.end_date, 
+                   e.prize_type, e.prize_id, e.prize_shop_item_id
+            FROM events e
+            LEFT JOIN user_event_completions uec ON e.id = uec.event_id AND uec.user_id = ?
+            WHERE e.status IN ('active', 'approved') AND uec.event_id IS NULL
+        """, (user_id,))
+        active_events_rows = c.fetchall()
+        
+        for ev in active_events_rows:
+            ev_id, name, ev_type, g_id, s_date, e_date, p_type, p_id, p_item_id = ev
+
+            # Date validation
+            if s_date:
+                try:
+                    s_dt = datetime.strptime(s_date, '%Y-%m-%d')
+                    if now < s_dt: continue
+                except: pass
+            if e_date:
+                try:
+                    e_dt = datetime.strptime(e_date + " 23:59:59", '%Y-%m-%d %H:%M:%S')
+                    if now > e_dt: continue
+                except: pass
+
+            # 2. Get all tasks for this event
+            c.execute("SELECT id, description, coin_reward FROM event_tasks WHERE event_id = ?", (ev_id,))
+            tasks = c.fetchall()
+            
+            # 3. Check progress for each task
+            completed_tasks_count = 0
+            
+            for t_id, t_desc, t_reward in tasks:
+                # Check if user already completed this specific task
+                c.execute("SELECT id FROM user_event_task_progress WHERE user_id = ? AND task_id = ?", (user_id, t_id))
+                if c.fetchone():
+                    completed_tasks_count += 1
+                    continue
+                
+                # Logic: Tasks are currently "Manual" or based on certain keywords in description
+                # However, the user request says "manually need to add task".
+                # For now, we assume ALL tasks defined in the new system must be manually completed
+                # OR we can implement some simple keyword matching (e.g. "Post")
+                
+                # To make it usable immediately, I'll implement a simple condition based on description
+                met = False
+                desc_lower = t_desc.lower()
+                
+                if "post" in desc_lower:
+                    limit = 1 # Default to 1 if not specified
+                    c.execute("SELECT COUNT(*) FROM group_posts WHERE user_id = ?", (user_id,))
+                    if c.fetchone()[0] >= limit: met = True
+                elif "comment" in desc_lower:
+                    c.execute("SELECT COUNT(*) FROM group_comments WHERE user_id = ?", (user_id,))
+                    if c.fetchone()[0] >= 1: met = True
+                elif "read" in desc_lower:
+                    c.execute("SELECT COUNT(*) FROM manga_progress WHERE user_id = ?", (user_id,))
+                    if c.fetchone()[0] >= 1: met = True
+                elif "charisma" in desc_lower:
+                    c.execute("SELECT charisma FROM users WHERE id = ?", (user_id,))
+                    if (c.fetchone()[0] or 0) >= 100: met = True
+                
+                if met:
+                    # Award coin reward for the task
+                    c.execute("UPDATE users SET coins = COALESCE(coins, 0) + ? WHERE id = ?", (t_reward, user_id))
+                    # Mark task as completed
+                    c.execute("""
+                        INSERT INTO user_event_task_progress (user_id, task_id, status, completed_at)
+                        VALUES (?, ?, 'completed', CURRENT_TIMESTAMP)
+                    """, (user_id, t_id))
+                    completed_tasks_count += 1
+
+            # 4. If ALL tasks are completed, award the final prize
+            if len(tasks) > 0 and completed_tasks_count == len(tasks):
+                # Final Prize Distribution
+                if p_type == 'achievement':
+                    award_achievement(user_id, p_id)
+                elif p_type == 'item' and p_item_id:
+                    # Award Shop Item (Border/Animation)
+                    c.execute("SELECT 1 FROM user_inventory WHERE user_id = ? AND item_id = ?", (user_id, p_item_id))
+                    if not c.fetchone():
+                        c.execute("INSERT INTO user_inventory (user_id, item_id) VALUES (?, ?)", (user_id, p_item_id))
+                        # If it's a badge, grant achievement too
+                        c.execute("SELECT type, name, value, achievement_id FROM shop_items WHERE id = ?", (p_item_id,))
+                        item = c.fetchone()
+                        if item and item[0] == 'badge':
+                            award_achievement(user_id, item[3] or f"event_item_{p_item_id}")
+
+                elif p_type == 'charisma':
+                    c.execute("UPDATE users SET charisma = COALESCE(charisma, 0) + ? WHERE id = ?", (int(p_id or 0), user_id))
+                
+                # Record overall event completion
+                c.execute("INSERT INTO user_event_completions (user_id, event_id) VALUES (?, ?)", (user_id, ev_id))
+                
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        logger.error(f"Error syncing events for user {user_id}: {e}")
+
 
 def allowed(filename, allowed_set):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_set
@@ -1729,6 +1924,22 @@ def init_db():
         )
     """)
 
+    # group_gifts
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS group_gifts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            target_type TEXT NOT NULL, -- 'post' or 'comment'
+            target_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            gift_name TEXT,
+            gift_url TEXT,
+            price INTEGER DEFAULT 0,
+            charisma INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
     # group_comments migration: add charisma column
     try:
         c.execute("ALTER TABLE group_comments ADD COLUMN charisma INTEGER DEFAULT 0")
@@ -1786,6 +1997,20 @@ def init_db():
         conn.commit()
     except sqlite3.OperationalError:
         pass
+
+    try:
+        c.execute("""
+            UPDATE group_posts 
+            SET comment_count = (
+                SELECT COUNT(*) 
+                FROM group_comments 
+                WHERE post_id = group_posts.id 
+                AND id NOT IN (SELECT comment_id FROM group_comment_attachments WHERE file_type = 'sticker')
+            )
+        """)
+        conn.commit()
+    except Exception as e:
+        print(f"Warning: Issue recalibrating comment counts: {e}")
 
     # group_channels
     c.execute("""
@@ -4067,6 +4292,11 @@ def profile():
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
+    
+    # Auto-sync achievements and events on profile load
+    sync_achievements(user_id)
+    sync_events(user_id)
+    
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         email = request.form.get("email", "").strip()
@@ -4242,6 +4472,9 @@ def profile():
         })
 
 
+    # Fetch avatar settings
+    avatar_settings = fetch_user_avatar_settings(user_id)
+
     return render_template(
         "profile.html",
         username=session.get("username"),
@@ -4263,7 +4496,8 @@ def profile():
             "color": r[2],
             "desc": r[3],
             "earned_at": r[4]
-        } for r in achievements_raw]
+        } for r in achievements_raw],
+        avatar_settings=avatar_settings
     )
 
 # ---------- Public Profile ----------
@@ -4551,6 +4785,11 @@ def achievements_page():
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
+    
+    # Auto-sync achievements and events on page load
+    sync_achievements(user_id)
+    sync_events(user_id)
+    
     conn = get_conn()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
@@ -4601,25 +4840,31 @@ def achievements_page():
 
     conn.close()
 
-    # Combine data
+    # Assign group keys and data to all achievements
     for ach in all_achievements:
         ach['earned'] = ach['id'] in earned_map
         ach['earned_at'] = earned_map.get(ach['id'])
+        
+        req_type = ach.get('requirement_type')
+        category = ach.get('category', 'general')
+        if req_type:
+            ach['group_key'] = f"{category}:{req_type}"
+        else:
+            ach['group_key'] = f"{category}:unq_{ach.get('slug', ach['id'])}"
 
-    # Group achievements by category (same category = same kind)
+    # Group achievements by the new key
     groups = {}
     for ach in all_achievements:
-        group_key = ach.get('category', 'general')
-        if group_key not in groups:
-            groups[group_key] = []
-        groups[group_key].append(ach)
+        gkey = ach['group_key']
+        if gkey not in groups:
+            groups[gkey] = []
+        groups[gkey].append(ach)
 
-    # Build display list: for groups with >1 achievement, show only the highest earned (or highest overall if none earned)
+    # Build display list
     display_achievements = []
-    for group_key, achs in groups.items():
+    for gkey, achs in groups.items():
         if len(achs) <= 1:
             achs[0]['group_count'] = 1
-            achs[0]['group_key'] = group_key
             display_achievements.append(achs[0])
         else:
             earned_in_group = [a for a in achs if a['earned']]
@@ -4628,7 +4873,6 @@ def achievements_page():
             else:
                 representative = min(achs, key=lambda a: a['level'])
             representative['group_count'] = len(achs)
-            representative['group_key'] = group_key
             representative['earned_count'] = len(earned_in_group)
             display_achievements.append(representative)
 
@@ -4659,6 +4903,668 @@ def admin_achievements():
     achievements = [dict(row) for row in c.fetchall()]
     conn.close()
     return render_template("admin_achievements.html", achievements=achievements)
+
+# ---------- Reward Exchange Shop ----------
+@app.route("/shop")
+@login_required
+def shop():
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS shop_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            type TEXT NOT NULL,
+            value TEXT NOT NULL,
+            price INTEGER DEFAULT 100,
+            preview_image TEXT,
+            achievement_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS user_inventory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            item_id INTEGER NOT NULL,
+            purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (item_id) REFERENCES shop_items(id) ON DELETE CASCADE,
+            UNIQUE(user_id, item_id)
+        )
+    """)
+    
+    c.execute("SELECT COUNT(*) FROM shop_items")
+    if c.fetchone()[0] == 0:
+        shop_items = [
+            ('Golden Frame', 'border', 'gold-frame', 500, ''),
+            ('Ruby Frame', 'border', 'ruby-frame', 1000, ''),
+            ('Diamond Sparkle', 'animation', 'sparkle-bg', 1500, ''),
+            ('Novus Pioneer', 'badge', 'fa-rocket', 300, ''),
+            ('Coin Hoarder', 'badge', 'fa-coins', 800, ''),
+        ]
+        c.executemany("INSERT INTO shop_items (name, type, value, price, preview_image) VALUES (?, ?, ?, ?, ?)", shop_items)
+        conn.commit()
+
+    c.execute("SELECT * FROM shop_items")
+    items = [dict(row) for row in c.fetchall()]
+    
+    user_id = session.get("user_id")
+    c.execute("SELECT item_id FROM user_inventory WHERE user_id = ?", (user_id,))
+    owned_ids = [row[0] for row in c.fetchall()]
+    
+    is_admin = session.get("role") == "admin"
+    all_achievements = []
+    if is_admin:
+        c.execute("SELECT id, name FROM achievements ORDER BY name ASC")
+        all_achievements = [dict(row) for row in c.fetchall()]
+    
+    c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
+    coins_row = c.fetchone()
+    if is_admin:
+        user_coins = "Unlimited"
+    else:
+        user_coins = coins_row[0] if coins_row and coins_row[0] else 0
+    
+    conn.close()
+    
+    return render_template("shop.html", items=items, owned_ids=owned_ids, user_coins=user_coins, all_achievements=all_achievements)
+
+@app.route("/api/shop/buy", methods=["POST"])
+@login_required
+def api_buy_shop_item():
+    user_id = session.get("user_id")
+    data = request.json or {}
+    item_id = data.get("item_id")
+    
+    if not item_id:
+        return jsonify({"success": False, "message": "Missing item_id"})
+        
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    try:
+        c.execute("SELECT id FROM user_inventory WHERE user_id = ? AND item_id = ?", (user_id, item_id))
+        if c.fetchone():
+            return jsonify({"success": False, "message": "You already own this item."})
+            
+        c.execute("SELECT name, type, value, price, achievement_id FROM shop_items WHERE id = ?", (item_id,))
+        item = c.fetchone()
+        if not item:
+            return jsonify({"success": False, "message": "Item not found."})
+            
+        price = item['price']
+        linked_achievement_id = item['achievement_id']
+        
+        is_admin = session.get("role") == "admin"
+        
+        c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
+        user = c.fetchone()
+        balance = user['coins'] if user and user['coins'] else 0
+        
+        if not is_admin and balance < price:
+            return jsonify({"success": False, "message": f"Not enough coins. You need {price} but have {balance}."})
+            
+        if not is_admin:
+            c.execute("UPDATE users SET coins = coins - ? WHERE id = ?", (price, user_id))
+            
+        c.execute("INSERT INTO user_inventory (user_id, item_id) VALUES (?, ?)", (user_id, item_id))
+        
+        # If the item is a Badge, natively grant it as an Achievement!
+        if item['type'] == 'badge':
+            if linked_achievement_id:
+                # Use the existing linked achievement
+                ach_id = linked_achievement_id
+            else:
+                # Fallback: Create/Use shop-specific achievement
+                slug = f"shop_purchased_{item_id}"
+                c.execute("SELECT id FROM achievements WHERE slug = ?", (slug,))
+                ach = c.fetchone()
+                if not ach:
+                    c.execute("""
+                        INSERT INTO achievements (name, slug, description, icon, badge_color, category, rarity)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (item['name'], slug, "Purchased from the Reward Shop", item['value'], "#ffc107", "shop", "epic"))
+                    ach_id = c.lastrowid
+                else:
+                    ach_id = ach[0]
+                
+            c.execute("SELECT 1 FROM user_achievements WHERE user_id = ? AND achievement_id = ?", (user_id, ach_id))
+            if not c.fetchone():
+                c.execute("INSERT INTO user_achievements (user_id, achievement_id) VALUES (?, ?)", (user_id, ach_id))
+                
+        conn.commit()
+        return jsonify({"success": True, "message": "Purchase successful!", "new_balance": "Unlimited" if is_admin else (balance - price)})
+    finally:
+        conn.close()
+
+@app.route("/admin/shop/add", methods=["POST"])
+@admin_required
+def admin_shop_add():
+    # Support both JSON and FormData
+    import os
+    from werkzeug.utils import secure_filename
+    
+    if request.is_json:
+        data = request.json or {}
+        name = data.get("name")
+        item_type = data.get("type")
+        value = data.get("value")
+        price = data.get("price")
+        achievement_id = data.get("achievement_id")
+    else:
+        name = request.form.get("name")
+        item_type = request.form.get("type")
+        value = request.form.get("value", "")
+        price = request.form.get("price")
+        achievement_id = request.form.get("achievement_id")
+        
+        # Handle file upload if present
+        if 'file' in request.files:
+            file = request.files['file']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                upload_folder = os.path.join(app.root_path, 'static', 'uploads', 'shop')
+                os.makedirs(upload_folder, exist_ok=True)
+                file_path = os.path.join(upload_folder, filename)
+                file.save(file_path)
+                value = f"/static/uploads/shop/{filename}"
+    
+    if not all([name, item_type, value, price]):
+        return jsonify({"success": False, "message": "Missing required fields (need either a Value or a File)."})
+        
+    try:
+        price = int(price)
+        if achievement_id:
+            achievement_id = int(achievement_id)
+    except ValueError:
+        return jsonify({"success": False, "message": "Price and Achievement ID must be valid integers."})
+        
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("INSERT INTO shop_items (name, type, value, price, achievement_id) VALUES (?, ?, ?, ?, ?)", 
+              (name, item_type, value, price, achievement_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True, "message": "Item added successfully."})
+
+@app.route("/admin/shop/delete/<int:item_id>", methods=["POST"])
+@admin_required
+def admin_shop_delete(item_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("DELETE FROM shop_items WHERE id = ?", (item_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+# ---------- Event Management ----------
+
+@app.route("/events")
+def public_events():
+    """Public page to view all active events with rankings and stats."""
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    current_time_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    now = datetime.now()
+    
+    # Fetch all active/approved events with creator info
+    c.execute("""
+        SELECT e.*, g.name as group_name, g.id as group_real_id,
+               u.username as creator_name, u.avatar_url as creator_avatar
+        FROM events e
+        LEFT JOIN community_groups g ON e.group_id = g.id
+        LEFT JOIN users u ON e.creator_id = u.id
+        WHERE e.status IN ('approved', 'active') 
+          AND (e.end_date IS NULL OR e.end_date >= ?)
+        ORDER BY e.featured DESC, e.start_date DESC
+    """, (datetime.now().strftime('%Y-%m-%d'),))
+    
+    events_raw = c.fetchall()
+    all_events = []
+    
+    for row in events_raw:
+        ev = dict(row)
+        ev_id = ev['id']
+        cond_type = ev['condition_type']
+        g_id = ev['group_id']
+        
+        # 1. Total Participants (Completions)
+        c.execute("SELECT COUNT(*) FROM user_event_completions WHERE event_id = ?", (ev_id,))
+        ev['participant_count'] = c.fetchone()[0]
+        
+        # 2. Time Left Calculation
+        ev['time_left_str'] = "Ongoing"
+        if ev['end_date']:
+            try:
+                e_dt = datetime.strptime(ev['end_date'] + " 23:59:59", '%Y-%m-%d %H:%M:%S')
+                diff = e_dt - now
+                if diff.days > 0:
+                    ev['time_left_str'] = f"{diff.days}d left"
+                elif diff.total_seconds() > 0:
+                    hours = int(diff.total_seconds() // 3600)
+                    ev['time_left_str'] = f"{hours}h left"
+                else:
+                    ev['time_left_str'] = "Ending soon"
+            except:
+                pass
+                
+        # 3. Rankings (Top 3)
+        rankings = []
+        if cond_type == 'posts_count':
+            query = """
+                SELECT u.id, u.username, u.avatar_url, COUNT(p.id) as score
+                FROM users u
+                JOIN group_posts p ON u.id = p.user_id
+                """ + ("WHERE p.group_id = ?" if ev['event_type'] == 'group' else "") + """
+                GROUP BY u.id
+                ORDER BY score DESC LIMIT 3
+            """
+            if ev['event_type'] == 'group':
+                c.execute(query, (g_id,))
+            else:
+                c.execute(query)
+            rankings = [dict(r) for r in c.fetchall()]
+        elif cond_type == 'comment_count':
+            query = """
+                SELECT u.id, u.username, u.avatar_url, COUNT(cm.id) as score
+                FROM users u
+                JOIN group_comments cm ON u.id = cm.user_id
+                """ + ("JOIN group_posts p ON cm.post_id = p.id WHERE p.group_id = ?" if ev['event_type'] == 'group' else "") + """
+                GROUP BY u.id
+                ORDER BY score DESC LIMIT 3
+            """
+            if ev['event_type'] == 'group':
+                c.execute(query, (g_id,))
+            else:
+                c.execute(query)
+            rankings = [dict(r) for r in c.fetchall()]
+        elif cond_type == 'manga_chapters_read':
+            c.execute("""
+                SELECT u.id, u.username, u.avatar_url, COUNT(mp.id) as score
+                FROM users u
+                JOIN manga_progress mp ON u.id = mp.user_id
+                GROUP BY u.id
+                ORDER BY score DESC LIMIT 3
+            """)
+            rankings = [dict(r) for r in c.fetchall()]
+        elif cond_type == 'charisma_earned':
+            c.execute("""
+                SELECT id, username, avatar_url, COALESCE(charisma, 0) as score
+                FROM users
+                ORDER BY score DESC LIMIT 3
+            """)
+            rankings = [dict(r) for r in c.fetchall()]
+            
+        ev['rankings'] = rankings
+        all_events.append(ev)
+    
+    user_id = session.get("user_id")
+    completed_event_ids = set()
+    
+    # Fetch tasks for each event
+    for ev in all_events:
+        c.execute("SELECT id, description, coin_reward, task_type FROM event_tasks WHERE event_id = ?", (ev['id'],))
+        ev['tasks'] = [dict(row) for row in c.fetchall()]
+        
+        # If logged in, check user progress for each task
+        if user_id:
+            for task in ev['tasks']:
+                c.execute("SELECT status FROM user_event_task_progress WHERE user_id = ? AND task_id = ?", (user_id, task['id']))
+                row = c.fetchone()
+                task['completed'] = True if row and row['status'] == 'completed' else False
+
+    if user_id:
+        c.execute("SELECT event_id FROM user_event_completions WHERE user_id = ?", (user_id,))
+        completed_event_ids = {row['event_id'] for row in c.fetchall()}
+        
+        # Calculate user scores for each event (Legacy legacy fallback)
+        for ev in all_events:
+            cond_type = ev['condition_type']
+            g_id = ev['group_id']
+            user_score = 0
+            
+            if cond_type == 'posts_count':
+                if ev['event_type'] == 'group':
+                    c.execute("SELECT COUNT(id) FROM group_posts WHERE user_id = ? AND group_id = ?", (user_id, g_id))
+                else:
+                    c.execute("SELECT COUNT(id) FROM group_posts WHERE user_id = ?", (user_id,))
+                user_score = c.fetchone()[0]
+                
+            elif cond_type == 'comment_count':
+                if ev['event_type'] == 'group':
+                    c.execute("SELECT COUNT(cm.id) FROM group_comments cm JOIN group_posts p ON cm.post_id = p.id WHERE cm.user_id = ? AND p.group_id = ?", (user_id, g_id))
+                else:
+                    c.execute("SELECT COUNT(id) FROM group_comments WHERE user_id = ?", (user_id,))
+                user_score = c.fetchone()[0]
+                
+            elif cond_type == 'manga_chapters_read':
+                c.execute("SELECT COUNT(id) FROM manga_progress WHERE user_id = ?", (user_id,))
+                user_score = c.fetchone()[0]
+                
+            elif cond_type == 'charisma_earned':
+                c.execute("SELECT COALESCE(charisma, 0) FROM users WHERE id = ?", (user_id,))
+                user_score = c.fetchone()[0]
+            
+            ev['user_score'] = user_score
+    else:
+        for ev in all_events:
+            ev['user_score'] = 0
+            
+    conn.close()
+    
+    # Categorize events
+    featured_events = [e for e in all_events if e['featured']]
+    site_events = [e for e in all_events if e['event_type'] == 'global' and not e['featured']]
+    group_events = [e for e in all_events if e['event_type'] == 'group' and not e['featured']]
+    
+    return render_template("events.html", 
+                           featured_events=featured_events, 
+                           site_events=site_events, 
+                           group_events=group_events,
+                           completed_event_ids=completed_event_ids)
+
+@app.route("/admin/events")
+@admin_required
+def admin_events():
+    """Admin dashboard to view and manage all events."""
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("""
+        SELECT e.*, u.username as creator_name, g.name as group_name 
+        FROM events e 
+        LEFT JOIN users u ON e.creator_id = u.id 
+        LEFT JOIN community_groups g ON e.group_id = g.id 
+        ORDER BY e.created_at DESC
+    """)
+    events = [dict(row) for row in c.fetchall()]
+    
+    # Fetch tasks for each event
+    for ev in events:
+        c.execute("SELECT * FROM event_tasks WHERE event_id = ?", (ev['id'],))
+        ev['tasks'] = [dict(r) for r in c.fetchall()]
+
+    # Fetch achievements for dropdown
+    c.execute("SELECT id, name, slug FROM achievements ORDER BY name ASC")
+    achievements = [dict(row) for row in c.fetchall()]
+
+    # Fetch shop items for dropdown (borders and animations)
+    c.execute("SELECT id, name, type FROM shop_items WHERE type IN ('border', 'animation') ORDER BY name ASC")
+    shop_items = [dict(row) for row in c.fetchall()]
+
+    conn.close()
+    return render_template("admin_events.html", events=events, achievements=achievements, shop_items=shop_items)
+
+@app.route("/admin/events/approve/<int:event_id>", methods=["POST"])
+@admin_required
+def approve_event(event_id):
+    """Approve or reject a pending event request."""
+    data = request.get_json() or {}
+    status = data.get("status") # 'approved' or 'rejected'
+    if status not in ['approved', 'rejected']:
+        return jsonify({"success": False, "error": "Invalid status"})
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    if status == 'approved':
+        # Get event details to see if we need to create an achievement
+        c.execute("SELECT * FROM events WHERE id = ?", (event_id,))
+        event = c.fetchone()
+        if event and event['prize_type'] == 'achievement':
+            # Create the achievement if it doesn't exist
+            slug = event['prize_id']
+            c.execute("SELECT id FROM achievements WHERE slug = ?", (slug,))
+            if not c.fetchone():
+                c.execute("""
+                    INSERT INTO achievements (name, slug, description, icon, badge_color, is_limited, event_id)
+                    VALUES (?, ?, ?, ?, ?, 1, ?)
+                """, (f"Event: {event['name']}", slug, f"Awarded for completing '{event['name']}'", "fa-star", "yellow", event_id))
+    
+    c.execute("UPDATE events SET status = ? WHERE id = ?", (status, event_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route("/admin/events/delete/<int:event_id>", methods=["POST"])
+@admin_required
+def delete_event(event_id):
+    """Delete an event permanently."""
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("DELETE FROM events WHERE id = ?", (event_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route("/admin/events/create", methods=["POST"])
+@admin_required
+def create_admin_event():
+    """Admin creates a site-wide event directly."""
+    name = request.form.get("name")
+    desc = request.form.get("description")
+    
+    # Condition/Target (Keep legacy if only one task is provided via old form, 
+    # but prioritize the new multi-task system)
+    c_type = request.form.get("condition_type")
+    c_val = request.form.get("condition_value")
+    
+    p_type = request.form.get("prize_type")
+    p_id = request.form.get("prize_id")
+    p_item_id = request.form.get("prize_item_id") # For borders/animations from shop_items
+    
+    start_date = request.form.get("start_date")
+    end_date = request.form.get("end_date")
+    featured = 1 if request.form.get("featured") else 0
+    bg_color = request.form.get("bg_color")
+    
+    # Icon handling (file upload or FA class)
+    icon = request.form.get("icon") # Legacy FA class case
+    icon_file = request.files.get("icon_file")
+    
+    if icon_file and icon_file.filename:
+        from werkzeug.utils import secure_filename
+        filename = secure_filename(icon_file.filename)
+        upload_folder = os.path.join(app.config.get('UPLOAD_FOLDER', 'static/uploads'), 'event_icons')
+        os.makedirs(upload_folder, exist_ok=True)
+        rel_path = f"uploads/event_icons/{filename}"
+        icon_file.save(os.path.join(app.root_path, 'static', rel_path))
+        icon = f"/static/{rel_path}"
+
+    user_id = session["user_id"]
+    
+    conn = get_conn()
+    c = conn.cursor()
+
+    # Handle New Reward Asset Creation
+    is_new_prize = request.form.get("is_new_prize") == "on"
+    if is_new_prize and p_type == "item":
+        new_name = request.form.get("new_prize_name") or f"Reward: {name}"
+        new_type = request.form.get("new_prize_type", "border")
+        prize_file = request.files.get("prize_file")
+        prize_value = ""
+
+        if prize_file and prize_file.filename:
+            from werkzeug.utils import secure_filename
+            p_filename = secure_filename(prize_file.filename)
+            upload_shop_folder = os.path.join(app.root_path, 'static', 'uploads', 'shop')
+            os.makedirs(upload_shop_folder, exist_ok=True)
+            prize_file.save(os.path.join(upload_shop_folder, p_filename))
+            prize_value = f"/static/uploads/shop/{p_filename}"
+        
+        if prize_value:
+            # Register in shop_items so it can be awarded/owned
+            c.execute("INSERT INTO shop_items (name, type, value, price) VALUES (?, ?, ?, 0)", 
+                      (new_name, new_type, prize_value))
+            p_item_id = c.lastrowid
+    
+    # Insert main event
+    c.execute("""
+        INSERT INTO events (name, description, event_type, creator_id, status, 
+                           condition_type, condition_value, prize_type, prize_id, 
+                           prize_shop_item_id, start_date, end_date, featured, bg_color, icon)
+        VALUES (?, ?, 'global', ?, 'approved', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (name, desc, user_id, c_type, c_val, p_type, p_id, p_item_id, start_date, end_date, featured, bg_color, icon))
+    
+    event_id = c.lastrowid
+    
+    # Handle multi-tasks if tasks_json is submitted
+    tasks_json = request.form.get("tasks_json")
+    if tasks_json:
+        try:
+            tasks = json.loads(tasks_json)
+            for task in tasks:
+                t_desc = task.get("description")
+                t_reward = int(task.get("coin_reward", 0))
+                t_type = task.get("task_type", "normal")
+                
+                # Validation
+                if t_type == "limited" and not (20 <= t_reward <= 60):
+                    t_reward = 20 if t_reward < 20 else 60
+                elif t_type == "normal" and not (5 <= t_reward <= 20):
+                    t_reward = 5 if t_reward < 5 else 20
+                
+                c.execute("""
+                    INSERT INTO event_tasks (event_id, description, coin_reward, task_type)
+                    VALUES (?, ?, ?, ?)
+                """, (event_id, t_desc, t_reward, t_type))
+        except Exception as e:
+            print(f"Error parsing tasks_json: {e}")
+
+    # Legacy Prize Auto-creation for achievements
+    if p_type == 'achievement' and p_id:
+        c.execute("SELECT id FROM achievements WHERE slug = ?", (p_id,))
+        if not c.fetchone():
+            c.execute("""
+                INSERT INTO achievements (name, slug, description, icon, badge_color, is_limited, event_id)
+                VALUES (?, ?, ?, ?, ?, 1, ?)
+            """, (f"Event: {name}", p_id, f"Awarded for completing '{name}'", "fa-trophy", "yellow", event_id))
+            
+    conn.commit()
+    conn.close()
+    flash("Site-wide event created and approved.", "success")
+    return redirect(url_for("admin_events"))
+
+@app.route("/group/<int:group_id>/event-request", methods=["GET", "POST"])
+@login_required
+def group_event_request(group_id):
+    """Group owner or moderator requests an event for their group."""
+    user_id = session["user_id"]
+    role = session.get("role")
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Fetch group info for breadcrumbs/info
+    c.execute("SELECT id, name, owner_id FROM community_groups WHERE id = ?", (group_id,))
+    group = c.fetchone()
+    if not group:
+        conn.close()
+        if request.method == "POST":
+            return jsonify({"success": False, "error": "Group not found"})
+        return "Group not found", 404
+
+    if request.method == "GET":
+        # Check permissions for GET as well
+        c.execute("SELECT role FROM group_members WHERE group_id = ? AND user_id = ?", (group_id, user_id))
+        member_row = c.fetchone()
+        member_role = member_row[0] if member_row else None
+        
+        if group['owner_id'] != user_id and member_role not in ['owner', 'moderator'] and role != 'admin':
+            conn.close()
+            return "Permission denied", 403
+            
+        conn.close()
+        return render_template("group_event_request.html", group=group)
+    
+    # POST logic follows...
+    owner_id = group['owner_id']
+    
+    c.execute("SELECT role FROM group_members WHERE group_id = ? AND user_id = ?", (group_id, user_id))
+    member_row = c.fetchone()
+    member_role = member_row[0] if member_row else None
+    
+    if owner_id != user_id and member_role not in ['owner', 'moderator'] and role != 'admin':
+        conn.close()
+        return jsonify({"success": False, "error": "Permission denied"})
+        
+    # New Multi-Task & Asset Logic
+    p_item_id = request.form.get("prize_item_id")
+    tasks_json = request.form.get("tasks_json")
+    
+    # Handle Icon Upload
+    icon_file = request.files.get("icon_file")
+    if icon_file and icon_file.filename:
+        from werkzeug.utils import secure_filename
+        filename = secure_filename(icon_file.filename)
+        upload_folder = os.path.join(app.root_path, 'static', 'uploads', 'event_icons')
+        os.makedirs(upload_folder, exist_ok=True)
+        icon_file.save(os.path.join(upload_folder, filename))
+        icon = f"/static/uploads/event_icons/{filename}"
+
+    # Handle New Reward Asset Creation
+    is_new_prize = request.form.get("is_new_prize") == "on"
+    if is_new_prize and p_type == "item":
+        new_name = request.form.get("new_prize_name") or f"Reward: {name}"
+        new_type = request.form.get("new_prize_type", "border")
+        prize_file = request.files.get("prize_file")
+        prize_value = ""
+
+        if prize_file and prize_file.filename:
+            from werkzeug.utils import secure_filename
+            p_filename = secure_filename(prize_file.filename)
+            upload_shop_folder = os.path.join(app.root_path, 'static', 'uploads', 'shop')
+            os.makedirs(upload_shop_folder, exist_ok=True)
+            prize_file.save(os.path.join(upload_shop_folder, p_filename))
+            prize_value = f"/static/uploads/shop/{p_filename}"
+        
+        if prize_value:
+            c.execute("INSERT INTO shop_items (name, type, value, price) VALUES (?, ?, ?, 0)", 
+                      (new_name, new_type, prize_value))
+            p_item_id = c.lastrowid
+
+    # Insert main event as 'pending'
+    c.execute("""
+        INSERT INTO events (name, description, event_type, group_id, creator_id, status, 
+                           condition_type, condition_value, prize_type, prize_id, 
+                           prize_shop_item_id, start_date, end_date, icon)
+        VALUES (?, ?, 'group', ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (name, desc, group_id, user_id, c_type, c_val, p_type, p_id, p_item_id, start_date, end_date, icon))
+    
+    event_id = c.lastrowid
+
+    # Handle multi-tasks
+    if tasks_json:
+        try:
+            tasks = json.loads(tasks_json)
+            for task in tasks:
+                t_desc = task.get("description")
+                t_reward = int(task.get("coin_reward", 0))
+                t_type = task.get("task_type", "normal")
+                
+                if t_type == "limited" and not (20 <= t_reward <= 60):
+                    t_reward = 20 if t_reward < 20 else 60
+                elif t_type == "normal" and not (5 <= t_reward <= 20):
+                    t_reward = 5 if t_reward < 5 else 20
+                
+                c.execute("""
+                    INSERT INTO event_tasks (event_id, description, coin_reward, task_type)
+                    VALUES (?, ?, ?, ?)
+                """, (event_id, t_desc, t_reward, t_type))
+        except Exception as e:
+            print(f"Error parsing tasks_json in group request: {e}")
+    
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "Event request submitted for admin approval."})
 
 @app.route("/api/admin/achievements/add", methods=['POST'])
 @admin_required
@@ -8735,11 +9641,25 @@ def avatar_studio():
             showcase_badges = json.loads(row['showcase_badges'])
         except:
             showcase_badges = []
+            
+    # Fetch purchased shop cosmetics (borders, animations)
+    c.execute("""
+        SELECT s.id, s.name, s.type, s.value 
+        FROM user_inventory ui
+        JOIN shop_items s ON ui.item_id = s.id
+        WHERE ui.user_id = ? AND (s.type = 'border' OR s.type LIKE 'animation%')
+    """, (user_id,))
+    purchased_cosmetics = [dict(r) for r in c.fetchall()]
+    # Pass along the animation target (e.g. avatar, login, etc)
+    purchased_animations = [{"id": i["id"], "name": i["name"], "value": i["value"], "target": i["type"]} for i in purchased_cosmetics if str(i['type']).startswith('animation')]
+    purchased_borders = [i for i in purchased_cosmetics if i['type'] == 'border']
     
     conn.close()
     return render_template("avatar_studio.html", 
                            earned_achievements=earned_achievements,
-                           showcase_badges=showcase_badges)
+                           showcase_badges=showcase_badges,
+                           purchased_animations=purchased_animations,
+                           purchased_borders=purchased_borders)
 
 @app.route("/api/avatar/badges", methods=["POST"])
 def save_showcase_badges():
@@ -11660,6 +12580,16 @@ def community():
         hashtag_counts = Counter(hashtags)
         trending_hashtags = [{'tag': tag, 'count': count} for tag, count in hashtag_counts.most_common(5)]
         
+        # Get featured events
+        c.execute("""
+            SELECT id, name, description, bg_color, icon, start_date, end_date
+            FROM events
+            WHERE featured = 1 AND status = 'approved'
+            ORDER BY created_at DESC
+            LIMIT 3
+        """)
+        featured_events = [dict(row) for row in c.fetchall()]
+        
         conn.close()
         
         return render_template('community.html', 
@@ -11672,6 +12602,7 @@ def community():
                              all_manga_groups=all_manga_groups,
                              active_groups=active_groups,
                              trending_hashtags=trending_hashtags,
+                             featured_events=featured_events,
                              search_query=search_query)
     except Exception as e:
         logger.error(f"Community page error: {e}")
@@ -12186,6 +13117,23 @@ def create_group_post(group_id):
     conn = get_conn()
     c = conn.cursor()
     
+    # Ensure channel_id is valid for this group
+    if channel_id:
+        if channel_id == 'all' or channel_id == 'default':
+            channel_id = None
+        else:
+            try:
+                channel_id = int(channel_id)
+            except (ValueError, TypeError):
+                channel_id = None
+    
+    # If no channel_id provided or valid, try to find a default for this group
+    if not channel_id:
+        c.execute("SELECT id FROM group_channels WHERE group_id = ? ORDER BY position ASC LIMIT 1", (group_id,))
+        chan_row = c.fetchone()
+        if chan_row:
+            channel_id = chan_row[0]
+    
     try:
         # Insert post
         c.execute("""
@@ -12510,7 +13458,7 @@ def get_group_post_comments(post_id):
                gc.charisma
         FROM group_comments gc
         JOIN users u ON gc.user_id = u.id
-        WHERE gc.post_id = ?
+        WHERE gc.post_id = ? AND gc.id NOT IN (SELECT comment_id FROM group_comment_attachments WHERE file_type = 'sticker')
         ORDER BY {order_clause}
     """
     
@@ -13050,19 +13998,19 @@ def send_group_post_gift(post_id):
     gift_price = int(data.get('price', 0))
     gift_charisma = int(data.get('charisma', 0))
     gift_url = data.get('url', '')
-    
     if not gift_url:
         return jsonify({'success': False, 'message': 'Missing gift info'})
         
     conn = get_conn()
     c = conn.cursor()
     try:
-        # Check coins
+        # Check coins (Admins have unlimited)
+        is_admin = session.get('role') == 'admin'
         c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
         row = c.fetchone()
         user_coins = row[0] if row and row[0] is not None else 0
         
-        if user_coins < gift_price:
+        if not is_admin and user_coins < gift_price:
             return jsonify({'success': False, 'message': 'Not enough coins'})
             
         # Get post author
@@ -13073,8 +14021,9 @@ def send_group_post_gift(post_id):
             
         post_author_id = post_row[0]
         
-        # Deduct coins from sender
-        c.execute("UPDATE users SET coins = coins - ? WHERE id = ?", (gift_price, user_id))
+        # Deduct coins (Skip for admins)
+        if not is_admin:
+            c.execute("UPDATE users SET coins = coins - ? WHERE id = ?", (gift_price, user_id))
         
         # Add charisma to post author
         c.execute("UPDATE users SET charisma = COALESCE(charisma, 0) + ? WHERE id = ?", (gift_charisma, post_author_id))
@@ -13082,26 +14031,18 @@ def send_group_post_gift(post_id):
         # Add charisma to the post itself
         c.execute("UPDATE group_posts SET charisma = COALESCE(charisma, 0) + ? WHERE id = ?", (gift_charisma, post_id))
         
-        # Add a comment the user sent a gift
-        content = f"🎁 Sent a {gift_name}!"
+        # Record the gift in the dedicated table
         c.execute("""
-            INSERT INTO group_comments (post_id, user_id, content)
-            VALUES (?, ?, ?)
-        """, (post_id, user_id, content))
-        comment_id = c.lastrowid
-        
-        # Add the gift as an attachment
-        c.execute("""
-            INSERT INTO group_comment_attachments (comment_id, file_url, file_type, file_name)
-            VALUES (?, ?, 'sticker', ?)
-        """, (comment_id, gift_url, gift_name))
-        
-        # Update post comment count
-        c.execute("UPDATE group_posts SET comment_count = comment_count + 1 WHERE id = ?", (post_id,))
+            INSERT INTO group_gifts (target_type, target_id, user_id, gift_name, gift_url, price, charisma)
+            VALUES ('post', ?, ?, ?, ?, ?, ?)
+        """, (post_id, user_id, gift_name, gift_url, gift_price, gift_charisma))
         
         # Get sender's new balance
-        c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
-        new_balance = c.fetchone()[0]
+        if is_admin:
+            new_balance = 999999
+        else:
+            c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
+            new_balance = c.fetchone()[0]
         
         # Check for achievements
         c.execute("SELECT charisma FROM users WHERE id = ?", (post_author_id,))
@@ -13114,7 +14055,7 @@ def send_group_post_gift(post_id):
             award_achievement(post_author_id, 'rising_star')
 
         conn.commit()
-        return jsonify({'success': True, 'coins': new_balance, 'comment_id': comment_id})
+        return jsonify({'success': True, 'coins': new_balance})
     except Exception as e:
         logger.error(f"Error sending gift: {e}")
         return jsonify({'success': False, 'message': str(e)})
@@ -13138,14 +14079,13 @@ def api_post_gifters(post_id):
             conn.close()
             return jsonify({'success': False, 'message': 'Unauthorized or post not found'})
             
-        # Get gifters via comments that have gift attachments
+        # Get gifters via dedicated gifts table
         c.execute("""
-            SELECT DISTINCT u.username, u.avatar_url, gca.file_name as gift_name, gca.file_url as gift_url
-            FROM group_comments gc
-            JOIN users u ON gc.user_id = u.id
-            JOIN group_comment_attachments gca ON gc.id = gca.comment_id
-            WHERE gc.post_id = ? AND gca.file_type = 'sticker'
-            ORDER BY gc.created_at DESC
+            SELECT DISTINCT u.username, u.avatar_url, gg.gift_name, gg.gift_url
+            FROM group_gifts gg
+            JOIN users u ON gg.user_id = u.id
+            WHERE gg.target_id = ? AND gg.target_type = 'post'
+            ORDER BY gg.created_at DESC
         """, (post_id,))
         
         gifters = [dict(row) for row in c.fetchall()]
@@ -13175,47 +14115,38 @@ def send_group_comment_gift(comment_id):
     conn = get_conn()
     c = conn.cursor()
     try:
-        # Check coins
+        # Check coins (Admins have unlimited)
+        is_admin = session.get('role') == 'admin'
         c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
         row = c.fetchone()
         user_coins = row[0] if row and row[0] is not None else 0
-
-        if user_coins < gift_price:
+ 
+        if not is_admin and user_coins < gift_price:
             return jsonify({'success': False, 'message': 'Not enough coins'})
-
+ 
         # Get comment author and post_id
         c.execute("SELECT user_id, post_id FROM group_comments WHERE id = ?", (comment_id,))
         comment_row = c.fetchone()
         if not comment_row:
             return jsonify({'success': False, 'message': 'Comment not found'})
-
+ 
         comment_author_id = comment_row[0]
         post_id = comment_row[1]
-
-        # Deduct coins from sender
-        c.execute("UPDATE users SET coins = coins - ? WHERE id = ?", (gift_price, user_id))
+ 
+        # Deduct coins (Skip for admins)
+        if not is_admin:
+            c.execute("UPDATE users SET coins = coins - ? WHERE id = ?", (gift_price, user_id))
 
         # Add charisma to comment author
         c.execute("UPDATE users SET charisma = COALESCE(charisma, 0) + ? WHERE id = ?", (gift_charisma, comment_author_id))
 
         # Track charisma on the comment itself
         c.execute("UPDATE group_comments SET charisma = COALESCE(charisma, 0) + ? WHERE id = ?", (gift_charisma, comment_id))
-
-        # Add a reply comment indicating the gift was sent
-        content = f"🎁 Sent a {gift_name}!"
+        # Record the gift in the dedicated table
         c.execute("""
-            INSERT INTO group_comments (post_id, user_id, content)
-            VALUES (?, ?, ?)
-        """, (post_id, user_id, content))
-        new_comment_id = c.lastrowid
-
-        # Attach the gift sticker image to that reply
-        c.execute("""
-            INSERT INTO group_comment_attachments (comment_id, file_url, file_type, file_name)
-            VALUES (?, ?, 'sticker', ?)
-        """, (new_comment_id, gift_url, gift_name))
-
-        c.execute("UPDATE group_posts SET comment_count = comment_count + 1 WHERE id = ?", (post_id,))
+            INSERT INTO group_gifts (target_type, target_id, user_id, gift_name, gift_url, price, charisma)
+            VALUES ('comment', ?, ?, ?, ?, ?, ?)
+        """, (comment_id, user_id, gift_name, gift_url, gift_price, gift_charisma))
 
         c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
         new_balance = c.fetchone()[0]
@@ -13231,7 +14162,7 @@ def send_group_comment_gift(comment_id):
             award_achievement(comment_author_id, 'rising_star')
 
         conn.commit()
-        return jsonify({'success': True, 'coins': new_balance, 'comment_id': new_comment_id})
+        return jsonify({'success': True, 'coins': new_balance})
     except Exception as e:
         logger.error(f"Error sending gift to comment: {e}")
         return jsonify({'success': False, 'message': str(e)})
@@ -13247,6 +14178,9 @@ def get_user_balance():
     conn = get_conn()
     c = conn.cursor()
     try:
+        if session.get('role') == 'admin':
+            return jsonify({'success': True, 'coins': 999999})
+            
         c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
         row = c.fetchone()
         coins = row[0] if row and row[0] is not None else 0

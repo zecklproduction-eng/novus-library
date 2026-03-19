@@ -1,0 +1,694 @@
+{% extends "base.html" %}
+
+{% block title %}Event Nexus | Admin Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+    :root {
+        --accent-cyan: #22d3ee;
+        --accent-purple: #a855f7;
+        --accent-gold: #fbbf24;
+        --glass-bg: rgba(15, 23, 42, 0.6);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --neon-glow: 0 0 15px rgba(34, 211, 238, 0.3);
+    }
+
+    body {
+        background-color: #0f172a;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.1) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.1) 0px, transparent 50%);
+    }
+
+    .bg-blobs {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .blob {
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+        filter: blur(80px);
+        opacity: 0.15;
+        border-radius: 50%;
+        animation: float 20s infinite alternate;
+    }
+
+    @keyframes float {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        100% { transform: translate(100px, 50px) rotate(360deg); }
+    }
+
+    .nexus-table td {
+        padding: 12px 15px;
+        border-top: 1px solid var(--glass-border);
+        border-bottom: 1px solid var(--glass-border);
+        transition: all 0.2s ease;
+    }
+
+    .nexus-table tr:hover td {
+        border-color: rgba(6, 182, 212, 0.4);
+    }
+
+    .nexus-table td:first-child { border-left: 1px solid var(--glass-border); border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+    .nexus-table td:last-child { border-right: 1px solid var(--glass-border); border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+
+    .admin-container {
+        max-width: 1400px;
+        padding: 25px 15px;
+        position: relative;
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 20px;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        margin-bottom: 20px;
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+        transition: border-color 0.3s ease;
+    }
+
+    .glass-card:hover {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .nexus-header {
+        margin-bottom: 25px;
+    }
+
+    .nexus-header h1 {
+        font-size: 2.8rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #fff 30%, #94a3b8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
+    }
+
+    /* Drag & Drop Icon Area */
+    .icon-upload-area {
+        border: 2px dashed var(--glass-border);
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.02);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .icon-upload-area:hover, .icon-upload-area.dragover {
+        border-color: var(--accent-cyan);
+        background: rgba(6, 182, 212, 0.05);
+    }
+
+    .icon-preview {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        margin: 0 auto 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--glass-bg);
+        font-size: 1.5rem;
+        color: var(--accent-cyan);
+    }
+
+    .icon-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 15px;
+    }
+
+    /* Task List Editor */
+    .task-item {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-left: 3px solid var(--accent-purple);
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .task-item.limited { border-left-color: #f59e0b; }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(-20px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    .coin-badge {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: 700;
+    }
+
+    .coin-normal { background: rgba(6, 182, 212, 0.2); color: #22d3ee; }
+    .coin-limited { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+    /* Tables */
+    .nexus-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 4px;
+    }
+
+    .nexus-table tr {
+        background: rgba(255, 255, 255, 0.02);
+        transition: transform 0.2s ease;
+    }
+
+    .nexus-table tr:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--accent-cyan);
+        box-shadow: 0 0 15px rgba(6, 182, 212, 0.1);
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
+    }
+
+    .status-approved { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .status-pending { background: rgba(234, 179, 8, 0.15); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.3); }
+
+    .btn-nexus {
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid transparent;
+        cursor: pointer;
+    }
+
+    .btn-create {
+        background: linear-gradient(135deg, var(--accent-cyan), #0891b2);
+        color: white;
+        box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+    }
+
+    .btn-create:hover {
+        background: linear-gradient(135deg, #22d3ee, #0891b2);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: var(--neon-glow), 0 10px 20px rgba(6, 182, 212, 0.4);
+    }
+
+    /* Premium Inputs */
+    .nexus-input {
+        background: rgba(15, 23, 42, 0.4) !important;
+        border: 1px solid var(--glass-border) !important;
+        border-radius: 10px !important;
+        color: #f8fafc !important;
+        width: 100%;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        outline: none;
+    }
+
+    .nexus-input::placeholder {
+        color: rgba(148, 163, 184, 0.5);
+    }
+
+    .nexus-input:focus {
+        background: rgba(15, 23, 42, 0.6) !important;
+        border-color: var(--accent-cyan) !important;
+        box-shadow: 0 0 15px rgba(34, 211, 238, 0.15) !important;
+        transform: translateY(-1px);
+    }
+
+    select.nexus-input option {
+        background: #1e293b;
+        color: white;
+    }
+
+    /* Custom Checkbox */
+    .nexus-checkbox {
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--glass-border);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.05);
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s;
+    }
+
+    .nexus-checkbox:checked {
+        background: var(--accent-cyan);
+        border-color: var(--accent-cyan);
+        box-shadow: 0 0 10px rgba(34, 211, 238, 0.4);
+    }
+
+    .nexus-checkbox:checked::after {
+        content: "\f00c";
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+        font-size: 10px;
+        color: #0f172a;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .remove-task {
+        color: #ef4444;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 5px;
+        transition: background 0.2s;
+    }
+
+    .remove-task:hover { background: rgba(239, 68, 68, 0.1); }
+
+    .validation-msg {
+        font-size: 0.75rem;
+        margin-top: 4px;
+        display: none;
+    }
+
+    .validation-msg.error { color: #f87171; display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-blobs">
+    <div class="blob" style="top: 10%; left: 10%;"></div>
+    <div class="blob" style="top: 60%; left: 80%; width: 400px; height: 400px; animation-delay: -5s;"></div>
+    <div class="blob" style="top: 40%; left: 40%; animation-delay: -10s; opacity: 0.1;"></div>
+</div>
+
+<div class="container admin-container">
+    <div class="nexus-header">
+        <h1>Event Nexus</h1>
+        <p class="text-muted">Mastermind site-wide architected events and rewarding challenges.</p>
+    </div>
+
+    <div class="row">
+        <!-- Live Events Dashboard -->
+        <div class="col-lg-8">
+            <div class="glass-card">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="mb-0">Active Architectures</h4>
+                    <div class="d-flex gap-2">
+                        <span class="badge bg-dark border border-secondary" style="font-size: 0.7rem;">{{ events|length }} Total</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="nexus-table">
+                        <thead>
+                            <tr style="background: transparent;">
+                                <th class="ps-3">Campaign</th>
+                                <th>Lifecycle</th>
+                                <th>Rewards</th>
+                                <th>Status</th>
+                                <th>Ops</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in events %}
+                            <tr>
+                                <td class="ps-3">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="icon-avatar" style="width: 45px; height: 45px; border-radius: 10px; background: {{ event.bg_color or '#1e293b' }}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                                            {% if event.icon and event.icon.startswith('/static/') %}
+                                            <img src="{{ event.icon }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+                                            {% else %}
+                                            <i class="fas {{ event.icon or 'fa-bolt' }}"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ event.name }}</div>
+                                            <div class="small text-muted">{{ event.description[:40] }}...</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="small fw-bold text-cyan">{{ event.start_date or 'Immediate' }}</div>
+                                    <div class="small text-muted">to {{ event.end_date or 'Indefinite' }}</div>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column gap-1">
+                                        {% if event.prize_type == 'achievement' %}
+                                        <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">🏆 ACH: {{ event.prize_id }}</span>
+                                        {% elif event.prize_type == 'charisma' %}
+                                        <span class="badge bg-info text-dark" style="font-size: 0.7rem;">✨ {{ event.prize_id }} CHARISMA</span>
+                                        {% endif %}
+                                        <span class="small text-muted">{{ event.tasks|length }} Tasks Created</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-{{ event.status }}">{{ event.status.upper() }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent({{ event.id }})">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Event Panel -->
+        <div class="col-lg-4">
+            <div class="glass-card">
+                <h4 class="mb-2">Engineer Campaign</h4>
+                <form id="eventForm" action="{{ url_for('create_admin_event') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="tasks_json" id="tasks_json">
+                    
+                    <div class="form-group mb-2">
+                        <label class="small text-muted mb-1">Campaign Name</label>
+                        <input type="text" name="name" class="nexus-input" required placeholder="Project: Supernova" style="padding: 8px 12px; font-size: 0.9rem;">
+                    </div>
+                    
+                    <div class="form-group mb-2">
+                        <label class="small text-muted mb-1">Intel (Description)</label>
+                        <textarea name="description" class="nexus-input" rows="2" placeholder="The mission objectives are..." style="padding: 8px 12px; font-size: 0.9rem;"></textarea>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <label class="small text-muted mb-1">Arrival (Start)</label>
+                            <input type="date" name="start_date" class="nexus-input" style="padding: 6px 10px; font-size: 0.85rem;">
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted mb-1">Departure (End)</label>
+                            <input type="date" name="end_date" class="nexus-input" style="padding: 6px 10px; font-size: 0.85rem;">
+                        </div>
+                    </div>
+
+                    <!-- Icon Upload Area -->
+                    <div class="form-group mb-2">
+                        <label class="small text-muted mb-1">Asset Identity (Icon)</label>
+                        <div class="icon-upload-area" id="dropZone" style="padding: 10px;">
+                            <input type="file" name="icon_file" id="fileInput" hidden accept="image/*">
+                            <div class="icon-preview" id="iconPreview" style="width: 40px; height: 40px; font-size: 1.2rem; margin-bottom: 5px;">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div style="font-size: 0.75rem;">Drop image or click</div>
+                        </div>
+                        <input type="text" name="icon" id="faInput" class="nexus-input mt-1" placeholder="e.g. fa-trophy" style="padding: 6px 10px; font-size: 0.85rem;">
+                    </div>
+
+                    <!-- Task Creation Section -->
+                    <div class="form-group mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="small text-muted mb-0">Objective Array (Tasks)</label>
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="addTask()" style="padding: 2px 8px; font-size: 0.75rem;">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <div id="taskList">
+                            <!-- Tasks will be injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Prize Section -->
+                    <div class="form-group mb-2">
+                        <label class="small text-muted mb-1">Grand Reward</label>
+                        <select name="prize_type" id="prizeType" class="nexus-input" onchange="togglePrizeInputs()" style="padding: 6px 10px; font-size: 0.85rem;">
+                            <option value="achievement">Linked Achievement</option>
+                            <option value="item">Shop Item (Border/Animation)</option>
+                            <option value="charisma">Pure Charisma</option>
+                        </select>
+                        
+                        <!-- Achievement Dropdown -->
+                        <div id="achievementSelect" class="mt-2">
+                            <select name="prize_id" class="nexus-input" style="padding: 6px 10px; font-size: 0.85rem;">
+                                <option value="">Select Achievement</option>
+                                {% for ach in achievements %}
+                                <option value="{{ ach.slug }}">{{ ach.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="small text-muted mt-1">If not selected, one will be auto-created.</div>
+                        </div>
+
+                        <!-- Shop Item Dropdown -->
+                        <div id="itemSelect" class="mt-2 d-none">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 0.8rem;">
+                                    <input type="checkbox" name="is_new_prize" id="isNewPrize" class="nexus-checkbox" onchange="togglePrizeInputs()">
+                                    <span>Create New Asset</span>
+                                </label>
+                            </div>
+
+                            <div id="existingItemSelect">
+                                <select name="prize_item_id" class="nexus-input" style="padding: 6px 10px; font-size: 0.85rem;">
+                                    <option value="">Select Existing Border/Animation</option>
+                                    {% for item in shop_items %}
+                                    <option value="{{ item.id }}">[{{ item.type.upper() }}] {{ item.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div id="newItemFields" class="d-none">
+                                <input type="text" name="new_prize_name" class="nexus-input mb-2" placeholder="Item Name (e.g. Neon Horizon)" style="padding: 6px 10px; font-size: 0.85rem;">
+                                <select name="new_prize_type" class="nexus-input mb-2" style="padding: 6px 10px; font-size: 0.85rem;">
+                                    <option value="border">Border Frame</option>
+                                    <option value="animation">Profile Animation</option>
+                                </select>
+                                <div class="icon-upload-area" id="prizeDropZone" style="padding: 10px;">
+                                    <input type="file" name="prize_file" id="prizeFileInput" hidden accept="image/*">
+                                    <div class="icon-preview" id="prizePreview" style="width: 40px; height: 40px; font-size: 1.2rem; margin-bottom: 5px;">
+                                        <i class="fas fa-upload"></i>
+                                    </div>
+                                    <div style="font-size: 0.7rem;">Click to upload Reward Asset</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Charisma Input -->
+                        <div id="charismaInput" class="mt-2 d-none">
+                            <input type="number" name="prize_id" class="nexus-input" placeholder="Amount e.g. 500" disabled style="padding: 6px 10px; font-size: 0.85rem;">
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-2">
+                        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" name="featured" class="nexus-checkbox">
+                            <span>Promote to Featured</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn-nexus btn-create w-100 mt-2" style="padding: 10px; font-size: 0.95rem;">
+                        <i class="fas fa-hammer me-2"></i> Construct Event
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let tasks = [];
+
+    function addTask() {
+        const id = Date.now();
+        const taskHtml = `
+            <div class="task-item" id="task-${id}">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <select class="task-type-select nexus-input w-auto border-0" onchange="validateTask(${id})" style="padding: 2px 8px; font-size: 0.75rem;">
+                        <option value="normal">Normal Mission</option>
+                        <option value="limited">Limited Edition</option>
+                    </select>
+                    <i class="fas fa-trash remove-task" onclick="removeTask(${id})"></i>
+                </div>
+                <input type="text" class="task-desc nexus-input mb-2" placeholder="Task description..." required style="padding: 6px 10px; font-size: 0.85rem;">
+                <div class="d-flex align-items-center gap-2">
+                    <input type="number" class="task-reward nexus-input" placeholder="Coins" style="width: 80px; padding: 6px 10px; font-size: 0.85rem;" oninput="validateTask(${id})">
+                    <span class="coin-badge coin-normal" id="badge-${id}">5-20 Coins</span>
+                </div>
+                <div class="validation-msg" id="error-${id}">Reward out of range!</div>
+            </div>
+        `;
+        document.getElementById('taskList').insertAdjacentHTML('beforeend', taskHtml);
+    }
+
+    function removeTask(id) {
+        document.getElementById(`task-${id}`).remove();
+    }
+
+    function validateTask(id) {
+        const taskEl = document.getElementById(`task-${id}`);
+        const type = taskEl.querySelector('.task-type-select').value;
+        const reward = parseInt(taskEl.querySelector('.task-reward').value) || 0;
+        const badge = document.getElementById(`badge-${id}`);
+        const error = document.getElementById(`error-${id}`);
+
+        if (type === 'limited') {
+            taskEl.classList.add('limited');
+            badge.className = 'coin-badge coin-limited';
+            badge.innerText = '20-60 Coins';
+            if (reward < 20 || reward > 60) error.classList.add('error');
+            else error.classList.remove('error');
+        } else {
+            taskEl.classList.remove('limited');
+            badge.className = 'coin-badge coin-normal';
+            badge.innerText = '5-20 Coins';
+            if (reward < 5 || reward > 20) error.classList.add('error');
+            else error.classList.remove('error');
+        }
+    }
+
+    function togglePrizeInputs() {
+        const type = document.getElementById('prizeType').value;
+        const achDiv = document.getElementById('achievementSelect');
+        const itemDiv = document.getElementById('itemSelect');
+        const charDiv = document.getElementById('charismaInput');
+        
+        achDiv.classList.add('d-none');
+        itemDiv.classList.add('d-none');
+        charDiv.classList.add('d-none');
+        charDiv.querySelector('input').disabled = true;
+
+        if (type === 'achievement') achDiv.classList.remove('d-none');
+        else if (type === 'item') {
+            itemDiv.classList.remove('d-none');
+            const isNew = document.getElementById('isNewPrize').checked;
+            const existingDiv = document.getElementById('existingItemSelect');
+            const newDiv = document.getElementById('newItemFields');
+            
+            if (isNew) {
+                existingDiv.classList.add('d-none');
+                newDiv.classList.remove('d-none');
+            } else {
+                existingDiv.classList.remove('d-none');
+                newDiv.classList.add('d-none');
+            }
+        }
+        else if (type === 'charisma') {
+            charDiv.classList.remove('d-none');
+            charDiv.querySelector('input').disabled = false;
+        }
+    }
+
+    // Drag & Drop Logic
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const iconPreview = document.getElementById('iconPreview');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            fileInput.files = e.dataTransfer.files;
+            previewFile(file);
+        }
+    });
+
+    // Reward Prize Upload Logic
+    const prizeDropZone = document.getElementById('prizeDropZone');
+    const prizeFileInput = document.getElementById('prizeFileInput');
+    const prizePreview = document.getElementById('prizePreview');
+
+    if (prizeDropZone) {
+        prizeDropZone.addEventListener('click', () => prizeFileInput.click());
+        prizeDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            prizeDropZone.classList.add('dragover');
+        });
+        prizeDropZone.addEventListener('dragleave', () => prizeDropZone.classList.remove('dragover'));
+        prizeDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            prizeDropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                prizeFileInput.files = e.dataTransfer.files;
+                previewPrizeFile(file);
+            }
+        });
+        prizeFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) previewPrizeFile(file);
+        });
+    }
+
+    function previewPrizeFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            prizePreview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) previewFile(file);
+    });
+
+    function previewFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            iconPreview.innerHTML = `<img src="${e.target.result}">`;
+            document.getElementById('faInput').value = ''; // Clear FA input if file uploaded
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function submitForm() {
+        const taskItems = document.querySelectorAll('.task-item');
+        const serializedTasks = Array.from(taskItems).map(item => ({
+            description: item.querySelector('.task-desc').value,
+            coin_reward: item.querySelector('.task-reward').value,
+            task_type: item.querySelector('.task-type-select').value
+        }));
+
+        if (serializedTasks.length === 0) {
+            alert('Mission needs at least one objective (task)!');
+            return;
+        }
+
+        document.getElementById('tasks_json').value = JSON.stringify(serializedTasks);
+        document.getElementById('eventForm').submit();
+    }
+
+    function deleteEvent(id) {
+        if (confirm('Deconstruct this campaign architecture? This action is irreversible.')) {
+            fetch(`/admin/events/delete/${id}`, { method: 'POST' })
+            .then(() => location.reload());
+        }
+    }
+
+    // Initialization
+    togglePrizeInputs();
+</script>
+{% endblock %}

@@ -3531,12 +3531,12 @@
 
         return `
           <div class="comment-item-new ${isReply ? 'comment-reply' : ''}" data-comment-id="${c.id}">
-            <div class="comment-avatar-new">
+            <div class="comment-avatar-new" onclick="window.openUserInteractionModal('${c.user_id}', '${c.username.replace(/'/g, "\\'")}', 'Reader', '${c.avatar ? (c.avatar.startsWith('http') || c.avatar.startsWith('/') ? c.avatar : '/static/' + c.avatar) : ''}', event, 'comment')" style="cursor: pointer;">
               ${c.avatar ? `<img src="${c.avatar.startsWith('http') || c.avatar.startsWith('/') ? c.avatar : '/static/' + c.avatar}" alt="${c.username}">` : c.username.substring(0, 2).toUpperCase()}
             </div>
             <div class="comment-content-new">
               <div class="comment-meta-new">
-                <span class="comment-username">@${c.username}</span>
+                <span class="comment-username" onclick="window.openUserInteractionModal('${c.user_id}', '${c.username.replace(/'/g, "\\'")}', 'Reader', '${c.avatar ? (c.avatar.startsWith('http') || c.avatar.startsWith('/') ? c.avatar : '/static/' + c.avatar) : ''}', event, 'comment')" style="cursor: pointer;">@${c.username}</span>
                 <span class="comment-timestamp">${timeAgo}</span>
               </div>
               <div class="comment-body" id="comment-body-${c.id}">${escapeHtml(c.content)}</div>
@@ -3933,11 +3933,11 @@
           return `
           <div class="review-card">
             <div class="review-header">
-              <div class="review-avatar">
+              <div class="review-avatar" onclick="window.openUserInteractionModal('${review.user_id}', '${(review.username || 'Anonymous').replace(/'/g, "\\'")}', 'Reader', '${avatarUrl || ''}', event, 'review')" style="cursor: pointer;">
                 ${avatarUrl ? `<img src="${avatarUrl}" alt="${review.username}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : (review.username ? review.username.charAt(0).toUpperCase() : 'U')}
               </div>
               <div class="review-meta">
-                <div class="review-author">${review.username || 'Anonymous'}</div>
+                <div class="review-author" onclick="window.openUserInteractionModal('${review.user_id}', '${(review.username || 'Anonymous').replace(/'/g, "\\'")}', 'Reader', '${avatarUrl || ''}', event, 'review')" style="cursor: pointer; display: inline-block;">${review.username || 'Anonymous'}</div>
                 <div class="review-date">${formatTimeAgo(review.created_at)} ${review.chapter_num ? `<span style="color: var(--neon-blue); font-size: 10px; margin-left: 5px;">• Ch. ${review.chapter_num}</span>` : ''}</div>
               </div>
               <div class="review-rating">

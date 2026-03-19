@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ user[1] }}'s Profile | NOVUS{% endblock %}
+{% block title %}{{ user['username'] }}'s Profile | NOVUS{% endblock %}
 
 {% block content %}
 <style>
@@ -760,27 +760,32 @@
                 <!-- Content -->
                 <div class="profile-card-content">
                     <!-- Avatar -->
-                    <div class="profile-avatar-ring"
-                        style="--border-color: {{ profile_avatar_settings.avatar_color|default('#00d4ff') }}">
-                        {% if user[3] %}
-                        <img src="{{ user[3] }}" alt="{{ user[1] }}">
-                        {% else %}
-                        <div class="avatar-placeholder">{{ user[1][0]|upper }}</div>
+                    <div class="studio-avatar-frame {{ profile_avatar_settings.avatar_frame if profile_avatar_settings and profile_avatar_settings.avatar_frame and not profile_avatar_settings.avatar_frame.startswith('/static/') else '' }}">
+                        {% if profile_avatar_settings and profile_avatar_settings.avatar_frame and profile_avatar_settings.avatar_frame.startswith('/static/') %}
+                        <div class="studio-border-overlay" style="background-image: url('{{ profile_avatar_settings.avatar_frame }}'); opacity: 1;"></div>
                         {% endif %}
+                        <div class="profile-avatar-ring"
+                             style="--border-color: {{ profile_avatar_settings.avatar_color|default('#00d4ff') }}">
+                            {% if user['avatar_url'] %}
+                            <img src="{{ user['avatar_url'] }}" alt="{{ user['username'] }}">
+                            {% else %}
+                            <div class="avatar-placeholder">{{ user['username'][0]|upper }}</div>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <!-- Username & Role -->
-                    <h2 class="profile-username">{{ user[1] }}</h2>
+                    <h2 class="profile-username">{{ user['username'] }}</h2>
                     <div class="profile-role-badge">
-                        {{ user[2]|default('Member')|title }}
+                        {{ user['role']|default('Member')|title }}
                     </div>
 
                     <!-- Plan Badge -->
-                    {% if user[4] == 'ultimate' %}
+                    {% if user['plan'] == 'ultimate' %}
                     <div class="profile-plan-badge ultimate">
                         <i class="fas fa-crown"></i> Ultimate Member
                     </div>
-                    {% elif user[4] == 'pro' %}
+                    {% elif user['plan'] == 'pro' %}
                     <div class="profile-plan-badge pro">
                         <i class="fas fa-bolt"></i> Pro Member
                     </div>
@@ -788,10 +793,10 @@
 
                     <!-- Actions -->
                     <div class="profile-actions" style="justify-content: center; margin-top: 0;">
-                        {% if session.get('user_id') != user[0] %}
+                        {% if session.get('user_id') != user['id'] %}
                         <button class="btn-profile danger"
                             style="padding: 8px 16px; border-radius: 8px; font-size: 0.85rem;"
-                            onclick="reportUser({{ user[0] }}, '{{ user[1] }}')">
+                            onclick="reportUser({{ user['id'] }}, '{{ user['username'] }}')">
                             <i class="fas fa-flag"></i> Report User
                         </button>
                         {% else %}

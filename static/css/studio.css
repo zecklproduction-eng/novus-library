@@ -667,6 +667,27 @@
     transition: all 0.3s ease;
 }
 
+/* Purchased Border Overlay */
+.studio-border-overlay {
+    position: absolute;
+    inset: -15px; /* Enlarged to enclose frame and profile */
+    z-index: 5;
+    pointer-events: none;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: all 0.3s ease;
+    opacity: 0;
+}
+
+/* Ensure frame itself doesn't hide the enlarged border */
+.studio-avatar-container {
+    overflow: visible !important;
+}
+.studio-avatar-frame {
+    overflow: visible !important;
+}
+
 .studio-avatar-frame.large {
     width: 200px;
     height: 200px;

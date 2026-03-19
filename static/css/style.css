@@ -3,16 +3,29 @@
 /* ================================================= */
 
 :root {
-  --bg-main: #1f1f1f;
-  /* Main background */
-  --bg-card: #2a2a2a;
-  /* Cards / panels */
-  --bg-input: #151515;
-  /* Inputs */
-  --text-primary: #e0e0e0;
-  --text-muted: #999;
+  /* Premium Dark Palette */
+  --bg-main: #0d1117;
+  --bg-card: rgba(22, 27, 34, 0.7);
+  --bg-input: #010409;
+  --bg-sidebar: rgba(13, 17, 23, 0.85);
+  
+  --text-primary: #f0f6fc;
+  --text-muted: #8b949e;
+  --text-link: #58a6ff;
+  
   --neon-blue: #00d4ff;
-  --border-subtle: #383838;
+  --neon-purple: #a78bfa;
+  --neon-pink: #f472b6;
+  
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-glass: rgba(255, 255, 255, 0.1);
+  
+  --accent-gradient: linear-gradient(135deg, #00d4ff, #a78bfa, #f472b6);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-blur: blur(12px);
+  
+  --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 *,
@@ -23,20 +36,43 @@
 
 body {
   background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 212, 255, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(167, 139, 250, 0.05) 0px, transparent 50%);
+  background-attachment: fixed;
   color: var(--text-primary);
-  font-family: "Segoe UI", Arial, sans-serif;
+  font-family: var(--font-main);
   margin: 0;
-  transition: background-color 0.3s ease, color 0.3s ease, padding 0.3s ease, margin 0.3s ease, gap 0.3s ease;
+  line-height: 1.6;
+  transition: all 0.3s ease;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Remove default link underline globally; we’ll control it manually */
+/* Global resets */
 a {
   color: inherit;
   text-decoration: none;
+  transition: color 0.3s ease;
 }
 
 a:hover {
   text-decoration: none;
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-glass);
+}
+
+.glass-premium {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 /* ================================================= */
@@ -49,122 +85,166 @@ a:hover {
   position: fixed;
   top: 0;
   left: 0;
-  background-color: var(--bg-card);
+  background-color: var(--bg-sidebar);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 30px;
   overflow-y: auto;
-  /* vertical scroll OK */
   overflow-x: visible;
   z-index: 1000;
+  transition: width 0.3s ease;
 }
 
 .sidebar-logo {
   width: 50px;
   height: 50px;
-  border-radius: 50%;
+  border-radius: 15px;
   border: 2px solid var(--neon-blue);
-  padding: 2px;
+  padding: 4px;
   background: white;
   margin-bottom: 40px;
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
   object-fit: cover;
+  transition: all 0.3s ease;
+}
+
+.sidebar-logo:hover {
+  transform: rotate(10deg) scale(1.1);
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.4);
 }
 
 .nav-links {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
   align-items: center;
 }
 
 /* Sidebar icons */
 .nav-item {
-  width: 50px;
-  height: 50px;
-  background-color: #383838;
-  border-radius: 15px;
+  width: 54px;
+  height: 54px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
   display: flex;
   justify-content: center;
   align-items: center;
-  color: #888;
+  color: #8b949e;
   text-decoration: none;
   font-size: 20px;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
-}
-
-.nav-item i {
-  text-indent: 0;
 }
 
 /* Hover style for the square button */
 .nav-item:hover {
-  background-color: var(--neon-blue);
+  background: var(--accent-gradient);
   color: #000;
-  transform: scale(1.1);
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 10px 20px rgba(0, 212, 255, 0.3);
+  border-color: transparent;
+}
+
+.nav-item.active {
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--neon-blue);
+  border-color: rgba(0, 212, 255, 0.2);
 }
 
 /* Special styling for the sidebar logout icon */
 .nav-item-logout {
   margin-top: 20px;
-  background-color: #2c1a1a;
+  background-color: rgba(255, 68, 68, 0.1);
+  border-color: rgba(255, 68, 68, 0.1);
 }
 
 .nav-item-logout i {
   color: #ff4444;
 }
 
-/* Optional: stronger effect on hover */
 .nav-item-logout:hover {
-  background-color: #ff4444;
-  color: #000;
+  background: #ff4444;
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(255, 68, 68, 0.3);
 }
 
 .nav-item-logout:hover i {
-  color: #000;
+  color: #fff;
 }
 
 /* Tooltip that appears to the right of the icon */
 .tooltip-text {
   position: absolute;
-  left: 70px;
+  left: 75px;
   top: 50%;
-  transform: translateY(-50%);
-  background-color: #333;
+  transform: translateY(-50%) translateX(-10px);
+  background: rgba(13, 17, 23, 0.9);
+  backdrop-filter: blur(10px);
   color: white;
-  padding: 5px 10px;
-  border-radius: 5px;
-  font-size: 12px;
-  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s;
+  transition: all 0.3s ease;
   white-space: nowrap;
   pointer-events: none;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .nav-item:hover .tooltip-text {
   opacity: 1;
   visibility: visible;
+  transform: translateY(-50%) translateX(0);
 }
 
 /* Vertical “NOVUS” text at bottom */
 .brand-bottom {
   margin-top: auto;
   margin-bottom: 30px;
-  font-weight: bold;
-  color: white;
-  font-size: 12px;
-  letter-spacing: 1px;
+  font-weight: 800;
+  color: var(--text-muted);
+  font-size: 13px;
+  letter-spacing: 3px;
   text-align: center;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar:hover .brand-bottom {
+  opacity: 1;
+  color: var(--neon-blue);
+}
+
+.mesh-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.03), transparent 50%),
+    radial-gradient(circle at 10% 20%, rgba(167, 139, 250, 0.03), transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(244, 114, 182, 0.03), transparent 40%);
+  filter: blur(80px);
+  animation: meshMove 20s ease-in-out infinite alternate;
+}
+
+@keyframes meshMove {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.1) translate(2%, 2%); }
 }
 
 /* ================================================= */
@@ -173,31 +253,116 @@ a:hover {
 
 .main-content {
   margin-left: 90px;
-  /* matches sidebar width */
-  padding: 0 30px;
-  transition: padding 0.3s ease, margin 0.3s ease;
+  padding: 0 40px;
+  transition: all 0.3s ease;
 }
 
 /* Sticky minimal top header */
 .top-header-minimal {
-  background: var(--bg-main);
+  background: rgba(13, 17, 23, 0.7);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   position: sticky;
   top: 0;
   z-index: 999;
-  padding: 15px 0;
-  margin-bottom: 30px;
-  border-bottom: 1px solid #333;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  padding: 20px 40px;
+  margin-bottom: 40px;
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .logo-text-top {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 900;
-  color: var(--neon-blue);
-  letter-spacing: 2px;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 4px;
+}
+
+/* Product grid */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 30px;
+  padding: 20px 0;
+}
+
+.product-card {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
+  height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card:hover {
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.product-thumb {
+  height: 280px;
+  overflow: hidden;
+  position: relative;
+}
+
+.product-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.product-card:hover .product-cover-img {
+  transform: scale(1.1);
+}
+
+.product-body {
+  padding: 20px;
+  flex-grow: 1;
+}
+
+.product-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #fff;
+}
+
+.product-actions {
+  padding: 0 20px 20px;
+  display: flex;
+  gap: 10px;
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.3s ease;
+}
+
+.product-card:hover .product-actions {
+  transform: translateY(-2px);
+}
+
+.btn-orange.glass {
+  background: rgba(255, 126, 95, 0.15);
+  border: 1px solid rgba(255, 126, 95, 0.3);
+  color: #ff7e5f !important;
+  font-weight: 700;
+  border-radius: 12px;
+  backdrop-filter: blur(5px);
+}
+
+.btn-orange.glass:hover {
+  background: #ff7e5f;
+  color: #fff !important;
+  box-shadow: 0 0 20px rgba(255, 126, 95, 0.4);
 }
 
 /* Links on the right (Settings, User Management, Help & Info) */

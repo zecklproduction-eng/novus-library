@@ -541,6 +541,7 @@ const App: React.FC = () => {
   const [volume, setVolume] = useState(0.75);
   const [isMuted, setIsMuted] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [showResumeToast, setShowResumeToast] = useState(false);
   const [activePageNumber, setActivePageNumber] = useState(1);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
@@ -1241,10 +1242,13 @@ const App: React.FC = () => {
 
   // Auto-scroll logic for transcript
   useEffect(() => {
-    if (activeTranscriptId && isPlaying) {
+    if (activeTranscriptId && isPlaying && autoScrollEnabled) {
       const element = document.getElementById(`transcript-${activeTranscriptId}`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (activeTranscriptItem?.pageNumber) {
+        // Fallback: Scroll to the page if the specific transcript element isn't rendered
+        scrollToPage(activeTranscriptItem.pageNumber);
       }
 
       // Also scroll sidebar transcript if active
@@ -1255,7 +1259,7 @@ const App: React.FC = () => {
         }
       }
     }
-  }, [activeTranscriptId, isPlaying, currentTab]);
+  }, [activeTranscriptId, isPlaying, currentTab, autoScrollEnabled, activeTranscriptItem]);
 
   const renderSidebarSummary = () => {
     const text = MOCK_BOOK.custom_summary || "";
@@ -2110,6 +2114,19 @@ const App: React.FC = () => {
 
                 {currentTab === SidebarTab.Transcript && (
                   <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl shadow-sm mb-4">
+                      <div className="flex items-center gap-2">
+                        <ArrowUpDown size={16} className="text-indigo-500" />
+                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Sync Auto-scroll</span>
+                      </div>
+                      <button
+                        onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
+                        className={`w-12 h-6 rounded-full transition-all relative ${autoScrollEnabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                        title={autoScrollEnabled ? 'Auto-scroll is ON' : 'Auto-scroll is OFF'}
+                      >
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${autoScrollEnabled ? 'right-1' : 'left-1'}`} />
+                      </button>
+                    </div>
                     {/* Custom Audio Summary Section */}
 
                     {typeof MOCK_BOOK.transcript === 'string' ? (

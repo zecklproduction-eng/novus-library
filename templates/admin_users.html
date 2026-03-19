@@ -325,20 +325,20 @@
                 <tbody>
                     {% for u in users %}
                     <tr>
-                        <td class="ps-4 text-muted small">#{{ u[0] }}</td>
+                        <td class="ps-4 text-muted small">#{{ u.id }}</td>
                         <td>
                             <div class="d-flex align-items-center gap-3">
-                                {% if u[5] %}
-                                    <img src="{{ u[5] }}" class="user-avatar" alt="{{ u[1] }}">
+                                {% if u.avatar_url %}
+                                    <img src="{{ u.avatar_url }}" class="user-avatar" alt="{{ u.username }}">
                                 {% else %}
-                                    <div class="user-initials">{{ u[1][0] if u[1] else '?' }}</div>
+                                    <div class="user-initials">{{ u.username[0] if u.username else '?' }}</div>
                                 {% endif %}
-                                <div class="fw-bold">{{ u[1] }}</div>
+                                <div class="fw-bold">{{ u.username }}</div>
                             </div>
                         </td>
-                        <td><span class="badge-premium badge-role">{{ u[2] }}</span></td>
+                        <td><span class="badge-premium badge-role">{{ u.role }}</span></td>
                         <td>
-                            {% if u[3] == 'banned' %}
+                            {% if u.status == 'banned' %}
                                 <span class="badge-premium badge-status-banned">Banned</span>
                             {% else %}
                                 <span class="badge-premium badge-status-active">Active</span>
@@ -346,22 +346,22 @@
                         </td>
                         <td class="pe-4">
                             <div class="d-flex justify-content-end gap-2">
-                                {% if u[3] != 'banned' %}
-                                <form method="post" action="{{ url_for('user_ban', user_id=u[0]) }}">
+                                {% if u.status != 'banned' %}
+                                <form method="post" action="{{ url_for('user_ban', user_id=u.id) }}">
                                     <button class="btn-action btn-ban" title="Ban User" onclick="return confirm('Ban this user?')">
                                         <i class="fas fa-user-slash"></i>
                                     </button>
                                 </form>
                                 {% else %}
-                                <form method="post" action="{{ url_for('user_unban', user_id=u[0]) }}">
+                                <form method="post" action="{{ url_for('user_unban', user_id=u.id) }}">
                                     <button class="btn-action btn-approve" title="Unban User">
                                         <i class="fas fa-user-check"></i>
                                     </button>
                                 </form>
                                 {% endif %}
 
-                                {% if u[2] != 'admin' %}
-                                <form method="post" action="{{ url_for('user_delete', user_id=u[0]) }}">
+                                {% if u.role != 'admin' %}
+                                <form method="post" action="{{ url_for('user_delete', user_id=u.id) }}">
                                     <button class="btn-action btn-delete" title="Delete User" onclick="return confirm('Delete this user permanently?')">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>

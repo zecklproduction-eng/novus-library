@@ -112,4 +112,100 @@
     animation: warp-entry 1.5s cubic-bezier(0.7, 0, 0.3, 1) forwards;
 }
 
+/* 5. PREMIUM UI ANIMATIONS */
+.animate-floating {
+    animation: floating 3s ease-in-out infinite;
+}
 
+@keyframes floating {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-in {
+    animation: fadeIn 0.6s ease forwards;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.animate-pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(0, 212, 255, 0.2); }
+    50% { box-shadow: 0 0 25px rgba(0, 212, 255, 0.5); }
+}
+
+.hover-glow:hover {
+    box-shadow: 0 0 20px rgba(167, 139, 250, 0.4);
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
+/* 6. GODLY & LEGENDARY ANIMATIONS */
+.godly-anim-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 10002;
+    background: radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.1) 0%, transparent 70%);
+}
+
+.godly-star {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 15rem;
+    filter: drop-shadow(0 0 50px #ff00ff);
+    animation: godlyStarAppear 4s cubic-bezier(0.17, 0.67, 0.83, 0.67) forwards;
+}
+
+@keyframes godlyStarAppear {
+    0% { transform: translate(-50%, -50%) scale(0) rotate(-180deg); opacity: 0; filter: blur(20px); }
+    30% { transform: translate(-50%, -50%) scale(1.2) rotate(10deg); opacity: 1; filter: blur(0); }
+    80% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+    100% { transform: translate(-50%, -70%) scale(2); opacity: 0; filter: blur(50px); }
+}
+
+.sword-strike {
+    animation: swordStrike 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes swordStrike {
+    0% { transform: translate(-50%, -150%) scale(2) rotate(-45deg); opacity: 0; }
+    60% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+    70% { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.godly-particle {
+    position: absolute;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+}

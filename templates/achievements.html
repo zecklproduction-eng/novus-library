@@ -1005,10 +1005,13 @@
 
     <div class="achievements-grid">
         {% for ach in achievements %}
-        <div class="achievement-card {% if ach.earned %}unlocked{% else %}locked{% endif %} level-{{ ach.level }} rarity-{{ ach.rarity }} anim-{{ ach.animation_type }}"
+        <div class="achievement-card {% if ach.earned %}unlocked{% else %}locked{% endif %} {% if ach.is_limited %}limited{% endif %} level-{{ ach.level }} rarity-{{ ach.rarity }} anim-{{ ach.animation_type }}"
             data-name="{{ ach.name|lower }}" data-rarity="{{ ach.rarity }}"
             data-status="{% if ach.earned %}unlocked{% else %}locked{% endif %}" {% if ach.group_count> 1
             %}onclick="showGroupPopup('{{ ach.group_key }}')" style="cursor:pointer;"{% endif %}>
+            {% if ach.is_limited %}
+            <span class="limited-tag">Limited</span>
+            {% endif %}
             <div class="level-badge">Level {{ ach.level }}</div>
             {% if ach.group_count > 1 %}
             <div
@@ -1580,7 +1583,7 @@
 
     function showGroupPopup(groupKey) {
         try {
-            const group = allAchievements.filter(a => a.category === groupKey);
+            const group = allAchievements.filter(a => a.group_key === groupKey);
             if (!group.length) return;
 
             group.sort((a, b) => a.level - b.level);
@@ -1634,7 +1637,7 @@
     // --- DETAIL CARD POPUP ---
     function showDetailPopup(groupKey, index) {
         try {
-            const group = allAchievements.filter(a => a.category === groupKey).sort((a, b) => a.level - b.level);
+            const group = allAchievements.filter(a => a.group_key === groupKey).sort((a, b) => a.level - b.level);
             const ach = group[index];
             if (!ach) return;
 

@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block title %}Reward Shop{% endblock %}
+
+{% block extra_head %}
+<style>
+body {
+    background-color: #0f172a;
+    color: #e2e8f0;
+}
+.shop-header {
+    text-align: center;
+    padding: 60px 20px;
+    background: linear-gradient(180deg, rgba(0, 210, 255, 0.1), transparent);
+}
+.shop-header h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 15px;
+    background: linear-gradient(to right, #00d2ff, #3a7bd5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.coin-display {
+    display: inline-block;
+    padding: 10px 20px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 50px;
+    color: #ffd700;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-top: 15px;
+}
+.shop-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+.shop-section-title {
+    font-size: 1.8rem;
+    margin-bottom: 30px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+    margin-bottom: 60px;
+}
+.shop-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+.shop-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 210, 255, 0.1);
+    border-color: rgba(0, 210, 255, 0.3);
+}
+.shop-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    color: #00d2ff;
+}
+.shop-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+.shop-price {
+    font-size: 1.2rem;
+    color: #ffd700;
+    font-weight: bold;
+    margin-bottom: 25px;
+}
+.btn-buy {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.btn-buy:hover {
+    background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+    box-shadow: 0 5px 15px rgba(0, 210, 255, 0.4);
+}
+.btn-owned {
+    background: rgba(255, 255, 255, 0.1);
+    color: #aaa;
+    cursor: not-allowed;
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="shop-header">
+    <h1>Reward Exchange Shop</h1>
+    <p>Spend your hard-earned coins on exclusive profile borders, animated backgrounds, and badges!</p>
+    <div class="coin-display">
+        <i class="fas fa-coins"></i> Balance: <span id="userBalance">{{ user_coins }}</span> Coins
+    </div>
+</div>
+
+<div class="shop-container">
+    {% if session.role == 'admin' %}
+    <div style="background: rgba(255, 255, 255, 0.05); padding: 25px; border-radius: 15px; margin-bottom: 40px; border: 1px solid rgba(255, 255, 255, 0.1);">
+        <h2 style="font-size: 1.5rem; margin-bottom: 20px; color: #ff9800;"><i class="fas fa-hammer"></i> Admin Panel: Add Item</h2>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <input type="text" id="adminItemName" placeholder="Item Name (e.g. Master Badge)" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
+            <select id="adminItemType" style="flex: 1; min-width: 150px; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;" 
+                onchange="document.getElementById('adminAnimationTarget').style.display = (this.value === 'animation') ? 'block' : 'none'; document.getElementById('adminItemAchievement').style.display = (this.value === 'badge') ? 'block' : 'none';">
+                <option value="badge">Badge (FontAwesome / Image)</option>
+                <option value="border">Border (Class / Image)</option>
+                <option value="animation">Animation (Class / GIF / MP4)</option>
+            </select>
+            <select id="adminAnimationTarget" style="display: none; flex: 1; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
+                <option value="avatar">Avatar Background (Profile Room)</option>
+                <option value="login">Login Screen</option>
+                <option value="logout">Logout Screen</option>
+                <option value="banner">Profile Banner</option>
+                <option value="manga">Manga Entering Png</option>
+            </select>
+            <select id="adminItemAchievement" style="display: block; flex: 1; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
+                <option value="">-- Link Existing Achievement (Optional) --</option>
+                {% for ach in all_achievements %}
+                    <option value="{{ ach.id }}">{{ ach.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" id="adminItemValue" placeholder="Value (e.g. fa-crown or Custom Class) (Optional)" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
+            
+            <label for="adminItemFile" style="cursor: pointer; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.5); color: #00d2ff; font-weight: bold; border: 1px dashed #00d2ff; flex: 1; text-align: center;">
+                <i class="fas fa-upload"></i> <span id="fileLabelText">Upload Asset (Optional)</span>
+                <input type="file" id="adminItemFile" style="display: none;" onchange="document.getElementById('fileLabelText').innerText = this.files[0].name" accept="image/*,video/mp4,video/webm,.jfif">
+            </label>
+            
+            <input type="number" id="adminItemPrice" placeholder="Price (e.g. 500)" style="width: 120px; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
+            <button onclick="adminAddItem()" style="padding: 10px 20px; border-radius: 8px; border: none; background: linear-gradient(135deg, #ff9800, #ff5722); color: #fff; font-weight: bold; cursor: pointer;">Add Item</button>
+        </div>
+    </div>
+    {% endif %}
+
+    {% set categories = [('Badges', 'badge', 'fa-medal', '#ffc107'),
+                         ('Borders', 'border', 'fa-border-style', '#00d2ff'), 
+                         ('Animations', 'animation', 'fa-magic', '#ff00ff')] %}
+                         
+    {% for cat_title, cat_type, cat_icon, cat_color in categories %}
+        <h2 class="shop-section-title"><i class="fas {{ cat_icon }}" style="color: {{ cat_color }};"></i> {{ cat_title }}</h2>
+        <div class="shop-grid">
+            {% for item in items if item.type == cat_type or (cat_type == 'animation' and item.type.startswith('animation_')) %}
+            <div class="shop-card">
+                <div class="shop-icon" style="color: {{ cat_color }};">
+                    {% if item.value.startswith('/static/') %}
+                        <img src="{{ item.value }}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;">
+                    {% elif item.type == 'badge' %}
+                        <i class="fas {{ item.value }}"></i>
+                    {% else %}
+                        <i class="fas {{ cat_icon }}"></i>
+                    {% endif %}
+                </div>
+                <h3 class="shop-title">
+                    {{ item.name }}
+                    {% if '_' in item.type %}
+                        <div style="font-size: 0.8rem; color: #aaa; margin-top: 5px;">
+                            ({{ item.type.split('_')[1] | title }} Context)
+                        </div>
+                    {% endif %}
+                </h3>
+                <div class="shop-price"><i class="fas fa-coins"></i> {{ item.price }}</div>
+                
+                {% if item.id in owned_ids %}
+                    <button class="btn-owned"><i class="fas fa-check-circle"></i> Owned</button>
+                {% else %}
+                    <button class="btn-buy" id="buy-btn-{{ item.id }}" onclick="buyItem({{ item.id }}, {{ item.price }})">
+                        Purchase <i class="fas fa-shopping-cart"></i>
+                    </button>
+                {% endif %}
+                
+                {% if session.role == 'admin' %}
+                    <button onclick="adminDeleteItem({{ item.id }})" style="margin-top: 10px; width: 100%; padding: 8px; background: rgba(255, 0, 0, 0.2); border: 1px solid rgba(255, 0, 0, 0.5); color: #ff5252; border-radius: 8px; cursor: pointer; transition: 0.3s;" onmouseover="this.style.background='rgba(255, 0, 0, 0.4)'" onmouseout="this.style.background='rgba(255, 0, 0, 0.2)'">Delete Item</button>
+                {% endif %}
+            </div>
+            {% else %}
+            <p style="color: #666; font-style: italic;">No items currently available in this category.</p>
+            {% endfor %}
+        </div>
+    {% endfor %}
+</div>
+
+{% block extra_js %}
+<script>
+async function buyItem(itemId, price) {
+    const btn = document.getElementById('buy-btn-' + itemId);
+    if (!confirm('Are you sure you want to buy this item for ' + price + ' coins?')) return;
+    
+    // Disable button to prevent double click
+    btn.disabled = true;
+    btn.innerText = 'Processing...';
+    
+    try {
+        const res = await fetch('/api/shop/buy', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ item_id: itemId })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            // Update balance
+            document.getElementById('userBalance').innerText = data.new_balance;
+            
+            // Switch button to owned
+            btn.className = 'btn-owned';
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Owned';
+            btn.onclick = null;
+            
+            alert('Purchase successful! Item added to your inventory.');
+        } else {
+            alert('Purchase failed: ' + data.message);
+            btn.disabled = false;
+            btn.innerHTML = 'Purchase <i class="fas fa-shopping-cart"></i>';
+        }
+} catch (e) {
+        alert('An error occurred during purchase.');
+        btn.disabled = false;
+        btn.innerHTML = 'Purchase <i class="fas fa-shopping-cart"></i>';
+        console.error(e);
+    }
+}
+
+async function adminAddItem() {
+    const name = document.getElementById('adminItemName').value.trim();
+    let type = document.getElementById('adminItemType').value;
+    if (type === 'animation') {
+        type = 'animation_' + document.getElementById('adminAnimationTarget').value;
+    }
+    const value = document.getElementById('adminItemValue').value.trim();
+    const price = document.getElementById('adminItemPrice').value.trim();
+    const achievement_id = document.getElementById('adminItemAchievement').value;
+    const fileInput = document.getElementById('adminItemFile');
+    const file = fileInput.files[0];
+    
+    if (!name || !price || (!value && !file && !achievement_id)) {
+        alert("Please fill out all required fields. You must provide a custom Value, upload an Asset File, OR link an Existing Achievement.");
+        return;
+    }
+    
+    let formData = new FormData();
+    formData.append('name', name);
+    formData.append('type', type);
+    formData.append('value', value);
+    formData.append('price', price);
+    formData.append('achievement_id', achievement_id);
+    if (file) {
+        formData.append('file', file);
+    }
+    
+    try {
+        const res = await fetch('/admin/shop/add', {
+            method: 'POST',
+            body: formData
+            // Don't set Content-Type header manually when using FormData
+        });
+        const data = await res.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch (e) {
+        alert("Server error.");
+        console.error(e);
+    }
+}
+
+async function adminDeleteItem(itemId) {
+    if (!confirm("Are you sure you want to permanently delete this item from the shop?")) return;
+    try {
+        const res = await fetch('/admin/shop/delete/' + itemId, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert("Failed to delete.");
+        }
+    } catch(e) {
+        console.error(e);
+    }
+}
+</script>
+{% endblock %}
+{% endblock %}

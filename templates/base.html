@@ -5,6 +5,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
   <title>
     {% block title %}NOVUS | Digital Library{% endblock %}
   </title>
@@ -426,6 +431,12 @@
       </a>
       {% endif %}
 
+      <!-- Events -->
+      <a href="{{ url_for('public_events') }}" class="nav-item">
+        <i class="fas fa-calendar-alt" style="color: #ffc107;"></i>
+        <span class="tooltip-text">Events</span>
+      </a>
+
       <!-- Community Groups -->
       <a href="{{ url_for('community') }}" class="nav-item">
         <i class="fas fa-users"></i>
@@ -608,6 +619,7 @@
 
             {% if session.get('role') == 'admin' %}
             <div class="dd-section-title">ADMIN</div>
+            <a href="{{ url_for('admin_events') }}"><i class="fas fa-calendar-star"></i> Event Management</a>
             <a href="{{ url_for('user_management') }}"><i class="fas fa-users-gear"></i> User Management</a>
             <a href="/admin/team"><i class="fas fa-people-group"></i> Team Admin</a>
             <a href="{{ url_for('admin_system_logs') }}"><i class="fas fa-terminal"></i> System Logs</a>
@@ -1900,8 +1912,16 @@
     let currentContext = null;
 
     function openUserInteractionModal(userId, userName, userRole, avatarUrl, event, context = null) {
-      event.preventDefault();
-      event.stopPropagation();
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      // Store globally for the visitUserProfile function
+      window._currentProfileUser = {
+        id: userId,
+        username: userName
+      };
 
       // Debug: temporarily show alert
       console.log('Opening modal for user:', userId, userName, context);
@@ -1959,8 +1979,11 @@
     }
 
     function visitUserProfile() {
-      if (currentUserId) {
-        window.location.href = `/user/${currentUserId}`;
+      if (window._currentProfileUser && window._currentProfileUser.username) {
+        window.location.href = `/u/${window._currentProfileUser.username}`;
+      } else if (currentUserId) {
+        // Fallback or legacy
+        window.location.href = `/u/${currentUserId}`; // Should ideally be username
       }
       closeUserInteractionModal();
     }
@@ -2049,8 +2072,7 @@
     };
 
     document.addEventListener('DOMContentLoaded', function () {
-      const achievements = {{ session.get('new_achievements', []) | tojson
-    }};
+      const achievements = {{ session.get('new_achievements', []) | tojson }};
     if (achievements && achievements.length > 0) {
       achievements.forEach((ach, index) => {
         setTimeout(() => window.showAchievementNotification(ach), index * 1000);

@@ -721,6 +721,26 @@
         text-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
     }
 
+    .achievement-badge.limited {
+        border: 1px solid #fbbf24;
+        box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+    }
+
+    .limited-tag {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: #fbbf24;
+        color: #000;
+        font-size: 0.6rem;
+        font-weight: 800;
+        padding: 2px 5px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        z-index: 5;
+    }
+
     .achievement-tooltip {
         position: absolute;
         bottom: 100%;
@@ -1078,12 +1098,17 @@
     <div class="profile-welcome-header animate-in">
         <div class="welcome-content">
             <div class="welcome-avatar">
-                <div class="avatar-ring">
-                    {% if avatar_url %}
-                    <img src="{{ avatar_url }}" alt="{{ username }}">
-                    {% else %}
-                    <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Default Avatar">
+                <div class="studio-avatar-frame {{ avatar_settings.avatar_frame if avatar_settings and avatar_settings.avatar_frame and not avatar_settings.avatar_frame.startswith('/static/') else '' }}">
+                    {% if avatar_settings and avatar_settings.avatar_frame and avatar_settings.avatar_frame.startswith('/static/') %}
+                    <div class="studio-border-overlay" style="background-image: url('{{ avatar_settings.avatar_frame }}'); opacity: 1;"></div>
                     {% endif %}
+                    <div class="avatar-ring" style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') if avatar_settings else '#00d4ff' }}">
+                        {% if avatar_url %}
+                        <img src="{{ avatar_url }}" alt="{{ username }}">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Default Avatar">
+                        {% endif %}
+                    </div>
                 </div>
             </div>
             <div class="welcome-info">
@@ -1156,8 +1181,11 @@
             </a>
         </div>
         <div class="achievements-grid">
-            {% for ach in achievements %}
-            <div class="achievement-badge {{ ach.color }}">
+            {% for ach in earned_achievements %}
+            <div class="achievement-badge {{ ach.color }} {{ 'limited' if ach.is_limited }}">
+                {% if ach.is_limited %}
+                <span class="limited-tag">Limited</span>
+                {% endif %}
                 <i class="fas {{ ach.icon }}"></i>
                 <div class="achievement-tooltip">
                     <span class="achievement-name">{{ ach.name }}</span>

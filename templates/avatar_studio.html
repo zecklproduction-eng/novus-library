@@ -15,6 +15,7 @@
 
             <div class="studio-avatar-container" id="profileCardAvatar">
                 <div class="studio-avatar-frame {{ avatar_settings.avatar_frame|default('none') }}">
+                    <div class="studio-border-overlay" id="profileBorderOverlay"></div>
                     <div class="studio-avatar-img-wrapper"
                         style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
                         {% if user_avatar %}
@@ -59,6 +60,7 @@
                 <div class="studio-avatar-large-container">
                     <div class="studio-avatar-frame large {{ avatar_settings.avatar_frame|default('none') }}"
                         id="mainPreviewFrame">
+                        <div class="studio-border-overlay" id="mainBorderOverlay"></div>
                         <div class="studio-avatar-img-wrapper large" id="mainPreviewWrapper"
                             style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
                             {% if user_avatar %}
@@ -172,6 +174,24 @@
                         </div>
                     </div>
                 </div>
+                
+                {% if purchased_borders %}
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h4><i class="fas fa-shopping-cart" style="color:#ffc107;"></i> Purchased Borders</h4>
+                    </div>
+                    <div class="frame-grid">
+                        {% for border in purchased_borders %}
+                        <div class="frame-option" onclick="setFrame('{{ border.value }}')">
+                            <div class="frame-preview {{ border.value if not border.value.startswith('/static/') else '' }}" 
+                                 style="{% if border.value.startswith('/static/') %}background: url('{{ border.value }}') center/contain no-repeat;{% endif %}">
+                            </div>
+                            <span class="label">{{ border.name }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
 
                 <!-- Border Style -->
                 <div class="settings-section">
@@ -334,6 +354,19 @@
                         </div>
                     </div>
                 </div>
+                
+                {% if purchased_animations %}
+                <div class="settings-section">
+                    <h4><i class="fas fa-shopping-cart" style="color:#ff00ff;"></i> Purchased Animations</h4>
+                    <div class="bg-grid">
+                        {% for anim in purchased_animations %}
+                        {% if anim.target == 'animation_avatar' or anim.target == 'animation' %}
+                        <div class="bg-option" style="background: url('{{ anim.value }}') center/cover;" onclick="setBgClass('none'); currentSettings.bgUrl = '{{ anim.value }}'; updatePreview()" title="{{ anim.name }}"></div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Badges Tab -->
@@ -551,7 +584,23 @@
         const profileOverlayLayer = document.getElementById('profileOverlayLayer');
 
         frames.forEach(el => {
-            el.className = `studio-avatar-frame ${el.classList.contains('large') ? 'large' : ''} ${currentSettings.frame}`;
+            const overlay = el.querySelector('.studio-border-overlay');
+            if (currentSettings.frame && currentSettings.frame.startsWith('/static/')) {
+                el.className = `studio-avatar-frame ${el.classList.contains('large') ? 'large' : ''}`;
+                el.style.backgroundImage = ''; // Clear background from frame
+                
+                if (overlay) {
+                    overlay.style.backgroundImage = `url('${currentSettings.frame}')`;
+                    overlay.style.opacity = '1';
+                }
+            } else {
+                el.className = `studio-avatar-frame ${el.classList.contains('large') ? 'large' : ''} ${currentSettings.frame}`;
+                el.style.backgroundImage = '';
+                if (overlay) {
+                    overlay.style.backgroundImage = '';
+                    overlay.style.opacity = '0';
+                }
+            }
         });
 
         wrappers.forEach(el => {

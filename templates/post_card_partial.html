@@ -16,7 +16,7 @@
         <div class="post-charisma-stat" title="Total charisma earned from gifts"
             style="display: flex; flex-direction: column; align-items: center; color: #ff85c2; font-size: 11px; margin-top: 8px; font-weight: bold;">
             <span style="font-size: 14px;">✨</span>
-            <span>{{ post.charisma }}</span>
+            <span id="post-charisma-{{ post.id }}">{{ post.charisma }}</span>
             
             {% if session.get('user_id') == post.user_id %}
             <button class="view-gifters-btn" onclick="openGiftersList({{ post.id }})" 
@@ -35,10 +35,14 @@
         <div class="post-header-meta">
             <div class="post-author">
                 <img src="{{ post.avatar or url_for('static', filename='uploads/avatars/default.png') }}"
-                    alt="{{ post.username }}" class="post-author-avatar">
+                    alt="{{ post.username }}" class="post-author-avatar"
+                    onclick="openUserInteractionModal({{ post.user_id }}, '{{ post.username }}', 'Member', '{{ post.avatar or url_for('static', filename='uploads/avatars/default.png') }}', event)"
+                    style="cursor: pointer;">
                 <div class="author-info">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="post-author-name">{{ post.username }}</span>
+                        <span class="post-author-name" 
+                            onclick="openUserInteractionModal({{ post.user_id }}, '{{ post.username }}', 'Member', '{{ post.avatar or url_for('static', filename='uploads/avatars/default.png') }}', event)"
+                            style="cursor: pointer;">{{ post.username }}</span>
                         {% if post.author_achievements %}
                         <div class="author-badges" style="display: flex; gap: 4px;">
                             {% for ach in post.author_achievements %}

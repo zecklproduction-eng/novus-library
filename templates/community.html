@@ -780,7 +780,9 @@
                 <h3 class="community-card-title">Top Contributors</h3>
                 <div class="top-contributors">
                     {% for contributor in top_contributors %}
-                    <div class="contributor rank-{{ loop.index }}">
+                    <div class="contributor rank-{{ loop.index }}" 
+                        onclick="openUserInteractionModal({{ contributor.id }}, '{{ contributor.name }}', 'Top Contributor', '{{ contributor.avatar or '' }}', event)" 
+                        style="cursor: pointer;">
                         <div class="contributor-avatar">
                             <img src="{{ contributor.avatar or url_for('static', filename='uploads/avatars/default.png') }}"
                                 alt="{{ contributor.name }}">
@@ -792,6 +794,32 @@
                     {% endfor %}
                 </div>
             </div>
+
+            <!-- Featured Events Section -->
+            {% if featured_events %}
+            <div class="community-card" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(0, 0, 0, 0.2)); border: 1px solid rgba(6, 182, 212, 0.3);">
+                <h3 class="community-card-title d-flex align-items-center gap-2">
+                    <i class="fas fa-bolt text-warning"></i> Featured Events
+                </h3>
+                <div class="featured-events-list">
+                    {% for event in featured_events %}
+                    <div class="featured-event-card mb-3 p-3" style="background: rgba(255,255,255,0.03); border-radius: 12px; border-left: 4px solid {{ event.bg_color or '#06b6d4' }};">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            {% if event.icon %}
+                            <i class="fas {{ event.icon }} h5 mb-0" style="color: {{ event.bg_color or '#06b6d4' }};"></i>
+                            {% endif %}
+                            <h5 class="mb-0 small fw-bold">{{ event.name }}</h5>
+                        </div>
+                        <p class="small text-muted mb-2">{{ event.description[:80] }}{{ '...' if event.description|length > 80 else '' }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge" style="font-size: 0.65rem; background: rgba(255,255,255,0.05);">Starts: {{ event.start_date or 'Now' }}</span>
+                            <a href="/profile" class="btn btn-sm btn-outline-cyan" style="font-size: 0.7rem; padding: 2px 8px;">View Goals</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Trending Topics Section -->
             <div class="community-card">
@@ -1341,14 +1369,20 @@
 
             const giftGrid = picker.querySelector('#giftGrid');
             const gifts = [
+                { icon: '❤️', name: 'Heart', price: 30, charisma: 15, color: '#ff4b2b' },
                 { icon: '🥈', name: 'Silver Award', price: 50, charisma: 25, color: '#94a3b8' },
-                { icon: '🥇', name: 'Gold Award', price: 200, charisma: 100, color: '#fbbf24' },
-                { icon: '💎', name: 'Platinum Award', price: 500, charisma: 250, color: '#38bdf8' },
-                { icon: '💡', name: 'Helpful Award', price: 100, charisma: 50, color: '#facc15' },
+                { icon: '🎉', name: 'Party', price: 60, charisma: 30, color: '#fcd34d' },
+                { icon: '👏', name: 'Bravo', price: 80, charisma: 40, color: '#4ade80' },
+                { icon: '💡', name: 'Helpful', price: 100, charisma: 50, color: '#fbbf24' },
                 { icon: '🦭', name: 'Wholesome', price: 125, charisma: 65, color: '#e2e8f0' },
+                { icon: '🌟', name: 'Starry', price: 150, charisma: 75, color: '#fcd34d' },
+                { icon: '🥇', name: 'Gold Award', price: 200, charisma: 100, color: '#f59e0b' },
                 { icon: '🚀', name: 'Rocket Like', price: 300, charisma: 150, color: '#f87171' },
-                { icon: '💖', name: 'Love', price: 30, charisma: 15, color: '#fb7185' },
-                { icon: '👑', name: 'Ternion', price: 5000, charisma: 2500, color: '#f472b6' }
+                { icon: '🤯', name: 'Mind Blown', price: 400, charisma: 200, color: '#a855f7' },
+                { icon: '💎', name: 'Platinum Award', price: 500, charisma: 250, color: '#38bdf8' },
+                { icon: '🎨', name: 'Masterpiece', price: 600, charisma: 300, color: '#ec4899' },
+                { icon: '⚔️', name: 'Legend Sword', price: 2000, charisma: 1000, color: '#64748b', rarity: 'legendary' },
+                { icon: '👑', name: 'Godly Award', price: 10000, charisma: 5000, color: '#ff00ff', rarity: 'legendary' }
             ];
 
             gifts.forEach(gift => {
@@ -1385,6 +1419,7 @@
                         const endpoint = targetType === 'comment'
                             ? `/group/comment/${targetId}/send_gift`
                             : `/group/post/${targetId}/send_gift`;
+                        
                         const res = await fetch(endpoint, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1397,13 +1432,24 @@
                         });
                         const data = await res.json();
                         if (data.success) {
+                            if (gift.rarity === 'legendary') {
+                                triggerGodlyAnimation(gift.icon);
+                            }
                             alert(`Gift sent! Your balance: ${data.coins} coins.`);
+                            
+                            // Update charisma display if targeting a post
+                            if (targetType === 'post') {
+                                const charismaSpan = document.getElementById(`post-charisma-${targetId}`);
+                                if (charismaSpan) {
+                                    const currentCharisma = parseInt(charismaSpan.textContent) || 0;
+                                    charismaSpan.textContent = currentCharisma + gift.charisma;
+                                }
+                            }
+                            
                             picker.remove();
-                            const cSec = document.getElementById(`comments-section-${postId}`);
-                            if (cSec) cSec.style.display = 'block';
-                            if (window.loadComments) window.loadComments(postId);
+                            if (window.loadComments && postId) window.loadComments(postId);
                         } else {
-                            alert('Error: ' + data.message);
+                            alert('Error: ' + (data.message || data.error || 'Unknown error'));
                         }
                     } catch (err) { console.error(err); alert('Failed to send gift'); }
                 };
@@ -2246,106 +2292,9 @@
         }
     };
 
-    // Gift Picker Logic (Enhanced)
-    window.openCommentGiftPicker = function (postId, btn) {
-        let existing = document.querySelector('.picker-popup');
-        if (existing) { existing.remove(); return; }
-
-        const rect = btn.getBoundingClientRect();
-        const picker = document.createElement('div');
-        picker.className = 'picker-popup';
-        picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 12px; z-index: 10001; width: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); font-family: inherit;`;
-
-        // Header with Buy Coins button
-        picker.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
-                <span style="color: #fff; font-weight: bold; font-size: 14px;">Gift Shop</span>
-                <button id="buyCoinsBtn" style="background: var(--community-cyan); color: #000; border: none; border-radius: 4px; padding: 4px 8px; font-size: 12px; font-weight: bold; cursor: pointer;">
-                    Buy Coins (+500)
-                </button>
-            </div>
-            <div id="giftGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;"></div>
-        `;
-
-        document.body.appendChild(picker);
-
-        document.getElementById('buyCoinsBtn').onclick = async (e) => {
-            e.stopPropagation();
-            try {
-                const res = await fetch('/api/buy_coins', { method: 'POST' });
-                const data = await res.json();
-                if(data.success) {
-                    alert(`Success! You now have ${data.coins} coins.`);
-                } else {
-                    alert(data.message);
-                }
-            } catch(err) { console.error(err); }
-        };
-
-        const giftGrid = document.getElementById('giftGrid');
-        const gifts = [
-            { icon: '🌹', name: 'Rose', price: 10, charisma: 5 },
-            { icon: '🍰', name: 'Cake', price: 20, charisma: 10 },
-            { icon: '🍻', name: 'Beer', price: 30, charisma: 15 },
-            { icon: '🎁', name: 'Mystery Box', price: 50, charisma: 25 },
-            { icon: '💖', name: 'Heart', price: 80, charisma: 40 },
-            { icon: '💎', name: 'Diamond', price: 100, charisma: 50 },
-            { icon: '🏆', name: 'Trophy', price: 500, charisma: 250 },
-            { icon: '👑', name: 'Crown', price: 1000, charisma: 500 }
-        ];
-
-        gifts.forEach(gift => {
-            const div = document.createElement('div');
-            div.style.cssText = `display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; padding: 8px 4px; border-radius: 8px; transition: background 0.2s; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05);`;
-            div.innerHTML = `
-                <span style="font-size: 28px; line-height: 1;">${gift.icon}</span>
-                <span style="font-size: 10px; color: #aaa; margin-top: 4px; text-align: center; line-height: 1.2;">
-                    <span style="color: gold;">🪙 ${gift.price}</span><br>
-                    <span style="color: #ff4081;">✨ +${gift.charisma}</span>
-                </span>
-            `;
-            div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
-            div.onmouseout = () => div.style.background = 'rgba(0,0,0,0.2)';
-
-            div.onclick = async function (e) {
-                e.stopPropagation();
-                if (!confirm(`Send ${gift.name} for ${gift.price} coins?`)) return;
-                
-                try {
-                    const res = await fetch(`/group/post/${postId}/send_gift`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            gift_name: gift.name,
-                            price: gift.price,
-                            charisma: gift.charisma,
-                            url: gift.icon
-                        })
-                    });
-                    const data = await res.json();
-                    if(data.success) {
-                        alert(`Gift sent! Your balance: ${data.coins} coins.`);
-                        picker.remove();
-                        const cSec = document.getElementById(`comments-section-${postId}`);
-                        if(cSec) cSec.style.display = 'block';
-                        if(window.loadComments) window.loadComments(postId);
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                } catch(err) { console.error(err); alert('Failed to send gift'); }
-            };
-            giftGrid.appendChild(div);
-        });
-
-        setTimeout(() => {
-            document.addEventListener('click', function close(e) {
-                if (!picker.contains(e.target) && e.target !== btn) {
-                    picker.remove();
-                    document.removeEventListener('click', close);
-                }
-            });
-        }, 100);
-    };
+    // Removed duplicate Gift Picker Logic
+    // Removed orphaned duplicate logic
+    // End of Removed orphaned duplicate logic
 
     window.openCommentEmojiPicker = function (btn) {
         let existing = document.querySelector('.picker-popup');
@@ -2599,6 +2548,45 @@
             if (spinner) spinner.style.display = 'none';
             sentinel.innerHTML = '<button type="button" class="load-more-btn" onclick="location.reload()">Error. Click to retry</button>';
         }
+    window.triggerGodlyAnimation = function(icon) {
+        const container = document.createElement('div');
+        container.className = 'godly-anim-container';
+        
+        const star = document.createElement('div');
+        star.className = 'godly-star';
+        if (icon === '⚔️') {
+            star.classList.add('sword-strike');
+        }
+        star.textContent = icon;
+        container.appendChild(star);
+        
+        for (let i = 0; i < 30; i++) {
+            const p = document.createElement('div');
+            p.className = 'godly-particle';
+            p.style.width = Math.random() * 6 + 2 + 'px';
+            p.style.height = p.style.width;
+            p.style.top = '50%';
+            p.style.left = '50%';
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 100 + Math.random() * 400;
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+            
+            p.animate([
+                { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+                { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)`, opacity: 0 }
+            ], {
+                duration: 1500 + Math.random() * 1500,
+                easing: 'ease-out',
+                fill: 'forwards'
+            });
+            container.appendChild(p);
+        }
+
+        document.body.appendChild(container);
+        setTimeout(() => container.remove(), 4500);
+    };
     }
 </script>
 
