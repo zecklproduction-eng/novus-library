@@ -224,7 +224,7 @@
     </div>
 
     <div class="glass-card">
-        <form id="eventForm" action="{{ url_for('group_event_request', group_id=group.id) }}" method="POST" enctype="multipart/form-data">
+        <form id="eventForm" action="{{ url_for('group_event_request', group_id=group.id) }}" method="POST" enctype="multipart/form-data" onsubmit="return serializeTasksBeforeSubmit()">
             <input type="hidden" name="tasks_json" id="tasks_json">
             
             <div class="row">
@@ -241,6 +241,22 @@
 
                     <div class="row mb-3">
                         <div class="col-6">
+                            <label class="small text-muted mb-1">Condition Type</label>
+                            <select name="condition_type" class="nexus-input" style="padding: 10px;">
+                                <option value="posts_count">Posts Count</option>
+                                <option value="comment_count">Comment Count</option>
+                                <option value="manga_chapters_read">Manga Chapters Read</option>
+                                <option value="charisma_earned">Charisma Earned</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted mb-1">Condition Value</label>
+                            <input type="number" name="condition_value" class="nexus-input" value="10" style="padding: 10px;">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
                             <label class="small text-muted mb-1">Deployment Date</label>
                             <input type="date" name="start_date" class="nexus-input" style="padding: 10px;">
                         </div>
@@ -249,6 +265,7 @@
                             <input type="date" name="end_date" class="nexus-input" style="padding: 10px;">
                         </div>
                     </div>
+
                 </div>
 
                 <div class="col-md-5">
@@ -321,7 +338,7 @@
                 </div>
             </div>
 
-            <button type="button" class="btn-submit w-100" onclick="submitForm()">
+            <button type="submit" class="btn-submit w-100">
                 <i class="fas fa-paper-plane me-2"></i> Submit Campaign for Approval
             </button>
         </form>
@@ -444,29 +461,37 @@
         reader.readAsDataURL(file);
     }
 
-    function submitForm() {
-        const taskItems = document.querySelectorAll('.task-item');
-        const serializedTasks = Array.from(taskItems).map(item => ({
-            description: item.querySelector('.task-desc').value,
-            coin_reward: item.querySelector('.task-reward').value,
-            task_type: item.querySelector('.task-type-select').value
-        }));
-
-        if (serializedTasks.length === 0) { alert('Campaign needs at least one objective!'); return; }
+    function serializeTasksBeforeSubmit() {
+        var taskItems = document.querySelectorAll('.task-item');
+        
+        if (taskItems.length === 0) {
+            alert('Campaign needs at least one objective!');
+            return false;
+        }
+        
+        var serializedTasks = [];
+        for (var i = 0; i < taskItems.length; i++) {
+            var item = taskItems[i];
+            serializedTasks.push({
+                description: item.querySelector('.task-desc').value,
+                coin_reward: item.querySelector('.task-reward').value,
+                task_type: item.querySelector('.task-type-select').value
+            });
+        }
         
         // Handle charisma prize ID mapping
         if (document.getElementById('prizeType').value === 'charisma') {
-            const charVal = document.getElementsByName('prize_id_char')[0].value;
-            // Create a temporary hidden input to match the prize_id name
-            const hiddenPrize = document.createElement('input');
+            var charVal = document.getElementsByName('prize_id_char')[0].value;
+            var hiddenPrize = document.createElement('input');
             hiddenPrize.type = 'hidden';
             hiddenPrize.name = 'prize_id';
             hiddenPrize.value = charVal;
             document.getElementById('eventForm').appendChild(hiddenPrize);
         }
 
-        document.getElementById('tasks_json').value = JSON.stringify(serializedTasks);
-        document.getElementById('eventForm').submit();
+        var jsonStr = JSON.stringify(serializedTasks);
+        document.getElementById('tasks_json').value = jsonStr;
+        return true;
     }
 
     addTask();

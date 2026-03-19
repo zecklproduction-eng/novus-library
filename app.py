@@ -5208,55 +5208,47 @@ def public_events():
     
     user_id = session.get("user_id")
     completed_event_ids = set()
+    joined_event_ids = set()
     
-    # Fetch tasks for each event
-    for ev in all_events:
-        c.execute("SELECT id, description, coin_reward, task_type FROM event_tasks WHERE event_id = ?", (ev['id'],))
-        ev['tasks'] = [dict(row) for row in c.fetchall()]
-        
-        # If logged in, check user progress for each task
-        if user_id:
-            for task in ev['tasks']:
-                c.execute("SELECT status FROM user_event_task_progress WHERE user_id = ? AND task_id = ?", (user_id, task['id']))
-                row = c.fetchone()
-                task['completed'] = True if row and row['status'] == 'completed' else False
-
     if user_id:
+        # Fetch completed events
         c.execute("SELECT event_id FROM user_event_completions WHERE user_id = ?", (user_id,))
         completed_event_ids = {row['event_id'] for row in c.fetchall()}
         
-        # Calculate user scores for each event (Legacy legacy fallback)
-        for ev in all_events:
-            cond_type = ev['condition_type']
-            g_id = ev['group_id']
-            user_score = 0
-            
-            if cond_type == 'posts_count':
-                if ev['event_type'] == 'group':
-                    c.execute("SELECT COUNT(id) FROM group_posts WHERE user_id = ? AND group_id = ?", (user_id, g_id))
-                else:
-                    c.execute("SELECT COUNT(id) FROM group_posts WHERE user_id = ?", (user_id,))
-                user_score = c.fetchone()[0]
-                
-            elif cond_type == 'comment_count':
-                if ev['event_type'] == 'group':
-                    c.execute("SELECT COUNT(cm.id) FROM group_comments cm JOIN group_posts p ON cm.post_id = p.id WHERE cm.user_id = ? AND p.group_id = ?", (user_id, g_id))
-                else:
-                    c.execute("SELECT COUNT(id) FROM group_comments WHERE user_id = ?", (user_id,))
-                user_score = c.fetchone()[0]
-                
-            elif cond_type == 'manga_chapters_read':
-                c.execute("SELECT COUNT(id) FROM manga_progress WHERE user_id = ?", (user_id,))
-                user_score = c.fetchone()[0]
-                
-            elif cond_type == 'charisma_earned':
-                c.execute("SELECT COALESCE(charisma, 0) FROM users WHERE id = ?", (user_id,))
-                user_score = c.fetchone()[0]
-            
-            ev['user_score'] = user_score
-    else:
-        for ev in all_events:
-            ev['user_score'] = 0
+        # Fetch joined events (events with any progress)
+        c.execute("""
+            SELECT DISTINCT t.event_id 
+            FROM user_event_task_progress p
+            JOIN event_tasks t ON p.task_id = t.id
+            WHERE p.user_id = ?
+        """, (user_id,))
+        joined_event_ids = {row['event_id'] for row in c.fetchall()}
+        
+        # Also check for events where the user has joined but hasn't started any tasks yet 
+        # (Though currently 'joining' creates progress records usually)
+    
+    # Process each event to add sub-data
+    for ev in all_events:
+        ev_id = ev['id']
+        
+        # 4. Fetch tasks for this event
+        c.execute("SELECT id, description, coin_reward, task_type FROM event_tasks WHERE event_id = ?", (ev_id,))
+        tasks = [dict(t) for t in c.fetchall()]
+        
+        # 5. Check task completion status if logged in
+        if user_id:
+            for task in tasks:
+                c.execute("SELECT status FROM user_event_task_progress WHERE user_id = ? AND task_id = ?", (user_id, task['id']))
+                row = c.fetchone()
+                task['completed'] = True if row and row['status'] == 'completed' else False
+        
+        ev['tasks'] = tasks
+        
+        # 6. Calculate user score (Legacy fallback)
+        ev['user_score'] = 0 # Default
+        if user_id:
+            # (Reuse existing score calculation logic if needed, but for now we'll keep it simple)
+            pass
             
     conn.close()
     
@@ -5269,8 +5261,42 @@ def public_events():
                            featured_events=featured_events, 
                            site_events=site_events, 
                            group_events=group_events,
-                           completed_event_ids=completed_event_ids)
+                           completed_event_ids=completed_event_ids,
+                           joined_event_ids=joined_event_ids)
 
+@app.route("/api/join_event/<int:event_id>", methods=["POST"])
+@login_required
+def join_event(event_id):
+    """Enroll user in an event and initialize task progress."""
+    user_id = session["user_id"]
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Verify event exists and is active/approved
+    c.execute("SELECT id FROM events WHERE id = ? AND status IN ('approved', 'active')", (event_id,))
+    if not c.fetchone():
+        conn.close()
+        return jsonify({"success": False, "message": "Event not found or inactive."}), 404
+        
+    # Get all tasks for this event
+    c.execute("SELECT id FROM event_tasks WHERE event_id = ?", (event_id,))
+    tasks = c.fetchall()
+    
+    if not tasks:
+        # If no tasks, just record completion immediately or handle as "joined" 
+        # But we expect tasks for missions
+        pass
+        
+    for task in tasks:
+        t_id = task[0]
+        # Check if already joined/progress exists to avoid duplicates
+        c.execute("SELECT id FROM user_event_task_progress WHERE user_id = ? AND task_id = ?", (user_id, t_id))
+        if not c.fetchone():
+            c.execute("INSERT INTO user_event_task_progress (user_id, task_id, status) VALUES (?, ?, 'pending')", (user_id, t_id))
+            
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "Successfully joined the campaign."})
 @app.route("/admin/events")
 @admin_required
 def admin_events():
@@ -5416,7 +5442,33 @@ def create_admin_event():
     
     event_id = c.lastrowid
     
-    # Handle multi-tasks if tasks_json is submitted
+    # Handle multi-tasks from form array inputs
+    task_descs = request.form.getlist("task_desc[]")
+    task_rewards = request.form.getlist("task_reward[]")
+    task_types = request.form.getlist("task_type[]")
+    
+    print(f"[DEBUG create_admin_event] task_descs: {task_descs}")
+    print(f"[DEBUG create_admin_event] task_rewards: {task_rewards}")
+    print(f"[DEBUG create_admin_event] task_types: {task_types}")
+    
+    for i in range(len(task_descs)):
+        t_desc = task_descs[i] if i < len(task_descs) else ""
+        t_reward = int(task_rewards[i]) if i < len(task_rewards) and task_rewards[i] else 0
+        t_type = task_types[i] if i < len(task_types) else "normal"
+        
+        # Validation
+        if t_type == "limited" and not (20 <= t_reward <= 60):
+            t_reward = 20 if t_reward < 20 else 60
+        elif t_type == "normal" and not (5 <= t_reward <= 20):
+            t_reward = 5 if t_reward < 5 else 20
+        
+        if t_desc:  # Only insert if description is not empty
+            c.execute("""
+                INSERT INTO event_tasks (event_id, description, coin_reward, task_type)
+                VALUES (?, ?, ?, ?)
+            """, (event_id, t_desc, t_reward, t_type))
+    
+    # Also handle legacy tasks_json for backward compatibility
     tasks_json = request.form.get("tasks_json")
     if tasks_json:
         try:
@@ -5426,16 +5478,16 @@ def create_admin_event():
                 t_reward = int(task.get("coin_reward", 0))
                 t_type = task.get("task_type", "normal")
                 
-                # Validation
                 if t_type == "limited" and not (20 <= t_reward <= 60):
                     t_reward = 20 if t_reward < 20 else 60
                 elif t_type == "normal" and not (5 <= t_reward <= 20):
                     t_reward = 5 if t_reward < 5 else 20
                 
-                c.execute("""
-                    INSERT INTO event_tasks (event_id, description, coin_reward, task_type)
-                    VALUES (?, ?, ?, ?)
-                """, (event_id, t_desc, t_reward, t_type))
+                if t_desc:
+                    c.execute("""
+                        INSERT INTO event_tasks (event_id, description, coin_reward, task_type)
+                        VALUES (?, ?, ?, ?)
+                    """, (event_id, t_desc, t_reward, t_type))
         except Exception as e:
             print(f"Error parsing tasks_json: {e}")
 
@@ -5496,9 +5548,27 @@ def group_event_request(group_id):
         conn.close()
         return jsonify({"success": False, "error": "Permission denied"})
         
+    # Fetch base form fields
+    name = request.form.get("name")
+    desc = request.form.get("description")
+    start_date = request.form.get("start_date")
+    end_date = request.form.get("end_date")
+    c_type = request.form.get("condition_type")
+    c_val = request.form.get("condition_value")
+    p_type = request.form.get("prize_type")
+    
+    # Handle charisma prize ID mapping specifically
+    if p_type == 'charisma':
+        p_id = request.form.get("prize_id_char")
+    else:
+        p_id = request.form.get("prize_id")
+        
+    icon = request.form.get("icon", "fa-bolt")
+    
     # New Multi-Task & Asset Logic
     p_item_id = request.form.get("prize_item_id")
     tasks_json = request.form.get("tasks_json")
+
     
     # Handle Icon Upload
     icon_file = request.files.get("icon_file")

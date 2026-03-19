@@ -383,7 +383,6 @@
             <div class="glass-card">
                 <h4 class="mb-2">Engineer Campaign</h4>
                 <form id="eventForm" action="{{ url_for('create_admin_event') }}" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="tasks_json" id="tasks_json">
                     
                     <div class="form-group mb-2">
                         <label class="small text-muted mb-1">Campaign Name</label>
@@ -397,6 +396,22 @@
 
                     <div class="row mb-2">
                         <div class="col-6">
+                            <label class="small text-muted mb-1">Condition Type</label>
+                            <select name="condition_type" class="nexus-input" style="padding: 6px 10px; font-size: 0.85rem;">
+                                <option value="posts_count">Posts Count</option>
+                                <option value="comment_count">Comment Count</option>
+                                <option value="manga_chapters_read">Manga Chapters Read</option>
+                                <option value="charisma_earned">Charisma Earned</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted mb-1">Condition Value</label>
+                            <input type="number" name="condition_value" class="nexus-input" value="10" style="padding: 6px 10px; font-size: 0.85rem;">
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-6">
                             <label class="small text-muted mb-1">Arrival (Start)</label>
                             <input type="date" name="start_date" class="nexus-input" style="padding: 6px 10px; font-size: 0.85rem;">
                         </div>
@@ -405,6 +420,7 @@
                             <input type="date" name="end_date" class="nexus-input" style="padding: 6px 10px; font-size: 0.85rem;">
                         </div>
                     </div>
+
 
                     <!-- Icon Upload Area -->
                     <div class="form-group mb-2">
@@ -516,15 +532,15 @@
         const taskHtml = `
             <div class="task-item" id="task-${id}">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <select class="task-type-select nexus-input w-auto border-0" onchange="validateTask(${id})" style="padding: 2px 8px; font-size: 0.75rem;">
+                    <select name="task_type[]" class="task-type-select nexus-input w-auto border-0" onchange="validateTask(${id})" style="padding: 2px 8px; font-size: 0.75rem;">
                         <option value="normal">Normal Mission</option>
                         <option value="limited">Limited Edition</option>
                     </select>
                     <i class="fas fa-trash remove-task" onclick="removeTask(${id})"></i>
                 </div>
-                <input type="text" class="task-desc nexus-input mb-2" placeholder="Task description..." required style="padding: 6px 10px; font-size: 0.85rem;">
+                <input type="text" name="task_desc[]" class="task-desc nexus-input mb-2" placeholder="Task description..." required style="padding: 6px 10px; font-size: 0.85rem;">
                 <div class="d-flex align-items-center gap-2">
-                    <input type="number" class="task-reward nexus-input" placeholder="Coins" style="width: 80px; padding: 6px 10px; font-size: 0.85rem;" oninput="validateTask(${id})">
+                    <input type="number" name="task_reward[]" class="task-reward nexus-input" placeholder="Coins" style="width: 80px; padding: 6px 10px; font-size: 0.85rem;" oninput="validateTask(${id})">
                     <span class="coin-badge coin-normal" id="badge-${id}">5-20 Coins</span>
                 </div>
                 <div class="validation-msg" id="error-${id}">Reward out of range!</div>
@@ -664,22 +680,8 @@
         reader.readAsDataURL(file);
     }
 
-    function submitForm() {
-        const taskItems = document.querySelectorAll('.task-item');
-        const serializedTasks = Array.from(taskItems).map(item => ({
-            description: item.querySelector('.task-desc').value,
-            coin_reward: item.querySelector('.task-reward').value,
-            task_type: item.querySelector('.task-type-select').value
-        }));
-
-        if (serializedTasks.length === 0) {
-            alert('Mission needs at least one objective (task)!');
-            return;
-        }
-
-        document.getElementById('tasks_json').value = JSON.stringify(serializedTasks);
-        document.getElementById('eventForm').submit();
-    }
+    // No serialization needed - task inputs have proper name attributes
+    // and will be submitted naturally by the browser
 
     function deleteEvent(id) {
         if (confirm('Deconstruct this campaign architecture? This action is irreversible.')) {
