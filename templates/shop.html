@@ -52,15 +52,15 @@ body {
     margin-bottom: 60px;
 }
 .shop-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-    padding: 30px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 25px;
     text-align: center;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
     overflow: hidden;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    backdrop-filter: blur(10px); /* Kept from original, as it was not explicitly removed */
 }
 .shop-card:hover {
     transform: translateY(-10px);
@@ -108,11 +108,82 @@ body {
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
+.btn-back-to-events {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50px;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+.btn-back-to-events:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateX(-5px);
+}
+
+/* Rarity Badges */
+.rarity-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    z-index: 10;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+.rarity-common { background: #64748b; color: #fff; }
+.rarity-epic { 
+    background: linear-gradient(135deg, #a855f7, #7c3aed); 
+    color: #fff;
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+}
+.rarity-exclusive { 
+    background: linear-gradient(135deg, #f59e0b, #d97706); 
+    color: #fff;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+}
+
+/* Epic Animation */
+@keyframes epic-glow {
+    0% { box-shadow: 0 0 5px rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.2); }
+    50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.6); border-color: rgba(168, 85, 247, 0.8); }
+    100% { box-shadow: 0 0 5px rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.2); }
+}
+.epic-card {
+    animation: epic-glow 3s infinite ease-in-out;
+    border: 1px solid rgba(168, 85, 247, 0.3) !important;
+}
+
+@keyframes exclusive-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+.exclusive-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 100%);
+    background-size: 200% 100%;
+    animation: exclusive-shimmer 4s infinite linear;
+    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="shop-header">
+    <a href="{{ url_for('public_events') }}" class="btn-back-to-events">
+        <i class="fas fa-arrow-left"></i> Back to Mission Center
+    </a>
     <h1>Reward Exchange Shop</h1>
     <p>Spend your hard-earned coins on exclusive profile borders, animated backgrounds, and badges!</p>
     <div class="coin-display">
@@ -121,38 +192,64 @@ body {
 </div>
 
 <div class="shop-container">
-    {% if session.role == 'admin' %}
+    {% if session.role in ['admin', 'developer'] or 'manage_shop' in permissions or 'manage_charisma' in permissions %}
     <div style="background: rgba(255, 255, 255, 0.05); padding: 25px; border-radius: 15px; margin-bottom: 40px; border: 1px solid rgba(255, 255, 255, 0.1);">
         <h2 style="font-size: 1.5rem; margin-bottom: 20px; color: #ff9800;"><i class="fas fa-hammer"></i> Admin Panel: Add Item</h2>
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
             <input type="text" id="adminItemName" placeholder="Item Name (e.g. Master Badge)" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
-            <select id="adminItemType" style="flex: 1; min-width: 150px; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;" 
-                onchange="document.getElementById('adminAnimationTarget').style.display = (this.value === 'animation') ? 'block' : 'none'; document.getElementById('adminItemAchievement').style.display = (this.value === 'badge') ? 'block' : 'none';">
+            <select id="adminItemType" onchange="onTypeChange(this.value)" style="flex: 1; min-width: 150px; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
                 <option value="badge">Badge (FontAwesome / Image)</option>
                 <option value="border">Border (Class / Image)</option>
                 <option value="animation">Animation (Class / GIF / MP4)</option>
             </select>
-            <select id="adminAnimationTarget" style="display: none; flex: 1; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
+            <select id="adminAnimationTarget" onchange="filterAssets()" style="display: none; flex: 1; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
                 <option value="avatar">Avatar Background (Profile Room)</option>
                 <option value="login">Login Screen</option>
                 <option value="logout">Logout Screen</option>
                 <option value="banner">Profile Banner</option>
-                <option value="manga">Manga Entering Png</option>
+                <option value="manga" selected>Manga Entering Png</option>
             </select>
-            <select id="adminItemAchievement" style="display: block; flex: 1; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
-                <option value="">-- Link Existing Achievement (Optional) --</option>
-                {% for ach in all_achievements %}
-                    <option value="{{ ach.id }}">{{ ach.name }}</option>
-                {% endfor %}
-            </select>
+            <!-- Link Achievement (Only for Badge) -->
+            <div id="adminAchievementContainer" style="display: block; flex: 1; min-width: 250px;">
+                <select id="adminItemAchievement" onchange="syncAchievementData(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
+                    <option value="">-- Link Existing Achievement (Optional) --</option>
+                    {% for ach in all_achievements %}
+                        <option value="{{ ach.id }}" 
+                                data-name="{{ ach.name }}" 
+                                data-rarity="{{ ach.rarity }}" 
+                                data-icon="{{ ach.icon }}">
+                            {{ ach.name }} ({{ ach.rarity }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Contextual Asset Linking (Animation/Border) -->
+            <div id="adminAssetSearchContainer" style="display: none; flex-direction: column; flex: 1; min-width: 300px; gap: 10px; background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 10px;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <i class="fas fa-search" style="color: #ff9800;"></i>
+                    <input type="text" id="assetSearchInput" placeholder="Search existing assets..." oninput="repopulateAssetSelect()" style="flex: 1; padding: 8px; border-radius: 5px; border: none; background: rgba(0,0,0,0.3); color: #fff; font-size: 0.9rem;">
+                </div>
+                <select id="adminLinkExistingAsset" onchange="syncAssetData(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
+                    <option value="">-- Select Existing Asset --</option>
+                </select>
+            </div>
             <input type="text" id="adminItemValue" placeholder="Value (e.g. fa-crown or Custom Class) (Optional)" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
             
-            <label for="adminItemFile" style="cursor: pointer; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.5); color: #00d2ff; font-weight: bold; border: 1px dashed #00d2ff; flex: 1; text-align: center;">
-                <i class="fas fa-upload"></i> <span id="fileLabelText">Upload Asset (Optional)</span>
-                <input type="file" id="adminItemFile" style="display: none;" onchange="document.getElementById('fileLabelText').innerText = this.files[0].name" accept="image/*,video/mp4,video/webm,.jfif">
+            <label for="adminItemFile" class="icon-upload-area" id="adminItemDropZone" style="cursor: pointer; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.5); color: #00d2ff; font-weight: bold; border: 1px dashed #00d2ff; flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80px;">
+                <div id="adminItemPreview" style="width: 40px; height: 40px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-upload"></i>
+                </div>
+                <span id="fileLabelText">Upload Image/Video</span>
+                <input type="file" id="adminItemFile" style="display: none;" onchange="handleAdminFileChange(this)" accept="image/*,video/mp4,video/webm,.jfif">
             </label>
             
             <input type="number" id="adminItemPrice" placeholder="Price (e.g. 500)" style="width: 120px; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
+            <select id="adminItemRarity" style="width: 130px; padding: 10px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff;">
+                <option value="common">Common</option>
+                <option value="epic" selected>Epic</option>
+                <option value="exclusive">Exclusive</option>
+            </select>
             <button onclick="adminAddItem()" style="padding: 10px 20px; border-radius: 8px; border: none; background: linear-gradient(135deg, #ff9800, #ff5722); color: #fff; font-weight: bold; cursor: pointer;">Add Item</button>
         </div>
     </div>
@@ -164,12 +261,17 @@ body {
                          
     {% for cat_title, cat_type, cat_icon, cat_color in categories %}
         <h2 class="shop-section-title"><i class="fas {{ cat_icon }}" style="color: {{ cat_color }};"></i> {{ cat_title }}</h2>
-        <div class="shop-grid">
+        <div class="shop-grid" id="grid-{{ cat_type }}">
             {% for item in items if item.type == cat_type or (cat_type == 'animation' and item.type.startswith('animation_')) %}
-            <div class="shop-card">
+            <div class="shop-card {{ 'epic-card' if item.rarity == 'epic' }} {{ 'exclusive-card' if item.rarity == 'exclusive' }}" id="shop-card-{{ item.id }}">
+                <div class="rarity-badge rarity-{{ item.rarity or 'common' }}">{{ item.rarity or 'Common' }}</div>
                 <div class="shop-icon" style="color: {{ cat_color }};">
                     {% if item.value.startswith('/static/') %}
-                        <img src="{{ item.value }}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;">
+                        {% if item.value.endswith(('.mp4', '.webm', '.ogg')) %}
+                            <video src="{{ item.value }}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;"></video>
+                        {% else %}
+                            <img src="{{ item.value }}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;">
+                        {% endif %}
                     {% elif item.type == 'badge' %}
                         <i class="fas {{ item.value }}"></i>
                     {% else %}
@@ -207,6 +309,140 @@ body {
 
 {% block extra_js %}
 <script>
+// Existing Assets Data for robust client-side filtering
+const existingAssets = {{ existing_assets | tojson }};
+
+function syncAchievementData(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt.value) return;
+    
+    // Auto-fill form
+    document.getElementById('adminItemName').value = opt.getAttribute('data-name');
+    document.getElementById('adminItemValue').value = opt.getAttribute('data-icon');
+    
+    // Map Achievement Rarity to Shop Rarity
+    const achRarity = opt.getAttribute('data-rarity');
+    const raritySelect = document.getElementById('adminItemRarity');
+    
+    // Map intermediate->epic, hardcore/legend->exclusive, etc.
+    if (['hardcore', 'legend', 'god', 'limited'].includes(achRarity)) {
+        raritySelect.value = 'exclusive';
+    } else if (achRarity === 'intermediate') {
+        raritySelect.value = 'epic';
+    } else {
+        raritySelect.value = 'common';
+    }
+    
+    // Disable rarity select to show it "has the tag it currently has" as per user request
+    raritySelect.style.opacity = '0.7';
+    raritySelect.style.pointerEvents = 'none';
+}
+
+function syncAssetData(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt.value) return;
+    document.getElementById('adminItemValue').value = opt.value;
+}
+
+function repopulateAssetSelect() {
+    const type = document.getElementById('adminItemType').value;
+    const targetEl = document.getElementById('adminAnimationTarget');
+    const target = targetEl ? targetEl.value : '';
+    const searchInput = document.getElementById('assetSearchInput');
+    const search = searchInput ? searchInput.value.toLowerCase() : '';
+    const assetSelect = document.getElementById('adminLinkExistingAsset');
+    
+    if (!assetSelect) return;
+
+    // For animations, we use the target directly (normalized in backend)
+    // For borders, we use 'border'
+    let filterType = (type === 'animation') ? target : type;
+    
+    // Preserve current selection if any
+    const currentVal = assetSelect.value;
+    
+    // Clear current options
+    assetSelect.innerHTML = '<option value="">-- Select Existing Asset --</option>';
+    
+    if (typeof existingAssets === 'undefined' || !Array.isArray(existingAssets)) {
+        console.error('existingAssets data not found');
+        return;
+    }
+
+    // Filter and add new options
+    existingAssets.forEach(asset => {
+        if (!asset || !asset.file_path) return;
+
+        const typeMatch = (asset.type === filterType);
+        const fileName = (asset.file_path.split('/').pop() || '').toLowerCase();
+        
+        // Search in both name and filename
+        const nameMatch = (asset.name || '').toLowerCase().includes(search);
+        const fileMatch = fileName.includes(search);
+        
+        if (typeMatch && (nameMatch || fileMatch)) {
+            const option = document.createElement('option');
+            option.value = asset.file_path;
+            
+            // Determine Icon
+            let icon = '🌀'; // System Default
+            if (asset.source === 'shop') {
+                icon = (asset.currency_type === 'charisma') ? '💎' : '🛒';
+            }
+            
+            // Format Tag [RARITY]
+            const tag = (asset.rarity || 'common').toUpperCase();
+            
+            // Format Price
+            let priceInfo = '';
+            if (asset.source === 'shop' && asset.price > 0) {
+                const currency = (asset.currency_type === 'charisma') ? 'Charisma' : 'Coins';
+                priceInfo = ` (${asset.price} ${currency})`;
+            }
+            
+            // Show human-readable name if available, fallback to filename
+            const displayName = asset.name || asset.file_path.split('/').pop();
+            
+            // Final formatted string
+            option.text = `${icon} [${tag}] ${displayName}${priceInfo}`;
+            assetSelect.appendChild(option);
+        }
+    });
+    
+    // Restore selection if it still exists in the filtered list
+    if (currentVal) {
+        assetSelect.value = currentVal;
+    }
+}
+
+function onTypeChange(val) {
+    const target = document.getElementById('adminAnimationTarget');
+    const assetContainer = document.getElementById('adminAssetSearchContainer');
+    const achievementContainer = document.getElementById('adminAchievementContainer');
+    const raritySelect = document.getElementById('adminItemRarity');
+    
+    if (raritySelect) {
+        raritySelect.style.opacity = '1';
+        raritySelect.style.pointerEvents = 'auto';
+    }
+
+    // Explicitly set displays to avoid "nothing happens"
+    if (val === 'animation' || val === 'border') {
+        if (target) target.style.display = (val === 'animation') ? 'block' : 'none';
+        if (assetContainer) assetContainer.style.display = 'flex';
+        if (achievementContainer) achievementContainer.style.display = 'none';
+        repopulateAssetSelect();
+    } else if (val === 'badge') {
+        if (target) target.style.display = 'none';
+        if (assetContainer) assetContainer.style.display = 'none';
+        if (achievementContainer) achievementContainer.style.display = 'block';
+    } else {
+        if (target) target.style.display = 'none';
+        if (assetContainer) assetContainer.style.display = 'none';
+        if (achievementContainer) achievementContainer.style.display = 'none';
+    }
+}
+
 async function buyItem(itemId, price) {
     const btn = document.getElementById('buy-btn-' + itemId);
     if (!confirm('Are you sure you want to buy this item for ' + price + ' coins?')) return;
@@ -249,6 +485,24 @@ async function buyItem(itemId, price) {
     }
 }
 
+function handleAdminFileChange(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    document.getElementById('fileLabelText').innerText = file.name;
+    const preview = document.getElementById('adminItemPreview');
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+        if (file.type.startsWith('video/')) {
+            preview.innerHTML = `<video src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" autoplay loop muted></video>`;
+        } else {
+            preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">`;
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
 async function adminAddItem() {
     const name = document.getElementById('adminItemName').value.trim();
     let type = document.getElementById('adminItemType').value;
@@ -258,6 +512,7 @@ async function adminAddItem() {
     const value = document.getElementById('adminItemValue').value.trim();
     const price = document.getElementById('adminItemPrice').value.trim();
     const achievement_id = document.getElementById('adminItemAchievement').value;
+    const rarity = document.getElementById('adminItemRarity').value;
     const fileInput = document.getElementById('adminItemFile');
     const file = fileInput.files[0];
     
@@ -272,6 +527,8 @@ async function adminAddItem() {
     formData.append('value', value);
     formData.append('price', price);
     formData.append('achievement_id', achievement_id);
+    formData.append('rarity', rarity);
+    formData.append('currency_type', 'coins');
     if (file) {
         formData.append('file', file);
     }
@@ -280,11 +537,43 @@ async function adminAddItem() {
         const res = await fetch('/admin/shop/add', {
             method: 'POST',
             body: formData
-            // Don't set Content-Type header manually when using FormData
         });
         const data = await res.json();
         if (data.success) {
-            location.reload();
+            // Real-time Update: Build the card and prepend
+            const gridId = type.startsWith('animation_') ? 'grid-animation' : 'grid-' + type;
+            const grid = document.getElementById(gridId);
+            if (grid) {
+                const newCard = document.createElement('div');
+                newCard.className = `shop-card ${rarity === 'epic' ? 'epic-card' : ''} ${rarity === 'exclusive' ? 'exclusive-card' : ''}`;
+                newCard.id = 'shop-card-' + data.item_id;
+                
+                let iconHtml = `<i class="fas fa-magic"></i>`;
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const isVideo = file.type.startsWith('video/');
+                        iconHtml = isVideo ? 
+                            `<video src="${e.target.result}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;"></video>` :
+                            `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;">`;
+                        
+                        finishCard(newCard, iconHtml, name, price, rarity, data.item_id, type);
+                        grid.prepend(newCard);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    if (value.startsWith('fa-')) iconHtml = `<i class="fas ${value}"></i>`;
+                    finishCard(newCard, iconHtml, name, price, rarity, data.item_id, type);
+                    grid.prepend(newCard);
+                }
+            }
+            // Reset form
+            document.getElementById('adminItemName').value = '';
+            document.getElementById('adminItemValue').value = '';
+            document.getElementById('adminItemPrice').value = '';
+            document.getElementById('adminItemFile').value = '';
+            document.getElementById('fileLabelText').innerText = 'Upload Image/Video';
+            document.getElementById('adminItemPreview').innerHTML = '<i class="fas fa-upload"></i>';
         } else {
             alert("Error: " + data.message);
         }
@@ -294,13 +583,34 @@ async function adminAddItem() {
     }
 }
 
+function finishCard(card, iconHtml, name, price, rarity, itemId, type) {
+    card.innerHTML = `
+        <div class="rarity-badge rarity-${rarity}">${rarity.charAt(0).toUpperCase() + rarity.slice(1)}</div>
+        <div class="shop-icon">${iconHtml}</div>
+        <h3 class="shop-title">
+            ${name}
+            ${type.includes('_') ? `<div style="font-size: 0.8rem; color: #aaa; margin-top: 5px;">(${type.split('_')[1].charAt(0).toUpperCase() + type.split('_')[1].slice(1)} Context)</div>` : ''}
+        </h3>
+        <div class="shop-price"><i class="fas fa-coins"></i> ${price}</div>
+        <button class="btn-buy" id="buy-btn-${itemId}" onclick="buyItem(${itemId}, ${price})">
+            Purchase <i class="fas fa-shopping-cart"></i>
+        </button>
+        <button onclick="adminDeleteItem(${itemId})" style="margin-top: 10px; width: 100%; padding: 8px; background: rgba(255, 0, 0, 0.2); border: 1px solid rgba(255, 0, 0, 0.5); color: #ff5252; border-radius: 8px; cursor: pointer; transition: 0.3s;" onmouseover="this.style.background='rgba(255, 0, 0, 0.4)'" onmouseout="this.style.background='rgba(255, 0, 0, 0.2)'">Delete Item</button>
+    `;
+}
+
 async function adminDeleteItem(itemId) {
     if (!confirm("Are you sure you want to permanently delete this item from the shop?")) return;
     try {
         const res = await fetch('/admin/shop/delete/' + itemId, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-            location.reload();
+            const card = document.getElementById('shop-card-' + itemId);
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+                setTimeout(() => card.remove(), 300);
+            }
         } else {
             alert("Failed to delete.");
         }

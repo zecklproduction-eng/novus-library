@@ -55,24 +55,7 @@
         flex-shrink: 0;
     }
 
-    .avatar-ring {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        padding: 4px;
-        background: linear-gradient(135deg, #00d4ff, #a78bfa, #f472b6);
-        animation: avatarRingRotate 4s linear infinite;
-    }
-
-    @keyframes avatarRingRotate {
-        0% {
-            filter: hue-rotate(0deg);
-        }
-
-        100% {
-            filter: hue-rotate(360deg);
-        }
-    }
+    /* Base avatar-ring styles transferred to studio.css */
 
     .avatar-ring img {
         width: 100%;
@@ -1095,14 +1078,28 @@
 
 <div class="profile-page">
     <!-- Welcome Header -->
-    <div class="profile-welcome-header animate-in">
-        <div class="welcome-content">
+    <div class="profile-welcome-header animate-in" 
+         style="{% if avatar_settings.animation_banner and not (avatar_settings.animation_banner.endswith('.mp4') or avatar_settings.animation_banner.endswith('.webm')) %}background-image: url('{% if avatar_settings.animation_banner.startswith('static/') %}/{{ avatar_settings.animation_banner }}{% else %}/static/{{ avatar_settings.animation_banner }}{% endif %}'); background-size: cover; background-position: center; border-color: rgba(255,255,255,0.1);{% endif %}">
+        {% if avatar_settings.animation_banner and (avatar_settings.animation_banner.endswith('.mp4') or avatar_settings.animation_banner.endswith('.webm')) %}
+        <video src="{% if avatar_settings.animation_banner.startswith('static/') %}/{{ avatar_settings.animation_banner }}{% else %}/static/{{ avatar_settings.animation_banner }}{% endif %}" autoplay loop muted playsinline style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"></video>
+        {% endif %}
+        <div class="welcome-content" style="position: relative; z-index: 1;">
+
             <div class="welcome-avatar">
-                <div class="studio-avatar-frame {{ avatar_settings.avatar_frame if avatar_settings and avatar_settings.avatar_frame and not avatar_settings.avatar_frame.startswith('/static/') else '' }}">
-                    {% if avatar_settings and avatar_settings.avatar_frame and avatar_settings.avatar_frame.startswith('/static/') %}
-                    <div class="studio-border-overlay" style="background-image: url('{{ avatar_settings.avatar_frame }}'); opacity: 1;"></div>
+                {% set _frame = avatar_settings.avatar_frame if avatar_settings else '' %}
+                {% set _frame_is_vid = _frame and ('.' in _frame) and (_frame.endswith('.mp4') or _frame.endswith('.webm')) %}
+                {% set _frame_is_img = _frame and ('.' in _frame) and (_frame.endswith('.png') or _frame.endswith('.jpg') or _frame.endswith('.jpeg') or _frame.endswith('.gif') or _frame.endswith('.webp') or _frame.endswith('.jfif')) %}
+                {% set _frame_url = _frame if (_frame.startswith('/static/') or _frame.startswith('http')) else '/static/' + _frame if (_frame_is_img or _frame_is_vid) else '' %}
+                <div class="studio-avatar-frame {{ _frame if (not _frame_is_img and not _frame_is_vid) else '' }}">
+                    {% if _frame_is_img %}
+                    <div class="studio-border-overlay" style="background-image: url('{{ _frame_url }}'); opacity: 1;"></div>
+                    {% elif _frame_is_vid %}
+                    <div class="studio-border-overlay" style="opacity: 1; overflow: hidden; border-radius: 50%; display: flex; align-items: center; justify-content: center; mix-blend-mode: screen;">
+                        <video src="{{ _frame_url }}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: cover; pointer-events: none; mix-blend-mode: screen;"></video>
+                    </div>
                     {% endif %}
-                    <div class="avatar-ring" style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') if avatar_settings else '#00d4ff' }}">
+                    <div class="avatar-ring border-{{ avatar_settings.avatar_border|default('gradient') }}" 
+                         style="--border-color: {{ avatar_settings.avatar_color|default('#00d4ff') }}">
                         {% if avatar_url %}
                         <img src="{{ avatar_url }}" alt="{{ username }}">
                         {% else %}
@@ -1113,9 +1110,12 @@
             </div>
             <div class="welcome-info">
                 <div class="welcome-greeting">Welcome back,</div>
-                <h1 class="welcome-name">{{ username or 'Reader' }}</h1>
+                <h1 class="welcome-name user-glow-rendered" 
+                    data-glow="{{ avatar_settings.avatar_title_glow|default('none') }}"
+                    data-glow-bg="{{ avatar_settings.avatar_title_background|default('none') }}"
+                    data-glow-font="{{ avatar_settings.avatar_title_font|default('none') }}">{{ username or 'Reader' }}</h1>
                 <div class="welcome-meta">
-                    <span class="meta-badge role">
+                    <span class="meta-badge role role-badge role-{{ role|default('reader') }}">
                         <i class="fas fa-user-tag"></i> {{ role|default('Member')|capitalize }}
                     </span>
                     <span class="meta-badge plan {{ plan|default('basic')|lower }}">
@@ -1493,4 +1493,57 @@
         new ActiveLogTracker();
     });
 </script>
-{% endblock %}
+
+<!-- Custom Manga Entrance Animation for Own Dashboard -->
+{% set dashboard_entrance = avatar_settings.get('animation_manga_enter') or avatar_settings.get('avatar_entrance_animation') %}
+{% if dashboard_entrance and dashboard_entrance != 'none' %}
+<div id="entranceSpotlight" class="entrance-spotlight-overlay">
+    <div class="spotlight-content">
+        {% if dashboard_entrance.endswith('.mp4') or dashboard_entrance.endswith('.webm') %}
+        <video src="{% if dashboard_entrance.startswith('static/') %}/{{ dashboard_entrance }}{% else %}/static/{{ dashboard_entrance }}{% endif %}" autoplay muted playsinline class="spotlight-asset" style="max-width: 90vw; max-height: 80vh; transform: scale(0.5); opacity: 0; transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);"></video>
+        {% else %}
+        <img src="{% if dashboard_entrance.startswith('static/') %}/{{ dashboard_entrance }}{% else %}/static/{{ dashboard_entrance }}{% endif %}" class="spotlight-asset" style="max-width: 90vw; max-height: 80vh; transform: scale(0.5); opacity: 0; transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .entrance-spotlight-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        backdrop-filter: blur(10px);
+    }
+    .entrance-spotlight-overlay.active {
+        opacity: 1;
+    }
+    .entrance-spotlight-overlay.active .spotlight-asset {
+        transform: scale(1);
+        opacity: 1;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const overlay = document.getElementById('entranceSpotlight');
+        if (overlay) {
+            setTimeout(() => {
+                overlay.classList.add('active');
+                setTimeout(() => {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => overlay.remove(), 550);
+                }, 3500); // Plays for 3.5 seconds
+            }, 500); // 0.5s delay
+        }
+    });
+</script>
+{% endif %}
+
+{% endblock %}

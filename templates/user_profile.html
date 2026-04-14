@@ -78,33 +78,7 @@
         text-align: center;
     }
 
-    .profile-avatar-ring {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        padding: 4px;
-        background: linear-gradient(135deg, #00d4ff, #a78bfa, #f472b6);
-        animation: avatarGlow 4s linear infinite;
-        margin: 0 auto;
-        flex-shrink: 0;
-    }
-
-    @keyframes avatarGlow {
-        0% {
-            filter: hue-rotate(0deg);
-            box-shadow: 0 0 40px rgba(0, 212, 255, 0.6);
-        }
-
-        50% {
-            filter: hue-rotate(180deg);
-            box-shadow: 0 0 40px rgba(167, 139, 250, 0.6);
-        }
-
-        100% {
-            filter: hue-rotate(360deg);
-            box-shadow: 0 0 40px rgba(0, 212, 255, 0.6);
-        }
-    }
+    /* Base profile-avatar-ring styles transferred to studio.css */
 
     .profile-avatar-ring img,
     .profile-avatar-ring .avatar-placeholder {
@@ -736,8 +710,18 @@
 </style>
 
 <div class="user-visit-page">
+    <!-- Profile Header Banner Area -->
+    {% set banner_anim = profile_avatar_settings.get('animation_banner') %}
+    <div class="profile-banner animate-in" 
+         style="{% if banner_anim and not (banner_anim.endswith('.mp4') or banner_anim.endswith('.webm')) %}background-image: url('{{ banner_anim }}'); background-size: cover; background-position: center;{% endif %}">
+        {% if banner_anim and (banner_anim.endswith('.mp4') or banner_anim.endswith('.webm')) %}
+        <video src="{{ banner_anim }}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+        {% endif %}
+    </div>
+
     <!-- Two Column Layout -->
     <div class="profile-row">
+
         <!-- LEFT: Profile Card with Background -->
         <div class="profile-card-col">
             <div class="profile-main-card animate-in">
@@ -760,14 +744,26 @@
                 <!-- Content -->
                 <div class="profile-card-content">
                     <!-- Avatar -->
-                    <div class="studio-avatar-frame {{ profile_avatar_settings.avatar_frame if profile_avatar_settings and profile_avatar_settings.avatar_frame and not profile_avatar_settings.avatar_frame.startswith('/static/') else '' }}">
-                        {% if profile_avatar_settings and profile_avatar_settings.avatar_frame and profile_avatar_settings.avatar_frame.startswith('/static/') %}
-                        <div class="studio-border-overlay" style="background-image: url('{{ profile_avatar_settings.avatar_frame }}'); opacity: 1;"></div>
+                    {% set _pframe = profile_avatar_settings.avatar_frame if profile_avatar_settings else '' %}
+                    {% set _pframe_is_vid = _pframe and ('.' in _pframe) and (_pframe.endswith('.mp4') or _pframe.endswith('.webm')) %}
+                    {% set _pframe_is_img = _pframe and ('.' in _pframe) and (_pframe.endswith('.png') or _pframe.endswith('.jpg') or _pframe.endswith('.jpeg') or _pframe.endswith('.gif') or _pframe.endswith('.webp') or _pframe.endswith('.jfif')) %}
+                    {% set _pframe_url = _pframe if (_pframe.startswith('/static/') or _pframe.startswith('http')) else '/static/' + _pframe if (_pframe_is_img or _pframe_is_vid) else '' %}
+                    <div class="studio-avatar-frame {{ _pframe if (not _pframe_is_img and not _pframe_is_vid) else '' }}">
+                        {% if _pframe_is_img %}
+                        <div class="studio-border-overlay" style="background-image: url('{{ _pframe_url }}'); opacity: 1;"></div>
+                        {% elif _pframe_is_vid %}
+                        <div class="studio-border-overlay" style="opacity: 1; overflow: hidden; border-radius: 50%; display: flex; align-items: center; justify-content: center; mix-blend-mode: screen;">
+                            <video src="{{ _pframe_url }}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: cover; pointer-events: none; mix-blend-mode: screen;"></video>
+                        </div>
                         {% endif %}
-                        <div class="profile-avatar-ring"
+                        <div class="profile-avatar-ring border-{{ profile_avatar_settings.avatar_border|default('gradient') }}"
                              style="--border-color: {{ profile_avatar_settings.avatar_color|default('#00d4ff') }}">
                             {% if user['avatar_url'] %}
+                            {% if user['avatar_url'].endswith('.mp4') or user['avatar_url'].endswith('.webm') %}
+                            <video src="{{ user['avatar_url'] }}" autoplay loop muted playsinline style="object-fit: cover; width: 100%; height: 100%; border-radius: 50%;"></video>
+                            {% else %}
                             <img src="{{ user['avatar_url'] }}" alt="{{ user['username'] }}">
+                            {% endif %}
                             {% else %}
                             <div class="avatar-placeholder">{{ user['username'][0]|upper }}</div>
                             {% endif %}
@@ -775,8 +771,11 @@
                     </div>
 
                     <!-- Username & Role -->
-                    <h2 class="profile-username">{{ user['username'] }}</h2>
-                    <div class="profile-role-badge">
+                    <h2 class="profile-username user-glow-rendered" 
+                        data-glow="{{ profile_avatar_settings.avatar_title_glow|default('none') }}"
+                        data-glow-bg="{{ profile_avatar_settings.avatar_title_background|default('none') }}"
+                        data-glow-font="{{ profile_avatar_settings.avatar_title_font|default('none') }}">{{ user['username'] }}</h2>
+                    <div class="profile-role-badge role-badge role-{{ user['role']|default('reader') }}">
                         {{ user['role']|default('Member')|title }}
                     </div>
 
@@ -814,28 +813,23 @@
         <div class="stats-col">
             <div class="stat-card books animate-in delay-1">
                 <div class="stat-icon books"><i class="fas fa-book"></i></div>
-                <div class="stat-number">{{ read_count }}</div>
-                <div class="stat-label">Books Read</div>
+                <div class="stat-number">{{ read_count|default(0) }}</div>
+                <div class="stat-label">Units Read</div>
             </div>
-            <div class="stat-card favs animate-in delay-1">
-                <div class="stat-icon favs"><i class="fas fa-heart"></i></div>
-                <div class="stat-number">{{ fav_count }}</div>
-                <div class="stat-label">Favorites</div>
-            </div>
-            <div class="stat-card planned animate-in delay-2">
-                <div class="stat-icon planned"><i class="fas fa-bookmark"></i></div>
-                <div class="stat-number">{{ watchlist_stats.get('planned', 0) }}</div>
-                <div class="stat-label">Planned</div>
-            </div>
-            <div class="stat-card reading animate-in delay-2">
-                <div class="stat-icon reading"><i class="fas fa-book-reader"></i></div>
-                <div class="stat-number">{{ watchlist_stats.get('reading', 0) }}</div>
-                <div class="stat-label">Reading</div>
-            </div>
-            <div class="stat-card animate-in delay-2" style="--border-color: #ff4081;">
-                <div class="stat-icon" style="background: rgba(255, 64, 129, 0.15); color: #ff4081;"><i class="fas fa-fire"></i></div>
-                <div class="stat-number">{{ user['charisma'] if user and 'charisma' in user else user[5] if user else 0 }}</div>
+            <div class="stat-card charisma animate-in delay-2">
+                <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #a855f7;"><i class="fas fa-sparkles"></i></div>
+                <div class="stat-number">{{ user['charisma']|default(0) }}</div>
                 <div class="stat-label">Charisma</div>
+            </div>
+            <div class="stat-card event-pts animate-in delay-3">
+                <div class="stat-icon" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24;"><i class="fas fa-trophy"></i></div>
+                <div class="stat-number">{{ user['event_pts']|default(0) }}</div>
+                <div class="stat-label">Event Pts</div>
+            </div>
+            <div class="stat-card reading animate-in" style="animation-delay: 0.4s; opacity: 0;">
+                <div class="stat-icon reading"><i class="fas fa-book-open"></i></div>
+                <div class="stat-number">{{ watchlist_stats.get('Reading', 0) }}</div>
+                <div class="stat-label">In Progress</div>
             </div>
         </div>
     </div>
@@ -1437,4 +1431,63 @@
         }
     });
 </script>
+<!-- Entrance Animation Spotlight Overlay -->
+{% set entrance_anim = profile_avatar_settings.get('animation_manga_enter') or profile_avatar_settings.get('avatar_entrance_animation') %}
+{% if entrance_anim and entrance_anim != 'none' %}
+
+<div id="entranceSpotlight" class="entrance-spotlight-overlay">
+    <div class="spotlight-content">
+        {% if entrance_anim.endswith('.mp4') or entrance_anim.endswith('.webm') %}
+        <video src="{{ entrance_anim }}" autoplay muted playsinline class="spotlight-asset"></video>
+        {% else %}
+        <img src="{{ entrance_anim }}" class="spotlight-asset">
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .entrance-spotlight-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        backdrop-filter: blur(10px);
+    }
+    .entrance-spotlight-overlay.active {
+        opacity: 1;
+    }
+    .spotlight-asset {
+        max-width: 90vw;
+        max-height: 80vh;
+        transform: scale(0.5);
+        opacity: 0;
+        transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .entrance-spotlight-overlay.active .spotlight-asset {
+        transform: scale(1);
+        opacity: 1;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const overlay = document.getElementById('entranceSpotlight');
+        if (overlay) {
+            setTimeout(() => {
+                overlay.classList.add('active');
+                setTimeout(() => {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => overlay.remove(), 550);
+                }, 3500); // Plays for 3.5 seconds
+            }, 500); // 0.5s delay before start
+        }
+    });
+</script>
+{% endif %}
 {% endblock %}

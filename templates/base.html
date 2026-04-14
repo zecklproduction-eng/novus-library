@@ -8,7 +8,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Cinzel+Decorative:wght@400;700;900&display=swap" rel="stylesheet">
 
   <title>
     {% block title %}NOVUS | Digital Library{% endblock %}
@@ -31,6 +31,406 @@
 
 
   <style>
+    /* --- Title Glow Effects --- */
+    .title-glow-gold {
+        background: linear-gradient(90deg, #ffdf00, #d4af37, #ffdf00);
+        background-size: 200% auto;
+        color: transparent;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: titleShine 3s linear infinite;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+    }
+    .title-glow-neon {
+        background: linear-gradient(90deg, #00ffff, #ff00ff, #00ffff);
+        background-size: 200% auto;
+        color: transparent;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: titleShine 3s linear infinite;
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    }
+    .title-glow-fire {
+        background: linear-gradient(90deg, #ff4500, #ff8c00, #ff4500);
+        background-size: 200% auto;
+        color: transparent;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: titleShine 2s linear infinite;
+        text-shadow: 0 0 15px rgba(255, 69, 0, 0.6);
+    }
+    .title-glow-matrix {
+        background: linear-gradient(90deg, #0f0, #003300, #0f0);
+        background-size: 200% auto;
+        color: transparent;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: titleShine 2s linear infinite;
+        text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+    }
+    .title-glow-ethereal {
+        background: linear-gradient(90deg, #e6e6fa, #ffffff, #e6e6fa);
+        background-size: 200% auto;
+        color: transparent;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: titleShine 4s linear infinite;
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+    }
+    .title-glow-exclusive {
+        background: linear-gradient(90deg, #ff00ff, #fffb00, #ff00ff);
+        background-size: 200% auto;
+        color: transparent;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: titleShine 2s linear infinite;
+        text-shadow: 0 0 15px rgba(255, 0, 255, 0.6), 0 0 30px rgba(255, 251, 0, 0.4);
+        font-weight: 800 !important;
+    }
+    .title-glow-admin {
+        color: #ffd700;
+        -webkit-text-fill-color: unset;
+        background: none;
+        background-image: none;
+        -webkit-background-clip: unset;
+        background-clip: unset;
+        animation: adminGoldShine 3s ease-in-out infinite;
+        text-shadow: 0 0 8px #ffd700, 0 0 16px #ff8c00, 0 0 30px rgba(255, 165, 0, 0.4);
+        font-weight: 900 !important;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        position: relative;
+        display: inline-block;
+        filter: drop-shadow(0 0 6px rgba(255, 200, 0, 0.6));
+        overflow: visible;
+    }
+    .title-glow-admin::before {
+        content: '👑';
+        position: absolute;
+        top: -1.1em;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.7em;
+        -webkit-text-fill-color: initial;
+        animation: crownBob 2s ease-in-out infinite;
+        filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));
+        z-index: 3;
+        pointer-events: none;
+    }
+    .title-glow-admin::after {
+        content: '⚡';
+        position: absolute;
+        font-size: 0.9em;
+        top: 50%;
+        right: -1.3em;
+        transform: translateY(-50%);
+        -webkit-text-fill-color: initial;
+        animation: sparkFlicker 2s infinite ease-in-out;
+        filter: drop-shadow(0 0 6px #ffd700) drop-shadow(0 0 15px #ff8c00);
+        z-index: 2;
+        pointer-events: none;
+    }
+    @keyframes adminGoldShine {
+        0%, 100% { color: #ffd700; text-shadow: 0 0 8px #ffd700, 0 0 16px #ff8c00, 0 0 30px rgba(255, 165, 0, 0.4); }
+        33% { color: #ffaa00; text-shadow: 0 0 10px #ffaa00, 0 0 20px #ff8c00, 0 0 40px rgba(255, 69, 0, 0.5); }
+        66% { color: #ffe600; text-shadow: 0 0 12px #ffe600, 0 0 24px #ffd700, 0 0 50px rgba(255, 215, 0, 0.6); }
+    }
+    @keyframes crownBob {
+        0%, 100% { transform: translateX(-50%) translateY(0); }
+        50% { transform: translateX(-50%) translateY(-3px); }
+    }
+    @keyframes sparkFlicker {
+        0%, 100% { opacity: 0.3; transform: translateY(-50%) scale(0.7); }
+        10% { opacity: 1; transform: translateY(-50%) scale(1.2); filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 25px #ffd700); }
+        20% { opacity: 0; transform: translateY(-50%) scale(0.5); }
+        30% { opacity: 1; transform: translateY(-50%) scale(1.1); }
+        40% { opacity: 0.1; transform: translateY(-50%) scale(0.6); }
+        50% { opacity: 0.9; transform: translateY(-50%) scale(1.3); filter: drop-shadow(0 0 15px #fff) drop-shadow(0 0 30px #ff8c00); }
+        60% { opacity: 0; transform: translateY(-50%) scale(0.4); }
+        70% { opacity: 0.5; transform: translateY(-50%) scale(0.9); }
+    }
+    /* Admin Exclusive - Royal Background */
+    .title-bg-admin-royal {
+        background: linear-gradient(135deg, #0d0000 0%, #1a0500 25%, #2a0a00 50%, #1a0500 75%, #0d0000 100%);
+        color: #ffd700;
+        padding: 5px 18px !important;
+        border-radius: 6px !important;
+        display: inline-block !important;
+        border: 2px solid rgba(255, 215, 0, 0.6);
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(255, 140, 0, 0.4), 0 1px 3px rgba(0,0,0,0.9);
+        position: relative;
+        animation: adminRoyalPulse 2s ease-in-out infinite, adminRoyalHue 8s linear infinite;
+        box-shadow: 0 0 20px rgba(255, 165, 0, 0.5), 0 0 40px rgba(255, 69, 0, 0.2), inset 0 0 30px rgba(255, 165, 0, 0.12);
+        overflow: hidden;
+    }
+    .title-bg-admin-royal::before {
+        content: '';
+        position: absolute;
+        top: -100%; left: -100%;
+        width: 300%; height: 300%;
+        background: 
+            radial-gradient(2px 2px at 20% 30%, rgba(255,200,0,0.8), transparent),
+            radial-gradient(2px 2px at 40% 70%, rgba(255,140,0,0.6), transparent),
+            radial-gradient(1px 1px at 60% 20%, rgba(255,255,200,0.9), transparent),
+            radial-gradient(2px 2px at 80% 50%, rgba(255,165,0,0.7), transparent),
+            radial-gradient(1px 1px at 30% 80%, rgba(255,215,0,0.8), transparent),
+            radial-gradient(1px 1px at 70% 40%, rgba(255,100,0,0.6), transparent),
+            radial-gradient(2px 2px at 50% 60%, rgba(255,200,50,0.7), transparent),
+            radial-gradient(1px 1px at 10% 50%, rgba(255,220,100,0.5), transparent);
+        animation: royalEmbers 4s linear infinite;
+        pointer-events: none;
+        z-index: 0;
+    }
+    .title-bg-admin-royal::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -150%;
+        width: 80%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,215,0,0.35), rgba(255,255,255,0.15), transparent);
+        animation: royalSweep 2.5s ease-in-out infinite;
+        pointer-events: none;
+        z-index: 1;
+    }
+    @keyframes adminRoyalPulse {
+        0%, 100% { 
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.5), 0 0 40px rgba(255, 69, 0, 0.2), inset 0 0 30px rgba(255, 165, 0, 0.12);
+            border-color: rgba(255, 215, 0, 0.6);
+        }
+        50% { 
+            box-shadow: 0 0 35px rgba(255, 165, 0, 0.8), 0 0 60px rgba(255, 69, 0, 0.4), inset 0 0 40px rgba(255, 165, 0, 0.25);
+            border-color: rgba(255, 255, 200, 0.9);
+        }
+    }
+    @keyframes adminRoyalHue {
+        0% { filter: hue-rotate(0deg); }
+        25% { filter: hue-rotate(-10deg) brightness(1.1); }
+        50% { filter: hue-rotate(5deg); }
+        75% { filter: hue-rotate(-5deg) brightness(1.05); }
+        100% { filter: hue-rotate(0deg); }
+    }
+
+    /* Global Role Badges */
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .role-badge.role-admin {
+        background: rgba(255, 215, 0, 0.12);
+        color: #ffd700;
+        border: 1px solid rgba(255, 215, 0, 0.4);
+        box-shadow: 0 0 12px rgba(255, 215, 0, 0.15);
+        padding: 2px 10px;
+    }
+    .role-badge.role-developer {
+        background: rgba(168, 85, 247, 0.12);
+        color: #d8b4fe;
+        border: 1px solid rgba(168, 85, 247, 0.4);
+        box-shadow: 0 0 12px rgba(168, 85, 247, 0.15);
+        padding: 2px 10px;
+    }
+    .role-badge.role-moderator {
+        background: rgba(0, 255, 157, 0.12);
+        color: #00ff9d;
+        border: 1px solid rgba(0, 255, 157, 0.4);
+        box-shadow: 0 0 12px rgba(0, 255, 157, 0.15);
+        padding: 2px 10px;
+    }
+    .role-badge.role-publisher {
+        background: rgba(59, 130, 246, 0.12);
+        color: #93c5fd;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+        padding: 2px 10px;
+    }
+    @keyframes royalEmbers {
+        0% { transform: translate(0, 0); }
+        25% { transform: translate(-5%, -8%); }
+        50% { transform: translate(-10%, -3%); }
+        75% { transform: translate(-5%, -10%); }
+        100% { transform: translate(0, 0); }
+    }
+    @keyframes royalSweep {
+        0% { left: -150%; opacity: 0; }
+        20% { opacity: 1; }
+        80% { opacity: 1; }
+        100% { left: 200%; opacity: 0; }
+    }
+    /* Admin Exclusive - Imperial Font (Gradient Gold/White) */
+    .title-font-admin-imperial {
+        font-family: 'Cinzel Decorative', 'Georgia', serif !important;
+        font-weight: 900 !important;
+        background: linear-gradient(135deg, #ffffff, #ffd700, #ff8c00);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: 2px !important;
+        font-size: 110% !important;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        position: relative !important;
+        display: inline-block !important;
+        animation: adminImperialGlow 4s ease-in-out infinite alternate;
+    }
+    @keyframes adminImperialGlow {
+        0% { text-shadow: 0 0 5px rgba(255, 255, 255, 0.8), 0 0 10px rgba(255, 215, 0, 0.9), 0 0 15px #ffcc00, 0 0 25px #ffaa00; }
+        100% { text-shadow: 0 0 8px rgba(255, 255, 255, 1), 0 0 15px rgba(255, 215, 0, 1), 0 0 25px #ffaa00, 0 0 40px #ff4500; }
+    }
+    .title-font-admin-imperial::after {
+        content: '✦';
+        position: absolute;
+        right: -1.2em;
+        top: 50%;
+        transform: translateY(-50%);
+        -webkit-text-fill-color: #ffd700;
+        font-size: 0.5em;
+        font-style: normal;
+        animation: imperialStar 2s ease-in-out infinite;
+        filter: drop-shadow(0 0 8px #ffd700);
+        pointer-events: none;
+    }
+    @keyframes adminImperialShine {
+        0% { background-position: 400% center; }
+        100% { background-position: 0% center; }
+    }
+    @keyframes imperialStar {
+        0%, 100% { opacity: 0.4; transform: translateY(-50%) scale(0.8) rotate(0deg); }
+        50% { opacity: 1; transform: translateY(-50%) scale(1.3) rotate(180deg); }
+    }
+    .title-bg-hellfire {
+        background: url('/static/img/hellfire_bg.png') center/cover no-repeat !important;
+        color: #fff !important;
+        padding: 3px 14px !important;
+        border-radius: 4px !important;
+        display: inline-block !important;
+        border: 1px solid rgba(255, 69, 0, 0.6);
+        text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(255, 69, 0, 0.5);
+        position: relative;
+        animation: hellfireGlow 1.5s ease-in-out infinite;
+    }
+    @keyframes hellfireGlow {
+        0%, 100% { box-shadow: 0 0 8px rgba(255, 69, 0, 0.5), 0 0 15px rgba(255, 0, 0, 0.3), inset 0 0 10px rgba(0,0,0,0.6); }
+        25% { box-shadow: 0 0 20px rgba(255, 140, 0, 0.9), 0 0 40px rgba(255, 69, 0, 0.6), 0 0 60px rgba(255, 0, 0, 0.3), inset 0 0 5px rgba(0,0,0,0.4); }
+        50% { box-shadow: 0 0 12px rgba(255, 0, 0, 0.7), 0 0 25px rgba(255, 69, 0, 0.5), 0 0 45px rgba(255, 200, 0, 0.3), inset 0 0 15px rgba(0,0,0,0.7); }
+        75% { box-shadow: 0 0 25px rgba(255, 200, 0, 0.8), 0 0 50px rgba(255, 69, 0, 0.7), 0 0 70px rgba(255, 0, 0, 0.4), inset 0 0 8px rgba(0,0,0,0.5); }
+    }
+    @keyframes titleShine {
+        to {
+            background-position: 200% center;
+        }
+    }
+    @keyframes titleRainbow {
+        0% { background-position: 0% center; }
+        100% { background-position: 400% center; }
+    }
+    @keyframes glowPulse {
+        0%, 100% { text-shadow: 0 0 5px currentColor, 0 0 10px currentColor; }
+        50% { text-shadow: 0 0 15px currentColor, 0 0 30px currentColor; opacity: 0.9; }
+    }
+    @keyframes glowFlicker {
+        0% { opacity: 1; filter: drop-shadow(0 0 10px var(--glow-color, inherit)); }
+        100% { opacity: 0.7; filter: drop-shadow(0 0 5px var(--glow-color, inherit)); }
+    }
+    @keyframes glowBreath {
+        0%, 100% { filter: drop-shadow(0 0 5px var(--glow-color, inherit)); opacity: 1; }
+        50% { filter: drop-shadow(0 0 20px var(--glow-color, inherit)); opacity: 0.8; }
+    }
+    @keyframes electricJitter {
+        0%, 100% { transform: translate(0,0); }
+        10% { transform: translate(-1px, -1px); }
+        20% { transform: translate(1px, 1px); }
+        30% { transform: translate(-1.5px, 0.5px); }
+        40% { transform: translate(1.5px, -0.5px); }
+        50% { transform: translate(-1px, 1px); }
+        60% { transform: translate(1px, -1px); }
+    }
+    @keyframes hueCycle {
+        from { filter: hue-rotate(0deg); }
+        to { filter: hue-rotate(360deg); }
+    }
+    @keyframes gentleFloating {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+    @keyframes neonFlicker {
+        0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; filter: drop-shadow(0 0 10px var(--glow-color, inherit)); }
+        20%, 22%, 24%, 55% { opacity: 0.4; filter: none; }
+    }
+    @keyframes glitchEffect {
+        0%, 100% { transform: skew(0deg); }
+        20% { transform: skew(2deg) translateX(-2px); }
+        40% { transform: skew(-2deg) translateX(2px); }
+        60% { transform: skew(1deg) translateY(-1px); }
+        80% { transform: skew(-1deg) translateY(1px); }
+    }
+    @keyframes strobeLight {
+        0%, 100% { filter: brightness(1) drop-shadow(0 0 10px var(--glow-color, inherit)); }
+        50% { filter: brightness(2) drop-shadow(0 0 25px var(--glow-color, inherit)); }
+    }
+    @keyframes softWave {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        25% { transform: translateY(-3px) rotate(1deg); }
+        75% { transform: translateY(3px) rotate(-1deg); }
+    }
+    @keyframes scalePulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    @keyframes shadowSpin {
+        0% { filter: drop-shadow(5px 5px 10px var(--glow-color, inherit)); }
+        25% { filter: drop-shadow(-5px 5px 10px var(--glow-color, inherit)); }
+        50% { filter: drop-shadow(-5px -5px 10px var(--glow-color, inherit)); }
+        75% { filter: drop-shadow(5px -5px 10px var(--glow-color, inherit)); }
+        100% { filter: drop-shadow(5px 5px 10px var(--glow-color, inherit)); }
+    }
+    /* Advanced Designer Animations */
+    @keyframes titleFlow {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+    }
+    @keyframes auroraShift {
+        0% { filter: drop-shadow(0 0 10px #8a2be2) hue-rotate(0deg); }
+        50% { filter: drop-shadow(0 0 20px #00ffff) hue-rotate(180deg); }
+        100% { filter: drop-shadow(0 0 10px #8a2be2) hue-rotate(360deg); }
+    }
+    @keyframes oceanWave {
+        0% { filter: drop-shadow(0 0 10px #0000ff); transform: translateY(0); }
+        50% { filter: drop-shadow(0 0 20px #00ffff); transform: translateY(-3px); }
+        100% { filter: drop-shadow(0 0 10px #0000ff); transform: translateY(0); }
+    }
+    @keyframes fireFlicker {
+        0% { filter: drop-shadow(0 0 10px #ff4500); opacity: 1; }
+        25% { filter: drop-shadow(0 0 15px #ff8c00); opacity: 0.8; }
+        50% { filter: drop-shadow(0 0 12px #ff0000); opacity: 0.9; }
+        75% { filter: drop-shadow(0 0 18px #ffff00); opacity: 1; }
+        100% { filter: drop-shadow(0 0 10px #ff4500); opacity: 0.9; }
+    }
+    @keyframes ghostFade {
+        0% { opacity: 1; transform: scale(1); filter: blur(0); }
+        50% { opacity: 0.4; transform: scale(1.05); filter: blur(2px); }
+        100% { opacity: 1; transform: scale(1); filter: blur(0); }
+    }
+    @keyframes vortexRotate {
+        0% { transform: rotate(0deg) scale(1); }
+        50% { transform: rotate(180deg) scale(1.1); }
+        100% { transform: rotate(360deg) scale(1); }
+    }
+    @keyframes textShake {
+        0%, 100% { transform: translate(0, 0); }
+        10%, 30%, 50%, 70%, 90% { transform: translate(-2px, 2px); }
+        20%, 40%, 60%, 80% { transform: translate(2px, -2px); }
+    }
+    @keyframes textTilt {
+        0% { transform: rotate(-3deg); }
+        50% { transform: rotate(3deg); }
+        100% { transform: rotate(-3deg); }
+    }
+
     /* Pulsing Loading Bar with Glow */
     .top-loading-bar {
       position: fixed;
@@ -100,6 +500,43 @@
         box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
         height: 4px;
       }
+    }
+
+    /* Accessory Animations */
+    @keyframes acc-float {
+        0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+        50% { transform: translate(-50%, -50%) translateY(-5px); }
+    }
+    @keyframes acc-rotate {
+        from { transform: translate(-50%, -50%) rotate(0deg); }
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    @keyframes acc-pulse {
+        0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
+    }
+    @keyframes acc-bounce {
+        0%, 20%, 50%, 80%, 100% { transform: translate(-50%, -50%) translateY(0); }
+        40% { transform: translate(-50%, -50%) translateY(-10px); }
+        60% { transform: translate(-50%, -50%) translateY(-5px); }
+    }
+    /* Horizontal versions (no X -50%) */
+    @keyframes acc-float-horiz {
+        0%, 100% { transform: translateY(-50%) translateY(0); }
+        50% { transform: translateY(-50%) translateY(-5px); }
+    }
+    @keyframes acc-rotate-horiz {
+        from { transform: translateY(-50%) rotate(0deg); }
+        to { transform: translateY(-50%) rotate(360deg); }
+    }
+    @keyframes acc-pulse-horiz {
+        0%, 100% { transform: translateY(-50%) scale(1); opacity: 1; }
+        50% { transform: translateY(-50%) scale(1.2); opacity: 0.8; }
+    }
+    @keyframes acc-bounce-horiz {
+        0%, 20%, 50%, 80%, 100% { transform: translateY(-50%) translateY(0); }
+        40% { transform: translateY(-50%) translateY(-10px); }
+        60% { transform: translateY(-50%) translateY(-5px); }
     }
 
     /* Logout Animation Styles */
@@ -297,6 +734,154 @@
       background: #555;
     }
 
+    /* Gifting Modal */
+    .gift-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10002;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .gift-modal.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .gift-dialog {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-radius: 20px;
+      width: 360px;
+      max-width: 95vw;
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.1);
+      overflow: hidden;
+      transform: scale(0.8) translateY(30px);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .gift-modal.show .gift-dialog {
+      transform: scale(1) translateY(0);
+    }
+
+    .gift-header {
+      padding: 24px;
+      text-align: center;
+      background: rgba(255, 215, 0, 0.05);
+      border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+    }
+
+    .gift-header-icon {
+      font-size: 2.5rem;
+      color: #ffd700;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+      animation: giftPulse 2s infinite;
+    }
+
+    @keyframes giftPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5)); }
+      50% { transform: scale(1.1); filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8)); }
+    }
+
+    .gift-header h3 {
+      color: #fff;
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: 1px;
+    }
+
+    .gift-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .gift-option {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .gift-option:hover {
+      background: rgba(255, 215, 0, 0.08);
+      border-color: rgba(255, 215, 0, 0.4);
+      transform: translateX(5px);
+    }
+
+    .gift-option-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .gift-option-info {
+      flex: 1;
+    }
+
+    .gift-option-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: block;
+    }
+
+    .gift-option-desc {
+      font-size: 0.75rem;
+      color: #aaa;
+    }
+
+    /* Subscription Option */
+    .option-sub .gift-option-icon { background: rgba(0, 212, 255, 0.1); color: #00d4ff; }
+    /* Coin Option */
+    .option-coin .gift-option-icon { background: rgba(255, 215, 0, 0.1); color: #ffd700; }
+    /* Charisma Option */
+    .option-charisma .gift-option-icon { background: rgba(255, 20, 147, 0.1); color: #ff1493; }
+
+    .gift-footer {
+      padding: 15px 24px 24px;
+      text-align: center;
+    }
+
+    .gift-cancel-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #888;
+      padding: 8px 24px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .gift-cancel-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+    }
+
     @keyframes fadeInOut {
       0% {
         opacity: 0;
@@ -394,6 +979,50 @@
       letter-spacing: 0.5px;
       background: rgba(255, 255, 255, 0.1);
     }
+
+    /* Message Badge Style */
+    .msg-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #f43f5e;
+      color: #fff;
+      border-radius: 50%;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      font-size: 10px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+      border: 2px solid #0f0f19;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .msg-badge.hidden { display: none !important; }
+
+    /* Quick Message Modal specific styles */
+    #quickMessageModal .modal-content {
+      background: rgba(15, 15, 25, 0.95);
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    #quickMessageModal .modal-header { border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+    #quickMessageModal .modal-footer { border-top: 1px solid rgba(255, 255, 255, 0.1); }
+    #quickMessageModal textarea {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-radius: 12px;
+      padding: 15px;
+    }
+    #quickMessageModal textarea:focus {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: #00d4ff;
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+    }
   </style>
 </head>
 
@@ -423,8 +1052,8 @@
       </a>
 
 
-      <!-- Add Book (admin + publisher only) -->
-      {% if session.get('role') in ['admin', 'publisher'] %}
+      <!-- Add Book (admin + developer + publisher only) -->
+      {% if session.get('role') in ['admin', 'developer', 'publisher'] %}
       <a href="{{ url_for('add_book') }}" class="nav-item">
         <i class="fas fa-upload"></i>
         <span class="tooltip-text">Upload Book</span>
@@ -435,12 +1064,6 @@
       <a href="{{ url_for('public_events') }}" class="nav-item">
         <i class="fas fa-calendar-alt" style="color: #ffc107;"></i>
         <span class="tooltip-text">Events</span>
-      </a>
-
-      <!-- Reward Shop -->
-      <a href="{{ url_for('shop') }}" class="nav-item">
-        <i class="fas fa-shopping-cart" style="color: #ffd700;"></i>
-        <span class="tooltip-text">Reward Shop</span>
       </a>
 
       <!-- Community Groups -->
@@ -455,6 +1078,15 @@
         <span class="tooltip-text">Reviews</span>
       </a>
 
+      <!-- Messages -->
+      <a href="{{ url_for('messages_page') }}" class="nav-item">
+        <div style="position: relative;">
+          <i class="fas fa-envelope"></i>
+          <span class="msg-badge hidden" id="globalMsgBadge">0</span>
+        </div>
+        <span class="tooltip-text">Messages</span>
+      </a>
+
       <!-- Watchlist -->
       <a href="{{ url_for('watchlist') }}" class="nav-item">
         <i class="fas fa-layer-group"></i>
@@ -467,13 +1099,15 @@
         <span class="tooltip-text">Achievements</span>
       </a>
 
-      <!-- Customization (New Image Button) - Pro/Ultimate Only -->
-      {% if session.get('plan') in ['pro', 'ultimate'] %}
+      <!-- Customization (New Image Button) - Pro/Ultimate or Admin/Developer/Publisher -->
+      {% if session.get('role') in ['admin', 'developer', 'publisher'] or session.get('plan') in ['pro', 'ultimate'] %}
       <a href="{{ url_for('customization') }}" class="nav-item nav-item-img nav-customization">
         <img src="{{ url_for('static', filename='img/nav_icon_customization.png') }}" alt="Customization">
         <span class="tooltip-text">Customization</span>
       </a>
       {% endif %}
+
+
 
       <!-- Profile -->
       <a href="{{ url_for('profile') }}" class="nav-item">
@@ -481,8 +1115,8 @@
         <span class="tooltip-text">My Profile</span>
       </a>
 
-      <!-- My Uploads (admin + publisher only) -->
-      {% if session.get('role') in ['admin', 'publisher'] %}
+      <!-- My Uploads (admin + developer + publisher only) -->
+      {% if session.get('role') in ['admin', 'developer', 'publisher'] %}
       <a href="{{ url_for('my_uploads') }}" class="nav-item">
         <i class="fas fa-folder-open"></i>
         <span class="tooltip-text">My Uploads</span>
@@ -490,8 +1124,8 @@
       {% endif %}
 
       <!-- Customization Upload (Old Button) -->
-      <!-- Customization Upload (Old Button) - Admin Only -->
-      {% if session.get('role') == 'admin' %}
+      <!-- Customization Upload (Old Button) - Admin/Developer Only -->
+      {% if session.get('role') in ['admin', 'developer'] %}
       <a href="{{ url_for('customization_upload') }}" class="nav-item nav-customization">
         <i class="fas fa-wand-magic-sparkles"></i>
         <span class="tooltip-text">Customization Upload</span>
@@ -523,10 +1157,12 @@
 
       <div class="d-flex align-items-center">
         <div class="top-menu-links">
-          {% if session.get('role') == 'admin' %}
+          {% if session.get('role') in ['admin', 'developer'] %}
           <a href="/admin/team" class="nav-link-item">Team Admin</a>
-          <a href="{{ url_for('user_management') }}" class="nav-link-item">User Management</a>
-          <a href="{{ url_for('admin_reports') }}" class="nav-link-item">Reports</a>
+          <a href="{{ url_for('admin_moderators') }}" class="nav-link-item">Moderators</a>
+          {% if session.get('role') == 'admin' %}
+          <a href="{{ url_for('admin_create_developer') }}" class="nav-link-item text-warning">Create Developer</a>
+          {% endif %}
           {% endif %}
           <a href="{{ url_for('ranking') }}" class="nav-link-item">Rankings</a>
 
@@ -540,6 +1176,8 @@
               <a href="{{ url_for('faq') }}">FAQ & Guidelines</a>
               <a href="{{ url_for('support_requests') }}">Support / Request</a>
               <a href="{{ url_for('tools') }}"><i class="fas fa-wrench me-1"></i>Tools</a>
+              <!-- Charisma Hall relocated here -->
+              <a href="{{ url_for('charisma_hall') }}" style="color: #ff1493;"><i class="fas fa-gem me-1"></i>Charisma Hall</a>
               <a href="{{ url_for('about') }}">About</a>
             </div>
           </div>
@@ -593,13 +1231,12 @@
             <a href="{{ url_for('settings') }}"><i class="fas fa-shield"></i> Security</a>
             <a href="{{ url_for('avatar_studio') }}"><i class="fas fa-paint-brush"></i> Avatar Studio</a>
             <a href="#" onclick="openAppearanceModal(); return false;"><i class="fas fa-palette"></i> Appearance</a>
-            {% if session.get('role') in ['admin', 'publisher'] or session.get('plan') in ['pro', 'ultimate'] %}
+            {% if session.get('role') in ['admin', 'developer', 'publisher'] or session.get('plan') in ['pro', 'ultimate'] %}
             <a href="{{ url_for('admin_revenue') }}"><i class="fas fa-chart-line"></i> Revenue Dashboard</a>
             {% endif %}
-            {% if session.get('role') == 'admin' %}
+            {% if session.get('role') in ['admin', 'developer'] %}
             <a href="/admin/achievements"><i class="fas fa-trophy"></i> Manage Achievements</a>
-            <a href="{{ url_for('customization_upload') }}"><i class="fas fa-wand-magic-sparkles"></i> Customization
-              Upload</a>
+            <a href="{{ url_for('customization_upload') }}"><i class="fas fa-wand-magic-sparkles"></i> Customization Upload</a>
             {% endif %}
 
             <!-- CONTENT -->
@@ -623,8 +1260,8 @@
             <a href="#" onclick="openActivityLogModal(); return false;"><i class="fas fa-chart-line"></i> Activity
               Log</a>
 
-            {% if session.get('role') == 'admin' %}
-            <div class="dd-section-title">ADMIN</div>
+            {% if session.get('role') in ['admin', 'developer'] %}
+            <div class="dd-section-title">ELEVATED</div>
             <a href="{{ url_for('admin_events') }}"><i class="fas fa-calendar-star"></i> Event Management</a>
             <a href="{{ url_for('user_management') }}"><i class="fas fa-users-gear"></i> User Management</a>
             <a href="/admin/team"><i class="fas fa-people-group"></i> Team Admin</a>
@@ -736,6 +1373,7 @@
         document.getElementById('rewardModal').style.display = 'none';
       }
     </script>
+    </script>
 
     <style>
       @keyframes pulse {
@@ -832,6 +1470,10 @@
           <i class="fas fa-envelope user-interaction-icon"></i>
           Send Message
         </button>
+        <button class="user-interaction-option" onclick="openGiftModal()" style="color: #ffd700; background: rgba(255, 215, 0, 0.03);">
+          <i class="fas fa-gift user-interaction-icon"></i>
+          Send Gifts
+        </button>
         <button class="user-interaction-option" onclick="reportUser()">
           <i class="fas fa-flag user-interaction-icon"></i>
           Report User
@@ -843,6 +1485,47 @@
       </div>
       <div class="user-interaction-footer">
         <button class="user-interaction-close" onclick="closeUserInteractionModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GIFTING MODAL -->
+  <div id="giftModal" class="gift-modal">
+    <div class="gift-dialog">
+      <div class="gift-header">
+        <div class="gift-header-icon"><i class="fas fa-gift"></i></div>
+        <h3>Send a Gift</h3>
+      </div>
+      <div class="gift-body">
+        <button class="gift-option option-sub" onclick="sendGift('subscription')">
+          <div class="gift-option-icon"><i class="fas fa-gem"></i></div>
+          <div class="gift-option-info">
+            <span class="gift-option-title">Subscription</span>
+            <span class="gift-option-desc">Give Pro or Ultimate status</span>
+          </div>
+          <i class="fas fa-chevron-right" style="font-size: 0.7rem; opacity: 0.4;"></i>
+        </button>
+
+        <button class="gift-option option-coin" onclick="sendGift('coin')">
+          <div class="gift-option-icon"><i class="fas fa-coins"></i></div>
+          <div class="gift-option-info">
+            <span class="gift-option-title">Novus Coins</span>
+            <span class="gift-option-desc">Send currency for the shop</span>
+          </div>
+          <i class="fas fa-chevron-right" style="font-size: 0.7rem; opacity: 0.4;"></i>
+        </button>
+
+        <button class="gift-option option-charisma" onclick="sendGift('charisma')">
+          <div class="gift-option-icon"><i class="fas fa-sparkles"></i></div>
+          <div class="gift-option-info">
+            <span class="gift-option-title">Charisma Boost</span>
+            <span class="gift-option-desc">Increase their profile influence</span>
+          </div>
+          <i class="fas fa-chevron-right" style="font-size: 0.7rem; opacity: 0.4;"></i>
+        </button>
+      </div>
+      <div class="gift-footer">
+        <button class="gift-cancel-btn" onclick="closeGiftModal()">Cancel</button>
       </div>
     </div>
   </div>
@@ -1836,28 +2519,32 @@
       // Show overlay
       overlay.classList.add('show');
 
-      // Check for bundle-specific logout animation in localStorage
+      // Priorities: 1. User Equipped Reward, 2. Bundle Theme
+      const userAnimPath = "{{ avatar_settings.animation_logout if avatar_settings and avatar_settings.animation_logout and avatar_settings.animation_logout != 'none' else '' }}";
       const activeBundleTheme = JSON.parse(localStorage.getItem('appThemeSettings') || '{}');
-      if (activeBundleTheme.logout_animation) {
+      const bundleAnimPath = activeBundleTheme.logout_animation || '';
+      
+      const selectedPath = userAnimPath || bundleAnimPath;
+
+      if (selectedPath) {
         const customMediaContainer = overlay.querySelector('.custom-anim-media');
+        const isVideo = selectedPath.toLowerCase().endsWith('.mp4') || selectedPath.toLowerCase().endsWith('.webm');
+        const mediaSrc = selectedPath.startsWith('static/') ? '/' + selectedPath : '/static/' + selectedPath;
+
         if (customMediaContainer) {
-          const path = activeBundleTheme.logout_animation;
-          const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
           if (isVideo) {
-            customMediaContainer.innerHTML = `<video src="/static/${path}" autoplay muted playsinline preload="auto"></video>`;
+            customMediaContainer.innerHTML = `<video src="${mediaSrc}" autoplay muted playsinline preload="auto"></video>`;
           } else {
-            customMediaContainer.innerHTML = `<img src="/static/${path}" />`;
+            customMediaContainer.innerHTML = `<img src="${mediaSrc}" />`;
           }
         } else {
-          // If there was no .custom-anim-media (e.g. using default styles), we can create it
+          // If there was no .custom-anim-media (e.g. using default styles), we create it
           const container = document.createElement('div');
           container.className = 'custom-anim-media';
-          const path = activeBundleTheme.logout_animation;
-          const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm');
           if (isVideo) {
-            container.innerHTML = `<video src="/static/${path}" autoplay muted playsinline preload="auto"></video>`;
+            container.innerHTML = `<video src="${mediaSrc}" autoplay muted playsinline preload="auto"></video>`;
           } else {
-            container.innerHTML = `<img src="/static/${path}" />`;
+            container.innerHTML = `<img src="${mediaSrc}" />`;
           }
           overlay.prepend(container);
           // Hide default animation content
@@ -1865,6 +2552,7 @@
           if (logoutAnimContent) logoutAnimContent.style.display = 'none';
         }
       }
+
 
       // Redirect to logout after animation
       const video = overlay.querySelector('video');
@@ -1917,7 +2605,284 @@
     let currentUserId = null;
     let currentContext = null;
 
-    function openUserInteractionModal(userId, userName, userRole, avatarUrl, event, context = null) {
+function applyTitleGlow(el, glow, bg, font) {
+  if (!el) return;
+  
+  // Safely grab the original text without picking up duplicated spans if it was partially rendered
+  let originalText = el.getAttribute('data-original-text');
+  if (!originalText) {
+      const existingGlow = el.querySelector('.glow-text-layer');
+      originalText = existingGlow ? (existingGlow.innerText || existingGlow.textContent) : (el.innerText || el.textContent);
+      el.setAttribute('data-original-text', originalText);
+  }
+
+  // Clean element
+  el.innerHTML = '';
+  // Main container MUST be overflow:visible to show accessories
+  el.style.cssText = 'position:relative; display:inline-block; overflow:visible; transition:all 0.3s ease;';
+
+  // --- Helper: Path Fixer ---
+  const fixPath = (p) => {
+    if (!p || typeof p !== 'string' || p.startsWith('http') || p.startsWith('/')) return p;
+    if (p.startsWith('static/')) return '/' + p;
+    return '/static/' + p;
+  };
+
+  // --- Prefix Handling & Normalization ---
+  let cleanGlow = glow || 'none';
+  let cleanBg = bg || '';
+  let cleanFont = font || '';
+
+  // Strip prefixes if they exist
+  if (typeof cleanGlow === 'string') {
+      if (cleanGlow.startsWith('glow:')) cleanGlow = cleanGlow.substring(5);
+      else if (cleanGlow.startsWith('bg:')) { cleanBg = cleanGlow.substring(3); cleanGlow = 'none'; }
+      else if (cleanGlow.startsWith('font:')) { cleanFont = cleanGlow.substring(5); cleanGlow = 'none'; }
+  }
+  if (typeof cleanBg === 'string' && cleanBg.startsWith('bg:')) cleanBg = cleanBg.substring(3);
+  if (typeof cleanFont === 'string' && cleanFont.startsWith('font:')) cleanFont = cleanFont.substring(5);
+
+  // --- Advanced JSON Data Parsing & Merging ---
+  const tryParseJSON = (str) => {
+      if (!str || typeof str !== 'string' || !str.trim().startsWith('{')) return null;
+      try {
+          // 1. Try standard JSON first
+          return JSON.parse(str);
+      } catch (e) {
+          try {
+              // 2. Universal Fallback: Use Function constructor to evaluate as a JS object
+              // This robustly handles single quotes, unquoted keys, and trailing commas.
+              return (new Function(`return ${str}`))();
+          } catch (e2) {
+              // Final fallback: Manual regex as a last resort
+              const fam = str.match(/family\s*[:=]\s*['"]?([^'",}]+)/);
+              const fnt = str.match(/font\s*[:=]\s*['"]?([^'",}]+)/);
+              if (fam || fnt) {
+                  return { family: fam ? fam[1].trim() : null, font: fnt ? fnt[1].trim() : null };
+              }
+              console.warn("TitleGlow Parse Error (Malformed Data):", e2, str);
+              return null;
+          }
+      }
+  };
+
+  let glowJson = tryParseJSON(cleanGlow);
+  let fontJson = tryParseJSON(cleanFont);
+
+  // Merge Data: Start with Glow, override with Font
+  let mergedData = {};
+  if (glowJson) {
+      mergedData = { ...glowJson };
+      if (glowJson.style) mergedData = { ...mergedData, ...glowJson.style };
+  }
+  if (fontJson) {
+      // First: merge ALL top-level keys (captures 'font', 'family', 'googleFont')
+      mergedData = { ...mergedData, ...fontJson };
+      // Then: flatten nested 'style' properties (gradient, glow, animation, etc.)
+      if (fontJson.style) {
+          mergedData = { ...mergedData, ...fontJson.style };
+      }
+      
+      // Special case: Combine accessories from BOTH if they exist
+      const glowAcc = (glowJson && glowJson.accessories) || (glowJson && glowJson.style && glowJson.style.accessories) || [];
+      const fontAcc = (fontJson && fontJson.accessories) || (fontJson && fontJson.style && fontJson.style.accessories) || [];
+      if (fontAcc.length > 0) {
+          mergedData.accessories = [...glowAcc, ...fontAcc];
+      }
+  }
+
+  // URL Sanitizer (Fixes Google Fonts share links)
+  const sanitizeFontUrl = (url) => {
+      if (!url || typeof url !== 'string' || url === 'none') return url;
+      if (url.includes('fonts.googleapis.com/css2')) return url;
+      if (url.includes('fonts.google.com/share')) {
+          const match = url.match(/(?:\?|&)selection\.family=([^&|]+)/);
+          if (match) {
+              const familyName = match[1].replace(/\+/g, ' ').replace(/%20/g, ' ');
+              // Return the actual CSS endpoint
+              return `https://fonts.googleapis.com/css2?family=${match[1]}:wght@400;700;900&display=swap`;
+          }
+      }
+      return url;
+  };
+
+  // --- Background Layer (Separate from text to allow overflow:hidden on BG ONLY) ---
+  const bgLayer = document.createElement('div');
+  Object.assign(bgLayer.style, {
+      position: 'absolute', inset: '0', zIndex: '1', borderRadius: '6px', 
+      overflow: 'hidden', pointerEvents: 'none'
+  });
+  el.appendChild(bgLayer);
+
+  // Create Layers: typoLayer (Outer, handles Font) and colorLayer (Inner, handles Glow/Color)
+  const typoLayer = document.createElement('span');
+  typoLayer.className = 'glow-typo-layer';
+  typoLayer.style.cssText = 'position:relative; z-index:3; display:inline-block; transition:all 0.3s ease;';
+  
+  const colorLayer = document.createElement('span');
+  colorLayer.className = 'glow-text-layer';
+  colorLayer.textContent = originalText;
+  colorLayer.style.cssText = 'display:inline-block; width:100%; height:100%; transition:all 0.3s ease;';
+  
+  typoLayer.appendChild(colorLayer);
+  el.appendChild(typoLayer);
+
+  // 1. Process Font Layer (On typoLayer)
+  let hasSpecialFontClass = false;
+  if (mergedData.font || mergedData.family || mergedData.googleFont) {
+    const rawUrl = mergedData.font || mergedData.googleFont;
+    const fontUrl = fixPath(sanitizeFontUrl(rawUrl));
+    let family = '';
+    if (fontUrl && fontUrl.includes('family=')) {
+        const famMatch = fontUrl.match(/family=([^&:]+)/);
+        if (famMatch) family = famMatch[1].split(/[|]|%7C/)[0].replace(/\+/g, ' ').replace(/%20/g, ' ').trim();
+    }
+    if (!family) family = mergedData.family || 'inherit';
+
+    if (fontUrl && fontUrl !== 'none' && fontUrl !== 'inherit') {
+      let link = document.querySelector(`link[href="${fontUrl}"]`);
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'stylesheet'; link.href = fontUrl;
+        document.head.appendChild(link);
+      }
+    }
+    if (family && family !== 'none' && family !== 'inherit') {
+        typoLayer.style.fontFamily = `'${family}', sans-serif`;
+        hasSpecialFontClass = true; 
+    }
+  } else if (cleanFont && cleanFont.startsWith('title-font-')) {
+    typoLayer.classList.add(cleanFont);
+    hasSpecialFontClass = true;
+  } else if (cleanFont && !cleanFont.includes('/') && !cleanFont.includes('.')) {
+    typoLayer.classList.add('title-font-' + cleanFont.replace('title-font-', ''));
+    hasSpecialFontClass = true;
+  }
+
+  // FORCE-OFF Font Coloration if a Glow is present (Composition Support)
+  if (hasSpecialFontClass && cleanGlow && cleanGlow !== 'none') {
+      // By forcing background to 'none' on the parent, we let the inner colorLayer's gradient win
+      typoLayer.style.background = 'none';
+      typoLayer.style.webkitTextFillColor = 'initial';
+      typoLayer.style.textShadow = 'none';
+      typoLayer.style.backgroundClip = 'initial';
+      typoLayer.style.webkitBackgroundClip = 'initial';
+  }
+
+  // 2. Process Background Layer (On bgLayer)
+  let bgData = cleanBg || (mergedData.background);
+  if (bgData) {
+    if (typeof bgData === 'string' && bgData.startsWith('title-bg-')) {
+      bgLayer.classList.add(bgData);
+    } else if (typeof bgData === 'string' && (bgData.startsWith('http') || bgData.startsWith('/') || bgData.includes('static/') || bgData.includes('.'))) {
+      const actualUrl = fixPath(bgData);
+      if (actualUrl.match(/\.(mp4|webm)$/i)) {
+          const v = document.createElement('video');
+          v.src = actualUrl; v.autoplay = true; v.muted = true; v.loop = true; v.playsInline = true;
+          Object.assign(v.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'cover', zIndex: '1' });
+          bgLayer.appendChild(v);
+          v.play().catch(e => {});
+      } else {
+          Object.assign(bgLayer.style, { backgroundImage: `url('${actualUrl}')`, backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' });
+      }
+      Object.assign(el.style, { padding: '2px 12px', borderRadius: '6px' });
+    } else if (typeof bgData === 'string' && bgData.length > 0 && !bgData.includes('/') && !bgData.includes('.')) {
+      bgLayer.classList.add('title-bg-' + bgData.replace('title-bg-', ''));
+    }
+  }
+
+  // 3. Process Glow & Text Effects (On colorLayer)
+  
+  // A. Apply Standard or Admin Class-based Glows
+  if (cleanGlow === 'title-glow-admin') {
+      colorLayer.style.color = '#ffd700';
+      colorLayer.style.webkitTextFillColor = '#ffd700';
+      colorLayer.style.textShadow = '0 0 8px #ffd700, 0 0 16px #ff8c00, 0 0 30px rgba(255, 165, 0, 0.4)';
+      colorLayer.style.fontWeight = '900';
+      colorLayer.style.animation = 'adminGoldShine 3s ease-in-out infinite';
+      
+      const crown = document.createElement('span');
+      crown.className = 'admin-crown'; crown.textContent = '👑';
+      crown.style.cssText = 'position:absolute; top:-1.1em; left:50%; transform:translateX(-50%); font-size:0.7em; animation:crownBob 2s ease-in-out infinite; z-index:3;';
+      el.appendChild(crown);
+      
+      const spark = document.createElement('span');
+      spark.className = 'admin-spark'; spark.textContent = '⚡';
+      spark.style.cssText = 'position:absolute; font-size:0.9em; top:50%; right:-1.3em; transform:translateY(-50%); animation:sparkFlicker 2s infinite ease-in-out; z-index:2;';
+      el.appendChild(spark);
+  } else if (cleanGlow && cleanGlow !== 'none' && !glowJson) {
+      const glowClass = cleanGlow.startsWith('title-glow-') ? cleanGlow : 'title-glow-' + cleanGlow;
+      colorLayer.classList.add(glowClass);
+  }
+
+  // B. Apply JSON-based Overrides (Stacks on top of standard classes)
+  if (Object.keys(mergedData).length > 0) {
+    const data = mergedData;
+    const isClassGlowActive = cleanGlow && cleanGlow !== 'none' && !glowJson;
+
+    // Only apply JSON coloration if it's the primary glow source OR if no class-glow is overriding it
+    if (data.background && (data.background.includes('gradient') || data.background.includes('url')) && (!isClassGlowActive || glowJson)) {
+       if (!data.background.includes('title-bg-')) {
+         colorLayer.style.background = fixPath(data.background);
+         colorLayer.style.webkitBackgroundClip = 'text'; colorLayer.style.backgroundClip = 'text';
+       }
+    } else if (data.gradient && (!isClassGlowActive || glowJson)) {
+      colorLayer.style.background = `linear-gradient(90deg, ${data.gradient[0]}, ${data.gradient[1]}, ${data.gradient[0]})`;
+      colorLayer.style.backgroundSize = '200% auto';
+      colorLayer.style.webkitBackgroundClip = 'text'; colorLayer.style.backgroundClip = 'text';
+    }
+    
+    if (colorLayer.style.webkitBackgroundClip === 'text' && (!hasSpecialFontClass || isClassGlowActive)) {
+        colorLayer.style.webkitTextFillColor = 'transparent';
+    }
+
+    if (data.glow) colorLayer.style.filter = `drop-shadow(0 0 ${data.shadowSpread || 10}px ${data.glow || '#fff'})`;
+    if (data.fontWeight) colorLayer.style.fontWeight = data.fontWeight;
+    if (data.strokeWidth > 0) colorLayer.style.webkitTextStroke = `${data.strokeWidth}px ${data.strokeColor}`;
+
+    const animMap = {
+        'shine': 'titleShine 3s linear infinite', 'pulse': 'glowPulse 2s ease-in-out infinite',
+        'flicker': 'glowFlicker 0.15s infinite alternate', 'rainbow': 'titleRainbow 2s linear infinite',
+        'breath': 'glowBreath 3s ease-in-out infinite', 'jitter': 'electricJitter 0.2s infinite',
+        'hue': 'hueCycle 4s linear infinite', 'float': 'gentleFloating 3s ease-in-out infinite',
+        'neon': 'neonFlicker 4s infinite', 'glitch': 'glitchEffect 0.4s infinite',
+        'strobe': 'strobeLight 0.5s ease-in-out infinite', 'wave': 'softWave 4s ease-in-out infinite',
+        'scale': 'scalePulse 2s ease-in-out infinite', 'spin': 'shadowSpin 4s linear infinite',
+        'flow': 'titleFlow 3s linear infinite', 'aurora': 'auroraShift 4s linear infinite',
+        'ocean': 'oceanWave 3s ease-in-out infinite', 'fire': 'fireFlicker 2s infinite alternate',
+        'ghost': 'ghostFade 3s ease-in-out infinite', 'vortex': 'vortexRotate 5s linear infinite',
+        'shake': 'textShake 0.5s infinite', 'tilt': 'textTilt 2s ease-in-out infinite'
+    };
+    if (data.animation && animMap[data.animation]) colorLayer.style.animation = animMap[data.animation];
+  }
+
+  // 4. Apply Accessories (On main el)
+  if (mergedData.accessories && Array.isArray(mergedData.accessories)) {
+    mergedData.accessories.forEach(acc => {
+        if (!acc.url) return;
+        const positions = (acc.pos === 'all' ? ['top','bottom','left','right'] : 
+                          (acc.pos === 'top-bottom' ? ['top','bottom'] : 
+                          (acc.pos === 'left-right' ? ['left','right'] : [acc.pos])));
+        
+        positions.forEach(p => {
+            const img = document.createElement('img');
+            img.src = fixPath(acc.url); img.className = 'title-accessory';
+            const w = acc.width || acc.size || 20; const h = acc.height || acc.size || 20;
+            let s = `position:absolute; width:${w}px; height:${h}px; z-index:5; pointer-events:none;`;
+            if (p === 'top') s += `top:-${h}px; left:50%; transform:translateX(-50%);`;
+            else if (p === 'bottom') s += `bottom:-${h}px; left:50%; transform:translateX(-50%);`;
+            else if (p === 'left') s += `left:-${w + 5}px; top:50%; transform:translateY(-50%);`;
+            else if (p === 'right') s += `right:-${w + 5}px; top:50%; transform:translateY(-50%);`;
+            img.style.cssText = s;
+            let anSuffix = (p === 'left' || p === 'right') ? '-horiz' : '';
+            if (acc.anim && acc.anim !== 'none') img.style.animation = `acc-${acc.anim}${anSuffix} 3s ease-in-out infinite`;
+            el.appendChild(img);
+        });
+    });
+  }
+}
+
+function openUserInteractionModal(userId, userName, userRole, avatarUrl, event, context = null, titleGlow = null) {
       if (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -1929,22 +2894,23 @@
         username: userName
       };
 
-      // Debug: temporarily show alert
-      console.log('Opening modal for user:', userId, userName, context);
-
-      // Don't show modal for current user
-      const loggedInUserId = '{{ session.get("user_id", "") }}';
-      if (userId == loggedInUserId) {
-        console.log('Not showing modal for current user');
-        // Temporarily show modal anyway for testing
-        // return;
-      }
-
       currentUserId = userId;
       currentContext = context;
 
       // Update modal content
-      document.getElementById('userName').textContent = userName;
+      const userNameEl = document.getElementById('userName');
+      userNameEl.textContent = userName;
+      
+      // Unified Title Glow Applicator
+      if (typeof applyTitleGlow === 'function') {
+        // Modals currently use single glow value from user object, we can extend this if needed
+        applyTitleGlow(userNameEl, titleGlow);
+      } else {
+        const glowClasses = Array.from(userNameEl.classList).filter(c => c.startsWith('title-glow-'));
+        glowClasses.forEach(c => userNameEl.classList.remove(c));
+        if (titleGlow && titleGlow !== 'none') userNameEl.classList.add('title-glow-' + titleGlow);
+      }
+
       document.getElementById('userRole').textContent = userRole || 'Reader';
 
       const avatarImg = document.getElementById('userAvatar');
@@ -1960,11 +2926,9 @@
       const blockUserBtn = document.querySelector('.user-interaction-option.danger');
 
       if (context === 'review') {
-        // Hide send message and block user options for reviews
         if (sendMessageBtn) sendMessageBtn.style.display = 'none';
         if (blockUserBtn) blockUserBtn.style.display = 'none';
       } else {
-        // Show all options for other contexts
         allOptions.forEach(option => option.style.display = 'block');
       }
 
@@ -1979,25 +2943,94 @@
       currentUserId = null;
       currentContext = null;
 
-      // Reset option visibility
       const allOptions = document.querySelectorAll('.user-interaction-option');
       allOptions.forEach(option => option.style.display = 'block');
     }
+
+    function openGiftModal() {
+      // Hide interaction modal first
+      document.getElementById('userInteractionModal').classList.remove('show');
+      
+      const modal = document.getElementById('giftModal');
+      modal.classList.add('show');
+      document.body.classList.add('no-scroll');
+    }
+
+    function closeGiftModal() {
+      document.getElementById('giftModal').classList.remove('show');
+      // If we want to return to interaction modal, we'd call openUserInteractionModal again
+      // but usually closing a sub-modal should just close everything or return to the main one.
+      // For now, let's keep it closed unless the user wants to go back.
+      document.body.classList.remove('no-scroll');
+    }
+
+    function sendGift(type) {
+      const username = window._currentProfileUser ? window._currentProfileUser.username : 'the user';
+      alert(`Gifting system for ${type} is being integrated! Soon you'll be able to send ${type}s to ${username}.`);
+      closeGiftModal();
+    }
+
+    function visitUserProfile() {
+      if (window._currentProfileUser && window._currentProfileUser.id) {
+        window.location.href = '/user/' + window._currentProfileUser.id;
+      }
+    }
+
+    // Global Title Glow Observer for Real-time Rendering
+    document.addEventListener('DOMContentLoaded', () => {
+      const glowObserver = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach(node => {
+              if (node.nodeType === 1) { 
+                if (node.classList.contains('user-glow-rendered')) {
+                  applyTitleGlow(node, node.dataset.glow, node.dataset.glowBg, node.dataset.glowFont);
+                }
+                node.querySelectorAll('.user-glow-rendered').forEach(el => {
+                  applyTitleGlow(el, el.dataset.glow, el.dataset.glowBg, el.dataset.glowFont);
+                });
+              }
+            });
+          } else if (mutation.type === 'attributes') {
+            const el = mutation.target;
+            if (el.classList.contains('user-glow-rendered')) {
+              applyTitleGlow(el, el.dataset.glow, el.dataset.glowBg, el.dataset.glowFont);
+            }
+          }
+        });
+      });
+      
+      glowObserver.observe(document.body, { 
+        childList: true, 
+        subtree: true, 
+        attributes: true, 
+        attributeFilter: ['data-glow', 'data-glow-bg', 'data-glow-font'] 
+      });
+      
+      // Initial Apply
+      document.querySelectorAll('.user-glow-rendered').forEach(el => {
+        applyTitleGlow(el, el.dataset.glow, el.dataset.glowBg, el.dataset.glowFont);
+      });
+    });
 
     function visitUserProfile() {
       if (window._currentProfileUser && window._currentProfileUser.username) {
         window.location.href = `/u/${window._currentProfileUser.username}`;
       } else if (currentUserId) {
-        // Fallback or legacy
-        window.location.href = `/u/${currentUserId}`; // Should ideally be username
+        window.location.href = `/u/${currentUserId}`; 
       }
       closeUserInteractionModal();
     }
 
     function sendMessage() {
-      // Placeholder for messaging functionality
-      alert('Messaging feature coming soon!');
-      closeUserInteractionModal();
+      // If we are in the user interaction modal context
+      if (window._currentProfileUser) {
+        openQuickMessage(window._currentProfileUser.id, window._currentProfileUser.username);
+        closeUserInteractionModal();
+      } else {
+        // Fallback to messages page
+        window.location.href = "{{ url_for('messages_page') }}";
+      }
     }
 
     function reportUser() {
@@ -2040,8 +3073,12 @@
     // Close modal when clicking outside
     document.addEventListener('click', function (event) {
       const modal = document.getElementById('userInteractionModal');
+      const gModal = document.getElementById('giftModal');
       if (event.target === modal) {
         closeUserInteractionModal();
+      }
+      if (event.target === gModal) {
+        closeGiftModal();
       }
     });
 
@@ -2091,6 +3128,95 @@
   </script>
   {% block modals %}{% endblock %}
   {% block extra_js %}{% endblock %}
+  <!-- Quick Message Modal -->
+  <div class="modal fade" id="quickMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="quickMessageModalTitle">Send Message to User</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <textarea id="quickMessageText" class="form-control" rows="4" placeholder="Type your message here..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btnSendQuickMessage" style="background: #00d4ff; border: none;">
+            <i class="fas fa-paper-plane me-2"></i>Send Message
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global Messaging Logic
+    let currentQuickMessageUserId = null;
+
+    function openQuickMessage(userId, username) {
+      currentQuickMessageUserId = userId;
+      document.getElementById('quickMessageModalTitle').textContent = `Message to ${username}`;
+      document.getElementById('quickMessageText').value = '';
+      const modal = new bootstrap.Modal(document.getElementById('quickMessageModal'));
+      modal.show();
+    }
+
+    async function updateUnreadBadge() {
+      try {
+        const response = await fetch('/api/messages/unread_count');
+        const data = await response.json();
+        const badge = document.getElementById('globalMsgBadge');
+        if (badge) {
+          if (data.unread_count > 0) {
+            badge.textContent = data.unread_count;
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+        }
+      } catch (err) {}
+    }
+
+    document.getElementById('btnSendQuickMessage')?.addEventListener('click', async () => {
+      const content = document.getElementById('quickMessageText').value.trim();
+      if (!content || !currentQuickMessageUserId) return;
+
+      const btn = document.getElementById('btnSendQuickMessage');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+
+      try {
+        const response = await fetch('/api/messages/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receiver_id: currentQuickMessageUserId,
+            content: content
+          })
+        });
+
+        if (response.ok) {
+          bootstrap.Modal.getInstance(document.getElementById('quickMessageModal')).hide();
+          alert('Message sent successfully!');
+        } else {
+          alert('Failed to send message.');
+        }
+      } catch (err) {
+        alert('An error occurred.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Send Message';
+      }
+    });
+
+    // Start global badge polling if logged in
+    {% if session.get('user_id') %}
+    document.addEventListener('DOMContentLoaded', () => {
+      updateUnreadBadge();
+      setInterval(updateUnreadBadge, 30000); // Check every 30s
+    });
+    {% endif %}
+  </script>
 </body>
 
 </html>

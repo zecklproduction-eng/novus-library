@@ -308,8 +308,12 @@
                                     <option value="border">Border Frame</option>
                                     <option value="animation">Profile Animation</option>
                                 </select>
+                                <select name="new_prize_rarity" class="nexus-input mb-2" style="padding: 10px;">
+                                    <option value="epic" selected>Epic Rarity</option>
+                                    <option value="exclusive">Exclusive Rarity</option>
+                                </select>
                                 <div class="icon-upload-area" id="prizeDropZone" style="padding: 10px;">
-                                    <input type="file" name="prize_file" id="prizeFileInput" hidden accept="image/*">
+                                    <input type="file" name="prize_file" id="prizeFileInput" hidden accept="image/*,video/*">
                                     <div class="icon-preview" id="prizePreview" style="width: 40px; height: 40px;">
                                         <i class="fas fa-upload"></i>
                                     </div>
@@ -457,7 +461,13 @@
     
     function previewPrizeFile(file) {
         const reader = new FileReader();
-        reader.onload = (e) => prizePreview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
+        reader.onload = (e) => {
+            if (file.type.startsWith('video/')) {
+                prizePreview.innerHTML = `<video src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" autoplay loop muted></video>`;
+            } else {
+                prizePreview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+            }
+        };
         reader.readAsDataURL(file);
     }
 

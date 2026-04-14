@@ -372,169 +372,545 @@
 
                 if (isReactTsx) {
                     // Projects with TSX need special handling
-                    // We inject a loader that will transpile and run the TSX files
 
                     // 1. Extract the original importmap if it exists
                     const importMapMatch = html.match(/<script type="importmap">([\s\S]*?)<\/script>/i);
-                    const originalImportMap = importMapMatch ? JSON.parse(importMapMatch[1]) : { imports: {} };
+                    let originalImportMap = importMapMatch ? JSON.parse(importMapMatch[1]) : { imports: {} };
 
-                    // 2. Remove the original TSX script and importmap from HTML
-                    html = html.replace(/<script\s+type="module"\s+src=["']([^"']*\.tsx)["']><\/script>/g, '');
+                    // 1.2. If no import map exists, auto-generate from package.json
+                    if (!importMapMatch || Object.keys(originalImportMap.imports || {}).length === 0) {
+                        try {
+                            const pkgRes = await fetch(`/raw-project/${name}/package.json`);
+                            if (pkgRes.ok) {
+                                const pkg = await pkgRes.json();
+                                const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+                                const generatedImports = {};
+                                const skipDeps = ['vite', '@vitejs/plugin-react', 'typescript', 'autoprefixer',
+                                    'tailwindcss', '@tailwindcss/vite', 'tsx', 'dotenv', 'express',
+                                    '@types/node', '@types/express', '@types/react', '@types/react-dom',
+                                    'postcss', 'eslint', '@eslint/js', 'globals', 'eslint-plugin-react-hooks',
+                                    'eslint-plugin-react-refresh', 'typescript-eslint'];
+                                // Detect React version for pinning
+                                const reactVer = String(deps['react'] || '19.0.0').replace(/^[\^~>=<]*/,'');
+                                const reactDomVer = String(deps['react-dom'] || reactVer).replace(/^[\^~>=<]*/,'');
+                                const depsParam = `?deps=react@${reactVer},react-dom@${reactDomVer}`;
+
+                                for (const [dep, ver] of Object.entries(deps)) {
+                                    if (skipDeps.includes(dep)) continue;
+                                    const cleanVer = String(ver).replace(/^[\^~>=<]*/,'');
+                                    if (dep === 'react' || dep === 'react-dom') {
+                                        // React itself - no deps param needed
+                                        generatedImports[dep] = `https://esm.sh/${dep}@${cleanVer}`;
+                                        generatedImports[dep + '/'] = `https://esm.sh/${dep}@${cleanVer}/`;
+                                    } else {
+                                        // Non-react deps: exact match with ?deps= for React pinning
+                                        generatedImports[dep] = `https://esm.sh/${dep}@${cleanVer}${depsParam}`;
+                                        // Prefix match: store base URL + deps separately
+                                        // Format: baseURL/?deps=... — subpath will be inserted by resolver
+                                        generatedImports[dep + '/'] = `https://esm.sh/${dep}@${cleanVer}/|${depsParam}`;
+                                    }
+                                }
+                                originalImportMap = { imports: generatedImports };
+                                console.log('[Outer] Auto-generated import map from package.json:', Object.keys(generatedImports));
+                            }
+                        } catch(e) {
+                            console.warn('[Outer] Could not load package.json:', e);
+                        }
+                    }
+
+                    // 1.5. Extract actual entry script path
+                    const scriptMatch = html.match(/<script[^>]*?(?:type="module"[^>]*?src=["'](.*?\.(?:tsx|jsx|ts|js))["']|src=["'](.*?\.(?:tsx|jsx|ts|js))["'][^>]*?type="module")[^>]*?><\/script>/i);
+                    const actualEntry = scriptMatch ? (scriptMatch[1] || scriptMatch[2]) : 'index.tsx';
+                    const actualEntryNorm = actualEntry.replace(/\.(tsx|jsx|ts|js)$/, '');
+
+                    // 2. Remove module script tags AND import map from HTML
+                    html = html.replace(/<script[^>]*?type="module"[^>]*?src=["'][^"']*\.(?:tsx|jsx|ts|js)["'][^>]*?><\/script>/gi, '');
+                    html = html.replace(/<script[^>]*?src=["'][^"']*\.(?:tsx|jsx|ts|js)["'][^>]*?type="module"[^>]*?><\/script>/gi, '');
                     html = html.replace(/<script type="importmap">[\s\S]*?<\/script>/gi, '');
 
                     // 3. Add a base tag
                     const baseTag = `<base href="/raw-project/${name}/">`;
                     html = html.replace('<head>', `<head>\n${baseTag}`);
 
-                    // 4. Inject our TSX loader at the end of body
+                    // 4.1. Check if this is a Tailwind project and inject CDN
+                    let hasTailwind = false;
+                    try {
+                        const pkgRes2 = await fetch(`/raw-project/${name}/package.json`);
+                        if (pkgRes2.ok) {
+                            const pkgText = await pkgRes2.text();
+                            hasTailwind = pkgText.includes('tailwindcss');
+                        }
+                    } catch(e) {}
+                    
+                    if (hasTailwind) {
+                        // Inject Tailwind CDN v4 play CDN for runtime compilation
+                        const tailwindCdn = `<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></scr` + `ipt>`;
+                        html = html.replace('</head>', tailwindCdn + '\n</head>');
+                    }
+
+                    // 4.2. Pre-fetch CSS files from source and inject into HTML
+                    // This must happen BEFORE setting srcdoc so Tailwind CDN can process them
+                    try {
+                        // Scan entry file and all source files for CSS imports
+                        const cssImports = new Set();
+                        const filesToScan = [actualEntry];
+                        const scannedFiles = new Set();
+                        
+                        while (filesToScan.length > 0) {
+                            const scanFile = filesToScan.pop();
+                            if (scannedFiles.has(scanFile)) continue;
+                            scannedFiles.add(scanFile);
+                            
+                            // Try to fetch the file
+                            let scanRes = await fetch(`/raw-project/${name}/${scanFile}`);
+                            if (!scanRes.ok) {
+                                // Try with extensions
+                                const exts = ['.tsx', '.ts', '.jsx', '.js'];
+                                for (const ext of exts) {
+                                    scanRes = await fetch(`/raw-project/${name}/${scanFile}${ext}`);
+                                    if (scanRes.ok) break;
+                                }
+                            }
+                            if (!scanRes.ok) continue;
+                            
+                            const srcCode = await scanRes.text();
+                            
+                            // Find CSS imports: import './something.css' or import "../something.css"
+                            const patterns = ["import '", 'import "'];
+                            for (const pat of patterns) {
+                                let searchPos = 0;
+                                while (true) {
+                                    const idx = srcCode.indexOf(pat, searchPos);
+                                    if (idx === -1) break;
+                                    const qChar = pat.charAt(pat.length - 1);
+                                    const specStart = idx + pat.length;
+                                    const specEnd = srcCode.indexOf(qChar, specStart);
+                                    if (specEnd === -1) { searchPos = specStart; continue; }
+                                    const spec = srcCode.substring(specStart, specEnd);
+                                    if (spec.endsWith('.css') && (spec.startsWith('./') || spec.startsWith('../'))) {
+                                        // Resolve the path relative to current file
+                                        const fileDir = scanFile.includes('/') ? scanFile.substring(0, scanFile.lastIndexOf('/')) : '';
+                                        const parts = (fileDir + '/' + spec).split('/');
+                                        const stack = [];
+                                        for (const part of parts) {
+                                            if (part === '.' || part === '') continue;
+                                            if (part === '..') { if (stack.length > 0) stack.pop(); }
+                                            else stack.push(part);
+                                        }
+                                        cssImports.add(stack.join('/'));
+                                    }
+                                    // Also scan for more source file imports to find nested CSS
+                                    if ((spec.startsWith('./') || spec.startsWith('../')) && !spec.endsWith('.css')) {
+                                        const fileDir = scanFile.includes('/') ? scanFile.substring(0, scanFile.lastIndexOf('/')) : '';
+                                        const parts = (fileDir + '/' + spec).split('/');
+                                        const stack = [];
+                                        for (const part of parts) {
+                                            if (part === '.' || part === '') continue;
+                                            if (part === '..') { if (stack.length > 0) stack.pop(); }
+                                            else stack.push(part);
+                                        }
+                                        filesToScan.push(stack.join('/'));
+                                    }
+                                    searchPos = specEnd + 1;
+                                }
+                            }
+                            // Also check from 'xxx' patterns for more relative imports
+                            const fromPatterns = ["from '", 'from "'];
+                            for (const pat of fromPatterns) {
+                                let searchPos = 0;
+                                while (true) {
+                                    const idx = srcCode.indexOf(pat, searchPos);
+                                    if (idx === -1) break;
+                                    const qChar = pat.charAt(pat.length - 1);
+                                    const specStart = idx + pat.length;
+                                    const specEnd = srcCode.indexOf(qChar, specStart);
+                                    if (specEnd === -1) { searchPos = specStart; continue; }
+                                    const spec = srcCode.substring(specStart, specEnd);
+                                    if ((spec.startsWith('./') || spec.startsWith('../')) && !spec.endsWith('.css')) {
+                                        const fileDir = scanFile.includes('/') ? scanFile.substring(0, scanFile.lastIndexOf('/')) : '';
+                                        const parts = (fileDir + '/' + spec).split('/');
+                                        const stack = [];
+                                        for (const part of parts) {
+                                            if (part === '.' || part === '') continue;
+                                            if (part === '..') { if (stack.length > 0) stack.pop(); }
+                                            else stack.push(part);
+                                        }
+                                        filesToScan.push(stack.join('/'));
+                                    }
+                                    searchPos = specEnd + 1;
+                                }
+                            }
+                        }
+                        
+                        // Fetch and inject all discovered CSS files
+                        for (const cssPath of cssImports) {
+                            try {
+                                const cssRes = await fetch(`/raw-project/${name}/${cssPath}`);
+                                if (cssRes.ok) {
+                                    let cssText = await cssRes.text();
+                                    // For Tailwind projects, use text/tailwindcss type
+                                    const styleType = hasTailwind ? 'text/tailwindcss' : 'text/css';
+                                    const styleTag = `<style type="${styleType}" data-file="${cssPath}">\n${cssText}\n</style>`;
+                                    html = html.replace('</head>', styleTag + '\n</head>');
+                                    console.log('[Outer] Pre-injected CSS:', cssPath);
+                                }
+                            } catch(e) {
+                                console.warn('[Outer] Failed to pre-fetch CSS:', cssPath, e);
+                            }
+                        }
+                    } catch(e) {
+                        console.warn('[Outer] CSS pre-fetch scan failed:', e);
+                    }
+
+                    // 4.3. Try to load .env file for process.env injection
+                    let envVars = {};
+                    try {
+                        let envRes = await fetch(`/raw-project/${name}/.env`);
+                        if (!envRes.ok) {
+                            envRes = await fetch(`/raw-project/${name}/.env.example`);
+                        }
+                        if (envRes.ok) {
+                            const envText = await envRes.text();
+                            envText.split('\n').forEach(line => {
+                                const trimmed = line.trim();
+                                if (trimmed && !trimmed.startsWith('#')) {
+                                    const eqIdx = trimmed.indexOf('=');
+                                    if (eqIdx > 0) {
+                                        envVars[trimmed.substring(0, eqIdx).trim()] = trimmed.substring(eqIdx + 1).trim();
+                                    }
+                                }
+                            });
+                        }
+                    } catch(e) {}
+
+                    // 4.4. Inject process.env shim (required for Vite projects that use process.env)
+                    const processShim = `<script>window.process = window.process || { env: ${JSON.stringify(envVars)} };</scr` + `ipt>`;
+                    html = html.replace('</head>', processShim + '\n</head>');
+
+                    // 5. Inject TSX loader — uses ONLY string ops inside (NO regex)
                     const loaderScript = `
 <script type="module">
-    const basePath = '/raw-project/${name}/';
-    const entryPath = '${entryPoint}';
-    const EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js'];
-    const originalImports = ${JSON.stringify(originalImportMap.imports)};
+    var basePath = '/raw-project/${name}/';
+    var entryPath = '${actualEntry}';
+    var actualEntryNorm = '${actualEntryNorm}';
+    var EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js'];
+    var originalImports = ${JSON.stringify(originalImportMap.imports)};
     
-    // Resolve a path relative to a base directory
     function resolvePath(importPath, currentDir) {
         if (!importPath.startsWith('.')) return importPath;
-        
-        const parts = (currentDir + '/' + importPath).split('/');
-        const stack = [];
-        for (const part of parts) {
-            if (part === '.' || part === '') continue;
-            if (part === '..') {
-                if (stack.length > 0) stack.pop();
-            } else {
-                stack.push(part);
-            }
+        var parts = (currentDir + '/' + importPath).split('/');
+        var stack = [];
+        for (var i = 0; i < parts.length; i++) {
+            if (parts[i] === '.' || parts[i] === '') continue;
+            if (parts[i] === '..') { if (stack.length > 0) stack.pop(); }
+            else { stack.push(parts[i]); }
         }
         return stack.join('/');
     }
 
     function getDir(path) {
-        const parts = path.split('/');
-        parts.pop();
-        return parts.join('/');
+        var idx = path.lastIndexOf('/');
+        return idx >= 0 ? path.substring(0, idx) : '';
+    }
+
+    function stripExt(p) {
+        if (p.endsWith('.tsx')) return p.slice(0, -4);
+        if (p.endsWith('.jsx')) return p.slice(0, -4);
+        if (p.endsWith('.ts')) return p.slice(0, -3);
+        if (p.endsWith('.js')) return p.slice(0, -3);
+        return p;
+    }
+
+    function hasCodeExt(p) {
+        return p.endsWith('.tsx') || p.endsWith('.ts') || p.endsWith('.jsx') || p.endsWith('.js');
     }
     
     async function fetchFile(path) {
-        if (path.match(/\\.(tsx|ts|jsx|js)$/)) {
-            const res = await fetch(basePath + path);
+        if (hasCodeExt(path)) {
+            var res = await fetch(basePath + path);
             if (res.ok) return { actualPath: path, code: await res.text() };
         }
-        
-        for (const ext of EXTENSIONS) {
-            const tryPath = path + ext;
-            const res = await fetch(basePath + tryPath);
-            if (res.ok) return { actualPath: tryPath, code: await res.text() };
+        for (var i = 0; i < EXTENSIONS.length; i++) {
+            var res2 = await fetch(basePath + path + EXTENSIONS[i]);
+            if (res2.ok) return { actualPath: path + EXTENSIONS[i], code: await res2.text() };
         }
-        throw new Error('Failed to load module: ' + path);
+        for (var i = 0; i < EXTENSIONS.length; i++) {
+            var res3 = await fetch(basePath + path + '/index' + EXTENSIONS[i]);
+            if (res3.ok) return { actualPath: path + '/index' + EXTENSIONS[i], code: await res3.text() };
+        }
+        throw new Error('Failed to load: ' + path);
     }
-    
-    function extractImports(code) {
-        const imports = [];
-        const regex = /from\\s+['\"](\\.?\\.?\\/[^'\"]+)['"]/g;
-        let match;
-        while ((match = regex.exec(code)) !== null) {
-            imports.push(match[1]);
+
+    function extractRelativeImports(code) {
+        var imports = [];
+        var patterns = ["from '", 'from "', "import '", 'import "'];
+        for (var p = 0; p < patterns.length; p++) {
+            var pos = 0;
+            while (true) {
+                var idx = code.indexOf(patterns[p], pos);
+                if (idx === -1) break;
+                var qChar = patterns[p].charAt(patterns[p].length - 1);
+                var specStart = idx + patterns[p].length;
+                var specEnd = code.indexOf(qChar, specStart);
+                if (specEnd === -1) { pos = specStart; continue; }
+                var spec = code.substring(specStart, specEnd);
+                if ((spec.startsWith('./') || spec.startsWith('../')) && imports.indexOf(spec) === -1) {
+                    imports.push(spec);
+                }
+                pos = specEnd + 1;
+            }
         }
         return imports;
     }
 
-    // Helper to rewrite imports in code to use bare specifiers
-    function rewriteImportsToBare(code, currentFilePath) {
-        const currentDir = getDir(currentFilePath);
-        return code.replace(/from\\s+(['\"])(\\.?\\.?\\/[^'\"]+)(['\"])/g, (match, quote1, imp, quote2) => {
-            const resolved = resolvePath(imp, currentDir);
-            const normResolved = resolved.replace(/\\.(tsx|ts|jsx|js)$/, '');
-            return \`from \${quote1}@project/\${normResolved}\${quote2}\`;
-        });
+    function rewriteRelativeImports(code, currentFilePath) {
+        var currentDir = getDir(currentFilePath);
+        var result = code;
+        for (var qi = 0; qi < 2; qi++) {
+            var q = qi === 0 ? "'" : '"';
+            var pos = 0;
+            while (true) {
+                var needle = 'from ' + q;
+                var idx = result.indexOf(needle, pos);
+                if (idx === -1) break;
+                var specStart = idx + needle.length;
+                var specEnd = result.indexOf(q, specStart);
+                if (specEnd === -1) { pos = specStart; continue; }
+                var spec = result.substring(specStart, specEnd);
+                if ((spec.startsWith('./') || spec.startsWith('../')) && !spec.endsWith('.css')) {
+                    var resolved = resolvePath(spec, currentDir);
+                    var norm = stripExt(resolved);
+                    var replacement = '@project/' + norm;
+                    result = result.substring(0, specStart) + replacement + result.substring(specEnd);
+                    pos = specStart + replacement.length + 1;
+                } else {
+                    pos = specEnd + 1;
+                }
+            }
+        }
+        return result;
+    }
+
+    function resolveWithImportMap(specifier) {
+        if (originalImports[specifier]) return originalImports[specifier];
+        var keys = Object.keys(originalImports);
+        for (var i = 0; i < keys.length; i++) {
+            if (keys[i].endsWith('/') && specifier.startsWith(keys[i])) {
+                var mapValue = originalImports[keys[i]];
+                var subpath = specifier.slice(keys[i].length);
+                // Check for pipe-delimited format: baseURL|?deps=...
+                var pipeIdx = mapValue.indexOf('|');
+                if (pipeIdx !== -1) {
+                    var baseUrl = mapValue.substring(0, pipeIdx);
+                    var queryStr = mapValue.substring(pipeIdx + 1);
+                    return baseUrl + subpath + queryStr;
+                }
+                return mapValue + subpath;
+            }
+        }
+        return null;
+    }
+
+    function rewriteBareSpecifiers(code) {
+        var result = code;
+        // Process all from '...' and from "..." patterns
+        for (var qi = 0; qi < 2; qi++) {
+            var q = qi === 0 ? "'" : '"';
+            var pos = 0;
+            while (true) {
+                var needle = 'from ' + q;
+                var idx = result.indexOf(needle, pos);
+                if (idx === -1) break;
+                var specStart = idx + needle.length;
+                var specEnd = result.indexOf(q, specStart);
+                if (specEnd === -1) { pos = specStart; continue; }
+                var spec = result.substring(specStart, specEnd);
+                // Skip relative, absolute, blob, http, and @project/ specifiers
+                if (spec.startsWith('.') || spec.startsWith('/') || spec.startsWith('blob:') || 
+                    spec.startsWith('http://') || spec.startsWith('https://') || spec.startsWith('@project/')) {
+                    pos = specEnd + 1;
+                    continue;
+                }
+                // Try to resolve via import map
+                var resolved = resolveWithImportMap(spec);
+                if (resolved) {
+                    result = result.substring(0, specStart) + resolved + result.substring(specEnd);
+                    pos = specStart + resolved.length + 1;
+                } else {
+                    pos = specEnd + 1;
+                }
+            }
+        }
+        return result;
+    }
+
+    function topoSort(graph) {
+        var visited = {};
+        var temp = {};
+        var order = [];
+        function visit(node) {
+            if (visited[node]) return;
+            if (temp[node]) { if (order.indexOf(node) === -1) order.push(node); return; }
+            temp[node] = true;
+            var deps = graph[node] || [];
+            for (var i = 0; i < deps.length; i++) visit(deps[i]);
+            delete temp[node];
+            visited[node] = true;
+            order.push(node);
+        }
+        var nodes = Object.keys(graph);
+        for (var i = 0; i < nodes.length; i++) visit(nodes[i]);
+        return order;
+    }
+
+    async function handleCssImport(code, filePath) {
+        // CSS files are pre-injected by the outer loader into the HTML head.
+        // Here we just REMOVE the import statements so Babel doesn't error on them.
+        var result = code;
+        var patterns = ["import '", 'import "'];
+        for (var p = 0; p < patterns.length; p++) {
+            var pos = 0;
+            while (true) {
+                var idx = result.indexOf(patterns[p], pos);
+                if (idx === -1) break;
+                var qChar = patterns[p].charAt(patterns[p].length - 1);
+                var specStart = idx + patterns[p].length;
+                var specEnd = result.indexOf(qChar, specStart);
+                if (specEnd === -1) { pos = specStart; continue; }
+                var spec = result.substring(specStart, specEnd);
+                if (spec.endsWith('.css')) {
+                    // Remove the entire import statement
+                    var lineEnd = result.indexOf(';', idx);
+                    if (lineEnd === -1) lineEnd = specEnd + 1;
+                    result = result.substring(0, idx) + result.substring(lineEnd + 1);
+                    pos = idx;
+                } else {
+                    pos = specEnd + 1;
+                }
+            }
+        }
+        return result;
     }
     
-    async function loadProject() {
-        console.log('[TSX Loader] Starting Bare Specifier Rewriting load...');
+    async function run() {
+        console.log('[TSX] Starting... imports:', Object.keys(originalImports).length);
         
-        const files = {}; 
-        const toProcess = [entryPath];
+        var files = {}; 
+        var toProcess = [entryPath];
         
         while (toProcess.length > 0) {
-            const currentItem = toProcess.pop();
-            const currentDir = getDir(currentItem);
-            let normalizedItem = currentItem.replace(/\\.(tsx|ts|jsx|js)$/, '');
-            
+            var currentItem = toProcess.pop();
+            var currentDir = getDir(currentItem);
+            var normalizedItem = stripExt(currentItem);
             if (files[normalizedItem]) continue;
-            
             try {
-                const { actualPath, code } = await fetchFile(currentItem);
-                files[normalizedItem] = { code, actualPath };
-                console.log('[TSX Loader] Loaded:', actualPath);
-                
-                const imports = extractImports(code);
-                for (const imp of imports) {
-                    const resolved = resolvePath(imp, currentDir);
-                    const normResolved = resolved.replace(/\\.(tsx|ts|jsx|js)$/, '');
-                    if (!files[normResolved]) {
-                        toProcess.push(resolved);
-                    }
+                var fetched = await fetchFile(currentItem);
+                files[normalizedItem] = { code: fetched.code, actualPath: fetched.actualPath };
+                console.log('[TSX] Loaded:', fetched.actualPath);
+                var imports = extractRelativeImports(fetched.code);
+                for (var i = 0; i < imports.length; i++) {
+                    if (imports[i].endsWith('.css')) continue;
+                    var resolved = resolvePath(imports[i], currentDir);
+                    var normResolved = stripExt(resolved);
+                    if (!files[normResolved]) toProcess.push(resolved);
                 }
             } catch (e) {
-                console.warn('[TSX Loader] Context-aware load skip:', currentItem, e.message);
+                console.warn('[TSX] Skip:', currentItem, e.message);
             }
         }
         
-        console.log('[TSX Loader] Loading Babel...');
-        const babel = await import('https://esm.sh/@babel/standalone@7.24.5');
+        console.log('[TSX] Loading Babel...');
+        var babel = await import('https://esm.sh/@babel/standalone@7.24.5');
         
-        const transpiled = {};
-        for (const [normPath, file] of Object.entries(files)) {
+        var transpiled = {};
+        var fkeys = Object.keys(files);
+        for (var f = 0; f < fkeys.length; f++) {
+            var normPath = fkeys[f];
+            var file = files[normPath];
             try {
-                const result = babel.transform(file.code, {
+                var src = await handleCssImport(file.code, file.actualPath);
+                var result = babel.transform(src, {
                     filename: file.actualPath,
                     presets: [
                         ['react', { runtime: 'automatic' }],
                         ['typescript', { isTSX: true, allExtensions: true }]
                     ],
                 });
-                // We rewrite the transpiled code to use bare specifiers
-                const rewritten = rewriteImportsToBare(result.code, file.actualPath);
-                transpiled[normPath] = rewritten;
+                var code = rewriteRelativeImports(result.code, file.actualPath);
+                code = rewriteBareSpecifiers(code);
+                transpiled[normPath] = code;
+                console.log('[TSX] Transpiled:', normPath);
             } catch (e) {
-                console.error('[TSX Loader] Transpile error for', file.actualPath, e);
+                console.error('[TSX] Error:', file.actualPath, e);
                 throw e;
             }
         }
 
-        // 5. Create blobs and build the final import map
-        const finalImports = { ...originalImports };
-        
-        for (const [normPath, code] of Object.entries(transpiled)) {
-            const blob = new Blob([code], { type: 'application/javascript' });
-            const url = URL.createObjectURL(blob);
-            
-            // Map the bare specifier we created in the rewrite step to this URL
-            finalImports[\`@project/\${normPath}\`] = url;
-            
-            // Also map the root 'index' if this is it
-            if (normPath === 'index') {
-                finalImports['index'] = url;
+        var depGraph = {};
+        var allNorms = Object.keys(transpiled);
+        for (var i = 0; i < allNorms.length; i++) {
+            depGraph[allNorms[i]] = [];
+            for (var j = 0; j < allNorms.length; j++) {
+                if (i !== j && transpiled[allNorms[i]].indexOf('@project/' + allNorms[j]) !== -1) {
+                    depGraph[allNorms[i]].push(allNorms[j]);
+                }
             }
         }
+        var sorted = topoSort(depGraph);
 
-        console.log('[TSX Loader] Generating Virtual Import Map...');
-        const importMapScript = document.createElement('script');
-        importMapScript.type = 'importmap';
-        importMapScript.textContent = JSON.stringify({ imports: finalImports });
-        document.head.appendChild(importMapScript);
+        console.log('[TSX] Creating blobs...');
+        var blobUrls = {};
+        for (var s = 0; s < sorted.length; s++) {
+            var np = sorted[s];
+            var code = transpiled[np];
+            var bk = Object.keys(blobUrls);
+            for (var b = 0; b < bk.length; b++) {
+                var spec = '@project/' + bk[b];
+                var bu = blobUrls[bk[b]];
+                code = code.split("'" + spec + "'").join("'" + bu + "'");
+                code = code.split('"' + spec + '"').join('"' + bu + '"');
+            }
+            blobUrls[np] = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
+        }
 
-        console.log('[TSX Loader] Final Execution...');
-        // We import the bare specifier '@project/index'
-        await import('@project/index');
-        console.log('[TSX Loader] Done!');
+        console.log('[TSX] Executing:', actualEntryNorm);
+        var entryBlob = blobUrls[actualEntryNorm];
+        if (!entryBlob) {
+            throw new Error('Entry not found: ' + actualEntryNorm + '. Have: ' + Object.keys(blobUrls).join(', '));
+        }
+
+        // Catch async errors that happen during React rendering
+        window.addEventListener('error', function(event) {
+            console.error('[TSX] Runtime error:', event.error || event.message);
+            var root = document.getElementById('root');
+            if (root && root.innerHTML.length < 10) {
+                root.innerHTML = '<div style="color:#ff6b6b;padding:20px;font-family:monospace;"><h3>Runtime Error</h3><pre>' + (event.error ? event.error.stack || event.error.message : event.message) + '</pre></div>';
+            }
+        });
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('[TSX] Unhandled promise rejection:', event.reason);
+            var root = document.getElementById('root');
+            if (root && root.innerHTML.length < 10) {
+                root.innerHTML = '<div style="color:#ff6b6b;padding:20px;font-family:monospace;"><h3>Promise Rejection</h3><pre>' + (event.reason ? event.reason.stack || event.reason.message || event.reason : 'Unknown error') + '</pre></div>';
+            }
+        });
+
+        await import(entryBlob);
+        console.log('[TSX] Done!');
+
+        // Check if React rendered anything after a delay
+        setTimeout(function() {
+            var root = document.getElementById('root');
+            if (root && root.innerHTML.length < 10) {
+                console.warn('[TSX] React may not have rendered. Root content:', root.innerHTML);
+                root.innerHTML = '<div style="padding:40px;font-family:sans-serif;text-align:center;"><h2 style="color:#64748b;">Project loaded but UI is empty</h2><p style="color:#94a3b8;">This may be due to missing API keys or incompatible dependencies.</p></div>';
+            }
+        }, 3000);
     }
     
-    loadProject().catch(e => {
-        console.error('[TSX Loader] Fatal error:', e);
-        document.body.innerHTML = '<div style="color:#ff6b6b;padding:20px;font-family:monospace;background:#1a1a2e;min-height:100vh;"><h2>Error Loading Project</h2><pre>' + e.stack + '</pre></div>';
+    run().catch(function(e) {
+        console.error('[TSX] Fatal:', e);
+        document.body.innerHTML = '<div style="color:#ff6b6b;padding:20px;font-family:monospace;background:#1a1a2e;min-height:100vh;"><h2>Error Loading Project</h2><pre>' + (e.message || e) + '</pre></div>';
     });
 <` + `/script>`;
 

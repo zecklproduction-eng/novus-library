@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+{% block title %}Manage Moderators | NOVUS Admin{% endblock %}
+
+{% block content %}
+<style>
+    .user-select-list {
+        max-height: 350px;
+        overflow-y: auto;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+        padding: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+    .user-select-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    .user-select-list::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+    }
+    .user-option-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        margin-bottom: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        background: rgba(255,255,255,0.02);
+    }
+    .user-option-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateX(4px);
+    }
+    .user-option-card.selected {
+        background: rgba(25, 135, 84, 0.15);
+        border-color: rgba(25, 135, 84, 0.4);
+        box-shadow: 0 0 15px rgba(25, 135, 84, 0.1);
+    }
+    .user-option-card.selected .selection-indicator i {
+        display: block !important;
+    }
+    .user-option-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(255,255,255,0.1);
+    }
+    .user-option-info {
+        flex: 1;
+    }
+    .user-option-name {
+        display: block;
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    .user-option-email {
+        display: block;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.75rem;
+    }
+    .permission-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin-bottom: 12px;
+        transition: all 0.2s ease;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .permission-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+    .permission-info {
+        flex: 1;
+    }
+    .permission-name {
+        display: block;
+        color: #f8f9fa;
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 2px;
+    }
+    .permission-description {
+        display: block;
+        color: rgba(255, 255, 255, 0.45);
+        font-size: 0.8rem;
+    }
+    .form-switch .form-check-input {
+        width: 3em;
+        height: 1.5em;
+        cursor: pointer;
+        background-color: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.2);
+    }
+    .form-switch .form-check-input:checked {
+        background-color: #198754;
+        border-color: #1fe084;
+    }
+    .saving-indicator {
+        font-size: 0.75rem;
+        color: #0dcaf0;
+        display: none;
+        align-items: center;
+        gap: 6px;
+    }
+</style>
+
+<div class="container mt-5 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="fas fa-shield-halved text-success me-2"></i>Manage Moderators</h2>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="row g-4">
+        <!-- Left Column: Add New Moderator -->
+        <div class="col-md-4">
+            <div class="glass-panel p-4 h-100">
+                <h4 class="mb-3 text-white"><i class="fas fa-user-plus me-2 text-success"></i>Promote User</h4>
+                <p class="small text-muted mb-4">Assign a trusted reader as a Moderator to help manage specific areas of the platform.</p>
+
+                <form action="{{ url_for('assign_moderator') }}" method="POST" id="promoteForm">
+                    <input type="hidden" name="user_id" id="selectedUserId" required>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50">Search & Select User</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text bg-dark border-secondary text-muted" style="border-right: none;"><i class="fas fa-search"></i></span>
+                            <input type="text" id="userSearch" class="form-control bg-dark text-white border-secondary" style="border-left: none;" placeholder="Filter by name or email..." onkeyup="filterUsers()">
+                        </div>
+                        
+                        <div class="user-select-list" id="userList">
+                            <!-- Populated via AJAX -->
+                            <div class="text-center py-4 text-white-50 small">Loading users...</div>
+                        </div>
+                        <button type="button" id="loadMoreBtn" class="btn btn-sm btn-outline-secondary w-100 mt-2" style="display: none;" onclick="fetchUsers(true)">
+                            <i class="fas fa-chevron-down me-2"></i>Load More
+                        </button>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 fw-bold py-2 mt-2" id="promoteBtn" disabled>
+                        <i class="fas fa-user-shield me-2"></i>Promote to Moderator
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column: Current Moderators -->
+        <div class="col-md-8">
+            <div class="glass-panel p-4 h-100">
+                <h4 class="mb-3 text-white"><i class="fas fa-users-gear me-2 text-info"></i>Active Moderators</h4>
+
+                {% if moderators %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Moderator</th>
+                                    <th>Access Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mod in moderators %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">{{ mod.username }}</div>
+                                        <div class="small text-muted">{{ mod.email }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge rounded-pill bg-dark border border-secondary text-info fw-normal px-2 py-1">
+                                                {{ (mod.permissions|length or 0) }} Permissions
+                                            </span>
+                                            <button class="btn btn-sm btn-link text-info p-0 text-decoration-none" data-bs-toggle="modal" data-bs-target="#modModal{{ mod.id }}">
+                                                Edit Access <i class="fas fa-chevron-right ms-1 small"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">
+                                        <form action="{{ url_for('remove_moderator') }}" method="POST" onsubmit="return confirm('Are you sure you want to demote this moderator?');">
+                                            <input type="hidden" name="user_id" value="{{ mod.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger px-3">Demote</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-white-50">
+                        <i class="fas fa-user-shield mb-3" style="font-size: 3rem; opacity: 0.5;"></i>
+                        <h5>No active moderators</h5>
+                        <p class="mb-0">Use the form on the left to assign your first moderator.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Container (Moved outside content grid to prevent backsplash issues) -->
+{% for mod in moderators %}
+<div class="modal fade" id="modModal{{ mod.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content bg-black border-secondary text-white shadow-lg">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="fas fa-key text-warning me-2"></i>Permissions: {{ mod.username }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="text-white-50 small">Toggle features this moderator can access. Items are saved automatically.</div>
+                    <div id="saving_{{ mod.id }}" class="saving-indicator">
+                        <i class="fas fa-circle-notch fa-spin"></i> Saving...
+                    </div>
+                </div>
+
+                <div class="permission-card">
+                    <div class="permission-info">
+                        <span class="permission-name">User Management</span>
+                        <span class="permission-description">Ability to ban, unban, and manage user statuses.</span>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" onchange="togglePerm({{ mod.id }}, 'manage_users', this)" {% if 'manage_users' in mod.permissions %}checked{% endif %}>
+                    </div>
+                </div>
+
+                <div class="permission-card">
+                    <div class="permission-info">
+                        <span class="permission-name">User Reports</span>
+                        <span class="permission-description">View and resolve reports sent by community members.</span>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" onchange="togglePerm({{ mod.id }}, 'manage_reports', this)" {% if 'manage_reports' in mod.permissions %}checked{% endif %}>
+                    </div>
+                </div>
+
+                <div class="permission-card">
+                    <div class="permission-info">
+                        <span class="permission-name">Community Control</span>
+                        <span class="permission-description">Moderate comments and community discussions.</span>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" onchange="togglePerm({{ mod.id }}, 'manage_community', this)" {% if 'manage_community' in mod.permissions %}checked{% endif %}>
+                    </div>
+                </div>
+
+                <div class="permission-card">
+                    <div class="permission-info">
+                        <span class="permission-name">Official Events</span>
+                        <span class="permission-description">Create and manage platform-wide member events.</span>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" onchange="togglePerm({{ mod.id }}, 'manage_events', this)" {% if 'manage_events' in mod.permissions %}checked{% endif %}>
+                    </div>
+                </div>
+
+                <div class="permission-card">
+                    <div class="permission-info">
+                        <span class="permission-name"><i class="fas fa-store text-info me-2"></i>Shop Management</span>
+                        <span class="permission-description">Add, edit, or remove items from the platform shop.</span>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" onchange="togglePerm({{ mod.id }}, 'manage_shop', this)" {% if 'manage_shop' in mod.permissions %}checked{% endif %}>
+                    </div>
+                </div>
+
+                <div class="permission-card">
+                    <div class="permission-info">
+                        <span class="permission-name"><i class="fas fa-trophy text-warning me-2"></i>Achievements</span>
+                        <span class="permission-description">Manage user trophies, badges, and award criteria.</span>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" onchange="togglePerm({{ mod.id }}, 'manage_achievements', this)" {% if 'manage_achievements' in mod.permissions %}checked{% endif %}>
+                    </div>
+                </div>
+
+                <div class="permission-card">
+                    <div class="permission-info">
+                        <span class="permission-name"><i class="fas fa-book-bookmark text-danger me-2"></i>Book Bundles</span>
+                        <span class="permission-description">Create and organize book collections and bundles.</span>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" onchange="togglePerm({{ mod.id }}, 'manage_bundles', this)" {% if 'manage_bundles' in mod.permissions %}checked{% endif %}>
+                    </div>
+                </div>
+
+                <div class="permission-card">
+                    <div class="permission-info">
+                        <span class="permission-name"><i class="fas fa-wand-magic-sparkles text-accent me-2"></i>Charisma Hall</span>
+                        <span class="permission-description">Manage premium assets, title glows, and animations.</span>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" onchange="togglePerm({{ mod.id }}, 'manage_charisma', this)" {% if 'manage_charisma' in mod.permissions %}checked{% endif %}>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+let isLoading = false;
+let currentSearch = '';
+let currentPage = 1;
+
+async function togglePerm(modId, perm, element) {
+    const indicator = document.getElementById(`saving_${modId}`);
+    if (indicator) indicator.style.display = 'flex';
+    
+    try {
+        const action = element.checked ? 'grant' : 'revoke';
+        const formData = new FormData();
+        formData.append('user_id', modId);
+        formData.append('permission', perm);
+        formData.append('action', action);
+        
+        const resp = await fetch('/admin/moderators/permissions', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        
+        const contentType = resp.headers.get("content-type");
+        if (!resp.ok || !contentType || !contentType.includes("application/json")) {
+            throw new Error(`Server returned ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        if (!data.success) {
+            alert("Error: " + data.message);
+            element.checked = !element.checked; // Revert
+        }
+    } catch (e) {
+        console.error("Toggle error:", e);
+        alert("Failed to update permission. Please check your connection.");
+        element.checked = !element.checked; // Revert
+    } finally {
+        if (indicator) {
+            setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 500);
+        }
+    }
+}
+
+async function fetchUsers(append = false) {
+    if (isLoading) return;
+    isLoading = true;
+    
+    const list = document.getElementById('userList');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const promoteBtn = document.getElementById('promoteBtn');
+    
+    if (!append) {
+        list.innerHTML = '<div class="text-center py-4 text-white-50"><i class="fas fa-spinner fa-spin me-2"></i>Loading...</div>';
+        currentPage = 1;
+        promoteBtn.disabled = true;
+        document.getElementById('selectedUserId').value = '';
+    }
+    
+    try {
+        const resp = await fetch(`/api/admin/eligible-users?page=${currentPage}&q=${encodeURIComponent(currentSearch)}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        
+        const contentType = resp.headers.get("content-type");
+        if (!resp.ok || !contentType || !contentType.includes("application/json")) {
+            console.error("Invalid response from server:", resp.status);
+            if (!append) list.innerHTML = `<div class="text-center py-4 text-warning small"><i class="fas fa-exclamation-triangle me-2"></i> ${resp.status === 403 ? 'Session ended. Please refresh the page.' : 'Server error. Please try again.'}</div>`;
+            return;
+        }
+
+        const data = await resp.json();
+        
+        if (!append) list.innerHTML = '';
+        
+        if (data.users.length === 0 && !append) {
+            list.innerHTML = '<div class="text-center py-4 text-white-50 small">No users found</div>';
+        } else {
+            data.users.forEach(user => {
+                const card = document.createElement('div');
+                card.className = 'user-option-card';
+                card.onclick = () => selectUser(user.id, card);
+                card.innerHTML = `
+                    <div class="user-option-avatar-container">
+                        <img src="${user.avatar_url || '/static/uploads/avatars/default.png'}" class="user-option-avatar" onerror="this.onerror=null;this.src='/static/uploads/avatars/default.png'">
+                    </div>
+                    <div class="user-option-info">
+                        <span class="user-option-name">${user.username}</span>
+                        <span class="user-option-email text-truncate" style="max-width: 150px;">${user.email || 'No email associated'}</span>
+                    </div>
+                    <div class="selection-indicator">
+                        <i class="fas fa-check-circle text-success" style="display: none;"></i>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+        
+        loadMoreBtn.style.display = data.has_more ? 'block' : 'none';
+        currentPage++;
+    } catch (e) {
+        console.error(e);
+        if (!append) list.innerHTML = '<div class="text-center py-4 text-danger small">Network error. Please check your connection.</div>';
+    } finally {
+        isLoading = false;
+    }
+}
+
+let searchTimeout;
+function filterUsers() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        currentSearch = document.getElementById('userSearch').value;
+        fetchUsers(false);
+    }, 400);
+}
+
+function selectUser(userId, element) {
+    const cards = document.getElementsByClassName('user-option-card');
+    for (let card of cards) {
+        card.classList.remove('selected');
+    }
+    
+    element.classList.add('selected');
+    document.getElementById('selectedUserId').value = userId;
+    document.getElementById('promoteBtn').disabled = false;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        console.log("Moderator dashboard initializing...");
+        fetchUsers(false);
+    } catch (e) {
+        console.error("Initialization failed:", e);
+    }
+});
+</script>
+{% endblock %}

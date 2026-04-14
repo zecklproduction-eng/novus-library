@@ -631,8 +631,13 @@ def award_achievement(user_id, slug):
             
         ach_id, ach_name, ach_icon, ach_color, ach_level, ach_category = ach
         
-        # Check if already earned
-        c.execute("SELECT 1 FROM user_achievements WHERE user_id = ? AND achievement_id = ?", (user_id, ach_id))
+        # Check if already earned (by ID or by NAME to prevent duplicates across slugs)
+        c.execute("""
+            SELECT 1 FROM user_achievements ua
+            JOIN achievements a ON ua.achievement_id = a.id
+            WHERE ua.user_id = ? AND (ua.achievement_id = ? OR a.name = ?)
+        """, (user_id, ach_id, ach_name))
+        
         if c.fetchone():
             conn.close()
             return None
@@ -678,6 +683,91 @@ def award_achievement(user_id, slug):
     except Exception as e:
         logger.error(f"Error awarding achievement {slug} to user {user_id}: {e}")
         return None
+
+def get_rarity_points(rarity):
+    """Returns event points based on rarity level."""
+    if not rarity: return 100
+    r = str(rarity).lower().strip()
+    mapping = {
+        'common': 100,
+        'epic': 700,
+        'exclusive': 1500,
+        'legendary': 2000,
+        'limited': 2000
+    }
+    return mapping.get(r, 100)
+
+def award_prize_to_user(user_id, p_type, p_id, p_item_id, c):
+    """
+    颁发奖品：ACHIEVEMENT, ITEM, ENTRANCE_ANIMATION, CHARISMA, EVENT_POINTS.
+    Centralized logic that handles:
+    1. Awarding the actual prize if missing.
+    2. Converting to event_pts if already owned (non-admins only).
+    """
+    # Get user role for conversion check
+    c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+    user_row = c.fetchone()
+    user_role = user_row[0] if user_row else 'reader'
+    is_admin = (user_role == 'admin')
+
+    if p_type == 'achievement':
+        # Check if already earned
+        c.execute("SELECT id, rarity FROM achievements WHERE slug = ?", (p_id,))
+        ach = c.fetchone()
+        if ach:
+            ach_id, rarity = ach
+            c.execute("SELECT 1 FROM user_achievements WHERE user_id = ? AND achievement_id = ?", (user_id, ach_id))
+            if c.fetchone():
+                # Already owned -> Convert to points (except for admins)
+                if not is_admin:
+                    pts = get_rarity_points(rarity)
+                    c.execute("UPDATE users SET event_pts = COALESCE(event_pts, 0) + ? WHERE id = ?", (pts, user_id))
+                    logger.info(f"User {user_id} already has achievement {p_id}. Converted to {pts} event points.")
+            else:
+                # Award it
+                award_achievement(user_id, p_id)
+        
+    elif p_type in ['item', 'entrance_animation'] and p_item_id:
+        # Check shop_items
+        c.execute("SELECT id, rarity FROM shop_items WHERE id = ?", (p_item_id,))
+        item = c.fetchone()
+        if item:
+            item_id, rarity = item
+            c.execute("SELECT 1 FROM user_inventory WHERE user_id = ? AND item_id = ?", (user_id, item_id))
+            if c.fetchone():
+                # Already owned -> Convert to points (except for admins)
+                if not is_admin:
+                    pts = get_rarity_points(rarity)
+                    c.execute("UPDATE users SET event_pts = COALESCE(event_pts, 0) + ? WHERE id = ?", (pts, user_id))
+                    logger.info(f"User {user_id} already has item {p_item_id}. Converted to {pts} event points.")
+            else:
+                c.execute("INSERT INTO user_inventory (user_id, item_id) VALUES (?, ?)", (user_id, item_id))
+                # Check for badge type
+                c.execute("SELECT type, achievement_id FROM shop_items WHERE id = ?", (p_item_id,))
+                si = c.fetchone()
+                if si and si[0] == 'badge':
+                    award_achievement(user_id, si[1] or f"event_item_{p_item_id}")
+
+    elif p_type == 'charisma':
+        c.execute("UPDATE users SET charisma = COALESCE(charisma, 0) + ? WHERE id = ?", (int(p_id or 0), user_id))
+    elif p_type == 'event_points':
+        c.execute("UPDATE users SET event_pts = COALESCE(event_pts, 0) + ? WHERE id = ?", (int(p_id or 0), user_id))
+
+def grant_event_prizes_to_admins(p_type, p_id, p_item_id):
+    """Fetch all admin users and award them the prize (without conversion points)."""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT id FROM users WHERE role = 'admin'")
+        admin_ids = [row[0] for row in c.fetchall()]
+        
+        for admin_id in admin_ids:
+            award_prize_to_user(admin_id, p_type, p_id, p_item_id, c)
+            
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error auto-granting prizes to admins: {e}")
 
 def sync_achievements(user_id):
     """
@@ -848,21 +938,7 @@ def sync_events(user_id):
             # 4. If ALL tasks are completed, award the final prize
             if len(tasks) > 0 and completed_tasks_count == len(tasks):
                 # Final Prize Distribution
-                if p_type == 'achievement':
-                    award_achievement(user_id, p_id)
-                elif p_type == 'item' and p_item_id:
-                    # Award Shop Item (Border/Animation)
-                    c.execute("SELECT 1 FROM user_inventory WHERE user_id = ? AND item_id = ?", (user_id, p_item_id))
-                    if not c.fetchone():
-                        c.execute("INSERT INTO user_inventory (user_id, item_id) VALUES (?, ?)", (user_id, p_item_id))
-                        # If it's a badge, grant achievement too
-                        c.execute("SELECT type, name, value, achievement_id FROM shop_items WHERE id = ?", (p_item_id,))
-                        item = c.fetchone()
-                        if item and item[0] == 'badge':
-                            award_achievement(user_id, item[3] or f"event_item_{p_item_id}")
-
-                elif p_type == 'charisma':
-                    c.execute("UPDATE users SET charisma = COALESCE(charisma, 0) + ? WHERE id = ?", (int(p_id or 0), user_id))
+                award_prize_to_user(user_id, p_type, p_id, p_item_id, c)
                 
                 # Record overall event completion
                 c.execute("INSERT INTO user_event_completions (user_id, event_id) VALUES (?, ?)", (user_id, ev_id))
@@ -885,11 +961,15 @@ def admin_required(f):
     def wrapper(*args, **kwargs):
         try:
             if session.get("role") != "admin":
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({"success": False, "message": "Admin access required"}), 403
                 flash("Admin access required.", "danger")
-                return redirect(url_for("logout"))
+                return redirect(url_for("home"))
             return f(*args, **kwargs)
         except Exception as e:
             logger.error(f"Error in admin_required decorator: {str(e)}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": False, "message": "Server error"}), 500
             import traceback
             logger.error(traceback.format_exc())
             flash("An unexpected error occurred.", "danger")
@@ -903,11 +983,16 @@ def login_required(f):
     def wrapper(*args, **kwargs):
         try:
             if "user_id" not in session:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({"success": False, "message": "Login required"}), 401
                 flash("Please log in to access this page.", "info")
                 return redirect(url_for("login"))
             return f(*args, **kwargs)
         except Exception as e:
             logger.error(f"Error in login_required decorator: {str(e)}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": False, "message": "Server error"}), 500
+            return redirect(url_for("login"))
             import traceback
             logger.error(traceback.format_exc())
             flash("An unexpected error occurred.", "danger")
@@ -927,6 +1012,67 @@ def role_required(*roles):
                 return f(*args, **kwargs)
             except Exception as e:
                 logger.error(f"Error in role_required decorator: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
+                flash("An unexpected error occurred.", "danger")
+                return redirect(url_for("home"))
+        return wrapper
+    return decorator
+
+
+def elevated_required(f):
+    """Allow admin or developer to access the route."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            if session.get("role") not in ("admin", "developer"):
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({"success": False, "message": "Elevated access required."}), 403
+                flash("Elevated access required.", "danger")
+                return redirect(url_for("home"))
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error in elevated_required decorator: {str(e)}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": False, "message": "Server authorization error."}), 500
+            return redirect(url_for("home"))
+            import traceback
+            logger.error(traceback.format_exc())
+            flash("An unexpected error occurred.", "danger")
+            return redirect(url_for("home"))
+    return wrapper
+
+
+def has_mod_permission(user_id, permission):
+    """Check if a moderator user has a specific permission."""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT 1 FROM moderator_permissions WHERE user_id = ? AND permission = ?", (user_id, permission))
+        result = c.fetchone() is not None
+        conn.close()
+        return result
+    except Exception:
+        return False
+
+
+def mod_or_elevated_required(permission):
+    """Allow admin, developer, or moderator with the specified permission."""
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            try:
+                role = session.get("role")
+                if role in ("admin", "developer"):
+                    return f(*args, **kwargs)
+                if role == "moderator":
+                    user_id = session.get("user_id")
+                    if has_mod_permission(user_id, permission):
+                        return f(*args, **kwargs)
+                flash("You do not have permission to access this page.", "danger")
+                return redirect(url_for("home"))
+            except Exception as e:
+                logger.error(f"Error in mod_or_elevated_required decorator: {str(e)}")
                 import traceback
                 logger.error(traceback.format_exc())
                 flash("An unexpected error occurred.", "danger")
@@ -1020,31 +1166,24 @@ def init_db():
     """)
 
     # Run quick user-table migrations for older DBs: ensure email, is_banned, status columns exist
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN email TEXT")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN coins INTEGER DEFAULT 100")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN charisma INTEGER DEFAULT 0")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN status TEXT")
-        conn.commit()
+    for sql in [
+        "ALTER TABLE users ADD COLUMN email TEXT",
+        "ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN event_pts INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN charisma INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN status TEXT"
+    ]:
+        try:
+            c.execute(sql)
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
     
-    except sqlite3.OperationalError:
+    # Ensure event_pts is never NULL
+    try:
+        c.execute("UPDATE users SET event_pts = 0 WHERE event_pts IS NULL")
+        conn.commit()
+    except:
         pass
 
     # Add book_type column if it doesn't exist (migration for existing DBs)
@@ -1330,7 +1469,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS activity_log (
             id INTEGER PRIMARY KEY,
             user_id INTEGER NOT NULL,
-            book_id INTEGER NOT NULL,
+            book_id INTEGER,
             activity_type TEXT NOT NULL,
             summary_generated INTEGER DEFAULT 0,
             timestamp TEXT DEFAULT (DATETIME('now')),
@@ -1375,6 +1514,18 @@ def init_db():
       requested_role TEXT NOT NULL,           -- e.g. 'publisher'
       status TEXT NOT NULL DEFAULT 'pending', -- pending / approved / rejected
       created_at TEXT DEFAULT (DATETIME('now'))
+    )
+    """)
+
+    # moderator_permissions table - stores granular feature access for moderators
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS moderator_permissions (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        permission TEXT NOT NULL,
+        granted_by INTEGER,
+        granted_at TEXT DEFAULT (DATETIME('now')),
+        UNIQUE(user_id, permission)
     )
     """)
 
@@ -1924,6 +2075,14 @@ def init_db():
         )
     """)
 
+    # group_comments migration: add missing columns
+    for col_name, col_type in [("charisma", "INTEGER DEFAULT 0")]:
+        try:
+            c.execute(f"ALTER TABLE group_comments ADD COLUMN {col_name} {col_type}")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+
     # group_gifts
     c.execute("""
         CREATE TABLE IF NOT EXISTS group_gifts (
@@ -2238,6 +2397,37 @@ def init_db():
         except:
             pass
 
+    # personal messages table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS personal_messages (
+            id INTEGER PRIMARY KEY,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            content TEXT NOT NULL DEFAULT '',
+            image_url TEXT,
+            is_read INTEGER DEFAULT 0,
+            edited INTEGER DEFAULT 0,
+            timestamp TEXT DEFAULT (DATETIME('now')),
+            FOREIGN KEY (sender_id) REFERENCES users(id),
+            FOREIGN KEY (receiver_id) REFERENCES users(id)
+        )
+    """)
+    # Add indexes for performance
+    c.execute("CREATE INDEX IF NOT EXISTS idx_pm_sender ON personal_messages(sender_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_pm_receiver ON personal_messages(receiver_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_pm_is_read ON personal_messages(is_read)")
+    # Migration: add edited column if it doesn't exist
+    try:
+        c.execute("ALTER TABLE personal_messages ADD COLUMN edited INTEGER DEFAULT 0")
+    except:
+        pass
+    # Migration: add image_url column if it doesn't exist
+    try:
+        c.execute("ALTER TABLE personal_messages ADD COLUMN image_url TEXT")
+    except:
+        pass
+    conn.commit()
+
     conn.close()
     
     # Sync groups with existing content
@@ -2418,6 +2608,16 @@ def login():
         # Log successful login
         log_system_event('INFO', 'auth', f'User {user[1]} logged in successfully', user[0])
         
+        # Record in activity_log for missions/stats
+        try:
+            conn_act = get_conn()
+            c_act = conn_act.cursor()
+            c_act.execute("INSERT INTO activity_log (user_id, book_id, activity_type) VALUES (?, NULL, 'login')", (user[0],))
+            conn_act.commit()
+            conn_act.close()
+        except Exception as e:
+            logger.error(f"Failed to log login activity: {e}")
+        
         # Apply default banner if user doesn't have one
         apply_default_banner_if_needed(user[0])
 
@@ -2425,7 +2625,7 @@ def login():
             # Fetch login animation settings
             conn = get_conn()
             cur = conn.cursor()
-            cur.execute("SELECT setting_value FROM animation_settings WHERE user_id = ? AND setting_key = 'login'", (user[0],))
+            cur.execute("SELECT setting_value FROM animation_settings WHERE user_id = ? AND setting_key = 'animation_login'", (user[0],))
             style_row = cur.fetchone()
             login_style = style_row[0] if style_row else 'standard'
             
@@ -2433,6 +2633,7 @@ def login():
             custom_row = cur.fetchone()
             custom_anim = custom_row[0] if custom_row else None
             conn.close()
+
 
             return jsonify({
                 "status": "success", 
@@ -2607,6 +2808,16 @@ def oauth_callback(provider):
 
     log_system_event('INFO', 'auth', f'User {username} logged in via {provider}', user_id)
     
+    # Record in activity_log for missions/stats
+    try:
+        conn_act = get_conn()
+        c_act = conn_act.cursor()
+        c_act.execute("INSERT INTO activity_log (user_id, book_id, activity_type) VALUES (?, NULL, 'login')", (user_id,))
+        conn_act.commit()
+        conn_act.close()
+    except Exception as e:
+        logger.error(f"Failed to log OAuth login activity: {e}")
+    
     # Apply default banner if user doesn't have one
     apply_default_banner_if_needed(user_id)
     
@@ -2639,7 +2850,20 @@ def refresh_plan():
                             exp_dt = datetime.strptime(exp_str, "%Y-%m-%d")
                         now = datetime.utcnow()
                         delta = exp_dt - now
-                        session["plan_days_left"] = max(0, delta.days)
+                        
+                        if delta.total_seconds() <= 0:
+                            # Plan has expired, downgrade to basic
+                            update_conn = get_conn()
+                            update_c = update_conn.cursor()
+                            update_c.execute("UPDATE users SET plan='basic', plan_expires_at=NULL WHERE id=?", (uid,))
+                            update_conn.commit()
+                            update_conn.close()
+                            
+                            session["plan"] = "basic"
+                            session["plan_expires_at"] = None
+                            session["plan_days_left"] = None
+                        else:
+                            session["plan_days_left"] = max(0, delta.days)
             except Exception as e:
                 logger.error(f"Error computing plan days left for user {uid}: {str(e)}")
                 import traceback
@@ -2885,7 +3109,7 @@ def view_book(id):
     # fetch reviews
     c.execute("""
         SELECT r.id, r.content, r.rating, r.created_at,
-               u.username, u.id, u.avatar_url
+               u.username, u.id, u.avatar_url, u.role
         FROM reviews r
         JOIN users u ON u.id = r.user_id
         WHERE r.book_id=?
@@ -2971,7 +3195,7 @@ def read_book(id):
     # Check if the current user is the publisher or an admin
     user_id = session.get('user_id')
     user_role = session.get('role')
-    is_editor = (user_id == book['uploader_id']) or (user_role == 'admin')
+    is_editor = (user_id == book['uploader_id']) or (user_role in ('admin', 'developer'))
 
     # Prepare URLs - PDFs are in /static/books/, audio in /static/audio/
     pdf_url = f"/static/books/{book['pdf_filename']}" if book['pdf_filename'] else ""
@@ -3041,7 +3265,7 @@ def update_book_content(book_id):
 
 # ---------- AI Summary Endpoint ----------
 @app.route('/ai_summary', methods=['POST'])
-@admin_required
+@elevated_required
 def ai_summary():
     """Return a short AI-style summary for provided text.
     POST JSON: { text: string, max_sentences: int (optional) }
@@ -3204,7 +3428,7 @@ def ai_summary():
 
 # ---------- Admin: AI Summaries Management ----------
 @app.route('/admin/ai_summaries')
-@admin_required
+@elevated_required
 def admin_ai_summaries():
     conn = get_conn()
     c = conn.cursor()
@@ -3425,7 +3649,7 @@ def community_reviews():
 
 
 @app.route('/admin/reports')
-@admin_required
+@elevated_required
 def admin_reports():
     conn = get_conn()
     c = conn.cursor()
@@ -3462,7 +3686,7 @@ def admin_reports():
 
 
 @app.route('/admin/system_logs')
-@admin_required
+@elevated_required
 def admin_system_logs():
     # Get filter parameters
     level_filter = request.args.get('level', '').strip()
@@ -3518,7 +3742,7 @@ def admin_system_logs():
 
 
 @app.route('/admin/fix_uploaders', methods=['GET', 'POST'])
-@admin_required
+@elevated_required
 def admin_fix_uploaders():
     conn = get_conn(); c = conn.cursor()
     if request.method == 'POST':
@@ -3545,7 +3769,7 @@ def admin_fix_uploaders():
 
 
 @app.route('/admin/ai_summaries/clear', methods=['POST'])
-@admin_required
+@elevated_required
 def admin_ai_summaries_clear():
     data = request.get_json() or {}
     action = data.get('action')
@@ -3609,7 +3833,7 @@ def admin_ai_summaries_clear():
 
 
 @app.post("/book/<int:id>/review")
-@admin_required
+@elevated_required
 def add_review(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -3644,7 +3868,7 @@ def add_review(id):
     return redirect(url_for("view_book", id=id))
 
 @app.post("/review/<int:review_id>/delete")
-@admin_required
+@elevated_required
 def delete_review(review_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -3677,7 +3901,7 @@ def delete_review(review_id):
 
 
 @app.post("/chapter/<int:chapter_id>/review")
-@admin_required
+@elevated_required
 def add_chapter_review(chapter_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -3731,7 +3955,7 @@ def add_chapter_review(chapter_id):
 
 
 @app.post("/chapter_review/<int:review_id>/delete")
-@admin_required
+@elevated_required
 def delete_chapter_review(review_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -4094,7 +4318,7 @@ def add_book():
 
 # ---------- Edit / Delete Book ----------
 @app.route("/book/<int:id>/edit", methods=["GET", "POST"])
-@admin_required
+@elevated_required
 def edit_book(id):
     try:
         if "user_id" not in session:
@@ -4241,7 +4465,7 @@ def edit_book(id):
 
 
 @app.post("/book/<int:id>/delete")
-@admin_required
+@elevated_required
 def delete_book(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -4485,7 +4709,6 @@ def profile():
         charisma=charisma,
         count=total_read,
         fav=fav_genre,
-        pages_read=None,  # Could be calculated from progress, but leaving as None for now
         avg_rating=avg_rating,
         currently_reading=currently_reading,
         recent_finished=recent_finished,
@@ -4497,8 +4720,357 @@ def profile():
             "desc": r[3],
             "earned_at": r[4]
         } for r in achievements_raw],
-        avatar_settings=avatar_settings
+        avatar_settings=avatar_settings,
+        plans_left=session.get("plan_days_left")
     )
+
+# ---------- Messaging System ----------
+
+@app.route("/messages")
+def messages_page():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    # Optional: target user if passed via query param (e.g. /messages?to=username)
+    target_user = request.args.get("to")
+    target_user_id = None
+    if target_user:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("SELECT id FROM users WHERE username = ?", (target_user,))
+        row = c.fetchone()
+        if row:
+            target_user_id = row[0]
+        conn.close()
+
+    return render_template("messages.html", target_user_id=target_user_id)
+
+# ---------- GIF API Proxy (Tenor) ----------
+TENOR_API_KEY = os.environ.get("TENOR_API_KEY", "AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ")
+
+@app.get("/api/gifs/trending")
+def gifs_trending():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    import urllib.request, json as json_mod
+    try:
+        url = f"https://tenor.googleapis.com/v2/featured?key={TENOR_API_KEY}&client_key=novus_library&limit=30&media_filter=gif,tinygif"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json_mod.loads(resp.read().decode())
+        
+        results = []
+        for item in data.get("results", []):
+            media = item.get("media_formats", {})
+            gif_url = media.get("gif", {}).get("url", "")
+            preview_url = media.get("tinygif", {}).get("url", gif_url)
+            if gif_url:
+                results.append({"url": gif_url, "preview": preview_url})
+        
+        return jsonify({"results": results})
+    except Exception as e:
+        return jsonify({"results": [], "error": str(e)})
+
+@app.get("/api/gifs/search")
+def gifs_search():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"results": []})
+    
+    import urllib.request, urllib.parse, json as json_mod
+    try:
+        encoded_q = urllib.parse.quote(q)
+        url = f"https://tenor.googleapis.com/v2/search?key={TENOR_API_KEY}&client_key=novus_library&q={encoded_q}&limit=30&media_filter=gif,tinygif"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json_mod.loads(resp.read().decode())
+        
+        results = []
+        for item in data.get("results", []):
+            media = item.get("media_formats", {})
+            gif_url = media.get("gif", {}).get("url", "")
+            preview_url = media.get("tinygif", {}).get("url", gif_url)
+            if gif_url:
+                results.append({"url": gif_url, "preview": preview_url})
+        
+        return jsonify({"results": results})
+    except Exception as e:
+        return jsonify({"results": [], "error": str(e)})
+
+@app.get("/api/messages/conversations")
+def get_conversations():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session["user_id"]
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    # Get all unique users this user has messaged or received messages from
+    # and their latest message
+    query = """
+        WITH RecentMessages AS (
+            SELECT 
+                CASE 
+                    WHEN sender_id = ? THEN receiver_id 
+                    ELSE sender_id 
+                END as other_user_id,
+                content,
+                image_url,
+                timestamp,
+                is_read,
+                sender_id,
+                ROW_NUMBER() OVER (
+                    PARTITION BY CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END 
+                    ORDER BY timestamp DESC
+                ) as rn
+            FROM personal_messages
+            WHERE sender_id = ? OR receiver_id = ?
+        )
+        SELECT 
+            rm.other_user_id,
+            rm.content,
+            rm.image_url,
+            rm.timestamp,
+            rm.is_read,
+            rm.sender_id,
+            u.username,
+            u.avatar_url,
+            (SELECT COUNT(*) FROM personal_messages WHERE sender_id = rm.other_user_id AND receiver_id = ? AND is_read = 0) as unread_count
+        FROM RecentMessages rm
+        JOIN users u ON rm.other_user_id = u.id
+        WHERE rm.rn = 1
+        ORDER BY rm.timestamp DESC
+    """
+    
+    c.execute(query, (user_id, user_id, user_id, user_id, user_id))
+    conversations = [dict(row) for row in c.fetchall()]
+    conn.close()
+    
+    return jsonify(conversations)
+
+@app.get("/api/messages/history/<int:other_user_id>")
+def get_message_history(other_user_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session["user_id"]
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT id, sender_id, receiver_id, content, image_url, is_read, edited, timestamp
+        FROM personal_messages
+        WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
+        ORDER BY timestamp ASC
+    """, (user_id, other_user_id, other_user_id, user_id))
+    
+    messages = [dict(row) for row in c.fetchall()]
+    conn.close()
+    
+    return jsonify(messages)
+
+@app.post("/api/messages/send")
+def send_personal_message():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    receiver_id = data.get("receiver_id")
+    content = data.get("content", "").strip()
+    image_url = data.get("image_url")
+    
+    if not receiver_id or (not content and not image_url):
+        return jsonify({"error": "Missing receiver or content"}), 400
+    
+    sender_id = session["user_id"]
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO personal_messages (sender_id, receiver_id, content, image_url)
+        VALUES (?, ?, ?, ?)
+    """, (sender_id, receiver_id, content, image_url))
+    
+    msg_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True, "message_id": msg_id})
+
+@app.post("/api/messages/upload_image")
+def upload_message_image():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    if 'image' not in request.files:
+        return jsonify({"error": "No image provided"}), 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    # Validate file type
+    allowed = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in allowed:
+        return jsonify({"error": "Invalid file type"}), 400
+    
+    # Create upload directory
+    import uuid
+    upload_dir = os.path.join(app.static_folder, 'uploads', 'messages')
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Generate unique filename
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    file.save(filepath)
+    
+    url = f"/static/uploads/messages/{filename}"
+    return jsonify({"success": True, "url": url})
+
+@app.get("/api/messages/unread_count")
+def get_total_unread_messages():
+    if "user_id" not in session:
+        return jsonify({"unread_count": 0})
+    
+    user_id = session["user_id"]
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM personal_messages WHERE receiver_id = ? AND is_read = 0", (user_id,))
+    count = c.fetchone()[0]
+    conn.close()
+    
+    return jsonify({"unread_count": count})
+
+@app.post("/api/messages/mark_read/<int:other_user_id>")
+def mark_messages_read(other_user_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session["user_id"]
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        UPDATE personal_messages 
+        SET is_read = 1 
+        WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
+    """, (other_user_id, user_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+@app.delete("/api/messages/<int:message_id>")
+def delete_message(message_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session["user_id"]
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Verify ownership before deleting
+    c.execute("SELECT sender_id FROM personal_messages WHERE id = ?", (message_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Message not found"}), 404
+        
+    if row[0] != user_id:
+        conn.close()
+        return jsonify({"error": "Forbidden"}), 403
+    
+    c.execute("DELETE FROM personal_messages WHERE id = ?", (message_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+@app.put("/api/messages/<int:message_id>/edit")
+def edit_message(message_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session["user_id"]
+    data = request.json
+    new_content = data.get("content", "").strip()
+    
+    if not new_content:
+        return jsonify({"error": "Content cannot be empty"}), 400
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Verify ownership
+    c.execute("SELECT sender_id FROM personal_messages WHERE id = ?", (message_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Message not found"}), 404
+        
+    if row[0] != user_id:
+        conn.close()
+        return jsonify({"error": "Forbidden"}), 403
+    
+    c.execute("UPDATE personal_messages SET content = ?, edited = 1 WHERE id = ?", (new_content, message_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+@app.get("/api/messages/search_users")
+def search_users_for_messaging():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    q = request.args.get("q", "").strip()
+    if not q or len(q) < 2:
+        return jsonify([])
+    
+    user_id = session["user_id"]
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT id, username, avatar_url, role 
+        FROM users 
+        WHERE username LIKE ? AND id != ?
+        LIMIT 10
+    """, (f"%{q}%", user_id))
+    
+    users = [dict(row) for row in c.fetchall()]
+    conn.close()
+    
+    return jsonify(users)
+
+@app.delete("/api/messages/conversation/<int:other_user_id>")
+def delete_conversation(other_user_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session["user_id"]
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Delete all messages between the two users
+    c.execute("""
+        DELETE FROM personal_messages
+        WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
+    """, (user_id, other_user_id, other_user_id, user_id))
+    
+    deleted = c.rowcount
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True, "deleted_count": deleted})
 
 # ---------- Public Profile ----------
 @app.route("/u/<username>")
@@ -4894,7 +5466,7 @@ def achievements_page():
 
 # ---------- Admin Achievement Management ----------
 @app.route("/admin/achievements")
-@admin_required
+@mod_or_elevated_required('manage_achievements')
 def admin_achievements():
     conn = get_conn()
     conn.row_factory = sqlite3.Row
@@ -4921,9 +5493,17 @@ def shop():
             price INTEGER DEFAULT 100,
             preview_image TEXT,
             achievement_id INTEGER,
+            currency_type TEXT DEFAULT 'coins',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    
+    try:
+        c.execute("ALTER TABLE shop_items ADD COLUMN currency_type TEXT DEFAULT 'coins'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
     c.execute("""
         CREATE TABLE IF NOT EXISTS user_inventory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -4948,18 +5528,61 @@ def shop():
         c.executemany("INSERT INTO shop_items (name, type, value, price, preview_image) VALUES (?, ?, ?, ?, ?)", shop_items)
         conn.commit()
 
-    c.execute("SELECT * FROM shop_items")
+    c.execute("SELECT * FROM shop_items WHERE currency_type = 'coins' OR currency_type IS NULL")
     items = [dict(row) for row in c.fetchall()]
     
     user_id = session.get("user_id")
-    c.execute("SELECT item_id FROM user_inventory WHERE user_id = ?", (user_id,))
+    # Owned items = items in inventory OR items whose achievement is earned
+    c.execute("""
+        SELECT si.id FROM shop_items si
+        LEFT JOIN user_inventory ui ON si.id = ui.item_id AND ui.user_id = ?
+        LEFT JOIN user_achievements ua ON si.achievement_id = ua.achievement_id AND ua.user_id = ?
+        WHERE ui.id IS NOT NULL OR (si.achievement_id IS NOT NULL AND ua.id IS NOT NULL)
+    """, (user_id, user_id))
     owned_ids = [row[0] for row in c.fetchall()]
     
-    is_admin = session.get("role") == "admin"
+    is_admin = session.get("role") in ("admin", "developer")
     all_achievements = []
+    existing_assets = []
     if is_admin:
-        c.execute("SELECT id, name FROM achievements ORDER BY name ASC")
+        c.execute("SELECT id, name, rarity, icon, badge_color FROM achievements ORDER BY name ASC")
         all_achievements = [dict(row) for row in c.fetchall()]
+        
+        # Fetch existing assets from both shop_items and custom_animations
+        c.execute("""
+            SELECT DISTINCT value as file_path, 
+            CASE 
+                WHEN type = 'animation_avatar' OR type = 'avatar_bg' THEN 'avatar'
+                WHEN type = 'animation_login' OR type = 'login' THEN 'login'
+                WHEN type = 'animation_logout' OR type = 'logout' THEN 'logout'
+                WHEN type = 'animation_banner' OR type = 'banner' THEN 'banner'
+                WHEN type = 'animation_manga' OR type = 'manga_enter' OR type = 'manga' THEN 'manga'
+                ELSE type 
+            END as type,
+            COALESCE(name, '') as name,
+            COALESCE(rarity, 'common') as rarity,
+            COALESCE(price, 0) as price,
+            COALESCE(currency_type, 'coins') as currency_type,
+            'shop' as source
+            FROM shop_items 
+            UNION
+            SELECT DISTINCT file_path, 
+            CASE 
+                WHEN animation_type = 'animation_avatar' OR animation_type = 'avatar_bg' THEN 'avatar'
+                WHEN animation_type = 'animation_login' OR animation_type = 'login' THEN 'login'
+                WHEN animation_type = 'animation_logout' OR animation_type = 'logout' THEN 'logout'
+                WHEN animation_type = 'animation_banner' OR animation_type = 'banner' THEN 'banner'
+                WHEN animation_type = 'animation_manga' OR animation_type = 'manga_enter' OR animation_type = 'manga' THEN 'manga'
+                ELSE animation_type 
+            END as type,
+            COALESCE(name, '') as name,
+            COALESCE(access_tag, 'system') as rarity,
+            0 as price,
+            'system' as currency_type,
+            'custom' as source
+            FROM custom_animations
+        """)
+        existing_assets = [dict(row) for row in c.fetchall()]
     
     c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
     coins_row = c.fetchone()
@@ -4967,10 +5590,18 @@ def shop():
         user_coins = "Unlimited"
     else:
         user_coins = coins_row[0] if coins_row and coins_row[0] else 0
+
+    # Fetch moderator permissions if applicable
+    permissions = []
+    if session.get("role") == "moderator":
+        c.execute("SELECT permission FROM moderator_permissions WHERE user_id = ?", (user_id,))
+        permissions = [row[0] for row in c.fetchall()]
     
     conn.close()
     
-    return render_template("shop.html", items=items, owned_ids=owned_ids, user_coins=user_coins, all_achievements=all_achievements)
+    return render_template("shop.html", items=items, owned_ids=owned_ids, user_coins=user_coins, 
+                           all_achievements=all_achievements, existing_assets=existing_assets,
+                           permissions=permissions)
 
 @app.route("/api/shop/buy", methods=["POST"])
 @login_required
@@ -4987,9 +5618,16 @@ def api_buy_shop_item():
     c = conn.cursor()
     
     try:
-        c.execute("SELECT id FROM user_inventory WHERE user_id = ? AND item_id = ?", (user_id, item_id))
+        # Check for ownership in inventory OR achievements
+        c.execute("""
+            SELECT si.id FROM shop_items si
+            LEFT JOIN user_inventory ui ON si.id = ui.item_id AND ui.user_id = ?
+            LEFT JOIN user_achievements ua ON si.achievement_id = ua.achievement_id AND ua.user_id = ?
+            WHERE si.id = ? AND (ui.id IS NOT NULL OR (si.achievement_id IS NOT NULL AND ua.id IS NOT NULL))
+        """, (user_id, user_id, item_id))
+        
         if c.fetchone():
-            return jsonify({"success": False, "message": "You already own this item."})
+            return jsonify({"success": False, "message": "You already own this item or its associated achievement."})
             
         c.execute("SELECT name, type, value, price, achievement_id FROM shop_items WHERE id = ?", (item_id,))
         item = c.fetchone()
@@ -4999,7 +5637,7 @@ def api_buy_shop_item():
         price = item['price']
         linked_achievement_id = item['achievement_id']
         
-        is_admin = session.get("role") == "admin"
+        is_admin = session.get("role") in ("admin", "developer")
         
         c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
         user = c.fetchone()
@@ -5024,10 +5662,12 @@ def api_buy_shop_item():
                 c.execute("SELECT id FROM achievements WHERE slug = ?", (slug,))
                 ach = c.fetchone()
                 if not ach:
+                    icon_val = item['value']
+                    icon_type = 'image' if icon_val and ('/' in icon_val or '.' in icon_val) else 'fontawesome'
                     c.execute("""
-                        INSERT INTO achievements (name, slug, description, icon, badge_color, category, rarity)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (item['name'], slug, "Purchased from the Reward Shop", item['value'], "#ffc107", "shop", "epic"))
+                        INSERT INTO achievements (name, slug, description, icon, badge_color, category, rarity, level, animation_type, icon_type)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (item['name'], slug, "Purchased from the Reward Shop", icon_val, "#ffd700", "shop", "epic", 5, "pulsing", icon_type))
                     ach_id = c.lastrowid
                 else:
                     ach_id = ach[0]
@@ -5041,8 +5681,173 @@ def api_buy_shop_item():
     finally:
         conn.close()
 
+@app.route("/api/buy_charisma_item", methods=["POST"])
+@login_required
+def buy_charisma_item():
+    user_id = session.get("user_id")
+    data = request.json or {}
+    item_id = data.get("item_id")
+    
+    if not item_id:
+        return jsonify({"success": False, "message": "Item ID is required."})
+        
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    try:
+        # Check for ownership in inventory OR achievements
+        c.execute("""
+            SELECT si.id FROM shop_items si
+            LEFT JOIN user_inventory ui ON si.id = ui.item_id AND ui.user_id = ?
+            LEFT JOIN user_achievements ua ON si.achievement_id = ua.achievement_id AND ua.user_id = ?
+            WHERE si.id = ? AND (ui.id IS NOT NULL OR (si.achievement_id IS NOT NULL AND ua.id IS NOT NULL))
+        """, (user_id, user_id, item_id))
+        
+        if c.fetchone():
+            return jsonify({"success": False, "message": "You already own this item or its associated achievement."})
+            
+        c.execute("SELECT name, type, value, price, achievement_id, currency_type FROM shop_items WHERE id = ?", (item_id,))
+        item = c.fetchone()
+        if not item:
+            return jsonify({"success": False, "message": "Item not found."})
+            
+        if item['currency_type'] != 'charisma':
+            return jsonify({"success": False, "message": "This item cannot be purchased with Charisma."})
+            
+        price = item['price']
+        linked_achievement_id = item['achievement_id']
+        
+        is_admin = session.get("role") in ("admin", "developer")
+        
+        c.execute("SELECT charisma FROM users WHERE id = ?", (user_id,))
+        user = c.fetchone()
+        balance = user['charisma'] if user and user['charisma'] else 0
+        
+        if not is_admin and balance < price:
+            return jsonify({"success": False, "message": f"Not enough Charisma. You need {price} but have {balance}."})
+            
+        if not is_admin:
+            c.execute("UPDATE users SET charisma = charisma - ? WHERE id = ?", (price, user_id))
+            
+        c.execute("INSERT INTO user_inventory (user_id, item_id) VALUES (?, ?)", (user_id, item_id))
+        
+        # If the item is a Badge, natively grant it as an Achievement!
+        if item['type'] == 'badge':
+            if linked_achievement_id:
+                # Use the existing linked achievement
+                ach_id = linked_achievement_id
+            else:
+                # Fallback: Create/Use shop-specific achievement
+                slug = f"shop_purchased_{item_id}"
+                c.execute("SELECT id FROM achievements WHERE slug = ?", (slug,))
+                ach = c.fetchone()
+                if not ach:
+                    icon_val = item['value']
+                    icon_type = 'image' if icon_val and ('/' in icon_val or '.' in icon_val) else 'fontawesome'
+                    c.execute("""
+                        INSERT INTO achievements (name, slug, description, icon, badge_color, category, rarity, level, animation_type, icon_type)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (item['name'], slug, "Purchased from the Charisma Hall", icon_val, "#ff1493", "shop", "epic", 5, "pulsing", icon_type))
+                    ach_id = c.lastrowid
+                else:
+                    ach_id = ach[0]
+                
+            c.execute("SELECT 1 FROM user_achievements WHERE user_id = ? AND achievement_id = ?", (user_id, ach_id))
+            if not c.fetchone():
+                c.execute("INSERT INTO user_achievements (user_id, achievement_id) VALUES (?, ?)", (user_id, ach_id))
+                
+        conn.commit()
+        return jsonify({"success": True, "message": "Purchase successful!", "new_balance": "Unlimited" if is_admin else (balance - price)})
+    finally:
+        conn.close()
+
+@app.route("/charisma_hall")
+@login_required
+def charisma_hall():
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    # Get user's charisma and owned items
+    user_id = session.get("user_id")
+    c.execute("SELECT charisma FROM users WHERE id = ?", (user_id,))
+    charisma_row = c.fetchone()
+    user_charisma = charisma_row[0] if charisma_row and charisma_row[0] else 0
+    # Owned items = items in inventory OR items whose achievement is earned
+    c.execute("""
+        SELECT si.id FROM shop_items si
+        LEFT JOIN user_inventory ui ON si.id = ui.item_id AND ui.user_id = ?
+        LEFT JOIN user_achievements ua ON si.achievement_id = ua.achievement_id AND ua.user_id = ?
+        WHERE (ui.id IS NOT NULL OR (si.achievement_id IS NOT NULL AND ua.id IS NOT NULL))
+    """, (user_id, user_id))
+    owned_ids = [row[0] for row in c.fetchall()]
+    
+    # Get only shop items that cost Charisma
+    c.execute("SELECT * FROM shop_items WHERE currency_type = 'charisma'")
+    items = [dict(row) for row in c.fetchall()]
+    
+    is_admin = session.get("role") in ("admin", "developer")
+    all_achievements = []
+    existing_assets = []
+    if is_admin:
+        c.execute("SELECT id, name, rarity, icon, badge_color FROM achievements ORDER BY name ASC")
+        all_achievements = [dict(row) for row in c.fetchall()]
+        
+        # Fetch existing assets from both shop_items and custom_animations
+        c.execute("""
+            SELECT DISTINCT value as file_path, 
+            CASE 
+                WHEN type = 'animation_avatar' OR type = 'avatar_bg' THEN 'avatar'
+                WHEN type = 'animation_login' OR type = 'login' THEN 'login'
+                WHEN type = 'animation_logout' OR type = 'logout' THEN 'logout'
+                WHEN type = 'animation_banner' OR type = 'banner' THEN 'banner'
+                WHEN type = 'animation_manga' OR type = 'manga_enter' OR type = 'manga' THEN 'manga'
+                ELSE type 
+            END as type,
+            COALESCE(name, '') as name,
+            COALESCE(rarity, 'common') as rarity,
+            COALESCE(price, 0) as price,
+            COALESCE(currency_type, 'coins') as currency_type,
+            'shop' as source
+            FROM shop_items 
+            UNION
+            SELECT DISTINCT file_path, 
+            CASE 
+                WHEN animation_type = 'animation_avatar' OR animation_type = 'avatar_bg' THEN 'avatar'
+                WHEN animation_type = 'animation_login' OR animation_type = 'login' THEN 'login'
+                WHEN animation_type = 'animation_logout' OR animation_type = 'logout' THEN 'logout'
+                WHEN animation_type = 'animation_banner' OR animation_type = 'banner' THEN 'banner'
+                WHEN animation_type = 'animation_manga' OR animation_type = 'manga_enter' OR animation_type = 'manga' THEN 'manga'
+                ELSE animation_type 
+            END as type,
+            COALESCE(name, '') as name,
+            COALESCE(access_tag, 'system') as rarity,
+            0 as price,
+            'system' as currency_type,
+            'custom' as source
+            FROM custom_animations
+        """)
+        existing_assets = [dict(row) for row in c.fetchall()]
+        
+    # Fetch moderator permissions if applicable
+    permissions = []
+    if session.get("role") == "moderator":
+        c.execute("SELECT permission FROM moderator_permissions WHERE user_id = ?", (user_id,))
+        permissions = [row[0] for row in c.fetchall()]
+        
+    conn.close()
+    
+    return render_template("charisma_hall.html", 
+                           items=items, 
+                           owned_ids=owned_ids, 
+                           user_charisma=user_charisma,
+                           all_achievements=all_achievements,
+                           permissions=permissions,
+                           existing_assets=existing_assets)
+
 @app.route("/admin/shop/add", methods=["POST"])
-@admin_required
+@mod_or_elevated_required('manage_shop')
 def admin_shop_add():
     # Support both JSON and FormData
     import os
@@ -5055,12 +5860,16 @@ def admin_shop_add():
         value = data.get("value")
         price = data.get("price")
         achievement_id = data.get("achievement_id")
+        rarity = data.get("rarity", "common")
+        currency_type = data.get("currency_type", "coins")
     else:
         name = request.form.get("name")
         item_type = request.form.get("type")
         value = request.form.get("value", "")
         price = request.form.get("price")
         achievement_id = request.form.get("achievement_id")
+        rarity = request.form.get("rarity", "common")
+        currency_type = request.form.get("currency_type", "coins")
         
         # Handle file upload if present
         if 'file' in request.files:
@@ -5071,8 +5880,26 @@ def admin_shop_add():
                 os.makedirs(upload_folder, exist_ok=True)
                 file_path = os.path.join(upload_folder, filename)
                 file.save(file_path)
-                value = f"/static/uploads/shop/{filename}"
+                asset_path = f"/static/uploads/shop/{filename}"
+                
+                # Special handling for title_glow: merge into JSON if it looks like JSON
+                if item_type == 'title_glow' and value.startswith('{'):
+                    import json
+                    try:
+                        data = json.loads(value)
+                        data['asset'] = asset_path
+                        value = json.dumps(data)
+                    except:
+                        value = asset_path
+                else:
+                    value = asset_path
     
+    # Explicit Classification for Title Glows
+    glow_category = request.form.get("glow_category") if not request.is_json else (request.json.get("glow_category") if request.json else None)
+    if item_type == 'title_glow' and glow_category:
+        if not value.startswith(f"{glow_category}:"):
+            value = f"{glow_category}:{value}"
+            
     if not all([name, item_type, value, price]):
         return jsonify({"success": False, "message": "Missing required fields (need either a Value or a File)."})
         
@@ -5085,15 +5912,16 @@ def admin_shop_add():
         
     conn = get_conn()
     c = conn.cursor()
-    c.execute("INSERT INTO shop_items (name, type, value, price, achievement_id) VALUES (?, ?, ?, ?, ?)", 
-              (name, item_type, value, price, achievement_id))
+    c.execute("INSERT INTO shop_items (name, type, value, price, achievement_id, rarity, currency_type) VALUES (?, ?, ?, ?, ?, ?, ?)", 
+              (name, item_type, value, price, achievement_id, rarity, currency_type))
+    item_id = c.lastrowid
     conn.commit()
     conn.close()
     
-    return jsonify({"success": True, "message": "Item added successfully."})
+    return jsonify({"success": True, "message": "Item added successfully.", "item_id": item_id})
 
 @app.route("/admin/shop/delete/<int:item_id>", methods=["POST"])
-@admin_required
+@mod_or_elevated_required('manage_shop')
 def admin_shop_delete(item_id):
     conn = get_conn()
     c = conn.cursor()
@@ -5118,10 +5946,14 @@ def public_events():
     # Fetch all active/approved events with creator info
     c.execute("""
         SELECT e.*, g.name as group_name, g.id as group_real_id,
-               u.username as creator_name, u.avatar_url as creator_avatar
+               u.username as creator_name, u.avatar_url as creator_avatar,
+               s.rarity as item_rarity, s.value as item_value, s.name as item_name,
+               a.name as ach_name
         FROM events e
         LEFT JOIN community_groups g ON e.group_id = g.id
         LEFT JOIN users u ON e.creator_id = u.id
+        LEFT JOIN shop_items s ON e.prize_shop_item_id = s.id
+        LEFT JOIN achievements a ON e.prize_id = a.slug AND e.prize_type = 'achievement'
         WHERE e.status IN ('approved', 'active') 
           AND (e.end_date IS NULL OR e.end_date >= ?)
         ORDER BY e.featured DESC, e.start_date DESC
@@ -5232,15 +6064,34 @@ def public_events():
         ev_id = ev['id']
         
         # 4. Fetch tasks for this event
-        c.execute("SELECT id, description, coin_reward, task_type FROM event_tasks WHERE event_id = ?", (ev_id,))
+        c.execute("SELECT id, description, coin_reward, task_type, keyword, genre, refresh_count_days FROM event_tasks WHERE event_id = ?", (ev_id,))
         tasks = [dict(t) for t in c.fetchall()]
         
-        # 5. Check task completion status if logged in
+        # 5. Check task completion status if logged in (refresh-aware)
         if user_id:
             for task in tasks:
-                c.execute("SELECT status FROM user_event_task_progress WHERE user_id = ? AND task_id = ?", (user_id, task['id']))
-                row = c.fetchone()
-                task['completed'] = True if row and row['status'] == 'completed' else False
+                c.execute("SELECT status, completed_at FROM user_event_task_progress WHERE user_id = ? AND task_id = ?", (user_id, task['id']))
+                prog_row = c.fetchone()
+                task['completed'] = False
+                if prog_row and prog_row['status'] == 'completed':
+                    refresh_days = task.get('refresh_count_days')
+                    # Limited tasks (refresh=0) or no refresh info = permanently completed
+                    if not refresh_days or refresh_days == 0:
+                        task['completed'] = True
+                        continue
+                    last_completed = prog_row['completed_at']
+                    if last_completed:
+                        try:
+                            if isinstance(last_completed, str):
+                                last_completed = datetime.strptime(last_completed.split('.')[0], '%Y-%m-%d %H:%M:%S')
+                            # Use total_seconds for precision (matches complete_task API logic)
+                            hours_passed = (now - last_completed).total_seconds() / 3600
+                            hours_cooldown = refresh_days * 24
+                            task['completed'] = hours_passed < hours_cooldown
+                        except Exception:
+                            task['completed'] = True
+                    else:
+                        task['completed'] = True
         
         ev['tasks'] = tasks
         
@@ -5279,7 +6130,12 @@ def join_event(event_id):
         return jsonify({"success": False, "message": "Event not found or inactive."}), 404
         
     # Get all tasks for this event
-    c.execute("SELECT id FROM event_tasks WHERE event_id = ?", (event_id,))
+    c.execute("""
+        SELECT t.*, b.title as target_title 
+        FROM event_tasks t
+        LEFT JOIN books b ON t.target_id = b.id
+        WHERE t.event_id = ?
+    """, (event_id,))
     tasks = c.fetchall()
     
     if not tasks:
@@ -5288,17 +6144,31 @@ def join_event(event_id):
         pass
         
     for task in tasks:
+        # Use task name/id if Row factory is off, or dictionary keys if on.
+        # Here conn.row_factory is NOT set globally, let's see. 
+        # Looking at line 5658, row_factory is not set. 
+        # But wait, tasks query at 5668 uses t.*
         t_id = task[0]
+        t_keyword = task[4] # Based on events table: id(0), event_id(1), desc(2), reward(3), type(4), keyword(4??)
+        
+        # Let's check the schema order for event_tasks
+        # ['id', 'event_id', 'description', 'coin_reward', 'task_type', 'keyword', 'genre', 'refresh_count_days', 'target_id', 'target_genre']
+        # 0: id, 1: event_id, 2: description, 3: coin_reward, 4: task_type, 5: keyword
+        t_keyword = task[5]
+        
+        # Calculate baseline
+        baseline = get_user_metric(c, user_id, t_keyword) if t_keyword else 0
+        
         # Check if already joined/progress exists to avoid duplicates
         c.execute("SELECT id FROM user_event_task_progress WHERE user_id = ? AND task_id = ?", (user_id, t_id))
         if not c.fetchone():
-            c.execute("INSERT INTO user_event_task_progress (user_id, task_id, status) VALUES (?, ?, 'pending')", (user_id, t_id))
+            c.execute("INSERT INTO user_event_task_progress (user_id, task_id, status, initial_value) VALUES (?, ?, 'pending', ?)", (user_id, t_id, baseline))
             
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "Successfully joined the campaign."})
 @app.route("/admin/events")
-@admin_required
+@elevated_required
 def admin_events():
     """Admin dashboard to view and manage all events."""
     conn = get_conn()
@@ -5309,12 +6179,29 @@ def admin_events():
         FROM events e 
         LEFT JOIN users u ON e.creator_id = u.id 
         LEFT JOIN community_groups g ON e.group_id = g.id 
-        ORDER BY e.created_at DESC
+        ORDER BY e.end_date DESC, e.created_at DESC
     """)
-    events = [dict(row) for row in c.fetchall()]
+    all_events = [dict(row) for row in c.fetchall()]
     
-    # Fetch tasks for each event
-    for ev in events:
+    from datetime import datetime
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    active_events = []
+    expired_events = []
+    
+    for ev in all_events:
+        # Check if expired
+        is_expired = False
+        if ev['end_date'] and ev['end_date'] < today:
+            is_expired = True
+            
+        if is_expired:
+            expired_events.append(ev)
+        else:
+            active_events.append(ev)
+    
+    # Process both lists for tasks
+    for ev in active_events + expired_events:
         c.execute("SELECT * FROM event_tasks WHERE event_id = ?", (ev['id'],))
         ev['tasks'] = [dict(r) for r in c.fetchall()]
 
@@ -5322,15 +6209,44 @@ def admin_events():
     c.execute("SELECT id, name, slug FROM achievements ORDER BY name ASC")
     achievements = [dict(row) for row in c.fetchall()]
 
-    # Fetch shop items for dropdown (borders and animations)
-    c.execute("SELECT id, name, type FROM shop_items WHERE type IN ('border', 'animation') ORDER BY name ASC")
+    # Fetch shop items for dropdown (borders and all animation types)
+    c.execute("""
+        SELECT id, name, type 
+        FROM shop_items 
+        ORDER BY name ASC
+    """)
+
+
+
     shop_items = [dict(row) for row in c.fetchall()]
 
     conn.close()
-    return render_template("admin_events.html", events=events, achievements=achievements, shop_items=shop_items)
+    return render_template("admin_events.html", 
+                           active_events=active_events, 
+                           expired_events=expired_events,
+                           achievements=achievements, 
+                           shop_items=shop_items)
+
+@app.route("/admin/events/reactivate/<int:event_id>", methods=["POST"])
+@elevated_required
+def reactivate_event(event_id):
+    """Extend an expired event's end date by 7 days."""
+    from datetime import datetime, timedelta
+    new_end_date = (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
+    
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("UPDATE events SET end_date = ? WHERE id = ?", (new_end_date, event_id))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Event reactivated! End date extended to ' + new_end_date, 'new_end_date': new_end_date})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conn.close()
 
 @app.route("/admin/events/approve/<int:event_id>", methods=["POST"])
-@admin_required
+@elevated_required
 def approve_event(event_id):
     """Approve or reject a pending event request."""
     data = request.get_json() or {}
@@ -5361,18 +6277,19 @@ def approve_event(event_id):
     return jsonify({"success": True})
 
 @app.route("/admin/events/delete/<int:event_id>", methods=["POST"])
-@admin_required
+@elevated_required
 def delete_event(event_id):
-    """Delete an event permanently."""
+    """Delete an event and its associated tasks permanently."""
     conn = get_conn()
     c = conn.cursor()
     c.execute("DELETE FROM events WHERE id = ?", (event_id,))
+    c.execute("DELETE FROM event_tasks WHERE event_id = ?", (event_id,))
     conn.commit()
     conn.close()
     return jsonify({"success": True})
 
 @app.route("/admin/events/create", methods=["POST"])
-@admin_required
+@elevated_required
 def create_admin_event():
     """Admin creates a site-wide event directly."""
     name = request.form.get("name")
@@ -5408,11 +6325,12 @@ def create_admin_event():
     user_id = session["user_id"]
     
     conn = get_conn()
+    conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
     # Handle New Reward Asset Creation
     is_new_prize = request.form.get("is_new_prize") == "on"
-    if is_new_prize and p_type == "item":
+    if is_new_prize and p_type in ["item", "entrance_animation"]:
         new_name = request.form.get("new_prize_name") or f"Reward: {name}"
         new_type = request.form.get("new_prize_type", "border")
         prize_file = request.files.get("prize_file")
@@ -5427,9 +6345,10 @@ def create_admin_event():
             prize_value = f"/static/uploads/shop/{p_filename}"
         
         if prize_value:
+            new_rarity = request.form.get("new_prize_rarity", "epic")
             # Register in shop_items so it can be awarded/owned
-            c.execute("INSERT INTO shop_items (name, type, value, price) VALUES (?, ?, ?, 0)", 
-                      (new_name, new_type, prize_value))
+            c.execute("INSERT INTO shop_items (name, type, value, price, rarity) VALUES (?, ?, ?, 0, ?)", 
+                      (new_name, new_type, prize_value, new_rarity))
             p_item_id = c.lastrowid
     
     # Insert main event
@@ -5442,31 +6361,8 @@ def create_admin_event():
     
     event_id = c.lastrowid
     
-    # Handle multi-tasks from form array inputs
-    task_descs = request.form.getlist("task_desc[]")
-    task_rewards = request.form.getlist("task_reward[]")
-    task_types = request.form.getlist("task_type[]")
-    
-    print(f"[DEBUG create_admin_event] task_descs: {task_descs}")
-    print(f"[DEBUG create_admin_event] task_rewards: {task_rewards}")
-    print(f"[DEBUG create_admin_event] task_types: {task_types}")
-    
-    for i in range(len(task_descs)):
-        t_desc = task_descs[i] if i < len(task_descs) else ""
-        t_reward = int(task_rewards[i]) if i < len(task_rewards) and task_rewards[i] else 0
-        t_type = task_types[i] if i < len(task_types) else "normal"
-        
-        # Validation
-        if t_type == "limited" and not (20 <= t_reward <= 60):
-            t_reward = 20 if t_reward < 20 else 60
-        elif t_type == "normal" and not (5 <= t_reward <= 20):
-            t_reward = 5 if t_reward < 5 else 20
-        
-        if t_desc:  # Only insert if description is not empty
-            c.execute("""
-                INSERT INTO event_tasks (event_id, description, coin_reward, task_type)
-                VALUES (?, ?, ?, ?)
-            """, (event_id, t_desc, t_reward, t_type))
+    # Save Tasks using helper
+    save_event_tasks(c, event_id, request.form)
     
     # Also handle legacy tasks_json for backward compatibility
     tasks_json = request.form.get("tasks_json")
@@ -5501,9 +6397,182 @@ def create_admin_event():
             """, (f"Event: {name}", p_id, f"Awarded for completing '{name}'", "fa-trophy", "yellow", event_id))
             
     conn.commit()
+    
+    # Auto-grant prizes to all admins
+    grant_event_prizes_to_admins(p_type, p_id, p_item_id)
+    
+    # Fetch the new event for real-time update
+    c.execute("SELECT e.*, u.username as creator_name FROM events e LEFT JOIN users u ON e.creator_id = u.id WHERE e.id = ?", (event_id,))
+    row = c.fetchone()
+    new_event = dict(row) if row else None
     conn.close()
-    flash("Site-wide event created and approved.", "success")
-    return redirect(url_for("admin_events"))
+    
+    if not new_event:
+        return jsonify({"success": False, "message": "Event created but failed to retrieve for update."})
+    
+    return jsonify({"success": True, "message": "Event created successfully.", "event": new_event})
+
+def save_event_tasks(cursor, event_id, form_data):
+    """Helper to save multi-tasks for an event (standard/limited)."""
+    task_descs = form_data.getlist("task_desc[]")
+    task_rewards = form_data.getlist("task_reward[]")
+    task_types = form_data.getlist("task_type[]")
+    task_keywords = form_data.getlist("task_keyword[]")
+    task_genres = form_data.getlist("task_genre[]")
+    task_refreshes = form_data.getlist("task_refresh[]")
+    task_targets = form_data.getlist("task_target_id[]")
+    task_target_genres = form_data.getlist("task_target_genre[]")
+    
+    for i in range(len(task_descs)):
+        t_desc = task_descs[i].strip() if i < len(task_descs) else ""
+        if not t_desc: continue
+
+        try:
+            t_reward = int(task_rewards[i]) if i < len(task_rewards) and task_rewards[i] else 0
+        except: t_reward = 0
+            
+        t_type = task_types[i] if i < len(task_types) else "normal"
+        t_keyword = task_keywords[i].strip() if i < len(task_keywords) else ""
+        t_genre = task_genres[i] if i < len(task_genres) else "All"
+        
+        try:
+            t_refresh = int(task_refreshes[i]) if i < len(task_refreshes) and task_refreshes[i] else 2
+        except: t_refresh = 2
+            
+        try:
+            t_target = int(task_targets[i]) if i < len(task_targets) and task_targets[i] else 0
+        except: t_target = 0
+            
+        t_target_genre = task_target_genres[i].strip() if i < len(task_target_genres) else ""
+            
+        if t_type == "limited":
+            t_refresh = 0
+        
+        # Reward Normalization based on type
+        if t_type == "limited" and not (20 <= t_reward <= 60):
+            t_reward = 20 if t_reward < 20 else 60
+        elif t_type == "normal" and not (5 <= t_reward <= 20):
+            t_reward = 5 if t_reward < 5 else 20
+        
+        cursor.execute("""
+            INSERT INTO event_tasks (event_id, description, coin_reward, task_type, keyword, genre, refresh_count_days, target_id, target_genre)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (event_id, t_desc, t_reward, t_type, t_keyword, t_genre, t_refresh, t_target, t_target_genre))
+
+@app.route("/api/admin/events/get/<int:event_id>")
+@elevated_required
+def get_admin_event(event_id):
+    """Fetch event details and tasks for editing."""
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    c.execute("SELECT * FROM events WHERE id = ?", (event_id,))
+    event = c.fetchone()
+    if not event:
+        conn.close()
+        return jsonify({"success": False, "message": "Event not found"}), 404
+        
+    c.execute("""
+        SELECT t.*, b.title as target_title 
+        FROM event_tasks t
+        LEFT JOIN books b ON t.target_id = b.id
+        WHERE t.event_id = ?
+    """, (event_id,))
+    tasks = c.fetchall()
+    
+    # Format for JSON
+    event_data = dict(event)
+    event_data['tasks'] = [dict(t) for t in tasks]
+    
+    conn.close()
+    return jsonify({"success": True, "event": event_data})
+
+@app.route("/admin/events/edit/<int:event_id>", methods=["POST"])
+@elevated_required
+def edit_admin_event(event_id):
+    """Update an existing site-wide event."""
+    name = request.form.get("name")
+    desc = request.form.get("description")
+    c_type = request.form.get("condition_type")
+    c_val = request.form.get("condition_value")
+    p_type = request.form.get("prize_type")
+    p_id = request.form.get("prize_id")
+    p_item_id = request.form.get("prize_item_id")
+    start_date = request.form.get("start_date")
+    end_date = request.form.get("end_date")
+    featured = 1 if request.form.get("featured") else 0
+    bg_color = request.form.get("bg_color")
+    
+    # Selective Icon update
+    icon = request.form.get("icon")
+    icon_file = request.files.get("icon_file")
+    
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    if icon_file and icon_file.filename:
+        from werkzeug.utils import secure_filename
+        filename = secure_filename(icon_file.filename)
+        upload_folder = os.path.join(app.root_path, 'static', 'uploads', 'event_icons')
+        os.makedirs(upload_folder, exist_ok=True)
+        rel_path = f"uploads/event_icons/{filename}"
+        icon_file.save(os.path.join(app.root_path, 'static', rel_path))
+        icon = f"/static/{rel_path}"
+        c.execute("UPDATE events SET icon = ? WHERE id = ?", (icon, event_id))
+
+    # Handle New Reward Asset Creation during Edit
+    is_new_prize = request.form.get("is_new_prize") == "on"
+    if is_new_prize and p_type in ["item", "entrance_animation"]:
+        new_name = request.form.get("new_prize_name") or f"Reward: {name}"
+        new_type = request.form.get("new_prize_type", "border")
+        prize_file = request.files.get("prize_file")
+        prize_value = ""
+
+        if prize_file and prize_file.filename:
+            from werkzeug.utils import secure_filename
+            p_filename = secure_filename(prize_file.filename)
+            upload_shop_folder = os.path.join(app.root_path, 'static', 'uploads', 'shop')
+            os.makedirs(upload_shop_folder, exist_ok=True)
+            prize_file.save(os.path.join(upload_shop_folder, p_filename))
+            prize_value = f"/static/uploads/shop/{p_filename}"
+        
+        if prize_value:
+            new_rarity = request.form.get("new_prize_rarity", "epic")
+            # Register in shop_items
+            c.execute("INSERT INTO shop_items (name, type, value, price, rarity) VALUES (?, ?, ?, 0, ?)", 
+                      (new_name, new_type, prize_value, new_rarity))
+            p_item_id = c.lastrowid
+
+    c.execute("""
+        UPDATE events 
+        SET name = ?, description = ?, condition_type = ?, condition_value = ?, 
+            prize_type = ?, prize_id = ?, prize_shop_item_id = ?, 
+            start_date = ?, end_date = ?, featured = ?, bg_color = ?
+        WHERE id = ?
+    """, (name, desc, c_type, c_val, p_type, p_id, p_item_id, start_date, end_date, featured, bg_color, event_id))
+
+    # Rebuild Tasks
+    c.execute("DELETE FROM event_tasks WHERE event_id = ?", (event_id,))
+    save_event_tasks(c, event_id, request.form)
+    
+    conn.commit()
+
+    # Auto-grant prizes to all admins (for updated prizes)
+    grant_event_prizes_to_admins(p_type, p_id, p_item_id)
+    
+    # Fetch the new event for real-time update
+    c.execute("SELECT e.*, u.username as creator_name FROM events e LEFT JOIN users u ON e.creator_id = u.id WHERE e.id = ?", (event_id,))
+    row = c.fetchone()
+    new_event = dict(row) if row else None
+    conn.close()
+    
+    if not new_event:
+        return jsonify({"success": False, "message": "Event updated but failed to retrieve for update."})
+        
+    return jsonify({"success": True, "message": "Event updated successfully.", "event": new_event})
+
 
 @app.route("/group/<int:group_id>/event-request", methods=["GET", "POST"])
 @login_required
@@ -5582,7 +6651,7 @@ def group_event_request(group_id):
 
     # Handle New Reward Asset Creation
     is_new_prize = request.form.get("is_new_prize") == "on"
-    if is_new_prize and p_type == "item":
+    if is_new_prize and p_type in ["item", "entrance_animation"]:
         new_name = request.form.get("new_prize_name") or f"Reward: {name}"
         new_type = request.form.get("new_prize_type", "border")
         prize_file = request.files.get("prize_file")
@@ -5597,8 +6666,9 @@ def group_event_request(group_id):
             prize_value = f"/static/uploads/shop/{p_filename}"
         
         if prize_value:
-            c.execute("INSERT INTO shop_items (name, type, value, price) VALUES (?, ?, ?, 0)", 
-                      (new_name, new_type, prize_value))
+            new_rarity = request.form.get("new_prize_rarity", "epic")
+            c.execute("INSERT INTO shop_items (name, type, value, price, rarity) VALUES (?, ?, ?, 0, ?)", 
+                      (new_name, new_type, prize_value, new_rarity))
             p_item_id = c.lastrowid
 
     # Insert main event as 'pending'
@@ -5637,7 +6707,7 @@ def group_event_request(group_id):
     return jsonify({"success": True, "message": "Event request submitted for admin approval."})
 
 @app.route("/api/admin/achievements/add", methods=['POST'])
-@admin_required
+@elevated_required
 def admin_add_achievement():
     try:
         data = request.json
@@ -5674,7 +6744,7 @@ def admin_add_achievement():
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/admin/achievements/delete/<int:ach_id>", methods=['POST'])
-@admin_required
+@elevated_required
 def admin_delete_achievement(ach_id):
     try:
         conn = get_conn()
@@ -5688,7 +6758,7 @@ def admin_delete_achievement(ach_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/api/admin/achievements/upload_icon', methods=['POST'])
-@admin_required
+@elevated_required
 def admin_upload_achievement_icon():
     try:
         import time, os
@@ -5717,8 +6787,38 @@ def admin_upload_achievement_icon():
         logger.error(f"Error uploading achievement icon: {str(e)}")
         return jsonify({"success": False, "message": str(e)}), 500
 
+@app.route('/api/admin/glow/upload_accessory', methods=['POST'])
+@mod_or_elevated_required('manage_charisma')
+def admin_upload_glow_accessory():
+    try:
+        import time, os
+        from werkzeug.utils import secure_filename
+        if 'icon' not in request.files:
+            return jsonify({"success": False, "message": "No file part"}), 400
+        
+        file = request.files['icon']
+        if file.filename == '':
+            return jsonify({"success": False, "message": "No selected file"}), 400
+            
+        if file:
+            filename = secure_filename(f"glow_{int(time.time())}_{file.filename}")
+            upload_dir = os.path.join(app.root_path, 'static', 'uploads', 'glow_accessories')
+            os.makedirs(upload_dir, exist_ok=True)
+            file_path = os.path.join(upload_dir, filename)
+            file.save(file_path)
+            
+            return jsonify({
+                "success": True, 
+                "message": "Accessory icon uploaded", 
+                "url": f"/static/uploads/glow_accessories/{filename}"
+            })
+            
+    except Exception as e:
+        logger.error(f"Error uploading glow accessory: {str(e)}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @app.route("/api/admin/achievements/update/<int:ach_id>", methods=['POST'])
-@admin_required
+@elevated_required
 def admin_update_achievement(ach_id):
     try:
         data = request.json
@@ -5755,7 +6855,7 @@ def admin_update_achievement(ach_id):
         logger.error(f"Error updating achievement: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 @app.route("/api/admin/users/search")
-@admin_required
+@elevated_required
 def admin_search_users():
     query = request.args.get('q', '').strip()
     if not query:
@@ -5769,7 +6869,7 @@ def admin_search_users():
     return jsonify(users)
 
 @app.route("/api/admin/achievements/gift", methods=['POST'])
-@admin_required
+@elevated_required
 def admin_gift_achievement():
     try:
         data = request.json
@@ -5817,11 +6917,11 @@ def get_activity_log():
     
     activities = []
     for row in c.fetchall():
-        
+        act_id, activity_type, summary_gen, title, timestamp_str = row
         # Format timestamp to relative time
         from datetime import datetime
         try:
-            dt = datetime.fromisoformat(timestamp)
+            dt = datetime.fromisoformat(timestamp_str)
             now = datetime.utcnow()
             diff = now - dt
             
@@ -7976,7 +9076,7 @@ def delete_chapter_by_num(manga_id, chapter_num):
 
 # ---------- View Chapter ----------
 @app.route("/manga/<int:manga_id>/chapter/<int:chapter_id>")
-@admin_required
+@elevated_required
 def view_chapter(manga_id, chapter_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -8031,7 +9131,7 @@ def view_chapter(manga_id, chapter_id):
 
 # API endpoint to get chapters for a manga
 @app.route('/api/manga/<int:manga_id>/chapters', methods=['GET'])
-@admin_required
+@elevated_required
 def get_manga_chapters(manga_id):
     """Get all chapters for a manga."""
     if 'user_id' not in session:
@@ -8703,7 +9803,7 @@ def my_uploads():
 # ---------- TEAM ADMIN ----------
 
 @app.route("/admin/users", methods=["GET", "POST"], endpoint="user_management")
-@admin_required
+@elevated_required
 def admin_users():
     conn = get_conn()
     c = conn.cursor()
@@ -8730,7 +9830,7 @@ def admin_users():
 
 
 @app.route("/admin/users/load_more")
-@admin_required
+@elevated_required
 def load_more_users():
     offset = request.args.get("offset", 0, type=int)
     limit = 20
@@ -8745,7 +9845,7 @@ def load_more_users():
 
 
 @app.post("/admin/users/<int:user_id>/plan")
-@admin_required
+@elevated_required
 def admin_set_plan(user_id):
     plan = request.form.get("plan", "basic").strip().lower()
     if plan not in {"basic", "pro", "ultimate"}:
@@ -8769,7 +9869,7 @@ def admin_set_plan(user_id):
 
 
 @app.route("/admin/team", methods=["GET", "POST"], endpoint="team_admin")
-@admin_required
+@elevated_required
 def team_admin():
     try:
         conn = get_conn()
@@ -8822,7 +9922,7 @@ def team_admin():
     return render_template("team_admin.html", members=members)
 
 @app.post("/admin/team/<int:member_id>/delete", endpoint="team_delete")
-@admin_required
+@elevated_required
 def team_delete(member_id):
     conn = get_conn()
     c = conn.cursor()
@@ -8833,7 +9933,7 @@ def team_delete(member_id):
     return redirect(url_for("team_admin"))
 
 @app.post("/admin/users/<int:user_id>/ban")
-@admin_required
+@elevated_required
 def user_ban(user_id):
     # prevent self-ban
     if user_id == session.get("user_id"):
@@ -8852,7 +9952,11 @@ def user_ban(user_id):
         return redirect(url_for("user_management"))
     if row[0] == "admin":
         conn.close()
-        flash("You cannot ban another admin.", "danger")
+        flash("You cannot ban an admin.", "danger")
+        return redirect(url_for("user_management"))
+    if session.get("role") == "developer" and row[0] == "developer":
+        conn.close()
+        flash("Developers cannot ban other developers.", "danger")
         return redirect(url_for("user_management"))
 
     c.execute("UPDATE users SET status='banned', is_banned=1 WHERE id=?", (user_id,))
@@ -8868,7 +9972,7 @@ def user_ban(user_id):
 
 
 @app.post("/admin/users/<int:user_id>/unban")
-@admin_required
+@elevated_required
 def user_unban(user_id):
     conn = get_conn()
     c = conn.cursor()
@@ -8885,7 +9989,7 @@ def user_unban(user_id):
 
 
 @app.post("/admin/users/<int:user_id>/delete")
-@admin_required
+@elevated_required
 def user_delete(user_id):
     if user_id == session.get("user_id"):
         flash("You cannot delete yourself.", "danger")
@@ -8904,6 +10008,10 @@ def user_delete(user_id):
     if row[0] == "admin":
         conn.close()
         flash("You cannot delete an admin.", "danger")
+        return redirect(url_for("user_management"))
+    if session.get("role") == "developer" and row[0] == "developer":
+        conn.close()
+        flash("Developers cannot delete other developers.", "danger")
         return redirect(url_for("user_management"))
 
     c.execute("DELETE FROM users WHERE id=?", (user_id,))
@@ -8957,8 +10065,8 @@ def customization():
     
     plan_levels = {'basic': 0, 'pro': 1, 'ultimate': 2, 'admin': 3}
     user_level = plan_levels.get(user_plan, 0)
-    if user_role == 'admin':
-        user_level = 3 # Admins see everything
+    if user_role in ('admin', 'developer'):
+        user_level = 3 # Admins/Developers see everything
 
     # Merge lists
     user_file_paths = {row[2] for row in user_animations}
@@ -8983,6 +10091,42 @@ def customization():
         'logout': [],
         'banner': []
     }
+    
+    # FETCH PURCHASED ANIMATIONS
+    c.execute("""
+        SELECT s.id, s.name, s.value, s.type, s.currency_type, s.rarity, s.price
+        FROM user_inventory ui
+        JOIN shop_items s ON ui.item_id = s.id
+        WHERE ui.user_id = ? AND s.type LIKE 'animation_%'
+    """, (user_id,))
+    purchased = c.fetchall()
+    
+    # Pre-fetch animation settings to check active status for shop items
+    c.execute("SELECT setting_key, setting_value FROM animation_settings WHERE user_id = ?", (user_id,))
+    user_settings = {row[0]: row[1] for row in c.fetchall()}
+    
+    for p in purchased:
+        p_type = p[3].replace('animation_', '')
+        if p_type == 'manga': p_type = 'manga_enter'
+        
+        # Check if active in settings
+        setting_key_map = {'login': 'login', 'manga_enter': 'manga', 'banner': 'dashboard', 'logout': 'logout'}
+        s_key = setting_key_map.get(p_type, p_type)
+        is_active = 1 if user_settings.get(s_key) == f"shop_{p[0]}" else 0
+
+        if p_type in animations_dict:
+            animations_dict[p_type].append({
+                'id': f"shop_{p[0]}",
+                'type': p_type,
+                'path': p[2].replace('/static/', '') if isinstance(p[2], str) and p[2].startswith('/static/') else p[2],
+                'is_active': is_active,
+                'name': p[1],
+                'category': 'animation',
+                'is_shop': True,
+                'shop_source': p[4] or 'coins',
+                'rarity': p[5] or 'common',
+                'price': p[6]
+            })
     
     active_animations = {}
     
@@ -9103,7 +10247,7 @@ def customization():
                          user_role=user_role)
 
 @app.route("/customization/library")
-@admin_required
+@elevated_required
 def customization_library():
     """New Animation Library Page"""
     if "user_id" not in session:
@@ -9185,7 +10329,7 @@ def customization_library():
                          user_role=user_role)
 
 @app.route("/customization/upload")
-@admin_required
+@elevated_required
 def customization_upload():
     """Admin-only page for uploading custom animations"""
     if "user_id" not in session:
@@ -9343,7 +10487,7 @@ def upload_animation():
 
 
 @app.route("/api/animation/<int:anim_id>/update", methods=["POST"])
-@admin_required
+@elevated_required
 def update_animation_api(anim_id):
     """Update animation details (name/category/min_plan)"""
     data = request.json
@@ -9367,7 +10511,7 @@ def update_animation_api(anim_id):
 
 
 @app.route("/api/animation/<int:anim_id>/delete", methods=["DELETE"])
-@admin_required
+@elevated_required
 def delete_animation_api(anim_id):
     """Delete an animation and its associated file"""
     conn = get_conn()
@@ -9569,6 +10713,47 @@ def activate_animation(animation_id):
         conn.close()
         return jsonify({"success": True})
 
+    if str(animation_id).startswith('shop_'):
+        shop_id = int(str(animation_id).replace('shop_', ''))
+        c.execute("""
+            SELECT s.value, s.name, s.type 
+            FROM user_inventory ui
+            JOIN shop_items s ON ui.item_id = s.id
+            WHERE ui.user_id = ? AND ui.item_id = ? AND s.type LIKE 'animation_%'
+        """, (user_id, shop_id))
+        shop_anim = c.fetchone()
+        if not shop_anim:
+            conn.close()
+            return jsonify({"error": "Shop animation not owned or not found"}), 404
+            
+        file_path, name, item_type = shop_anim
+        anim_type = item_type.replace('animation_', '')
+        if anim_type == 'manga': anim_type = 'manga_enter'
+        
+        # Deactivate custom animations for this type
+        c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = ?", (user_id, anim_type))
+        
+        # Set this shop item as the active one in animation_settings
+        setting_key = cat_to_setting.get(anim_type, anim_type)
+        c.execute("""
+            INSERT INTO animation_settings (user_id, setting_key, setting_value) 
+            VALUES (?, ?, ?) 
+            ON CONFLICT(user_id, setting_key) DO UPDATE SET setting_value = excluded.setting_value
+        """, (user_id, setting_key, f"shop_{shop_id}"))
+        
+        # Determine if we should apply 'jungle' style effect implicitly 
+        # (Preserved logic from normal custom activation)
+        name_path = (str(name or "") + str(file_path or "")).lower()
+        if 'jungle' in name_path or 'cave' in name_path:
+            # We're already setting setting_value to 'shop_X', but the layout might need 'jungle' class?
+            # Actually, base.html checks for styles in animation_settings.
+            # If we overwrite the setting_value with shop_X, the style is lost.
+            pass
+            
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+
     # 4. Handle Custom Animation IDs (Integer)
     try:
         anim_id = int(animation_id)
@@ -9595,7 +10780,7 @@ def activate_animation(animation_id):
         target_anim_id = anim_id
         
         if owner_id != user_id:
-            if owner_role == 'admin':
+            if owner_role in ('admin', 'developer'):
                 # CLONE IT
                 # Check if we already have a copy (sanity check)
                 c.execute("SELECT id FROM custom_animations WHERE user_id = ? AND file_path = ?", (user_id, file_path))
@@ -9638,7 +10823,7 @@ def activate_animation(animation_id):
 
 
 @app.route("/api/animation/<int:animation_id>", methods=["DELETE"])
-@admin_required
+@elevated_required
 def delete_animation(animation_id):
     """Delete an animation"""
     if "user_id" not in session:
@@ -9712,24 +10897,36 @@ def avatar_studio():
         except:
             showcase_badges = []
             
-    # Fetch purchased shop cosmetics (borders, animations)
+    # Fetch purchased shop cosmetics (borders, animations, title glows)
     c.execute("""
-        SELECT s.id, s.name, s.type, s.value 
+        SELECT s.id, s.name, s.type, s.value, s.rarity, s.price
         FROM user_inventory ui
         JOIN shop_items s ON ui.item_id = s.id
-        WHERE ui.user_id = ? AND (s.type = 'border' OR s.type LIKE 'animation%')
+        WHERE ui.user_id = ? AND (s.type = 'border' OR s.type LIKE 'animation%' OR s.type = 'title_glow')
     """, (user_id,))
     purchased_cosmetics = [dict(r) for r in c.fetchall()]
     # Pass along the animation target (e.g. avatar, login, etc)
-    purchased_animations = [{"id": i["id"], "name": i["name"], "value": i["value"], "target": i["type"]} for i in purchased_cosmetics if str(i['type']).startswith('animation')]
+    purchased_animations = [{"id": i["id"], "name": i["name"], "value": i["value"], "target": i["type"], "rarity": i["rarity"], "price": i["price"]} for i in purchased_cosmetics if str(i['type']).startswith('animation')]
     purchased_borders = [i for i in purchased_cosmetics if i['type'] == 'border']
+    purchased_title_glows = [i for i in purchased_cosmetics if i['type'] == 'title_glow']
     
+    # Admins see ALL title glows (not just purchased)
+    if session.get("role") == "admin":
+        c.execute("SELECT id, name, type, value, rarity, price FROM shop_items WHERE type = 'title_glow'")
+        purchased_title_glows = [dict(r) for r in c.fetchall()]
+    
+    # Get currently active global animations
+    c.execute("SELECT animation_type, name, file_path FROM custom_animations WHERE user_id = ? AND is_active = 1", (user_id,))
+    active_globals = {row['animation_type']: row['file_path'] for row in c.fetchall()}
+
     conn.close()
     return render_template("avatar_studio.html", 
                            earned_achievements=earned_achievements,
                            showcase_badges=showcase_badges,
                            purchased_animations=purchased_animations,
-                           purchased_borders=purchased_borders)
+                           purchased_borders=purchased_borders,
+                           purchased_title_glows=purchased_title_glows,
+                           active_globals=active_globals)
 
 @app.route("/api/avatar/badges", methods=["POST"])
 def save_showcase_badges():
@@ -9758,8 +10955,8 @@ def save_avatar_settings():
     user_id = session["user_id"]
     data = request.json
     
-    # settings keys: 'avatar_frame', 'avatar_border', 'avatar_color', 'avatar_bg', 'avatar_bg_class', 'avatar_bg_url', 'avatar_bg_filter', 'avatar_bg_brightness', 'avatar_bg_opacity', 'avatar_bg_blur', 'avatar_bg_match_color'
-    allowed_keys = ['avatar_frame', 'avatar_border', 'avatar_color', 'avatar_bg', 'avatar_bg_class', 'avatar_bg_url', 'avatar_bg_filter', 'avatar_bg_brightness', 'avatar_bg_opacity', 'avatar_bg_blur', 'avatar_bg_match_color']
+    # settings keys: 'avatar_frame', 'avatar_border', 'avatar_color', 'avatar_bg', 'avatar_bg_class', 'avatar_bg_url', 'avatar_bg_filter', 'avatar_bg_brightness', 'avatar_bg_opacity', 'avatar_bg_blur', 'avatar_bg_match_color', 'avatar_title_glow', 'avatar_title_background', 'avatar_title_font', 'animation_login', 'animation_logout', 'animation_banner', 'animation_manga_enter'
+    allowed_keys = ['avatar_frame', 'avatar_border', 'avatar_color', 'avatar_bg', 'avatar_bg_class', 'avatar_bg_url', 'avatar_bg_filter', 'avatar_bg_brightness', 'avatar_bg_opacity', 'avatar_bg_blur', 'avatar_bg_match_color', 'avatar_title_glow', 'avatar_title_background', 'avatar_title_font', 'animation_login', 'animation_logout', 'animation_banner', 'animation_manga_enter']
     
     conn = get_conn()
     c = conn.cursor()
@@ -9773,6 +10970,27 @@ def save_avatar_settings():
                 ON CONFLICT(user_id, setting_key) DO UPDATE SET setting_value = excluded.setting_value
             """, (user_id, key, val))
             
+            # Sync global animations with custom_animations table
+            if key.startswith('animation_') and key != 'animation_avatar':
+                anim_type = key.replace('animation_', '') # login, logout, banner, manga_enter
+                
+                # Deactivate all for this type
+                c.execute("UPDATE custom_animations SET is_active = 0 WHERE user_id = ? AND animation_type = ?", (user_id, anim_type))
+                
+                # Activate the selected one if not 'none'
+                if val and val != 'none':
+                    c.execute("""
+                        UPDATE custom_animations 
+                        SET is_active = 1 
+                        WHERE user_id = ? AND animation_type = ? AND file_path = ?
+                    """, (user_id, anim_type, val))
+                    
+                    if c.rowcount == 0:
+                        c.execute("""
+                            INSERT INTO custom_animations (user_id, animation_type, file_path, is_active, name)
+                            VALUES (?, ?, ?, 1, ?)
+                        """, (user_id, anim_type, val, "Purchased " + anim_type.capitalize().replace('_', ' ')))
+
     conn.commit()
     conn.close()
     
@@ -9964,9 +11182,10 @@ def fetch_user_avatar_settings(user_id):
     
     settings = {}
     for key, val in rows:
-        if key.startswith('avatar_'):
+        if key.startswith('avatar_') or key.startswith('animation_'):
             settings[key] = val
     return settings
+
 
 @app.context_processor
 def inject_avatar_settings():
@@ -9989,7 +11208,7 @@ def tools():
     """Display Tools / Web Hub page"""
     if "user_id" not in session:
         return redirect(url_for("login"))
-    is_admin = session.get("role") == "admin"
+    is_admin = session.get("role") in ("admin", "developer")
     return render_template("tools.html", is_admin=is_admin)
 
 
@@ -9998,7 +11217,7 @@ def code_projects():
     """Display dedicated Code Projects gallery page"""
     if "user_id" not in session:
         return redirect(url_for("login"))
-    is_admin = session.get("role") == "admin"
+    is_admin = session.get("role") in ("admin", "developer")
     return render_template("code_projects.html", is_admin=is_admin)
 
 
@@ -10034,7 +11253,7 @@ def fix_html_paths(project_path):
 
 
 @app.route("/api/tools/upload-zip", methods=["POST"])
-@admin_required
+@elevated_required
 def tools_upload_zip():
     """Upload and extract a ZIP file as a code project"""
     if "file" not in request.files:
@@ -10094,7 +11313,7 @@ def tools_upload_zip():
 
 
 @app.route("/api/tools/upload-files", methods=["POST"])
-@admin_required
+@elevated_required
 def tools_upload_files():
     """Upload multiple files to create a code project"""
     if "files" not in request.files:
@@ -10182,7 +11401,7 @@ def tools_list_projects():
 
 
 @app.route("/api/tools/projects/<project_name>", methods=["DELETE"])
-@admin_required
+@elevated_required
 def tools_delete_project(project_name):
     """Delete a code project (Admin Only)"""
     project_name = secure_filename(project_name)
@@ -10277,7 +11496,7 @@ def tools_get_links():
 
 
 @app.route("/api/tools/projects/promote", methods=["POST"])
-@admin_required
+@elevated_required
 def tools_promote_project():
     """Promote a code project to a tool link"""
     # This might be multipart/form-data for an icon upload
@@ -10342,7 +11561,7 @@ def project_view(project_name):
 
 
 @app.route("/api/tools/links", methods=["POST"])
-@admin_required
+@elevated_required
 def tools_add_link():
     """Add a new tool link (Admin Only)"""
     data = request.json
@@ -10371,7 +11590,7 @@ def tools_add_link():
 
 
 @app.route("/api/tools/links/<int:link_id>", methods=["PUT"])
-@admin_required
+@elevated_required
 def tools_update_link(link_id):
     """Update an existing tool link (Admin Only)"""
     data = request.json
@@ -10419,7 +11638,7 @@ def tools_update_link(link_id):
 
 
 @app.route("/api/tools/links/<int:link_id>/update", methods=["POST"])
-@admin_required
+@elevated_required
 def tools_update_link_with_icon(link_id):
     """Update an existing tool link with icon file upload (Admin Only)"""
     conn = get_conn()
@@ -10471,7 +11690,7 @@ def tools_update_link_with_icon(link_id):
 
 
 @app.route("/api/tools/links/<int:link_id>", methods=["DELETE"])
-@admin_required
+@elevated_required
 def tools_delete_link(link_id):
     """Delete a tool link (Admin Only)"""
     conn = get_conn()
@@ -10484,7 +11703,7 @@ def tools_delete_link(link_id):
 
 
 @app.route("/api/tools/projects/<project_name>/download", methods=["GET"])
-@admin_required
+@elevated_required
 def tools_download_project(project_name):
     """Download a project as ZIP"""
     project_name = secure_filename(project_name)
@@ -10514,7 +11733,7 @@ def tools_download_project(project_name):
 
 
 @app.route("/api/tools/terminal", methods=["POST"])
-@admin_required
+@elevated_required
 def tools_terminal():
     """Execute a terminal command in a project directory (ADMIN ONLY)"""
     data = request.get_json(silent=True) or {}
@@ -10611,7 +11830,7 @@ def tools_terminal():
 
 
 @app.route("/api/tools/terminal/files", methods=["GET"])
-@admin_required
+@elevated_required
 def tools_terminal_files():
     """List files in a project directory for the terminal"""
     project_name = request.args.get("project", "").strip()
@@ -10697,7 +11916,7 @@ def bundles():
 
 
 @app.route("/admin/bundles")
-@admin_required
+@mod_or_elevated_required('manage_bundles')
 def admin_bundles():
     """Admin bundles management page"""
     conn = get_conn()
@@ -10731,7 +11950,7 @@ def admin_bundles():
 
 
 @app.route("/admin/bundles/<int:id>/edit", methods=["GET", "POST"])
-@admin_required
+@mod_or_elevated_required('manage_bundles')
 def admin_bundle_edit(id):
     """Admin bundle edit page"""
     import json
@@ -10847,7 +12066,7 @@ def admin_bundle_edit(id):
 
 
 @app.route("/admin/bundles/create", methods=["POST"])
-@admin_required
+@mod_or_elevated_required('manage_bundles')
 def admin_bundle_create():
     """Create a new bundle"""
     import json
@@ -10905,7 +12124,7 @@ def admin_bundle_create():
 
 
 @app.route("/admin/bundles/<int:id>/delete", methods=["POST"])
-@admin_required
+@mod_or_elevated_required('manage_bundles')
 def admin_bundle_delete(id):
     """Delete a bundle"""
     conn = get_conn()
@@ -10919,7 +12138,7 @@ def admin_bundle_delete(id):
 
 
 @app.route("/admin/bundles/<int:id>/toggle", methods=["POST"])
-@admin_required
+@mod_or_elevated_required('manage_bundles')
 def admin_bundle_toggle(id):
     """Toggle bundle active status"""
     conn = get_conn()
@@ -11676,7 +12895,7 @@ def request_monetization():
     return jsonify({"success": True})
 
 @app.route("/admin/users/approve_role", methods=["POST"])
-@admin_required
+@elevated_required
 def approve_role_request():
     request_id = request.form.get("request_id")
     action = request.form.get("action") # approve / reject
@@ -11709,7 +12928,7 @@ def approve_role_request():
     return redirect(url_for("user_management"))
 
 @app.route("/admin/revenue/export")
-@admin_required
+@elevated_required
 def admin_revenue_export():
     import csv
     import io
@@ -11739,7 +12958,7 @@ def admin_revenue_export():
 
 
 @app.route("/admin/groups/create", methods=["GET", "POST"])
-@admin_required
+@elevated_required
 def admin_create_group():
     """Admin page/route for creating new community groups"""
     if request.method == "POST":
@@ -12469,6 +13688,8 @@ def get_enriched_posts(c, user_id, raw_rows):
     posts = []
     for row in raw_rows:
         post = dict(row)
+        if 'role' not in post:
+            post['role'] = 'reader'
         post_id = post['id']
         
         # Fetch user vote status
@@ -12528,8 +13749,14 @@ def get_enriched_posts(c, user_id, raw_rows):
                 LIMIT 3
             """, (author_id,))
             post['author_achievements'] = [dict(ach) for ach in c.fetchall()]
+            
+            # Fetch author title glow
+            c.execute("SELECT setting_value FROM animation_settings WHERE user_id = ? AND setting_key = 'avatar_title_glow'", (author_id,))
+            glow_row = c.fetchone()
+            post['author_title_glow'] = glow_row[0] if glow_row else 'none'
         else:
             post['author_achievements'] = []
+            post['author_title_glow'] = 'none'
             
         posts.append(post)
     return posts
@@ -12596,7 +13823,7 @@ def community():
         # Get recent posts from all groups with detailed info
         query = """
             SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at, gp.charisma,
-                   u.id as user_id, u.username, u.avatar_url as avatar,
+                   u.id as user_id, u.username, u.avatar_url as avatar, u.role as role,
                    cg.id as group_id, cg.name as group_name
             FROM group_posts gp
             JOIN users u ON gp.user_id = u.id
@@ -12607,7 +13834,13 @@ def community():
             query += " WHERE (gp.title LIKE ? OR gp.content LIKE ?)"
             params = [f'%{search_query}%', f'%{search_query}%']
             
-        query += " ORDER BY RANDOM() LIMIT 30"
+        sort_by = request.args.get('sort', 'newest').lower()
+        if sort_by == 'hot':
+            query += " ORDER BY gp.comment_count DESC, gp.created_at DESC LIMIT 30"
+        elif sort_by == 'top':
+            query += " ORDER BY (gp.upvotes - gp.downvotes) DESC LIMIT 30"
+        else:
+            query += " ORDER BY gp.created_at DESC LIMIT 30"
         c.execute(query, params)
         
         posts = get_enriched_posts(c, user_id, c.fetchall())
@@ -12698,7 +13931,7 @@ def api_get_more_posts():
         
         query = """
             SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at, gp.charisma,
-                   u.id as user_id, u.username, u.avatar_url as avatar,
+                   u.id as user_id, u.username, u.avatar_url as avatar, u.role as role,
                    cg.id as group_id, cg.name as group_name
             FROM group_posts gp
             JOIN users u ON gp.user_id = u.id
@@ -12722,7 +13955,13 @@ def api_get_more_posts():
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
         
-        query += " ORDER BY RANDOM() LIMIT 10"
+        sort_by = request.args.get('sort', 'newest').lower()
+        if sort_by == 'hot':
+            query += " ORDER BY gp.comment_count DESC, gp.created_at DESC LIMIT 10"
+        elif sort_by == 'top':
+            query += " ORDER BY (gp.upvotes - gp.downvotes) DESC LIMIT 10"
+        else:
+            query += " ORDER BY gp.created_at DESC LIMIT 10"
         c.execute(query, params)
         
         raw_rows = c.fetchall()
@@ -12788,8 +14027,7 @@ def group_page(group_id):
             flash('Group not found', 'error')
             return redirect(url_for('community'))
         
-        group = dict(zip(['id', 'name', 'description', 'group_type', 'reference_id', 'category',
-                          'icon_url', 'banner_url', 'owner_id', 'member_count', 'post_count', 'created_at'], row))
+        group = dict(row)
         
         # Check if current user is a member
         user_id = session.get('user_id')
@@ -12798,8 +14036,8 @@ def group_page(group_id):
         is_member = member_row is not None
         user_role = member_row[0] if member_row else None
         
-        # Site admins are treated as owners of all groups
-        if session.get('role') == 'admin':
+        # Site admins and developers are treated as owners of all groups
+        if session.get('role') in ('admin', 'developer'):
             user_role = 'owner'
             is_member = True
         
@@ -12812,45 +14050,47 @@ def group_page(group_id):
                 is_member = True
         
         # Check if user can edit settings
-        is_admin = session.get('role') == 'admin'
+        is_admin = session.get('role') in ('admin', 'developer')
         can_edit_settings = can_edit_group_settings(group_id, user_id, is_admin)
         
         # Get group admins/moderators
         c.execute("""
-            SELECT u.id, u.username, u.avatar_url, gm.role
+            SELECT u.id, u.username as name, u.avatar_url as avatar, gm.role,
+                   (SELECT setting_value FROM animation_settings WHERE user_id = u.id AND setting_key = 'avatar_title_glow') as title_glow
             FROM group_members gm
             JOIN users u ON gm.user_id = u.id
             WHERE gm.group_id = ? AND gm.role IN ('owner', 'admin', 'moderator')
             ORDER BY CASE gm.role WHEN 'owner' THEN 1 WHEN 'admin' THEN 2 ELSE 3 END
         """, (group_id,))
-        admins = [dict(zip(['id', 'name', 'avatar', 'role'], row)) for row in c.fetchall()]
+        admins = [dict(row) for row in c.fetchall()]
         
         # Get recent members
         c.execute("""
-            SELECT u.id, u.username, u.avatar_url
+            SELECT u.id, u.username as name, u.avatar_url as avatar, u.role
             FROM group_members gm
             JOIN users u ON gm.user_id = u.id
             WHERE gm.group_id = ?
             ORDER BY gm.joined_at DESC
             LIMIT 8
         """, (group_id,))
-        recent_members = [dict(zip(['id', 'name', 'avatar'], row)) for row in c.fetchall()]
+        recent_members = [dict(row) for row in c.fetchall()]
         
         # Get most charismatic members
         c.execute("""
-            SELECT u.id, u.username, u.avatar_url, u.charisma
+            SELECT u.id, u.username as name, u.avatar_url as avatar, u.charisma, u.role,
+                   (SELECT setting_value FROM animation_settings WHERE user_id = u.id AND setting_key = 'avatar_title_glow') as title_glow
             FROM group_members gm
             JOIN users u ON gm.user_id = u.id
             WHERE gm.group_id = ?
             ORDER BY COALESCE(u.charisma, 0) DESC, u.username ASC
             LIMIT 3
         """, (group_id,))
-        top_charisma_members = [dict(zip(['id', 'name', 'avatar', 'charisma'], row)) for row in c.fetchall()]
+        top_charisma_members = [dict(row) for row in c.fetchall()]
         
         # Get group posts
         c.execute("""
             SELECT gp.id, gp.title, gp.content, gp.post_type, gp.upvotes, gp.downvotes, gp.comment_count, gp.created_at, gp.charisma,
-                   u.id as user_id, u.username, u.avatar_url as avatar, gp.channel_id,
+                   u.id as user_id, u.username, u.avatar_url as avatar, u.role as role, gp.channel_id,
                    cg.id as group_id, cg.name as group_name
             FROM group_posts gp
             JOIN users u ON gp.user_id = u.id
@@ -12918,7 +14158,8 @@ def api_group_top_charisma(group_id):
         c = conn.cursor()
         
         c.execute("""
-            SELECT u.id, u.username, u.avatar_url, u.charisma
+            SELECT u.id, u.username, u.avatar_url, u.charisma,
+                   (SELECT setting_value FROM animation_settings WHERE user_id = u.id AND setting_key = 'avatar_title_glow') as title_glow
             FROM group_members gm
             JOIN users u ON gm.user_id = u.id
             WHERE gm.group_id = ?
@@ -12928,7 +14169,7 @@ def api_group_top_charisma(group_id):
         
         top_charisma_members = []
         for row in c.fetchall():
-            member = dict(zip(['id', 'name', 'avatar', 'charisma'], row))
+            member = dict(zip(['id', 'name', 'avatar', 'charisma', 'title_glow'], row))
             top_charisma_members.append(member)
             # Award Top 3 Legend achievement
             award_achievement(member['id'], 'top_3_charismatic')
@@ -13017,7 +14258,7 @@ def leave_group(group_id):
 def upload_group_icon(group_id):
     """Upload community group icon"""
     user_id = session.get('user_id')
-    is_admin = session.get('role') == 'admin'
+    is_admin = session.get('role') in ('admin', 'developer')
     
     if not can_edit_group_settings(group_id, user_id, is_admin):
         return jsonify({'success': False, 'message': 'You do not have permission to edit this group'})
@@ -13049,7 +14290,7 @@ def upload_group_icon(group_id):
 def add_group_moderator(group_id):
     """Add or update a user as moderator/admin in a group"""
     user_id = session.get('user_id')
-    is_admin = session.get('role') == 'admin'
+    is_admin = session.get('role') in ('admin', 'developer')
     
     if not can_edit_group_settings(group_id, user_id, is_admin):
         return jsonify({'success': False, 'message': 'You do not have permission to manage moderators'})
@@ -13097,7 +14338,7 @@ def add_group_moderator(group_id):
 def upload_group_banner(group_id):
     """Upload community group banner"""
     user_id = session.get('user_id')
-    is_admin = session.get('role') == 'admin'
+    is_admin = session.get('role') in ('admin', 'developer')
     
     if not can_edit_group_settings(group_id, user_id, is_admin):
         return jsonify({'success': False, 'message': 'You do not have permission to edit this group'})
@@ -13129,7 +14370,7 @@ def upload_group_banner(group_id):
 def update_group_settings(group_id):
     """Update community group settings"""
     user_id = session.get('user_id')
-    is_admin = session.get('role') == 'admin'
+    is_admin = session.get('role') in ('admin', 'developer')
     
     if not can_edit_group_settings(group_id, user_id, is_admin):
         return jsonify({'success': False, 'message': 'You do not have permission to edit this group'})
@@ -13290,7 +14531,7 @@ def create_group_post(group_id):
 def edit_group_post(post_id):
     """Edit a group post"""
     user_id = session.get('user_id')
-    is_admin = session.get('role') == 'admin'
+    is_admin = session.get('role') in ('admin', 'developer')
     
     conn = get_conn()
     c = conn.cursor()
@@ -13328,7 +14569,7 @@ def edit_group_post(post_id):
 def delete_group_post(post_id):
     """Delete a group post"""
     user_id = session.get('user_id')
-    is_admin = session.get('role') == 'admin'
+    is_admin = session.get('role') in ('admin', 'developer')
     
     conn = get_conn()
     c = conn.cursor()
@@ -13466,7 +14707,7 @@ def get_group_channels(group_id):
 def create_group_channel(group_id):
     """Create a new channel in a group"""
     user_id = session.get('user_id')
-    is_admin = session.get('role') == 'admin'
+    is_admin = session.get('role') in ('admin', 'developer')
     
     # Check if user can manage channels (admin or group owner)
     if not can_edit_group_settings(group_id, user_id, is_admin):
@@ -13522,10 +14763,11 @@ def get_group_post_comments(post_id):
         order_clause = "reaction_count DESC, gc.created_at DESC"
 
     query = f"""
-        SELECT gc.id, gc.content, gc.created_at, u.username, u.avatar_url, u.id as user_id,
+        SELECT gc.id, gc.content, gc.created_at, u.username, u.avatar_url, u.id as user_id, u.role as role,
                (SELECT reaction_type FROM group_comment_likes WHERE comment_id = gc.id AND user_id = ?) as user_reaction,
                (SELECT COUNT(*) FROM group_comment_likes WHERE comment_id = gc.id) as reaction_count,
-               gc.charisma
+               gc.charisma,
+               (SELECT setting_value FROM animation_settings WHERE user_id = u.id AND setting_key = 'avatar_title_glow') as title_glow
         FROM group_comments gc
         JOIN users u ON gc.user_id = u.id
         WHERE gc.post_id = ? AND gc.id NOT IN (SELECT comment_id FROM group_comment_attachments WHERE file_type = 'sticker')
@@ -13575,11 +14817,13 @@ def get_group_post_comments(post_id):
             'username': r[3],
             'avatar': r[4],
             'user_id': r[5],
-            'user_reaction': r[6],
+            'role': r[6],
+            'user_reaction': r[7],
             'reactions': reactions,
             'total_reactions': total_reactions,
             'attachments': attachments,
-            'charisma': r[8] if len(r) > 8 and r[8] is not None else 0
+            'charisma': r[9] if len(r) > 9 and r[9] is not None else 0,
+            'title_glow': r[10] if len(r) > 10 and r[10] is not None else 'none'
         })
     
     conn.close()
@@ -14038,9 +15282,27 @@ def discover_groups():
 @app.route('/api/buy_coins', methods=['POST'])
 @login_required
 def api_buy_coins():
-    """Mock endpoint to give the user coins to buy gifts"""
+    """Mock endpoint to give the user coins based on selected package"""
     user_id = session.get('user_id')
-    amount = 500 # Give 500 coins per click for testing
+    
+    # Predefined coin packages (coins + bonus)
+    PACKAGES = {
+        'starter':   {'name': 'Starter Pack',   'coins': 100},
+        'popular':   {'name': 'Popular Pack',   'coins': 550},   # 500 + 50 bonus
+        'pro':       {'name': 'Pro Pack',       'coins': 1400},  # 1200 + 200 bonus
+        'elite':     {'name': 'Elite Pack',     'coins': 3800},  # 3000 + 800 bonus
+        'vip':       {'name': 'VIP Pack',       'coins': 10000}, # 7500 + 2500 bonus
+        'legendary': {'name': 'Legendary Pack', 'coins': 30000}, # 20000 + 10000 bonus
+    }
+    
+    data = request.get_json(silent=True) or {}
+    package_id = data.get('package_id', '')
+    payment_method = data.get('payment_method', 'unknown')
+    
+    # Look up package; default to 500 coins for backward compatibility
+    pkg = PACKAGES.get(package_id)
+    amount = pkg['coins'] if pkg else 500
+    pkg_name = pkg['name'] if pkg else 'Default'
     
     conn = get_conn()
     c = conn.cursor()
@@ -14049,7 +15311,13 @@ def api_buy_coins():
         c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
         new_balance = c.fetchone()[0]
         conn.commit()
-        return jsonify({'success': True, 'coins': new_balance})
+        return jsonify({
+            'success': True,
+            'coins': new_balance,
+            'coins_added': amount,
+            'package': pkg_name,
+            'payment_method': payment_method
+        })
     except Exception as e:
         logger.error(f"Error buying coins: {e}")
         return jsonify({'success': False, 'message': str(e)})
@@ -14074,8 +15342,8 @@ def send_group_post_gift(post_id):
     conn = get_conn()
     c = conn.cursor()
     try:
-        # Check coins (Admins have unlimited)
-        is_admin = session.get('role') == 'admin'
+        # Check coins (Admins/Developers have unlimited)
+        is_admin = session.get('role') in ('admin', 'developer')
         c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
         row = c.fetchone()
         user_coins = row[0] if row and row[0] is not None else 0
@@ -14090,6 +15358,9 @@ def send_group_post_gift(post_id):
             return jsonify({'success': False, 'message': 'Post not found'})
             
         post_author_id = post_row[0]
+        
+        if user_id == post_author_id:
+            return jsonify({'success': False, 'message': 'You cannot gift your own post'})
         
         # Deduct coins (Skip for admins)
         if not is_admin:
@@ -14185,8 +15456,8 @@ def send_group_comment_gift(comment_id):
     conn = get_conn()
     c = conn.cursor()
     try:
-        # Check coins (Admins have unlimited)
-        is_admin = session.get('role') == 'admin'
+        # Check coins (Admins/Developers have unlimited)
+        is_admin = session.get('role') in ('admin', 'developer')
         c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
         row = c.fetchone()
         user_coins = row[0] if row and row[0] is not None else 0
@@ -14202,6 +15473,9 @@ def send_group_comment_gift(comment_id):
  
         comment_author_id = comment_row[0]
         post_id = comment_row[1]
+        
+        if user_id == comment_author_id:
+            return jsonify({'success': False, 'message': 'You cannot gift your own comment'})
  
         # Deduct coins (Skip for admins)
         if not is_admin:
@@ -14248,7 +15522,7 @@ def get_user_balance():
     conn = get_conn()
     c = conn.cursor()
     try:
-        if session.get('role') == 'admin':
+        if session.get('role') in ('admin', 'developer'):
             return jsonify({'success': True, 'coins': 999999})
             
         c.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
@@ -14369,6 +15643,440 @@ def api_create_community_post():
             conn.close()
         logger.error(f"Error creating post: {e}")
         return jsonify({'error': str(e)}), 500
+
+def get_user_metric(c, user_id, keyword):
+    """Calculate the current absolute value for a metric based on keyword type."""
+    # Normalize keyword: replace spaces with underscores for robust parsing
+    keyword = keyword.replace(' ', '_')
+    type_part = keyword.rsplit('_', 1)[0] if '_' in keyword else keyword
+    
+    if type_part == 'read_manga':
+        c.execute("SELECT COUNT(DISTINCT manga_id) FROM manga_progress WHERE user_id = ?", (user_id,))
+        return c.fetchone()[0]
+    elif type_part == 'manga_chapters':
+        c.execute("SELECT COUNT(*) FROM manga_progress WHERE user_id = ?", (user_id,))
+        return c.fetchone()[0]
+    elif type_part == 'read_book':
+        c.execute("SELECT COUNT(DISTINCT book_id) FROM activity_log WHERE user_id = ? AND activity_type = 'read'", (user_id,))
+        return c.fetchone()[0]
+    elif type_part == 'post_count':
+        c.execute("SELECT COUNT(*) FROM group_posts WHERE user_id = ?", (user_id,))
+        return c.fetchone()[0]
+    elif type_part == 'comment_engagement':
+        c.execute("SELECT (SELECT COUNT(*) FROM group_comments WHERE user_id = ?) + (SELECT COUNT(*) FROM manga_comments WHERE user_id = ?) + (SELECT COUNT(*) FROM chapter_comments WHERE user_id = ?)", (user_id, user_id, user_id))
+        return c.fetchone()[0]
+    elif type_part == 'login_count':
+        c.execute("SELECT COUNT(*) FROM activity_log WHERE user_id = ? AND activity_type = 'login'", (user_id,))
+        return c.fetchone()[0]
+    elif type_part in ['charisma_earned', 'earn_charisma', 'charisma']:
+        c.execute("SELECT charisma FROM users WHERE id = ?", (user_id,))
+        return c.fetchone()[0]
+    elif type_part == 'social_groups':
+        c.execute("SELECT COUNT(*) FROM group_members WHERE user_id = ?", (user_id,))
+        return c.fetchone()[0]
+    elif type_part == 'reviews_critic':
+        c.execute("SELECT COUNT(*) FROM reviews WHERE user_id = ?", (user_id,))
+        return c.fetchone()[0]
+    elif type_part == 'ai_usage':
+        c.execute("SELECT COUNT(*) FROM activity_log WHERE user_id = ? AND (activity_type = 'summarized' OR summary_generated = 1)", (user_id,))
+        return c.fetchone()[0]
+    elif type_part == 'tools_promoted':
+        c.execute("SELECT COUNT(*) FROM activity_log WHERE user_id = ? AND activity_type = 'promoted'", (user_id,))
+        return c.fetchone()[0]
+    elif type_part == 'login_streak':
+        c.execute("""
+            SELECT DISTINCT DATE(timestamp) 
+            FROM activity_log 
+            WHERE user_id = ? AND activity_type = 'login'
+            ORDER BY DATE(timestamp) DESC
+        """, (user_id,))
+        rows = c.fetchall()
+        if not rows:
+            return 0
+            
+        unique_dates = [datetime.strptime(row[0], '%Y-%m-%d').date() for row in rows]
+        today = datetime.now().date()
+        
+        # Check if the streak is still active (last login was today or yesterday)
+        if (today - unique_dates[0]).days > 1:
+            return 0
+            
+        streak = 1
+        for i in range(len(unique_dates) - 1):
+            if (unique_dates[i] - unique_dates[i+1]).days == 1:
+                streak += 1
+            else:
+                break
+        return streak
+    return 0
+
+@app.route("/api/tasks/complete/<keyword>", methods=["POST"])
+@login_required
+def complete_task(keyword):
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    # Normalize keyword: replace spaces with underscores for robust parsing
+    keyword = keyword.replace(' ', '_')
+
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    # 1. Find the task
+    data = request.get_json(silent=True) or {}
+    task_id_param = data.get('task_id')
+    
+    if task_id_param:
+        c.execute("SELECT id, coin_reward, refresh_count_days, keyword FROM event_tasks WHERE id = ? AND keyword = ?", (task_id_param, keyword))
+    else:
+        # Search by normalized keyword
+        c.execute("SELECT id, coin_reward, refresh_count_days, keyword FROM event_tasks WHERE keyword = ?", (keyword,))
+    task = c.fetchone()
+    if not task:
+        # Try searching with spaces just in case legacy data has them
+        c.execute("SELECT id, coin_reward, refresh_count_days, keyword FROM event_tasks WHERE keyword = ?", (keyword.replace('_', ' '),))
+        task = c.fetchone()
+        
+    if not task:
+        conn.close()
+        return jsonify({"success": False, "message": "Task not found"}), 404
+        
+    task_id = task['id']
+    reward = task['coin_reward']
+    refresh_days = task['refresh_count_days']
+    
+    # 2. STRICT CHECK: Must be joined
+    c.execute("SELECT status, completed_at, initial_value FROM user_event_task_progress WHERE user_id = ? AND task_id = ?", (user_id, task_id))
+    user_task = c.fetchone()
+    
+    if not user_task:
+        conn.close()
+        return jsonify({"success": False, "message": "You must join this campaign first!"}), 403
+    
+    # 3. Handle Refresh/Cooldown
+    now = datetime.now()
+    if user_task['status'] == 'completed':
+        last_completed = user_task['completed_at']
+        if isinstance(last_completed, str):
+            try:
+                last_completed = last_completed.split('.')[0]
+                last_completed = datetime.strptime(last_completed, '%Y-%m-%d %H:%M:%S')
+            except: pass
+        
+        if isinstance(last_completed, datetime):
+            days_passed = (now - last_completed).days
+            if days_passed < refresh_days:
+                conn.close()
+                hours_remaining = (refresh_days * 24) - int((now - last_completed).total_seconds() / 3600)
+                return jsonify({
+                    "success": False, 
+                    "message": f"Cooldown active! Resets in {max(1, hours_remaining)} hours."
+                }), 400
+
+    # 4. Progress Validation (Relative to Join)
+    # Extract target value from keyword (e.g., read_manga_5 -> 5)
+    try:
+        # Use normalized keyword for splitting
+        target_val = int(keyword.rsplit('_', 1)[1])
+    except:
+        target_val = 1 # Default to 1 if no number provided
+        
+    curr_val = get_user_metric(c, user_id, keyword)
+    init_val = user_task['initial_value'] or 0
+    progress_made = curr_val - init_val
+    
+    if progress_made < target_val:
+        conn.close()
+        return jsonify({
+            "success": False, 
+            "message": f"Objective not yet reached. Progress since join: {progress_made}/{target_val}",
+            "current_progress": progress_made,
+            "target": target_val
+        }), 400
+
+    # 5. Complete it
+    c.execute("UPDATE user_event_task_progress SET status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE user_id = ? AND task_id = ?", (user_id, task_id))
+    
+    # Give coins
+    if reward > 0:
+        c.execute("UPDATE users SET coins = coins + ? WHERE id = ?", (reward, user_id))
+        
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True, "message": "Objective Complete!", "coins_earned": reward})
+
+@app.route("/api/admin/get_items_by_genre/<genre>")
+@elevated_required
+def get_items_by_genre(genre):
+    """Fetch all books/mangas/etc. of a specific genre (book_type)."""
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Map task genre to database book_type if necessary
+    genre_map = {
+        'Manga': 'manga',
+        'Book': 'book',
+        'Manhwa': 'manhwa',
+        'Light Novel': 'light_novel' # Support for user's request
+    }
+    
+    db_genre = genre_map.get(genre, genre.lower())
+    
+    c.execute("SELECT id, title FROM books WHERE LOWER(book_type) = ?", (db_genre,))
+    items = [{"id": row[0], "title": row[1]} for row in c.fetchall()]
+    
+    conn.close()
+    return jsonify({"success": True, "items": items})
+
+@app.route("/api/admin/get_all_categories")
+@elevated_required
+def get_all_categories():
+    """Fetch all unique categories from the books table."""
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT DISTINCT category FROM books WHERE category IS NOT NULL AND category != ''")
+    categories = [row[0] for row in c.fetchall()]
+    conn.close()
+    return jsonify({"success": True, "categories": categories})
+@app.route("/admin/create-developer", methods=["GET", "POST"])
+@admin_required
+def admin_create_developer():
+    """Admin-only page to create developer accounts."""
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
+        
+        if not username or not email or not password:
+            flash("All fields are required.", "danger")
+            return redirect(url_for("admin_create_developer"))
+            
+        conn = get_conn()
+        c = conn.cursor()
+        
+        # Check if username or email exists
+        c.execute("SELECT id FROM users WHERE username = ? OR email = ?", (username, email))
+        if c.fetchone():
+            flash("Username or Email already exists.", "danger")
+            conn.close()
+            return redirect(url_for("admin_create_developer"))
+            
+        from werkzeug.security import generate_password_hash
+        hashed_password = generate_password_hash(password)
+        
+        c.execute("""
+            INSERT INTO users (username, email, password, role) 
+            VALUES (?, ?, ?, 'developer')
+        """, (username, email, hashed_password))
+        
+        conn.commit()
+        conn.close()
+        
+        flash(f"Developer account '{username}' created successfully.", "success")
+        return redirect(url_for("admin_users"))
+        
+    return render_template("admin_create_developer.html")
+
+
+@app.route("/api/admin/eligible-users")
+@elevated_required
+def api_eligible_users():
+    """Paginated API to fetch users eligible for promotion."""
+    query = request.args.get('q', '').strip().lower()
+    try:
+        page = int(request.args.get('page', 1))
+    except ValueError:
+        page = 1
+        
+    limit = 10
+    offset = (page - 1) * limit
+    
+    try:
+        conn = get_conn()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        if query:
+            c.execute("""
+                SELECT id, username, email, avatar_url
+                FROM users 
+                WHERE role NOT IN ('admin', 'developer', 'moderator')
+                AND (status = 'active' OR status IS NULL)
+                AND (LOWER(username) LIKE ? OR LOWER(email) LIKE ?)
+                ORDER BY username ASC
+                LIMIT ? OFFSET ?
+            """, (f"%{query}%", f"%{query}%", limit + 1, offset))
+        else:
+            c.execute("""
+                SELECT id, username, email, avatar_url
+                FROM users 
+                WHERE role NOT IN ('admin', 'developer', 'moderator')
+                AND (status = 'active' OR status IS NULL)
+                ORDER BY username ASC
+                LIMIT ? OFFSET ?
+            """, (limit + 1, offset))
+        
+        rows = c.fetchall()
+        has_more = len(rows) > limit
+        users = [dict(row) for row in rows[:limit]]
+        
+        conn.close()
+        return jsonify({"users": users, "has_more": has_more})
+    except Exception as e:
+        logger.error(f"Error in api_eligible_users: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({"success": False, "error": str(e), "users": [], "has_more": False}), 500
+
+
+@app.route("/admin/moderators", methods=["GET"])
+@elevated_required
+def admin_moderators():
+    """Page for admins and developers to manage moderators."""
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row # Enable dictionary-like access
+    c = conn.cursor()
+    
+    # Get all current moderators with their info
+    c.execute("""
+        SELECT id, username, email 
+        FROM users 
+        WHERE role = 'moderator'
+    """)
+    moderators = [dict(row) for row in c.fetchall()]
+    
+    # Pre-fetch permissions for these moderators
+    for mod in moderators:
+        c.execute("SELECT permission FROM moderator_permissions WHERE user_id = ?", (mod['id'],))
+        mod['permissions'] = [row[0] for row in c.fetchall()]
+    
+    # eligible_users now handled via /api/admin/eligible-users AJAX
+    conn.close()
+    
+    return render_template("admin_moderators.html", moderators=moderators)
+
+
+@app.route("/admin/moderators/assign", methods=["POST"])
+@elevated_required
+def assign_moderator():
+    """Promote a user to moderator."""
+    user_id = request.form.get("user_id")
+    if not user_id:
+        flash("No user selected.", "danger")
+        return redirect(url_for("admin_moderators"))
+        
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Validate user isn't already admin/developer
+    c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+    row = c.fetchone()
+    
+    if not row:
+        flash("User not found.", "danger")
+    elif row[0] in ('admin', 'developer'):
+        flash("Cannot convert admins or developers to moderators.", "danger")
+    else:
+        c.execute("UPDATE users SET role = 'moderator' WHERE id = ?", (user_id,))
+        conn.commit()
+        flash("User successfully promoted to Moderator.", "success")
+        
+    conn.close()
+    return redirect(url_for("admin_moderators"))
+
+
+@app.route("/admin/moderators/remove", methods=["POST"])
+@elevated_required
+def remove_moderator():
+    """Demote a moderator back to reader."""
+    user_id = request.form.get("user_id")
+    if not user_id:
+        return redirect(url_for("admin_moderators"))
+        
+    conn = get_conn()
+    c = conn.cursor()
+    
+    # Make sure they really are a moderator
+    c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+    row = c.fetchone()
+    
+    if row and row[0] == 'moderator':
+        c.execute("UPDATE users SET role = 'reader' WHERE id = ?", (user_id,))
+        # Also clean up their permissions so they don't have them if repromoted later
+        c.execute("DELETE FROM moderator_permissions WHERE user_id = ?", (user_id,))
+        conn.commit()
+        flash("Moderator removed successfully.", "success")
+    else:
+        flash("Invalid target user.", "danger")
+        
+    conn.close()
+    return redirect(url_for("admin_moderators"))
+
+
+@app.route("/admin/moderators/permissions", methods=["POST"])
+@elevated_required
+def update_mod_permissions():
+    """Update a moderator's feature access permissions."""
+    user_id = request.form.get("user_id")
+    if not user_id:
+        return jsonify({"success": False, "message": "User ID required"}), 400
+        
+    # Single permission toggle (AJAX-friendly)
+    target_permission = request.form.get("permission")
+    action = request.form.get("action") # 'grant' or 'revoke'
+    
+    conn = get_conn()
+    c = conn.cursor()
+    
+    try:
+        if target_permission and action:
+            if action == "grant":
+                c.execute("""
+                    INSERT OR IGNORE INTO moderator_permissions (user_id, permission, granted_by)
+                    VALUES (?, ?, ?)
+                """, (user_id, target_permission, session.get('user_id')))
+            else:
+                c.execute("DELETE FROM moderator_permissions WHERE user_id = ? AND permission = ?", (user_id, target_permission))
+            conn.commit()
+            return jsonify({"success": True, "message": f"Permission updated"})
+
+        # Bulk update (Compatibility mode)
+        permissions = request.form.getlist("permissions")
+        c.execute("SELECT permission FROM moderator_permissions WHERE user_id = ?", (user_id,))
+        current_perms = {row[0] for row in c.fetchall()}
+        new_perms = set(permissions)
+        
+        # Permissions to add
+        to_add = new_perms - current_perms
+        for p in to_add:
+            c.execute("""
+                INSERT INTO moderator_permissions (user_id, permission, granted_by)
+                VALUES (?, ?, ?)
+            """, (user_id, p, session.get('user_id')))
+            
+        # Permissions to remove
+        to_remove = current_perms - new_perms
+        for p in to_remove:
+            c.execute("DELETE FROM moderator_permissions WHERE user_id = ? AND permission = ?", (user_id, p))
+            
+        conn.commit()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": True, "message": "Permissions updated"})
+        else:
+            flash("Permissions updated successfully.", "success")
+    except Exception as e:
+        logger.error(f"Error updating permissions: {e}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": str(e)}), 500
+        else:
+            flash("An error occurred.", "danger")
+    finally:
+        conn.close()
+        
+    return redirect(url_for("admin_moderators"))
 
 
 if __name__ == "__main__":

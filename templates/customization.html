@@ -3,413 +3,476 @@
 
 {% block content %}
 <style>
-    /* ===== ANIMATION SETTINGS CORE STYLES ===== */
     :root {
         --anim-bg: #070A12;
-        --cyan: #22d3ee;
+        --cyan: #00d4ff;
         --magenta: #e879f9;
-        --sky: #38bdf8;
-        --orange: #fb923c;
+        --panel-bg: rgba(255,255,255,0.03);
+        --panel-border: rgba(255,255,255,0.08);
     }
 
     .main-content {
         background: var(--anim-bg) !important;
         min-height: 100vh;
         position: relative;
-        overflow-x: hidden;
+        overflow: hidden;
     }
 
-    /* Circuit Background */
-    .circuit-bg {
+    /* Ambient Background Glow */
+    .ambient-glow {
         position: absolute;
-        inset: 0;
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        background: radial-gradient(circle at center, rgba(34,211,238,0.1), transparent 70%);
+        top: -200px;
+        left: -200px;
         pointer-events: none;
         z-index: 0;
     }
-    .circuit-bg::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: 
-            radial-gradient(circle at 30% 20%, rgba(34,211,238,0.20), transparent 50%),
-            radial-gradient(circle at 70% 30%, rgba(232,121,249,0.16), transparent 52%),
-            radial-gradient(circle at 50% 90%, rgba(56,189,248,0.14), transparent 55%);
-    }
-    .circuit-bg::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.45), rgba(0,0,0,0.70));
+    .ambient-glow.right {
+        background: radial-gradient(circle at center, rgba(232,121,249,0.08), transparent 70%);
+        bottom: -200px;
+        right: -200px;
+        top: auto;
+        left: auto;
     }
 
-    /* Grid Pattern */
-    .grid-pattern {
-        position: absolute;
-        inset: 0;
-        background-image: 
-            linear-gradient(rgba(34,211,238,0.08) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(34,211,238,0.08) 1px, transparent 1px);
-        background-size: 34px 26px;
-        opacity: 0.4;
-    }
-
-    /* Main Content Area */
-    .settings-wrapper {
+    /* Layout Wrapper */
+    .studio-layout {
+        display: flex;
+        gap: 24px;
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 0 40px;
+        height: calc(100vh - 100px);
         position: relative;
         z-index: 1;
-        padding: 30px 40px;
-        max-width: 1400px;
-        margin: 0 auto;
     }
 
-    /* Page Header with Tabs */
-    .settings-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 25px;
-    }
-    .settings-title {
-        font-size: 1.4rem;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        color: var(--cyan);
-        display: flex;
-        align-items: center;
-    }
-    .header-right {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-    }
-    .breadcrumb {
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.1);
-        padding: 8px 16px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        color: rgba(255,255,255,0.7);
-    }
-
-    /* Tab Navigation */
-    .tab-nav {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 30px;
-        background: rgba(255,255,255,0.03);
-        padding: 6px;
-        border-radius: 14px;
-        border: 1px solid rgba(255,255,255,0.08);
-    }
-    .tab-link {
-        padding: 12px 24px;
-        border-radius: 10px;
-        color: rgba(255,255,255,0.6);
-        text-decoration: none;
-        font-size: 0.9rem;
-        font-weight: 600;
-        letter-spacing: 0.05em;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .tab-link:hover {
-        color: rgba(255,255,255,0.85);
-        background: rgba(255,255,255,0.05);
-    }
-    .tab-link.active {
-        background: linear-gradient(135deg, rgba(34,211,238,0.2), rgba(232,121,249,0.15));
-        color: #fff;
-        box-shadow: 0 0 20px rgba(34,211,238,0.15);
-    }
-    .tab-link i {
-        font-size: 1rem;
-    }
-
-    /* Panel Grid */
-    .panels-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 24px;
-        margin-bottom: 40px;
-    }
-
-    /* Panel Card */
-    .panel {
-        background: rgba(255,255,255,0.05);
-        border-radius: 24px;
-        padding: 24px;
-        position: relative;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 10px 40px rgba(0,0,0,0.35);
-    }
-    .panel::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 24px;
-        padding: 1px;
-        background: linear-gradient(135deg, var(--panel-color), transparent 60%);
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        pointer-events: none;
-        opacity: 0.5;
-    }
-    .panel.cyan { --panel-color: var(--cyan); }
-    .panel.magenta { --panel-color: var(--magenta); }
-    .panel.sky { --panel-color: var(--sky); }
-    .panel.orange { --panel-color: var(--orange); }
-
-    .panel-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 20px;
-    }
-    .panel-title {
-        font-size: 0.9rem;
-        font-weight: 800;
-        letter-spacing: 0.15em;
-        color: var(--panel-color);
-    }
-    .selected-chip {
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.15);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.7rem;
-        color: rgba(255,255,255,0.7);
-        max-width: 140px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    /* Option Buttons */
-    .options-list {
+    /* === SIDEBAR === */
+    .studio-sidebar {
+        width: 320px;
+        flex-shrink: 0; /* Prevent squishing when main content grows */
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        margin-bottom: 20px;
+        background: rgba(10,12,20,0.7);
+        border: 1px solid var(--panel-border);
+        border-radius: 24px;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        transform: translateZ(0);
+        padding: 24px;
+        height: 100%;
+        color: #fff;
+        overflow-y: auto; /* Allow scrolling if content is too tall */
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
     }
-    .option-btn {
+    .studio-sidebar::-webkit-scrollbar {
+        display: none; /* Chrome, Safari and Opera */
+    }
+
+    .sidebar-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .sidebar-title {
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        background: linear-gradient(90deg, #fff, #aaa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 16px;
+    }
+
+    /* Tab links from original */
+    .top-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .top-link {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.5);
+        background: rgba(255,255,255,0.05);
+        padding: 6px 12px;
+        border-radius: 8px;
+        text-decoration: none;
+        transition: 0.2s;
+    }
+    .top-link:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+    }
+
+    /* Navigation List */
+    .studio-sidebar .nav-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .studio-sidebar .nav-item {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: 14px 16px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 12px;
-        color: rgba(255,255,255,0.85);
-        font-size: 0.9rem;
-        font-weight: 500;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 16px;
         cursor: pointer;
-        transition: all 0.2s ease;
-        text-align: left;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid transparent;
+        transition: all 0.3s ease;
+        position: relative;
         width: 100%;
+        box-sizing: border-box;
     }
-    .option-btn:hover {
-        background: rgba(255,255,255,0.08);
-        transform: translateY(-1px);
+    .studio-sidebar .nav-item:hover {
+        background: rgba(255,255,255,0.05);
     }
-    .option-btn.selected {
-        background: rgba(255,255,255,0.12);
-        box-shadow: 0 0 0 1px var(--panel-color), 0 0 20px rgba(var(--panel-color-rgb), 0.25);
+    .studio-sidebar .nav-item.active {
+        background: rgba(34,211,238,0.1);
+        border-color: rgba(34,211,238,0.3);
     }
-    .option-btn .check {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        border: 1px solid rgba(255,255,255,0.2);
+    .studio-sidebar .nav-item.active::before {
+        content: '';
+        position: absolute;
+        left: -1px;
+        top: 20%;
+        bottom: 20%;
+        width: 3px;
+        background: var(--cyan);
+        border-radius: 4px;
+        box-shadow: 0 0 10px var(--cyan);
+    }
+    /* Removed tooltip since text is now explicitly inline */
+    .studio-sidebar .nav-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 10px;
+        background: rgba(0,0,0,0.4);
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(255,255,255,0.05);
+        font-size: 1rem;
+        color: rgba(255,255,255,0.7);
+        border: 1px solid rgba(255,255,255,0.05);
     }
-    .option-btn.selected .check {
-        background: var(--panel-color);
-        border-color: var(--panel-color);
-        color: #000;
+    .studio-sidebar .nav-item.active .nav-icon {
+        color: var(--cyan);
+        background: rgba(0,0,0,0.6);
+        border-color: rgba(34,211,238,0.2);
     }
-    .option-btn.custom-anim {
-        border-left: 3px solid var(--magenta);
-    }
-
-    /* Custom Animation Indicator */
-    .custom-badge {
-        font-size: 0.65rem;
-        background: rgba(232,121,249,0.2);
-        color: var(--magenta);
-        padding: 2px 8px;
-        border-radius: 10px;
-        margin-left: 8px;
-    }
-
-    /* Preview Box */
-    .preview-section {
-        margin-top: 16px;
-    }
-    .preview-label {
-        font-size: 0.65rem;
-        font-weight: 600;
-        letter-spacing: 0.15em;
-        color: rgba(255,255,255,0.5);
-        margin-bottom: 8px;
-    }
-    .preview-box {
-        height: 80px;
-        border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(0,0,0,0.4);
+    .studio-sidebar .nav-text {
+        display: flex !important;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
         overflow: hidden;
-        position: relative;
+        opacity: 1 !important;
+        visibility: visible !important;
     }
-    .preview-box img, .preview-box video {
+    .studio-sidebar .nav-title {
+        font-weight: 700;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .studio-sidebar .nav-subtitle {
+        font-size: 0.65rem;
+        color: rgba(255,255,255,0.4);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .studio-sidebar .nav-item.active .nav-subtitle {
+        color: rgba(34,211,238,0.8);
+    }
+
+    /* Bottom Actions inside Sidebar */
+    .sidebar-actions {
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .btn-apply {
+        background: linear-gradient(90deg, #00d4ff, #8a2be2);
+        border: none;
+        border-radius: 12px;
+        padding: 16px;
+        color: #fff;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        box-shadow: 0 10px 30px rgba(0,212,255,0.2);
+        transition: 0.3s;
+    }
+    .btn-apply:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 40px rgba(138,43,226,0.4);
+    }
+    .btn-reset {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.4);
+        font-size: 0.8rem;
+        text-decoration: underline;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .btn-reset:hover {
+        color: #ff4444;
+    }
+    .save-message {
+        text-align: center;
+        font-size: 0.8rem;
+        color: #34d399;
+        opacity: 0;
+        transition: 0.3s;
+    }
+    .save-message.show { opacity: 1; }
+
+    /* === MAIN CONTENT === */
+    .studio-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        overflow: hidden;
+    }
+
+    /* Live Preview Large Container */
+    .live-preview-container {
+        height: 280px;
+        border-radius: 24px;
+        background: rgba(0,0,0,0.5);
+        border: 1px solid var(--panel-border);
+        box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.2);
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .preview-header-badge {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(10px);
+        padding: 6px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.1);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: #fff;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .preview-header-badge i { color: var(--cyan); }
+    
+    .view-port {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+    .view-port img, .view-port video {
         width: 100%;
         height: 100%;
         object-fit: cover;
     }
 
-    /* Animated Previews */
-    .preview-box .glow {
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(circle at 40% 40%, rgba(var(--panel-color-rgb), 0.15), transparent 60%);
+    /* Grid Area */
+    .grid-section {
+        flex: 1;
+        background: rgba(10,12,20,0.7);
+        border-radius: 24px;
+        border: 1px solid var(--panel-border);
+        padding: 30px;
+        overflow-y: auto;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        transform: translateZ(0); /* Hardware acceleration */
+        will-change: transform;
     }
-    .preview-box .lines {
-        position: absolute;
-        inset: 0;
+    
+    /* Scrollbar */
+    .grid-section::-webkit-scrollbar { width: 8px; }
+    .grid-section::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+    .grid-section::-webkit-scrollbar-track { background: transparent; }
+
+    /* The Panes */
+    .tab-pane {
+        display: none;
+        animation: fadeIn 0.4s ease forwards;
+    }
+    .tab-pane.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pane-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+    .pane-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: #fff;
+    }
+
+    /* Enhanced Search Bar */
+    .anim-search-box {
+        display: flex;
+        align-items: center;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 8px 16px;
+        width: 240px;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+    }
+    .anim-search-box:focus-within {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(34,211,238,0.5);
+        box-shadow: 0 0 15px rgba(34,211,238,0.1);
+    }
+    .anim-search-box i {
+        margin-right: 10px;
+        font-size: 0.95rem;
+    }
+    .anim-search-input {
+        background: transparent;
+        border: none;
+        color: #fff;
+        outline: none;
+        width: 100%;
+        font-size: 0.95rem;
+    }
+    .anim-search-input::placeholder {
+        color: rgba(255,255,255,0.3);
+    }
+    
+    /* Sleek Card Grid */
+    .items-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 20px;
+    }
+
+    .option-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        padding: 12px;
-        gap: 8px;
-    }
-    .preview-box .line {
-        height: 6px;
-        border-radius: 3px;
-        background: rgba(255,255,255,0.08);
-    }
-    .preview-box .line:nth-child(1) { width: 60%; }
-    .preview-box .line:nth-child(2) { width: 80%; }
-    .preview-box .line:nth-child(3) { width: 45%; }
-
-    /* Glitch Animation */
-    .preview-glitch .glitch-layer {
-        position: absolute;
-        inset: 0;
-        animation: glitchAnim 1.2s infinite;
-    }
-    .preview-glitch .scan-lines {
-        position: absolute;
-        inset: 0;
-        background: repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 2px,
-            rgba(255,255,255,0.03) 2px,
-            rgba(255,255,255,0.03) 4px
-        );
-    }
-    @keyframes glitchAnim {
-        0%, 100% { transform: translate(0, 0); }
-        20% { transform: translate(-3px, 1px); }
-        40% { transform: translate(3px, -1px); }
-        60% { transform: translate(-2px, 2px); }
-        80% { transform: translate(2px, -2px); }
-    }
-
-    /* Warp Animation */
-    .preview-warp .warp-lines {
-        position: absolute;
-        inset: 0;
+        gap: 16px;
+        position: relative;
         overflow: hidden;
     }
-    .preview-warp .warp-line {
-        position: absolute;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        animation: warpMove 2s infinite ease-in-out;
+    .option-card:hover {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(255,255,255,0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     }
-    @keyframes warpMove {
-        0%, 100% { transform: translateX(-20%); }
-        50% { transform: translateX(20%); }
+    .option-card.selected {
+        background: rgba(34,211,238,0.05);
+        border-color: rgba(34,211,238,0.4);
+        box-shadow: 0 0 20px rgba(34,211,238,0.1);
     }
-
-    /* Pulse Animation */
-    .preview-pulse {
-        animation: pulseAnim 1.8s infinite ease-in-out;
-    }
-    @keyframes pulseAnim {
-        0%, 100% { opacity: 0.6; }
-        50% { opacity: 1; }
-    }
-
-    /* Shutter Animation */
-    .preview-shutter .shutters {
+    
+    .card-thumb {
+        width: 100%;
+        height: 120px;
+        border-radius: 12px;
+        background: #000;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.1);
         display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: rgba(255,255,255,0.2);
+        position: relative;
+    }
+    .card-thumb img, .card-thumb video {
+        width: 100%;
         height: 100%;
-    }
-    .preview-shutter .shutter {
-        flex: 1;
-        background: rgba(255,255,255,0.08);
-        animation: shutterAnim 2s infinite ease-in-out;
-    }
-    .preview-shutter .shutter:nth-child(1) { animation-delay: 0s; }
-    .preview-shutter .shutter:nth-child(2) { animation-delay: 0.05s; }
-    .preview-shutter .shutter:nth-child(3) { animation-delay: 0.1s; }
-    .preview-shutter .shutter:nth-child(4) { animation-delay: 0.15s; }
-    .preview-shutter .shutter:nth-child(5) { animation-delay: 0.2s; }
-    @keyframes shutterAnim {
-        0%, 100% { transform: translateY(-100%); }
-        40%, 60% { transform: translateY(0); }
+        object-fit: cover;
     }
 
-    /* Neon Pulse */
-    .preview-neon {
-        animation: neonPulse 1.5s infinite alternate;
-        box-shadow: 0 0 20px var(--panel-color), inset 0 0 20px var(--panel-color);
-        border: 2px solid var(--panel-color);
-    }
-    @keyframes neonPulse {
-        from { opacity: 0.5; filter: brightness(1); }
-        to { opacity: 1; filter: brightness(1.5); }
-    }
-
-    /* Motion Blur */
-    .preview-blur {
-        filter: blur(8px);
-        animation: blurIn 2s infinite alternate;
-    }
-    @keyframes blurIn {
-        from { filter: blur(12px); transform: scale(0.9); }
-        to { filter: blur(0px); transform: scale(1.1); }
-    }
-
-    /* Slide Up */
-    .preview-slide-up {
-        animation: slideUp 1.2s infinite;
+    .card-info {
         display: flex;
         flex-direction: column;
-        justify-content: flex-end;
+        gap: 8px;
     }
-    .preview-slide-up::after {
-        content: '';
-        height: 40px;
-        background: var(--panel-color);
-        width: 100%;
-        opacity: 0.6;
+    .card-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
-    @keyframes slideUp {
-        0% { transform: translateY(100%); opacity: 0; }
-        50% { transform: translateY(0); opacity: 1; }
-        100% { transform: translateY(-100%); opacity: 0; }
+    .card-check {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.3s;
+    }
+    .card-check .radio-inner {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: transparent;
+        transition: 0.3s;
+    }
+    .option-card.selected .card-check .radio-inner {
+        background: #000;
+    }
+    .option-card.selected .card-check {
+        background: var(--cyan);
+        box-shadow: 0 0 10px var(--cyan);
     }
 
-    /* Rainbow Glow for Ultimate */
+
+
+    /* Animated Preview Helpers from old CSS */
+    .lines { display: flex; flex-direction: column; padding: 12px; gap: 8px; position:absolute; inset:0; justify-content:center;}
+    .line { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); }
+    .line:nth-child(1) { width: 60%; } .line:nth-child(2) { width: 80%; } .line:nth-child(3) { width: 45%; }
+    
+    .glow { position: absolute; inset: 0; background: radial-gradient(circle, rgba(34,211,238, 0.15), transparent 60%); }
+    
     @keyframes rainbowGlow {
         0% { color: #ff0000; text-shadow: 0 0 5px #ff0000; }
         16% { color: #ff8000; text-shadow: 0 0 5px #ff8000; }
@@ -419,285 +482,45 @@
         83% { color: #8000ff; text-shadow: 0 0 5px #8000ff; }
         100% { color: #ff0080; text-shadow: 0 0 5px #ff0080; }
     }
-    /* Only animate if body has glow-active class */
-    body.glow-active .text-rainbow {
-        animation: rainbowGlow 2s linear infinite;
-        font-weight: bold;
-    }
-    .text-rainbow {
-        font-weight: bold; /* Static fallback */
-    }
-
-    /* Toggle Switch */
-    .glow-toggle-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-left: 20px;
-        background: rgba(255,255,255,0.05);
-        padding: 6px 12px;
-        border-radius: 20px;
-        border: 1px solid rgba(255,255,255,0.1);
-    }
-    .glow-label {
-        font-size: 0.75rem;
-        color: var(--magenta);
-        font-weight: 700;
-        letter-spacing: 0.05em;
-    }
-    .toggle-switch {
-        position: relative;
-        width: 36px;
-        height: 20px;
-        margin: 0;
-    }
+    body.glow-active .text-rainbow { animation: rainbowGlow 2s linear infinite; font-weight: bold; }
+    
+    .toggle-switch { position: relative; width: 36px; height: 20px; margin: 0; }
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .slider {
+    .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.2); transition:.4s; border-radius:20px; }
+    .slider:before { position:absolute; content:""; height:14px; width:14px; left:3px; bottom:3px; background:#fff; transition:.4s; border-radius:50%; }
+    input:checked + .slider { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+    input:checked + .slider:before { transform: translateX(16px); }
+
+    /* Rarity base mapping */
+    .rarity-common { background: rgba(136,136,136,0.15); color: #888; border: 1px solid rgba(136,136,136,0.3); }
+    .rarity-epic { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); box-shadow: 0 0 10px rgba(168,85,247,0.1); }
+    .rarity-prestige { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); box-shadow: 0 0 10px rgba(251,191,36,0.1); }
+    .rarity-soon { background: rgba(6,182,212,0.15); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3); box-shadow: 0 0 10px rgba(6,182,212,0.1); }
+
+    .item-tag {
         position: absolute;
-        cursor: pointer;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background-color: rgba(255,255,255,0.2);
-        transition: .4s;
-        border-radius: 20px;
-    }
-    .slider:before {
-        position: absolute;
-        content: "";
-        height: 14px;
-        width: 14px;
-        left: 3px;
-        bottom: 3px;
-        background-color: white;
-        transition: .4s;
-        border-radius: 50%;
-    }
-    input:checked + .slider {
-        background-color: var(--magenta);
-        box-shadow: 0 0 10px var(--magenta);
-    }
-    input:checked + .slider:before {
-        transform: translateX(16px);
-    }
-
-    /* Zoom */
-    .preview-zoom {
-        animation: zoomEffect 2s infinite;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .preview-zoom::after {
-        content: 'ZOOM';
-        color: var(--panel-color);
-        font-weight: 900;
-        font-size: 2rem;
-    }
-    @keyframes zoomEffect {
-        0% { transform: scale(0); opacity: 0; }
-        50% { transform: scale(1.5); opacity: 1; }
-        100% { transform: scale(3); opacity: 0; }
-    }
-
-    /* Matrix */
-    .preview-matrix {
-        background: #000;
-        overflow: hidden;
-        position: relative;
-    }
-    .preview-matrix::after {
-        content: '10101101\n01101010\n10110110\n01011011';
-        color: #0f0;
-        font-family: monospace;
-        position: absolute;
-        top: -100%;
-        left: 10px;
-        white-space: pre;
-        animation: matrixFall 2s infinite linear;
-    }
-    @keyframes matrixFall {
-        to { transform: translateY(200%); }
-    }
-
-    /* Grid Scan */
-    .preview-grid {
-        background-image: 
-            linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-        background-size: 20px 20px;
-        position: relative;
-    }
-    .preview-grid::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        background: var(--panel-color);
-        box-shadow: 0 0 15px var(--panel-color);
-        animation: gridScan 2s infinite;
-    }
-    @keyframes gridScan {
-        0% { transform: translateY(0); }
-        100% { transform: translateY(250px); }
-    }
-
-    /* Shrink */
-    .preview-shrink {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .preview-shrink::after {
-        content: '';
-        width: 80px;
-        height: 80px;
-        background: var(--panel-color);
-        animation: shrinkAnim 1.5s infinite;
-    }
-    @keyframes shrinkAnim {
-        0% { transform: scale(2); opacity: 0; }
-        50% { transform: scale(1); opacity: 1; }
-        100% { transform: scale(0); opacity: 0; }
-    }
-
-    /* Bounce */
-    .preview-bounce {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .preview-bounce::after {
-        content: '';
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: var(--panel-color);
-        animation: bounceAnim 0.6s infinite alternate cubic-bezier(0.5, 0.05, 1, 0.5);
-    }
-    @keyframes bounceAnim {
-        from { transform: translateY(-60px); }
-        to { transform: translateY(40px) scaleX(1.2) scaleY(0.8); }
-    }
-
-    /* Apply Button */
-    .apply-section {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 16px;
-    }
-    .btn-apply {
-        background: linear-gradient(90deg, #e879f9, #a855f7, #fb923c);
-        border: none;
-        padding: 16px 48px;
-        border-radius: 16px;
-        color: #fff;
-        font-size: 1rem;
+        top: 8px;
+        right: 8px;
+        font-size: 0.65rem;
         font-weight: 800;
-        letter-spacing: 0.15em;
-        cursor: pointer;
-        box-shadow: 0 18px 60px rgba(0,0,0,0.45);
-        transition: all 0.2s ease;
-        position: relative;
-    }
-    .btn-apply::before {
-        content: '';
-        position: absolute;
-        inset: -1px;
-        border-radius: 17px;
-        padding: 1px;
-        background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        pointer-events: none;
-    }
-    .btn-apply:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 22px 70px rgba(168, 85, 247, 0.35);
-    }
-
-    .btn-reset {
-        background: none;
-        border: none;
-        color: rgba(255,255,255,0.5);
-        font-size: 0.85rem;
-        cursor: pointer;
-        text-decoration: underline;
-        text-underline-offset: 4px;
-    }
-    .btn-reset:hover { color: rgba(255,255,255,0.75); }
-
-    .save-message {
-        font-size: 0.8rem;
-        color: #34d399;
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-    .save-message.show { opacity: 1; }
-
-    .tip-text {
-        font-size: 0.75rem;
-        color: rgba(255,255,255,0.4);
-        margin-top: 8px;
-    }
-
-    /* Category Toggle */
-    .category-toggle {
-        display: flex;
-        gap: 4px;
-        background: rgba(255,255,255,0.03);
-        padding: 4px;
-        border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.06);
-        margin-bottom: 20px;
-    }
-    .toggle-btn {
-        flex: 1;
-        padding: 8px 12px;
-        border-radius: 9px;
-        border: none;
-        background: transparent;
-        color: rgba(255,255,255,0.5);
-        font-size: 0.75rem;
-        font-weight: 700;
         letter-spacing: 0.05em;
-        cursor: pointer;
-        transition: all 0.2s ease;
+        padding: 4px 10px;
+        border-radius: 12px;
         text-transform: uppercase;
-    }
-    .toggle-btn.active {
-        background: rgba(255,255,255,0.08);
-        color: #fff;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    .toggle-btn:hover:not(.active) {
-        color: rgba(255,255,255,0.8);
-        background: rgba(255,255,255,0.04);
-    }
-
-    .options-group {
-        display: none;
-    }
-    .options-group.active {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+        z-index: 2;
     }
 </style>
 
-<div class="circuit-bg">
-    <div class="grid-pattern"></div>
-</div>
+<div class="ambient-glow"></div>
+<div class="ambient-glow right"></div>
 
-<div class="settings-wrapper">
-    <div class="settings-header">
-        <div class="settings-title">
-            CUSTOMIZATION
+<div class="studio-layout">
+    <!-- LEFT SIDEBAR -->
+    <div class="studio-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">CUSTOMIZATION</div>
             {% if user_plan == 'ultimate' or user_role == 'admin' %}
-            <div class="glow-toggle-wrapper">
+            <div class="glow-toggle-wrapper" style="margin-left:0; margin-bottom:16px;">
                 <span class="glow-label">ULTIMATE GLOW</span>
                 <label class="toggle-switch">
                     <input type="checkbox" id="glowToggle" onchange="toggleGlow(this.checked)">
@@ -706,406 +529,135 @@
             </div>
             {% endif %}
         </div>
-        <div class="header-right">
-            <div class="breadcrumb">Settings ▸ Animations</div>
-        </div>
-    </div>
 
-    <!-- Tab Navigation -->
-    <div class="tab-nav">
-        <a href="{{ url_for('customization') }}" class="tab-link active">
-            <i class="fas fa-sliders-h"></i>
-            Animation Settings
-        </a>
-        {% if session.get('role') == 'admin' %}
-        <a href="{{ url_for('customization_upload') }}" class="tab-link">
-            <i class="fas fa-cloud-upload-alt"></i>
-            Upload Studio
-        </a>
-        {% endif %}
-        {% if session.get('role') == 'admin' %}
-        <a href="{{ url_for('customization_library') }}" class="tab-link">
-            <i class="fas fa-layer-group"></i>
-            Library
-        </a>
-        {% endif %}
-        <a href="{{ url_for('bundles') }}" class="tab-link">
-            <i class="fas fa-box-open"></i>
-            Bundles
-        </a>
-        
-        <div style="width:1px; height:24px; background:rgba(255,255,255,0.1); margin:0 4px;"></div>
-        
-        <div class="tab-link" style="cursor: default; padding-right: 10px; background: transparent !important;">
-            <span style="font-size:0.8rem; margin-right:8px; color:rgba(255,255,255,0.5);">Preview:</span>
-            <label class="switch-toggle">
-                <input type="checkbox" id="autoplayToggle" checked onchange="toggleAutoplay(this.checked)">
-                <span class="slider-round"></span>
-            </label>
-        </div>
-    </div>
-
-    <div class="panels-grid">
-        <!-- LOGIN ANIMATION -->
-        <div class="panel cyan" style="--panel-color-rgb: 34,211,238;">
-            <div class="panel-header">
-                <div class="panel-title">LOGIN ANIMATION</div>
-                <div class="selected-chip" id="login-selected">
-                    {% if active_animations.get('login') %}
-                        {{ active_animations['login'].name or 'Custom' }}
-                    {% else %}
-                        {{ anim_styles.get('login', 'standard')|replace('_', ' ')|title }}
-                    {% endif %}
-                </div>
-            </div>
-            <div class="category-toggle">
-                <button class="toggle-btn active" onclick="switchCategory('login', 'style')">Styles</button>
-                <button class="toggle-btn" onclick="switchCategory('login', 'animation')">Animations</button>
-            </div>
-            <div class="options-list">
-                <!-- Styles Group -->
-                <div class="options-group active" id="login-style-group">
-                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'standard' %}selected{% endif %}" data-panel="login" data-value="standard" data-label="Standard Fade">
-                        <span>Standard Fade</span>
-                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'standard' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'glitch' %}selected{% endif %}" data-panel="login" data-value="glitch" data-label="Cyber Glitch">
-                        <span>Cyber Glitch</span>
-                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'glitch' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'warp' %}selected{% endif %}" data-panel="login" data-value="warp" data-label="Warp Speed">
-                        <span>Warp Speed</span>
-                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'warp' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'neon' %}selected{% endif %}" data-panel="login" data-value="neon" data-label="Neon Pulse">
-                        <span>Neon Pulse</span>
-                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'neon' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'blur' %}selected{% endif %}" data-panel="login" data-value="blur" data-label="Motion Blur">
-                        <span>Motion Blur</span>
-                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'blur' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('login') and anim_styles.get('login') == 'none' %}selected{% endif %}" data-panel="login" data-value="none" data-label="None (Static)">
-                        <span>None (Static)</span>
-                        <span class="check">{% if not active_animations.get('login') and anim_styles.get('login') == 'none' %}✓{% endif %}</span>
-                    </button>
-                    {% for anim in all_animations.login if anim.category == 'style' %}
-                    <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="login" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                        <span>{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
-                        <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                    </button>
-                    {% endfor %}
-                </div>
-
-                <!-- Animations Group -->
-                <div class="options-group" id="login-animation-group">
-                    {% set anim_found = false %}
-                    {% for anim in all_animations.login if anim.category == 'animation' %}
-                        {% set anim_found = true %}
-                        <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="login" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                             <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
-                            <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                        </button>
-                    {% endfor %}
-                    {% if not anim_found %}
-                        <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; padding: 20px;">
-                            No animations uploaded yet.
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="preview-section">
-                <div class="preview-label">CURRENT</div>
-                <div class="preview-box" id="login-preview">
-                    {% if active_animations.get('login') %}
-                        {% set ext = active_animations['login'].path.split('.')[-1].lower() %}
-                        {% if ext in ['mp4', 'webm'] %}
-                            <video src="{{ url_for('static', filename=active_animations['login'].path) }}" autoplay loop muted></video>
-                        {% else %}
-                            <img src="{{ url_for('static', filename=active_animations['login'].path) }}" />
-                        {% endif %}
-                    {% else %}
-                    <div class="glow"></div>
-                    <div class="lines">
-                        <div class="line"></div>
-                        <div class="line"></div>
-                        <div class="line"></div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- MANGA ENTERING -->
-        <div class="panel magenta" style="--panel-color-rgb: 232,121,249;">
-            <div class="panel-header">
-                <div class="panel-title">MANGA ENTERING</div>
-                <div class="selected-chip" id="manga-selected">
-                    {% if active_animations.get('manga_enter') %}
-                        {{ active_animations['manga_enter'].name or 'Custom' }}
-                    {% else %}
-                        {{ anim_styles.get('manga', 'classic')|replace('_', ' ')|title }}
-                    {% endif %}
-                </div>
-            </div>
-            <div class="category-toggle">
-                <button class="toggle-btn active" onclick="switchCategory('manga', 'style')">Styles</button>
-                <button class="toggle-btn" onclick="switchCategory('manga', 'animation')">Animations</button>
-            </div>
-            <div class="options-list">
-                <!-- Styles Group -->
-                <div class="options-group active" id="manga-style-group">
-                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'classic' %}selected{% endif %}" data-panel="manga" data-value="classic" data-label="Classic Slide">
-                        <span>Classic Slide</span>
-                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'classic' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'warp' %}selected{% endif %}" data-panel="manga" data-value="warp" data-label="Warp Speed">
-                        <span>Warp Speed</span>
-                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'warp' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'slide_up' %}selected{% endif %}" data-panel="manga" data-value="slide_up" data-label="Slide Up">
-                        <span>Slide Up</span>
-                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'slide_up' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'zoom' %}selected{% endif %}" data-panel="manga" data-value="zoom" data-label="Zoom Enter">
-                        <span>Zoom Enter</span>
-                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'zoom' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'none' %}selected{% endif %}" data-panel="manga" data-value="none" data-label="None (Direct)">
-                        <span>None (Direct)</span>
-                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'none' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'holo' %}selected{% endif %}" data-panel="manga" data-value="holo" data-label="Holographic Materialize">
-                        <span>Holographic</span>
-                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'holo' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'unfold' %}selected{% endif %}" data-panel="manga" data-value="unfold" data-label="Digital Unfold">
-                        <span>Digital Unfold</span>
-                        <span class="check">{% if not active_animations.get('manga_enter') and anim_styles.get('manga') == 'unfold' %}✓{% endif %}</span>
-                    </button>
-                    {% for anim in all_animations.manga_enter if anim.category == 'style' %}
-                    <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="manga" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                        <span>{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}UPLOADED{% endif %}</span></span>
-                        <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                    </button>
-                    {% endfor %}
-                </div>
-
-                <!-- Animations Group -->
-                <div class="options-group" id="manga-animation-group">
-                    {% set anim_found = false %}
-                    {% for anim in all_animations.manga_enter if anim.category == 'animation' %}
-                        {% set anim_found = true %}
-                        <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="manga" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                             <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
-                            <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                        </button>
-                    {% endfor %}
-                    {% if not anim_found %}
-                        <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; padding: 20px;">
-                            No animations uploaded yet.
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="preview-section">
-                <div class="preview-label">CURRENT</div>
-                <div class="preview-box" id="manga-preview">
-                    {% if active_animations.get('manga_enter') %}
-                        {% set ext = active_animations['manga_enter'].path.split('.')[-1].lower() %}
-                        {% if ext in ['mp4', 'webm'] %}
-                            <video src="{{ url_for('static', filename=active_animations['manga_enter'].path) }}" autoplay loop muted></video>
-                        {% else %}
-                            <img src="{{ url_for('static', filename=active_animations['manga_enter'].path) }}" />
-                        {% endif %}
-                    {% else %}
-                        <video src="{{ url_for('static', filename='img/2b65722c-8014-43be-97a0-6e86501b0070.mp4') }}" autoplay loop muted style="width:100%; height:100%; object-fit:cover;"></video>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- DASHBOARD BANNER -->
-        <div class="panel sky" style="--panel-color-rgb: 56,189,248;">
-            <div class="panel-header">
-                <div class="panel-title">DASHBOARD BANNER</div>
-                <div class="selected-chip" id="dashboard-selected">
-                    {% if active_animations.get('banner') %}
-                        {{ active_animations['banner'].name or 'Custom' }}
-                    {% else %}
-                        {{ anim_styles.get('dashboard', 'none')|replace('_', ' ')|title }}
-                    {% endif %}
-                </div>
-            </div>
-            <div class="category-toggle">
-                <button class="toggle-btn active" onclick="switchCategory('dashboard', 'style')">Styles</button>
-                <button class="toggle-btn" onclick="switchCategory('dashboard', 'animation')">Animations</button>
-            </div>
-            <div class="options-list">
-                <!-- Styles Group -->
-                <div class="options-group active" id="dashboard-style-group">
-                    <button class="option-btn {% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'none' %}selected{% endif %}" data-panel="dashboard" data-value="none" data-label="None">
-                        <span>None (Default)</span>
-                        <span class="check">{% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'none' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'matrix' %}selected{% endif %}" data-panel="dashboard" data-value="matrix" data-label="Matrix Rain">
-                        <span>Matrix Rain</span>
-                        <span class="check">{% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'matrix' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'grid' %}selected{% endif %}" data-panel="dashboard" data-value="grid" data-label="Digital Grid">
-                        <span>Digital Grid</span>
-                        <span class="check">{% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'grid' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'cyber' %}selected{% endif %}" data-panel="dashboard" data-value="cyber" data-label="Cyber Tech">
-                        <span>Cyber Tech</span>
-                        <span class="check">{% if not active_animations.get('banner') and anim_styles.get('dashboard') == 'cyber' %}✓{% endif %}</span>
-                    </button>
-                    {% for anim in all_animations.banner if anim.category == 'style' %}
-                    <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="dashboard" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                        <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
-                        <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                    </button>
-                    {% endfor %}
-                </div>
-
-                <!-- Animations Group -->
-                <div class="options-group" id="dashboard-animation-group">
-                    {% set anim_found = false %}
-                    {% for anim in all_animations.banner if anim.category == 'animation' %}
-                        {% set anim_found = true %}
-                        <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="dashboard" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                            <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
-                            <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                        </button>
-                    {% endfor %}
-                    {% if not anim_found %}
-                        <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; padding: 20px;">
-                            No animations uploaded yet.
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="preview-section">
-                <div class="preview-label">CURRENT</div>
-                <div class="preview-box" id="dashboard-preview">
-                    {% if active_animations.get('banner') %}
-                        {% set ext = active_animations['banner'].path.split('.')[-1].lower() %}
-                        {% if ext in ['mp4', 'webm'] %}
-                            <video src="{{ url_for('static', filename=active_animations['banner'].path) }}" autoplay loop muted></video>
-                        {% else %}
-                            <img src="{{ url_for('static', filename=active_animations['banner'].path) }}" />
-                        {% endif %}
-                    {% else %}
-                    <div class="glow"></div>
-                    <div class="lines">
-                        <div class="line"></div>
-                        <div class="line"></div>
-                        <div class="line"></div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- LOGOUT ANIMATION -->
-        <div class="panel orange" style="--panel-color-rgb: 251,146,60;">
-            <div class="panel-header">
-                <div class="panel-title">LOGOUT ANIMATION</div>
-                <div class="selected-chip" id="logout-selected">
-                    {% if active_animations.get('logout') %}
-                        {{ active_animations['logout'].name or 'Custom' }}
-                    {% else %}
-                        {{ anim_styles.get('logout', 'fade')|replace('_', ' ')|title }}
-                    {% endif %}
-                </div>
-            </div>
-            <div class="category-toggle">
-                <button class="toggle-btn active" onclick="switchCategory('logout', 'style')">Styles</button>
-                <button class="toggle-btn" onclick="switchCategory('logout', 'animation')">Animations</button>
-            </div>
-            <div class="options-list">
-                <!-- Styles Group -->
-                <div class="options-group active" id="logout-style-group">
-                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'fade' %}selected{% endif %}" data-panel="logout" data-value="fade" data-label="Smooth Fade Out">
-                        <span>Smooth Fade Out</span>
-                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'fade' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'shrink' %}selected{% endif %}" data-panel="logout" data-value="shrink" data-label="Shrink Exit">
-                        <span>Shrink Exit</span>
-                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'shrink' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'bounce' %}selected{% endif %}" data-panel="logout" data-value="bounce" data-label="Bounce Out">
-                        <span>Bounce Out</span>
-                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'bounce' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'none' %}selected{% endif %}" data-panel="logout" data-value="none" data-label="None (Instant)">
-                        <span>None (Instant)</span>
-                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'none' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'shutter' %}selected{% endif %}" data-panel="logout" data-value="shutter" data-label="Security Shutter">
-                        <span>Security Shutter</span>
-                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'shutter' %}✓{% endif %}</span>
-                    </button>
-                    <button class="option-btn {% if not active_animations.get('logout') and anim_styles.get('logout') == 'pixel' %}selected{% endif %}" data-panel="logout" data-value="pixel" data-label="Pixel Disintegrate">
-                        <span>Pixel Disintegrate</span>
-                        <span class="check">{% if not active_animations.get('logout') and anim_styles.get('logout') == 'pixel' %}✓{% endif %}</span>
-                    </button>
-                    {% for anim in all_animations.logout if anim.category == 'style' %}
-                    <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="logout" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                        <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Style #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
-                        <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                    </button>
-                    {% endfor %}
-                </div>
-
-                <!-- Animations Group -->
-                <div class="options-group" id="logout-animation-group">
-                    {% set anim_found = false %}
-                    {% for anim in all_animations.logout if anim.category == 'animation' %}
-                        {% set anim_found = true %}
-                        <button class="option-btn custom-anim {% if anim.is_active %}selected{% endif %}" data-panel="logout" data-value="custom_{{ anim.id }}" data-label="{{ anim.name }}" data-path="{{ anim.path }}">
-                            <span class="{% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">{{ anim.name or ("Animation #" ~ loop.index) }}<span class="custom-badge">{% if 'preset' in anim.id|string %}PRESET{% else %}{{ anim.min_plan|upper }}{% endif %}</span></span>
-                            <span class="check">{% if anim.is_active %}✓{% endif %}</span>
-                        </button>
-                    {% endfor %}
-                    {% if not anim_found %}
-                        <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; padding: 20px;">
-                            No animations uploaded yet.
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="preview-section">
-                <div class="preview-label">CURRENT</div>
-                <div class="preview-box" id="logout-preview">
-                    {% if active_animations.get('logout') %}
-                        {% set ext = active_animations['logout'].path.split('.')[-1].lower() %}
-                        {% if ext in ['mp4', 'webm'] %}
-                            <video src="{{ url_for('static', filename=active_animations['logout'].path) }}" autoplay loop muted></video>
-                        {% else %}
-                            <img src="{{ url_for('static', filename=active_animations['logout'].path) }}" />
-                        {% endif %}
-                    {% else %}
-                    <div class="glow"></div>
-                    <div class="lines">
-                        <div class="line"></div>
-                        <div class="line"></div>
-                        <div class="line"></div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="apply-section">
-        <button class="btn-apply" onclick="applyChanges()">APPLY CHANGES</button>
-        <button class="btn-reset" onclick="resetDefaults()">Reset to Default</button>
-        <div class="save-message" id="saveMessage">Saved ✓</div>
-        <div class="tip-text">
+        <div class="top-links">
+            <a href="{{ url_for('customization') }}" class="top-link" style="color:var(--cyan);background:rgba(34,211,238,0.1)">Animations</a>
+            <a href="{{ url_for('bundles') }}" class="top-link">Bundles</a>
             {% if session.get('role') == 'admin' %}
-            <a href="{{ url_for('customization_upload') }}" style="color: var(--magenta);">Upload custom animations →</a>
+            <a href="{{ url_for('customization_upload') }}" class="top-link">Upload Studio</a>
+            <a href="{{ url_for('customization_library') }}" class="top-link">Library</a>
             {% endif %}
+        </div>
+
+        <div class="nav-list" style="margin-top:20px;">
+            <div class="nav-item active" onclick="switchSettingsTab('login')" data-tooltip="Login Animation">
+                <div class="nav-icon"><i class="fas fa-sign-in-alt"></i></div>
+                <div class="nav-text"><span class="nav-title">Login Animation</span><span class="nav-subtitle" id="sub-login">Default</span></div>
+            </div>
+            <div class="nav-item" onclick="switchSettingsTab('manga')" data-tooltip="Manga Entering">
+                <div class="nav-icon"><i class="fas fa-book-open"></i></div>
+                <div class="nav-text"><span class="nav-title">Manga Entering</span><span class="nav-subtitle" id="sub-manga">Classic</span></div>
+            </div>
+            <div class="nav-item" onclick="switchSettingsTab('dashboard')" data-tooltip="Profile Banner">
+                <div class="nav-icon"><i class="fas fa-desktop"></i></div>
+                <div class="nav-text"><span class="nav-title">Profile Banner</span><span class="nav-subtitle" id="sub-dashboard">None</span></div>
+            </div>
+            <div class="nav-item" onclick="switchSettingsTab('logout')" data-tooltip="Logout Effect">
+                <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
+                <div class="nav-text"><span class="nav-title">Logout Effect</span><span class="nav-subtitle" id="sub-logout">Pixel</span></div>
+            </div>
+        </div>
+
+        <div class="sidebar-actions">
+            <button class="btn-apply" onclick="applyChanges()">APPLY CHANGES</button>
+            <button class="btn-reset" onclick="resetDefaults()">Reset to Default</button>
+            <div id="saveMessage" class="save-message">Saved ✓</div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="studio-content">
+        <div class="live-preview-container">
+            <div class="preview-header-badge"><i class="fas fa-eye"></i> LIVE PREVIEW</div>
+            <div class="view-port" id="main-preview">
+                <div class="lines"><div class="line"></div><div class="line"></div><div class="line"></div></div>
+            </div>
+        </div>
+
+        <div class="grid-section">
+
+            {# ===== JINJA MACRO for DRY card rendering ===== #}
+            {% macro render_panel(panel_id, type_key, items, base_opts, title='') %}
+            <div class="tab-pane {% if panel_id == 'login' %}active{% endif %}" id="pane-{{ panel_id }}">
+                <div class="pane-header">
+                    <h2>{{ title or (panel_id|capitalize ~ ' Animations') }}</h2>
+                    <div class="anim-search-box">
+                        <i class="fas fa-search" style="color:rgba(255,255,255,0.4);"></i>
+                        <input type="text" class="anim-search-input" placeholder="Search..." onkeyup="filterAnimations(this)">
+                    </div>
+                </div>
+                <div class="items-grid">
+                    {% for opt in base_opts %}
+                    <div class="option-card {% if not active_animations.get(type_key) and anim_styles.get(panel_id) == opt.val %}selected{% endif %}"
+                         data-panel="{{ panel_id }}" data-value="{{ opt.val }}" data-label="{{ opt.label }}">
+                        <div class="card-thumb"><i class="fas {{ opt.icon }}"></i></div>
+                        <div class="card-info" style="flex-direction:row; align-items:center; justify-content:space-between;">
+                            <div class="card-title">{{ opt.label }}</div>
+                            <span class="card-check"><div class="radio-inner"></div></span>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    {% for anim in items %}
+                    <div class="option-card {% if anim.is_active %}selected{% endif %}"
+                         data-panel="{{ panel_id }}"
+                         data-value="{% if anim.is_shop %}{{ anim.id }}{% else %}custom_{{ anim.id }}{% endif %}"
+                         data-label="{{ anim.name }}" data-path="{{ anim.path }}">
+                        <div class="card-thumb">
+                            {% if anim.path.split('.')[-1].lower() in ['mp4','webm'] %}
+                            <video src="{{ url_for('static', filename=anim.path) }}" preload="metadata" muted playsinline></video>
+                            {% else %}
+                            <img src="{{ url_for('static', filename=anim.path) }}" />
+                            {% endif %}
+                            
+                            {% if anim.min_plan == 'ultimate' %}
+                                <div class="item-tag rarity-prestige">Ultimate</div>
+                            {% elif anim.rarity == 'epic' %}
+                                <div class="item-tag rarity-epic">Epic</div>
+                            {% else %}
+                                <div class="item-tag rarity-common">Standard</div>
+                            {% endif %}
+                        </div>
+                        <div class="card-info" style="flex-direction:row; align-items:center; justify-content:space-between;">
+                            <div class="card-title {% if anim.min_plan == 'ultimate' %}text-rainbow{% endif %}">
+                                {{ anim.name }}
+                            </div>
+                            <span class="card-check"><div class="radio-inner"></div></span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endmacro %}
+
+            {{ render_panel('login', 'login', all_animations.login, [
+                {'val':'standard','label':'Standard Fade','icon':'fa-ghost'},
+                {'val':'glitch','label':'Cyber Glitch','icon':'fa-bolt'},
+                {'val':'warp','label':'Warp Speed','icon':'fa-space-shuttle'},
+                {'val':'pulse','label':'Data Pulse','icon':'fa-wifi'}
+            ], title='Login Animations') }}
+
+            {{ render_panel('manga', 'manga_enter', all_animations.manga_enter, [
+                {'val':'classic','label':'Classic Manga','icon':'fa-book-reader'},
+                {'val':'zoom','label':'Zoom Focus','icon':'fa-search-plus'},
+                {'val':'blur','label':'Motion Blur','icon':'fa-wind'},
+                {'val':'shutter','label':'Shutter Reveal','icon':'fa-camera'}
+            ], title='Manga Entering') }}
+
+            {{ render_panel('dashboard', 'banner', all_animations.banner, [
+                {'val':'none','label':'No Effect','icon':'fa-ban'},
+                {'val':'slide_up','label':'Slide Reveal','icon':'fa-arrows-alt-v'},
+                {'val':'neon','label':'Neon Pulse','icon':'fa-lightbulb'},
+                {'val':'matrix','label':'Data Matrix','icon':'fa-barcode'}
+            ], title='Profile Banner') }}
+
+            {{ render_panel('logout', 'logout', all_animations.logout, [
+                {'val':'fade','label':'Fade to Black','icon':'fa-moon'},
+                {'val':'shrink','label':'Power Down','icon':'fa-compress-arrows-alt'},
+                {'val':'bounce','label':'Spring Exit','icon':'fa-chevron-up'},
+                {'val':'pixel','label':'Pixel Disintegrate','icon':'fa-th'}
+            ], title='Logout Effects') }}
+
         </div>
     </div>
 </div>
@@ -1118,176 +670,84 @@
         logout: '{{ active_animations.get("logout", {}).get("id", anim_styles.get("logout", "fade")) }}'
     };
 
-    // Map panel types to animation_type for API
-    const panelToType = {
-        login: 'login',
-        manga: 'manga_enter',
-        dashboard: 'banner',
-        logout: 'logout'
-    };
+    const panelToType = { login:'login', manga:'manga_enter', dashboard:'banner', logout:'logout' };
 
-    // Handle option button clicks
-    document.querySelectorAll('.option-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const panel = this.dataset.panel;
-            const value = this.dataset.value;
-            const label = this.dataset.label;
-            const path = this.dataset.path;
+    function switchSettingsTab(tabId) {
+        // Clear searches in panes
+        document.querySelectorAll('.anim-search-input').forEach(inp => {
+            inp.value = '';
+        });
+        document.querySelectorAll('.option-card').forEach(c => c.style.display = 'flex');
 
-            // Update selection
-            selections[panel] = value;
+        document.querySelectorAll('.studio-sidebar .nav-item').forEach(el => el.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+        document.getElementById('pane-' + tabId).classList.add('active');
+        updateMainPreview();
+    }
 
-            // Update UI
-            const panelEl = this.closest('.panel');
-            panelEl.querySelectorAll('.option-btn').forEach(b => {
-                b.classList.remove('selected');
-                b.querySelector('.check').textContent = '';
+    function filterAnimations(inputEl) {
+        clearTimeout(inputEl.dataset.timerId);
+        inputEl.dataset.timerId = setTimeout(() => {
+            requestAnimationFrame(() => {
+                const q = inputEl.value.toLowerCase();
+                const activePane = inputEl.closest('.tab-pane');
+                if (!activePane) return;
+                const cards = activePane.querySelectorAll('.option-card');
+                cards.forEach(c => {
+                    const titleEl = c.querySelector('.card-title');
+                    if (titleEl) {
+                        const title = titleEl.textContent.toLowerCase();
+                        c.style.display = title.includes(q) ? 'flex' : 'none';
+                    }
+                });
             });
+        }, 150);
+    }
+
+    // Card interactions
+    document.querySelectorAll('.option-card').forEach(card => {
+        card.addEventListener('mouseenter', () => { const v = card.querySelector('video'); if(v) v.play().catch(()=>{}); });
+        card.addEventListener('mouseleave', () => { const v = card.querySelector('video'); if(v){ v.pause(); v.currentTime=0; }});
+        card.addEventListener('click', function() {
+            const panel = this.dataset.panel;
+            selections[panel] = this.dataset.value;
+            document.getElementById('sub-' + panel).innerText = this.dataset.label;
+            document.querySelectorAll(`.option-card[data-panel="${panel}"]`).forEach(c => c.classList.remove('selected'));
             this.classList.add('selected');
-            this.querySelector('.check').textContent = '✓';
-
-            // Update chip
-            document.getElementById(`${panel}-selected`).textContent = label;
-
-            // Update preview
-            updatePreview(panel, value, path);
+            updateMainPreview();
         });
     });
 
-    function updatePreview(panel, value, path) {
-        const preview = document.getElementById(`${panel}-preview`);
-        
-        // If custom animation with path, show the file
+    function updateMainPreview() {
+        const card = document.querySelector('.tab-pane.active .option-card.selected');
+        const el = document.getElementById('main-preview');
+        if (!card) { el.innerHTML = '<div class="lines"><div class="line"></div><div class="line"></div><div class="line"></div></div>'; return; }
+        const path = card.dataset.path;
         if (path) {
             const ext = path.split('.').pop().toLowerCase();
-            if (['mp4', 'webm'].includes(ext)) {
-                const isAutoplay = localStorage.getItem('autoplay_previews') !== 'false';
-                preview.innerHTML = `<video src="/static/${path}" ${isAutoplay ? 'autoplay' : ''} loop muted style="width:100%; height:100%; object-fit:cover;"></video>`;
-            } else {
-                preview.innerHTML = `<img src="/static/${path}" />`;
-            }
-            return;
-        }
-
-        // Otherwise show CSS animation
-        preview.className = 'preview-box';
-        
-        if (value === 'glitch') {
-            preview.innerHTML = `
-                <div class="glow"></div>
-                <div class="preview-glitch">
-                    <div class="glitch-layer"></div>
-                    <div class="scan-lines"></div>
-                </div>
-            `;
-        } else if (value === 'warp') {
-            preview.innerHTML = `
-                <div class="glow"></div>
-                <div class="preview-warp">
-                    <div class="warp-lines">
-                        <div class="warp-line" style="top: 20%; width: 60%; left: 10%;"></div>
-                        <div class="warp-line" style="top: 40%; width: 80%; left: 5%;"></div>
-                        <div class="warp-line" style="top: 60%; width: 50%; left: 20%;"></div>
-                        <div class="warp-line" style="top: 80%; width: 70%; left: 8%;"></div>
-                    </div>
-                </div>
-            `;
-        } else if (value === 'pulse') {
-            preview.classList.add('preview-pulse');
-            preview.innerHTML = `
-                <div class="glow"></div>
-                <div class="lines">
-                    <div class="line"></div>
-                    <div class="line"></div>
-                    <div class="line"></div>
-                </div>
-            `;
-        } else if (value === 'shutter') {
-            preview.innerHTML = `
-                <div class="glow"></div>
-                <div class="preview-shutter">
-                    <div class="shutters">
-                        <div class="shutter"></div>
-                        <div class="shutter"></div>
-                        <div class="shutter"></div>
-                        <div class="shutter"></div>
-                        <div class="shutter"></div>
-                    </div>
-                </div>
-            `;
-        } else if (value === 'neon') {
-            preview.classList.add('preview-neon');
-            preview.innerHTML = '<div class="glow"></div>';
-        } else if (value === 'blur') {
-            preview.classList.add('preview-blur');
-            preview.innerHTML = '<div class="glow"></div>';
-        } else if (value === 'slide_up') {
-            preview.classList.add('preview-slide-up');
-            preview.innerHTML = '<div class="glow"></div>';
-        } else if (value === 'zoom') {
-            preview.classList.add('preview-zoom');
-            preview.innerHTML = '<div class="glow"></div>';
-        } else if (value === 'matrix') {
-            preview.classList.add('preview-matrix');
-            preview.innerHTML = '';
-        } else if (value === 'grid') {
-            preview.classList.add('preview-grid');
-            preview.innerHTML = '<div class="glow"></div>';
-        } else if (value === 'shrink') {
-            preview.classList.add('preview-shrink');
-            preview.innerHTML = '<div class="glow"></div>';
-        } else if (value === 'bounce') {
-            preview.classList.add('preview-bounce');
-            preview.innerHTML = '<div class="glow"></div>';
-        } else if (value === 'none') {
-            preview.innerHTML = '<span class="placeholder">Static (No Animation)</span>';
-        } else if (value === 'classic') {
-             preview.innerHTML = `<video src="/static/img/2b65722c-8014-43be-97a0-6e86501b0070.mp4" autoplay loop muted style="width:100%; height:100%; object-fit:cover;"></video>`;
+            const src = path.startsWith('/static') ? path : '/static/' + path;
+            if (['mp4','webm'].includes(ext))
+                el.innerHTML = '<video src="'+src+'" autoplay loop muted style="width:100%;height:100%;object-fit:cover;"></video>';
+            else
+                el.innerHTML = '<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;" />';
         } else {
-            preview.innerHTML = `
-                <div class="glow"></div>
-                <div class="lines">
-                    <div class="line"></div>
-                    <div class="line"></div>
-                    <div class="line"></div>
-                </div>
-            `;
+            el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:1.2rem;color:var(--cyan);font-weight:700;">Default Style Active</div>';
         }
     }
 
     async function applyChanges() {
         const btn = document.querySelector('.btn-apply');
-        btn.textContent = 'SAVING...';
-        btn.disabled = true;
+        btn.textContent = 'SAVING...'; btn.disabled = true;
 
-        // Sync with localStorage bundle settings to ensure client-side overrides don't block new changes
-        const currentLocalSettings = JSON.parse(localStorage.getItem('appThemeSettings') || '{}');
-        let localSettingsUpdated = false;
+        const localSettings = JSON.parse(localStorage.getItem('appThemeSettings') || '{}');
 
-        // Apply each selection
         for (const [panel, value] of Object.entries(selections)) {
             const animType = panelToType[panel];
-            let targetId;
-            let targetPath = null;
-            
-            // Find the button to get the path for localStorage sync
-            const selectedBtn = document.querySelector(`.option-btn.selected[data-panel="${panel}"]`);
-            if (selectedBtn) {
-                 targetPath = selectedBtn.dataset.path;
-            }
+            const selectedBtn = document.querySelector(`.option-card.selected[data-panel="${panel}"]`);
+            const targetPath = selectedBtn ? selectedBtn.dataset.path : null;
+            const targetId = value.startsWith('custom_') ? value.replace('custom_', '') : value;
 
-            if (value.startsWith('custom_')) {
-                targetId = value.replace('custom_', '');
-            } else {
-                targetId = value;
-            }
-
-            // Sync to localStorage if we have a path (for custom/uploaded anims) or if it's a standard style
-            // Note: Startard styles might not have a path in dataset, so we might need to rely on logic or just clear the override.
-            // If the user selects "standard" or "glitch", we should probably CLEAR the bundle override for that slot 
-            // so the CSS fallback works, OR set it to the specific value if the system supports it.
-            
-            // Key mapping matches bundles.js: login_animation, manga_path, banner_path, logout_animation
             let localKey = '';
             if (panel === 'login') localKey = 'login_animation';
             else if (panel === 'manga') localKey = 'manga_path';
@@ -1295,144 +755,64 @@
             else if (panel === 'logout') localKey = 'logout_animation';
 
             if (localKey) {
-                if (targetPath) {
-                    currentLocalSettings[localKey] = targetPath;
-                    localSettingsUpdated = true;
-                } else if (!value.startsWith('custom_')) {
-                    // It's a CSS style (glitch, warp, etc) or None. 
-                    // Bundles usually store file paths. If we switch to a CSS style, we should probably remove the file path 
-                    // from localStorage so the CSS style (handled by server rendering or other logic) takes over?
-                    // Actually, base.html checks if(activeBundleTheme.logout_animation). 
-                    // If we set it to null/undefined, the override stops and it falls back to default behavior.
-                    delete currentLocalSettings[localKey];
-                    localSettingsUpdated = true;
-                }
+                if (targetPath) localSettings[localKey] = targetPath;
+                else delete localSettings[localKey];
             }
 
             try {
-                await fetch(`/api/animation/${targetId}/activate`, { 
+                await fetch('/api/animation/' + targetId + '/activate', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ category: animType })
                 });
-            } catch (err) {
-                console.error('Error saving:', err);
-            }
+            } catch (err) { console.error('Save error:', err); }
         }
 
-        if (localSettingsUpdated) {
-            localStorage.setItem('appThemeSettings', JSON.stringify(currentLocalSettings));
-        }
-
-        btn.textContent = 'APPLY CHANGES';
-        btn.disabled = false;
-        document.getElementById('saveMessage').classList.add('show');
-        setTimeout(() => {
-            document.getElementById('saveMessage').classList.remove('show');
-        }, 2000);
+        localStorage.setItem('appThemeSettings', JSON.stringify(localSettings));
+        btn.textContent = 'APPLY CHANGES'; btn.disabled = false;
+        const msg = document.getElementById('saveMessage');
+        msg.classList.add('show');
+        setTimeout(() => msg.classList.remove('show'), 2000);
     }
 
     async function resetDefaults() {
-        if(!confirm('Are you sure you want to reset all animation settings to default?')) return;
-        
+        if (!confirm('Reset all animations to default?')) return;
         const btn = document.querySelector('.btn-reset');
-        btn.textContent = 'Resetting...';
-
-        try {
-            const response = await fetch('/api/animation/reset', { method: 'POST' });
-            const data = await response.json();
-            if(data.success) {
-                location.reload();
-            } else {
-                 alert('Reset failed.');
-                 btn.textContent = 'Reset to Default';
-            }
-        } catch (err) {
-            console.error('Error resetting:', err);
-            btn.textContent = 'Reset to Default';
+        btn.textContent = 'Resetting...'; btn.disabled = true;
+        const defaults = { login:'standard', manga:'classic', dashboard:'none', logout:'fade' };
+        for (const [panel, val] of Object.entries(defaults)) {
+            selections[panel] = val;
+            try {
+                await fetch('/api/animation/' + val + '/activate', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: panelToType[panel] })
+                });
+            } catch (err) { console.error(err); }
         }
-    }
-    function switchCategory(panel, category) {
-        // Update toggle buttons
-        const panelEl = document.querySelector(`.panel.${panel === 'login' ? 'cyan' : panel === 'manga' ? 'magenta' : panel === 'dashboard' ? 'sky' : 'orange'}`);
-        panelEl.querySelectorAll('.toggle-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.textContent.toLowerCase().includes(category));
-        });
-
-        // Update groups
-        panelEl.querySelectorAll('.options-group').forEach(group => {
-            group.classList.remove('active');
-        });
-        document.getElementById(`${panel}-${category}-group`).classList.add('active');
+        localStorage.removeItem('appThemeSettings');
+        btn.textContent = 'Reset to Default'; btn.disabled = false;
+        location.reload();
     }
 
-    // Auto-switch to animation tab if active animation is an 'animation' category
-    window.addEventListener('DOMContentLoaded', () => {
-        const categories = {
-            login: '{{ active_animations.get("login", {}).get("category", "style") }}',
-            manga: '{{ active_animations.get("manga_enter", {}).get("category", "style") }}',
-            dashboard: '{{ active_animations.get("banner", {}).get("category", "style") }}',
-            logout: '{{ active_animations.get("logout", {}).get("category", "style") }}'
-        };
-
-        for (const [panel, cat] of Object.entries(categories)) {
-            if (cat === 'animation') {
-                switchCategory(panel, 'animation');
-            }
-        }
-
-        // Initialize Glow based on localStorage (default to true for ultimate)
-        const storedGlow = localStorage.getItem('ultimate_glow');
-        const toggle = document.getElementById('glowToggle');
-        
-        if (toggle) {
-            // If never set, default to true for ultimate users
-            if (storedGlow === null || storedGlow === 'true') {
-                toggle.checked = true;
-                toggleGlow(true);
-            } else {
-                toggle.checked = false;
-                toggleGlow(false);
-            }
-        }
-    });
-
-    /* GLOW TOGGLE LOGIC */
     function toggleGlow(enabled) {
-        if(enabled) {
-            document.body.classList.add('glow-active');
-            localStorage.setItem('ultimate_glow', 'true');
-        } else {
-            document.body.classList.remove('glow-active');
-            localStorage.setItem('ultimate_glow', 'false');
-        }
+        document.body.classList.toggle('glow-active', enabled);
+        localStorage.setItem('ultimate_glow', enabled);
     }
 
-    /* AUTOPLAY TOGGLE LOGIC */
-    function toggleAutoplay(enabled) {
-        localStorage.setItem('autoplay_previews', enabled);
-        const videos = document.querySelectorAll('video');
-        videos.forEach(v => {
-            if(enabled) {
-                v.muted = true;
-                v.play().catch(e => console.log('Autoplay blocked', e));
-            } else {
-                v.pause();
-                v.currentTime = 0;
-            }
+    // Init labels on load
+    window.addEventListener('load', () => {
+        ['login','manga','dashboard','logout'].forEach(p => {
+            const sel = document.querySelector(`.option-card.selected[data-panel="${p}"]`);
+            if (sel) document.getElementById('sub-' + p).innerText = sel.dataset.label;
         });
-    }
-
-    // Initialize Autoplay on Load
-    // We hook into DOMContentLoaded above, but can add here or merge.
-    // I'll add a separate listener to be safe.
-    document.addEventListener('DOMContentLoaded', () => {
-        const toggle = document.getElementById('autoplayToggle');
-        const isEnabled = localStorage.getItem('autoplay_previews') !== 'false';
-        if (toggle) toggle.checked = isEnabled;
-
-        // Apply to existing videos (if any on load? customization.html loads text previews initially?)
-        // If updatePreview is called later, it needs to know.
+        updateMainPreview();
+        // Restore glow
+        if (localStorage.getItem('ultimate_glow') === 'true') {
+            const t = document.getElementById('glowToggle');
+            if (t) { t.checked = true; document.body.classList.add('glow-active'); }
+        }
     });
 </script>
+
 {% endblock %}

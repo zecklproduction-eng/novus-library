@@ -255,7 +255,7 @@
     <div class="bc-reviews-list">
       {% if reviews %}
       {% for r in reviews %}
-      <article class="bc-review-item" onclick="openUserInteractionModal({{ r[5] }}, '{{ r[4] }}', 'Reader', '{{ r[6] or '' }}', event, 'review')"
+      <article class="bc-review-item" onclick="openUserInteractionModal({{ r[5] }}, '{{ r[4] }}', '{{ (r[7] or 'reader')|capitalize }}', '{{ r[6] or '' }}', event, 'review')"
         style="cursor: pointer;">
         <div class="bc-review-avatar">
           {{ r[4][0]|upper }}
@@ -263,6 +263,9 @@
         <div class="bc-review-content">
           <div class="bc-review-topline">
             <span class="bc-review-user">{{ r[4] }}</span>
+            {% if r[7] and r[7] in ['admin', 'developer', 'moderator', 'publisher'] %}
+            <span class="role-badge role-{{ r[7] }}" style="margin-left: 6px;">{{ r[7]|upper }}</span>
+            {% endif %}
             <span class="bc-review-stars">
               {% for _ in range((r[2] or 0)|int) %}★{% endfor %}
               {% for _ in range(5 - (r[2] or 0)|int) %}☆{% endfor %}

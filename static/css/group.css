@@ -54,11 +54,22 @@
     z-index: 0;
 }
 
+/* --- Container --- */
+.group-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+    box-sizing: border-box;
+}
+
 /* --- Group Header Banner --- */
 .group-header {
     position: relative;
     margin-bottom: 20px;
     z-index: 1;
+    width: 100%;
 }
 
 .group-banner {
@@ -221,10 +232,11 @@
     display: grid;
     grid-template-columns: 220px 1fr 220px;
     gap: 18px;
-    max-width: 1300px;
+    max-width: 1200px;
     margin: 0 auto;
     position: relative;
     z-index: 1;
+    box-sizing: border-box;
 }
 
 /* --- Sidebar --- */
@@ -949,12 +961,24 @@
 }
 
 /* --- Comment Item Layout Updates --- */
+.comment-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    position: relative;
+    max-width: 100%;
+}
+
 .comment-content-wrap {
     flex: 1;
     background: rgba(255, 255, 255, 0.05);
     padding: 10px 14px;
     border-radius: 12px;
     border-top-left-radius: 2px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .comment-header {
@@ -990,3 +1014,31 @@
 .comment-edit-box {
     margin-top: 8px;
 }
+.comment-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+.reaction-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    color: var(--group-text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.reaction-btn:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--group-text-primary);
+    border-color: rgba(255,255,255,0.2);
+}
+

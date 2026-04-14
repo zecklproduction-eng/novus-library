@@ -159,6 +159,42 @@
         font-weight: 700;
     }
 
+    /* Custom Search Results */
+    .task-search-results {
+        max-height: 200px;
+        overflow-y: auto;
+        background: rgba(13, 17, 23, 0.95);
+        border: 1px solid rgba(0, 255, 242, 0.2);
+        border-radius: 4px;
+        margin-top: 5px;
+        z-index: 1000;
+        position: relative;
+    }
+    .task-search-results .result-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.8);
+    }
+    .task-search-results .result-item:hover {
+        background: rgba(0, 255, 242, 0.1);
+        color: #00fff2;
+    }
+    .task-search-results::-webkit-scrollbar { width: 4px; }
+    .task-search-results::-webkit-scrollbar-thumb { background: rgba(0, 255, 242, 0.3); border-radius: 2px; }
+    
+    .validation-msg {
+        display: none;
+        color: #ef4444;
+        font-size: 0.75rem;
+        margin-top: 5px;
+    }
+    .validation-msg.error {
+        display: block;
+    }
+
     .coin-normal { background: rgba(6, 182, 212, 0.2); color: #22d3ee; }
     .coin-limited { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
 
@@ -290,6 +326,51 @@
     }
 
     .validation-msg.error { color: #f87171; display: block; }
+    /* Tabs Styling */
+    .nexus-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding: 5px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        border: 1px solid var(--glass-border);
+        width: fit-content;
+    }
+
+    .nexus-tab {
+        padding: 8px 16px;
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .nexus-tab:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+    }
+
+    .nexus-tab.active {
+        background: rgba(34, 211, 238, 0.1);
+        color: var(--accent-cyan);
+        box-shadow: inset 0 0 10px rgba(34, 211, 238, 0.1);
+        border: 1px solid rgba(34, 211, 238, 0.2);
+    }
+
+    .tab-content {
+        transition: opacity 0.3s ease;
+    }
+
+    .tab-content.d-none {
+        display: none !important;
+        opacity: 0;
+    }
 </style>
 {% endblock %}
 
@@ -310,70 +391,148 @@
         <!-- Live Events Dashboard -->
         <div class="col-lg-8">
             <div class="glass-card">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h4 class="mb-0">Active Architectures</h4>
-                    <div class="d-flex gap-2">
-                        <span class="badge bg-dark border border-secondary" style="font-size: 0.7rem;">{{ events|length }} Total</span>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="nexus-tabs">
+                        <div class="nexus-tab active" onclick="switchTab('active')">
+                            <i class="fas fa-bolt"></i> Active
+                            <span class="badge bg-cyan text-dark ms-1" style="font-size: 0.65rem; border-radius: 50%;">{{ active_events|length }}</span>
+                        </div>
+                        <div class="nexus-tab" onclick="switchTab('expired')">
+                            <i class="fas fa-history"></i> Expired
+                            <span class="badge bg-secondary text-white ms-1" style="font-size: 0.65rem; border-radius: 50%;">{{ expired_events|length }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="nexus-table">
-                        <thead>
-                            <tr style="background: transparent;">
-                                <th class="ps-3">Campaign</th>
-                                <th>Lifecycle</th>
-                                <th>Rewards</th>
-                                <th>Status</th>
-                                <th>Ops</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for event in events %}
-                            <tr>
-                                <td class="ps-3">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="icon-avatar" style="width: 45px; height: 45px; border-radius: 10px; background: {{ event.bg_color or '#1e293b' }}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-                                            {% if event.icon and event.icon.startswith('/static/') %}
-                                            <img src="{{ event.icon }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
-                                            {% else %}
-                                            <i class="fas {{ event.icon or 'fa-bolt' }}"></i>
+                <div id="activeTab" class="tab-content">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h4 class="mb-0">Active Architectures</h4>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="nexus-table">
+                            <thead>
+                                <tr style="background: transparent;">
+                                    <th class="ps-3">Campaign</th>
+                                    <th>Lifecycle</th>
+                                    <th>Rewards</th>
+                                    <th>Status</th>
+                                    <th>Ops</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in active_events %}
+                                <tr id="event-row-{{ event.id }}" class="status-{{ event.status }}">
+                                    <td class="ps-3">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="icon-avatar" style="width: 45px; height: 45px; border-radius: 10px; background: {{ event.bg_color or '#1e293b' }}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                                                {% if event.icon and event.icon.startswith('/static/') %}
+                                                <img src="{{ event.icon }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+                                                {% else %}
+                                                <i class="fas {{ event.icon or 'fa-bolt' }}"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ event.name }}</div>
+                                                <div class="small text-muted">{{ event.description[:40] }}...</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="small fw-bold text-cyan">{{ event.start_date or 'Immediate' }}</div>
+                                        <div class="small text-muted">to {{ event.end_date or 'Indefinite' }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1">
+                                            {% if event.prize_type == 'achievement' %}
+                                            <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">🏆 ACH: {{ event.prize_id }}</span>
+                                            {% elif event.prize_type == 'charisma' %}
+                                            <span class="badge bg-info text-dark" style="font-size: 0.7rem;">✨ {{ event.prize_id }} CHARISMA</span>
                                             {% endif %}
+                                            <span class="small text-muted">{{ event.tasks|length }} Tasks</span>
                                         </div>
-                                        <div>
-                                            <div class="fw-bold">{{ event.name }}</div>
-                                            <div class="small text-muted">{{ event.description[:40] }}...</div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-{{ event.status }}">{{ event.status.upper() }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-outline-info" onclick="editEvent({{ event.id }})" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent({{ event.id }})" title="Delete">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
                                         </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="small fw-bold text-cyan">{{ event.start_date or 'Immediate' }}</div>
-                                    <div class="small text-muted">to {{ event.end_date or 'Indefinite' }}</div>
-                                </td>
-                                <td>
-                                    <div class="d-flex flex-column gap-1">
-                                        {% if event.prize_type == 'achievement' %}
-                                        <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">🏆 ACH: {{ event.prize_id }}</span>
-                                        {% elif event.prize_type == 'charisma' %}
-                                        <span class="badge bg-info text-dark" style="font-size: 0.7rem;">✨ {{ event.prize_id }} CHARISMA</span>
-                                        {% endif %}
-                                        <span class="small text-muted">{{ event.tasks|length }} Tasks Created</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="status-badge status-{{ event.status }}">{{ event.status.upper() }}</span>
-                                </td>
-                                <td>
-                                    <div class="d-flex gap-2">
-                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent({{ event.id }})">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="expiredTab" class="tab-content d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h4 class="mb-0">Archived Architectures</h4>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="nexus-table">
+                            <thead>
+                                <tr style="background: transparent;">
+                                    <th class="ps-3">Campaign</th>
+                                    <th>Lifecycle</th>
+                                    <th>Rewards</th>
+                                    <th>Status</th>
+                                    <th>Ops</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in expired_events %}
+                                <tr id="event-row-{{ event.id }}" class="status-{{ event.status }}" style="opacity: 0.7;">
+                                    <td class="ps-3">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="icon-avatar" style="width: 45px; height: 45px; border-radius: 10px; background: {{ event.bg_color or '#1e293b' }}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; filter: grayscale(1);">
+                                                {% if event.icon and event.icon.startswith('/static/') %}
+                                                <img src="{{ event.icon }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+                                                {% else %}
+                                                <i class="fas {{ event.icon or 'fa-bolt' }}"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ event.name }}</div>
+                                                <div class="small text-muted">Expired on {{ event.end_date }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="small text-muted">{{ event.start_date }}</div>
+                                        <div class="small text-danger">to {{ event.end_date }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1">
+                                            <span class="small text-muted">{{ event.tasks|length }} Tasks</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2);">EXPIRED</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-outline-success" onclick="reactivateEvent({{ event.id }})" title="Reactivate (Extend 7 Days)">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent({{ event.id }})" title="Delete">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -381,8 +540,13 @@
         <!-- Create Event Panel -->
         <div class="col-lg-4">
             <div class="glass-card">
-                <h4 class="mb-2">Engineer Campaign</h4>
-                <form id="eventForm" action="{{ url_for('create_admin_event') }}" method="POST" enctype="multipart/form-data">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0" id="formTitle">Engineer Campaign</h4>
+                    <button type="button" id="cancelEditBtn" class="btn btn-sm btn-outline-secondary d-none" onclick="resetEventForm()">
+                        Cancel Edit
+                    </button>
+                </div>
+                <form id="eventForm" action="/admin/events/create" method="POST" enctype="multipart/form-data">
                     
                     <div class="form-group mb-2">
                         <label class="small text-muted mb-1">Campaign Name</label>
@@ -398,11 +562,38 @@
                         <div class="col-6">
                             <label class="small text-muted mb-1">Condition Type</label>
                             <select name="condition_type" class="nexus-input" style="padding: 6px 10px; font-size: 0.85rem;">
-                                <option value="posts_count">Posts Count</option>
-                                <option value="comment_count">Comment Count</option>
-                                <option value="manga_chapters_read">Manga Chapters Read</option>
-                                <option value="charisma_earned">Charisma Earned</option>
+                                <optgroup label="Community">
+                                    <option value="posts_count">Posts Count</option>
+                                    <option value="comment_count">Comment Count</option>
+                                    <option value="group_joins">Groups Joined</option>
+                                </optgroup>
+                                <optgroup label="Manga & Reading">
+                                    <option value="manga_chapters_read">Manga Chapters Read</option>
+                                    <option value="manga_uploads">Manga Chapters Uploaded</option>
+                                    <option value="books_read">Books Read</option>
+                                    <option value="reviews_written">Reviews Written</option>
+                                </optgroup>
+                                <optgroup label="Economy & Progression">
+                                    <option value="charisma_earned">Charisma Earned</option>
+                                    <option value="coins_earned">Coins Earned</option>
+                                    <option value="coins_spent">Coins Spent</option>
+                                    <option value="achievements_unlocked">Achievements Unlocked</option>
+                                    <option value="event_points_earned">Event Points Earned</option>
+                                </optgroup>
+                                <optgroup label="Social">
+                                    <option value="likes_given">Likes Given</option>
+                                    <option value="likes_received">Likes Received</option>
+                                    <option value="gifts_sent">Gifts Sent</option>
+                                    <option value="favorites_count">Favorites Added</option>
+                                </optgroup>
+                                <optgroup label="Platform">
+                                    <option value="login_count">Login Count</option>
+                                    <option value="login_streak">Login Streak (Days)</option>
+                                    <option value="tasks_completed">Tasks Completed</option>
+                                    <option value="account_age_days">Account Age (Days)</option>
+                                </optgroup>
                             </select>
+
                         </div>
                         <div class="col-6">
                             <label class="small text-muted mb-1">Condition Value</label>
@@ -453,10 +644,23 @@
                         <label class="small text-muted mb-1">Grand Reward</label>
                         <select name="prize_type" id="prizeType" class="nexus-input" onchange="togglePrizeInputs()" style="padding: 6px 10px; font-size: 0.85rem;">
                             <option value="achievement">Linked Achievement</option>
-                            <option value="item">Shop Item (Border/Animation)</option>
+                            <option value="item">Shop Item (Border/Animation/Glow/Badge)</option>
+                            <option value="entrance_animation">Customization Animation</option>
                             <option value="charisma">Pure Charisma</option>
+                            <option value="event_points">Event Points (Seasonal)</option>
                         </select>
                         
+                        <!-- Customization Animation Sub-Type Selector -->
+                        <div id="animSubSelect" class="mt-2 d-none">
+                            <label class="small text-muted mb-1">Animation Slot / Type</label>
+                            <select name="anim_sub_type" id="animSubType" class="nexus-input" onchange="filterExistingPrizes()" style="padding: 6px 10px; font-size: 0.85rem;">
+                                <option value="animation_manga_enter">Manga Entering (Spotlight)</option>
+                                <option value="animation_login">Login Animation</option>
+                                <option value="animation_logout">Logout Animation</option>
+                                <option value="animation_banner">Profile Banner Background</option>
+                            </select>
+                        </div>
+
                         <!-- Achievement Dropdown -->
                         <div id="achievementSelect" class="mt-2">
                             <select name="prize_id" class="nexus-input" style="padding: 6px 10px; font-size: 0.85rem;">
@@ -481,7 +685,7 @@
                                 <select name="prize_item_id" class="nexus-input" style="padding: 6px 10px; font-size: 0.85rem;">
                                     <option value="">Select Existing Border/Animation</option>
                                     {% for item in shop_items %}
-                                    <option value="{{ item.id }}">[{{ item.type.upper() }}] {{ item.name }}</option>
+                                    <option value="{{ item.id }}" data-type="{{ item.type }}">[{{ item.type.upper() }}] {{ item.name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -491,9 +695,19 @@
                                 <select name="new_prize_type" class="nexus-input mb-2" style="padding: 6px 10px; font-size: 0.85rem;">
                                     <option value="border">Border Frame</option>
                                     <option value="animation">Profile Animation</option>
+                                    <option value="animation_avatar">Avatar Animation</option>
+                                    <option value="animation_login">Login Animation</option>
+                                    <option value="animation_logout">Logout Animation</option>
+                                    <option value="animation_manga_enter">Manga Entering (Spotlight)</option>
+                                    <option value="animation_banner">Profile Banner Background</option>
+                                </select>
+
+                                <select name="new_prize_rarity" class="nexus-input mb-2" style="padding: 6px 10px; font-size: 0.85rem;">
+                                    <option value="epic" selected>Epic Rarity</option>
+                                    <option value="exclusive">Exclusive Rarity</option>
                                 </select>
                                 <div class="icon-upload-area" id="prizeDropZone" style="padding: 10px;">
-                                    <input type="file" name="prize_file" id="prizeFileInput" hidden accept="image/*">
+                                    <input type="file" name="prize_file" id="prizeFileInput" hidden accept="image/*,video/*">
                                     <div class="icon-preview" id="prizePreview" style="width: 40px; height: 40px; font-size: 1.2rem; margin-bottom: 5px;">
                                         <i class="fas fa-upload"></i>
                                     </div>
@@ -502,7 +716,7 @@
                             </div>
                         </div>
 
-                        <!-- Charisma Input -->
+                        <!-- Charisma / Event Points Input -->
                         <div id="charismaInput" class="mt-2 d-none">
                             <input type="number" name="prize_id" class="nexus-input" placeholder="Amount e.g. 500" disabled style="padding: 6px 10px; font-size: 0.85rem;">
                         </div>
@@ -525,10 +739,50 @@
 </div>
 
 <script>
+    function switchTab(tab) {
+        document.querySelectorAll('.nexus-tab').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('d-none'));
+        
+        if (tab === 'active') {
+            document.querySelector('.nexus-tab[onclick*="active"]').classList.add('active');
+            document.getElementById('activeTab').classList.remove('d-none');
+        } else {
+            document.querySelector('.nexus-tab[onclick*="expired"]').classList.add('active');
+            document.getElementById('expiredTab').classList.remove('d-none');
+        }
+    }
+
+    async function reactivateEvent(id) {
+        if (!confirm("Reactivate this campaign? This will extend the deadline by 7 days.")) return;
+
+        try {
+            const response = await fetch(`/admin/events/reactivate/${id}`, { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                Swal.fire({
+                    title: 'Reactivated!',
+                    text: result.message,
+                    icon: 'success',
+                    background: '#1e293b',
+                    color: '#fff',
+                    confirmButtonColor: '#22d3ee'
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                alert("Failure: " + result.message);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Crisis: Network error during reactivation.");
+        }
+    }
+
     let tasks = [];
 
-    function addTask() {
-        const id = Date.now();
+    function addTask(data = null) {
+        const id = data ? data.id : Date.now();
         const taskHtml = `
             <div class="task-item" id="task-${id}">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -538,15 +792,206 @@
                     </select>
                     <i class="fas fa-trash remove-task" onclick="removeTask(${id})"></i>
                 </div>
+                
                 <input type="text" name="task_desc[]" class="task-desc nexus-input mb-2" placeholder="Task description..." required style="padding: 6px 10px; font-size: 0.85rem;">
-                <div class="d-flex align-items-center gap-2">
-                    <input type="number" name="task_reward[]" class="task-reward nexus-input" placeholder="Coins" style="width: 80px; padding: 6px 10px; font-size: 0.85rem;" oninput="validateTask(${id})">
-                    <span class="coin-badge coin-normal" id="badge-${id}">5-20 Coins</span>
+                
+        <div class="row mb-2">
+            <div class="col-6 pe-1">
+                <label class="small text-muted mb-1" style="font-size: 0.7rem;">Connection Keyword & Count</label>
+                <div class="d-flex gap-1" id="keyword-group-${id}">
+                    <select class="nexus-input task-keyword-select flex-grow-1" onchange="toggleCustomKeyword(this, ${id})" style="padding: 4px 8px; font-size: 0.8rem;">
+                            <optgroup label="Reading">
+                                <option value="read_manga_">read_manga_</option>
+                                <option value="read_book_">read_book_</option>
+                                <option value="read_chapter_">read_chapter_</option>
+                                <option value="read_manhwa_">read_manhwa_</option>
+                            </optgroup>
+                            <optgroup label="Community">
+                                <option value="post_count_">post_count_</option>
+                                <option value="comment_count_">comment_count_</option>
+                                <option value="group_join_">group_join_</option>
+                                <option value="like_post_">like_post_</option>
+                                <option value="gift_sent_">gift_sent_</option>
+                            </optgroup>
+                            <optgroup label="Economy">
+                                <option value="charisma_earned_">charisma_earned_</option>
+                                <option value="coins_earned_">coins_earned_</option>
+                                <option value="coins_spent_">coins_spent_</option>
+                                <option value="event_points_">event_points_</option>
+                            </optgroup>
+                            <optgroup label="Platform">
+                                <option value="login_count_">login_count_</option>
+                                <option value="login_streak_">login_streak_</option>
+                                <option value="tasks_completed_">tasks_completed_</option>
+                                <option value="account_age_">account_age_</option>
+                            </optgroup>
+                            <optgroup label="Content Creation">
+                                <option value="upload_manga_">upload_manga_</option>
+                                <option value="upload_chapter_">upload_chapter_</option>
+                                <option value="review_written_">review_written_</option>
+                                <option value="favorite_added_">favorite_added_</option>
+                            </optgroup>
+                            <optgroup label="Achievements">
+                                <option value="achievement_unlock_">achievement_unlock_</option>
+                                <option value="badge_earned_">badge_earned_</option>
+                            </optgroup>
+                            <option value="custom">-- Custom Keyword --</option>
+                        </select>
+                        <input type="number" id="keyword-count-${id}" class="nexus-input task-keyword-count" placeholder="No." min="1" oninput="updateKeywordValue(${id})" style="width: 70px; padding: 4px 8px; font-size: 0.8rem;">
+                    </div>
+                    <input type="text" id="custom-keyword-${id}" class="nexus-input mt-1 d-none" placeholder="Enter exact internal keyword..." oninput="updateKeywordValue(${id})" style="padding: 4px 8px; font-size: 0.8rem;">
+                    <input type="hidden" name="task_keyword[]" id="final-keyword-${id}">
+                    <div id="keyword-preview-${id}" class="small mt-1 text-info" style="font-size: 0.7rem;"></div>
+
+                </div>
+                    <div class="col-6 ps-1">
+                        <label class="small text-muted mb-1" style="font-size: 0.7rem;">Task Genre</label>
+                        <select name="task_genre[]" class="nexus-input" onchange="updateTaskGenre(${id})" style="padding: 4px 8px; font-size: 0.8rem;">
+                            <optgroup label="General">
+                                <option value="All">All Genres</option>
+                                <option value="System">System/Internal</option>
+                            </optgroup>
+                            <optgroup label="Content Type">
+                                <option value="Book">Book</option>
+                                <option value="Manga">Manga</option>
+                                <option value="Manhwa">Manhwa</option>
+                                <option value="Light Novel">Light Novel</option>
+                                <option value="Webnovel">Webnovel</option>
+                            </optgroup>
+                            <optgroup label="Genre">
+                                <option value="Genre Filter">-- Genre Filter --</option>
+                                <option value="Action">Action</option>
+                                <option value="Adventure">Adventure</option>
+                                <option value="Comedy">Comedy</option>
+                                <option value="Drama">Drama</option>
+                                <option value="Fantasy">Fantasy</option>
+                                <option value="Horror">Horror</option>
+                                <option value="Mystery">Mystery</option>
+                                <option value="Romance">Romance</option>
+                                <option value="Sci-Fi">Sci-Fi</option>
+                                <option value="Science Fiction">Science Fiction</option>
+                                <option value="Shounen">Shounen</option>
+                                <option value="Shoujo">Shoujo</option>
+                                <option value="Seinen">Seinen</option>
+                                <option value="Slice of Life">Slice of Life</option>
+                                <option value="Sports">Sports</option>
+                                <option value="Supernatural">Supernatural</option>
+                                <option value="Thriller">Thriller</option>
+                                <option value="Isekai">Isekai</option>
+                                <option value="Mecha">Mecha</option>
+                                <option value="Psychological">Psychological</option>
+                            </optgroup>
+                            <optgroup label="Other">
+                                <option value="Science">Science</option>
+                                <option value="General">General</option>
+                            </optgroup>
+                        </select>
+
+                    </div>
+                </div>
+
+                <div id="target-container-${id}" class="mb-2 d-none">
+                    <label class="small text-muted mb-1" id="target-label-${id}" style="font-size: 0.7rem;">Select Specific Item</label>
+                    <div class="position-relative">
+                        <input type="text" class="nexus-input task-search" id="search-${id}" placeholder="Search items..." oninput="filterTaskItems(${id})" autocomplete="off" style="padding: 8px 12px; font-size: 0.85rem; background: rgba(255,255,255,0.05);">
+                        <i class="fas fa-search position-absolute" style="right: 12px; top: 11px; font-size: 0.8rem; opacity: 0.5;"></i>
+                    </div>
+                    
+                    <div id="results-${id}" class="task-search-results d-none">
+                        <!-- Results will be injected here -->
+                    </div>
+                    
+                    <input type="hidden" name="task_target_id[]" id="target-id-${id}" value="0">
+                    <input type="hidden" name="task_target_genre[]" id="target-genre-${id}" value="">
+                    <div id="selected-display-${id}" class="small mt-1 text-info" style="font-size: 0.75rem; font-weight: 500;"></div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <div style="flex: 1;" class="refresh-container">
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="number" name="task_refresh[]" class="nexus-input" placeholder="Days" value="2" min="1" style="width: 70px; padding: 4px 8px; font-size: 0.8rem;">
+                            <span class="small text-muted" style="font-size: 0.7rem;">Refresh (Days)</span>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="number" name="task_reward[]" class="task-reward nexus-input" placeholder="Coins" style="width: 80px; padding: 6px 10px; font-size: 0.85rem;" oninput="validateTask(${id})">
+                        <span class="coin-badge coin-normal" id="badge-${id}">5-20 Coins</span>
+                    </div>
                 </div>
                 <div class="validation-msg" id="error-${id}">Reward out of range!</div>
             </div>
         `;
         document.getElementById('taskList').insertAdjacentHTML('beforeend', taskHtml);
+        
+        if (data) {
+            const taskEl = document.getElementById(`task-${id}`);
+            taskEl.querySelector('input[name="task_desc[]"]').value = data.description || '';
+            
+            const keywordSelect = taskEl.querySelector('.task-keyword-select');
+            const countInput = document.getElementById(`keyword-count-${id}`);
+            const customInput = document.getElementById(`custom-keyword-${id}`);
+            const finalInput = document.getElementById(`final-keyword-${id}`);
+            
+            if (data.keyword) {
+                let match = data.keyword.match(/^(.*_)(\d+)$/); // Looks for e.g. "read_manga_" and "10"
+                if (match) {
+                    let base = match[1];
+                    let count = match[2];
+                    
+                    let optionExists = false;
+                    Array.from(keywordSelect.options).forEach(opt => {
+                        if(opt.value === base) optionExists = true;
+                    });
+                    
+                    if (optionExists) {
+                        keywordSelect.value = base;
+                        countInput.value = count;
+                    } else {
+                        keywordSelect.value = 'custom';
+                        customInput.value = data.keyword;
+                        customInput.classList.remove('d-none');
+                        countInput.classList.add('d-none');
+                    }
+                } else {
+                    let optionExists = false;
+                    Array.from(keywordSelect.options).forEach(opt => {
+                        if(opt.value === data.keyword) optionExists = true;
+                    });
+                    if (optionExists) {
+                        keywordSelect.value = data.keyword;
+                        countInput.value = ''; 
+                    } else {
+                        keywordSelect.value = 'custom';
+                        customInput.value = data.keyword;
+                        customInput.classList.remove('d-none');
+                        countInput.classList.add('d-none');
+                    }
+                }
+            }
+            updateKeywordValue(id);
+            taskEl.querySelector('input[name="task_reward[]"]').value = data.coin_reward || 0;
+            taskEl.querySelector('input[name="task_refresh[]"]').value = data.refresh_count_days || 2;
+            
+            const genreSelect = taskEl.querySelector('select[name="task_genre[]"]');
+            genreSelect.value = data.genre || 'All';
+            
+            const typeSelect = taskEl.querySelector('.task-type-select');
+            typeSelect.value = data.task_type || 'normal';
+            
+            // Set targets if they exist
+            updateTaskGenre(id).then(() => {
+                if (data.target_id) {
+                    const title = data.target_title || `Item ID: ${data.target_id}`;
+                    selectTaskItem(id, data.target_id, title, 'item');
+                } else if (data.target_genre) {
+                    selectTaskItem(id, data.target_genre, data.target_genre, 'genre');
+                }
+            });
+
+            validateTask(id);
+        } else {
+            updateKeywordValue(id);
+        }
     }
 
     function removeTask(id) {
@@ -564,15 +1009,222 @@
             taskEl.classList.add('limited');
             badge.className = 'coin-badge coin-limited';
             badge.innerText = '20-60 Coins';
+            taskEl.querySelector('.refresh-container').classList.add('d-none');
             if (reward < 20 || reward > 60) error.classList.add('error');
             else error.classList.remove('error');
         } else {
             taskEl.classList.remove('limited');
             badge.className = 'coin-badge coin-normal';
             badge.innerText = '5-20 Coins';
+            taskEl.querySelector('.refresh-container').classList.remove('d-none');
             if (reward < 5 || reward > 20) error.classList.add('error');
             else error.classList.remove('error');
         }
+    }
+
+    let originalOptions = {}; 
+
+    async function editEvent(id) {
+        try {
+            const response = await fetch(`/api/admin/events/get/${id}`);
+            const result = await response.json();
+            if (!result.success) return alert(result.message);
+
+            const event = result.event;
+            const form = document.getElementById('eventForm');
+            
+            // Update UI State
+            document.getElementById('formTitle').innerText = `Edit: ${event.name}`;
+            document.getElementById('cancelEditBtn').classList.remove('d-none');
+            form.action = `/admin/events/edit/${id}`;
+            
+            // Fill Fields
+            form.querySelector('input[name="name"]').value = event.name;
+            form.querySelector('textarea[name="description"]').value = event.description || '';
+            form.querySelector('select[name="condition_type"]').value = event.condition_type || 'posts_count';
+            form.querySelector('input[name="condition_value"]').value = event.condition_value || 10;
+            form.querySelector('input[name="start_date"]').value = event.start_date || '';
+            form.querySelector('input[name="end_date"]').value = event.end_date || '';
+            form.querySelector('input[name="icon"]').value = event.icon && !event.icon.startsWith('/') ? event.icon : '';
+            
+            if (event.icon && event.icon.startsWith('/')) {
+                document.getElementById('iconPreview').innerHTML = `<img src="${event.icon}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
+            }
+
+            // Fill Tasks
+            document.getElementById('taskList').innerHTML = '';
+            event.tasks.forEach(task => {
+                addTask(task);
+            });
+
+            // Prize Logic
+            form.querySelector('select[name="prize_type"]').value = event.prize_type || 'achievement';
+            togglePrizeInputs();
+            
+            if (event.prize_type === 'achievement') {
+                form.querySelector('select[name="prize_id"]').value = event.prize_id || '';
+            } else if (event.prize_type === 'item') {
+                form.querySelector('select[name="prize_item_id"]').value = event.prize_shop_item_id || '';
+            } else if (event.prize_type === 'charisma') {
+                form.querySelector('input[name="prize_id"]').value = event.prize_id || '';
+            }
+
+            window.scrollTo({ top: form.offsetTop - 100, behavior: 'smooth' });
+
+        } catch (err) {
+            console.error(err);
+            alert("Crisis: Failed to retrieve campaign data.");
+        }
+    }
+
+    function resetEventForm() {
+        const form = document.getElementById('eventForm');
+        form.reset();
+        form.action = "/admin/events/create";
+        document.getElementById('formTitle').innerText = "Engineer Campaign";
+        document.getElementById('cancelEditBtn').classList.add('d-none');
+        document.getElementById('taskList').innerHTML = '';
+        document.getElementById('iconPreview').innerHTML = '<i class="fas fa-image"></i>';
+        togglePrizeInputs();
+    }
+
+    async function updateTaskGenre(id) {
+        const taskEl = document.getElementById(`task-${id}`);
+        const genre = taskEl.querySelector('select[name="task_genre[]"]').value;
+        const targetContainer = document.getElementById(`target-container-${id}`);
+        const targetLabel = document.getElementById(`target-label-${id}`);
+        const searchInput = document.getElementById(`search-${id}`);
+        const resultsDiv = document.getElementById(`results-${id}`);
+        const targetIdInput = document.getElementById(`target-id-${id}`);
+        const targetGenreInput = document.getElementById(`target-genre-${id}`);
+        const selectedDisplay = document.getElementById(`selected-display-${id}`);
+
+        const filterableGenres = ['Manga', 'Book', 'Manhwa', 'Light Novel'];
+        
+        // Reset state
+        searchInput.value = '';
+        resultsDiv.classList.add('d-none');
+        targetIdInput.value = '0';
+        targetGenreInput.value = '';
+        selectedDisplay.innerText = '';
+        originalOptions[id] = []; 
+
+        if (genre === 'Genre Filter') {
+            targetContainer.classList.remove('d-none');
+            targetLabel.innerText = "Select Specific Category/Genre";
+            searchInput.placeholder = "Search categories...";
+            
+            try {
+                const response = await fetch(`/api/admin/get_all_categories`);
+                const data = await response.json();
+                if (data.success) {
+                    originalOptions[id] = data.categories.map(c => ({id: c, title: c, type: 'genre'}));
+                    filterTaskItems(id); // Show initial list
+                }
+            } catch (err) { console.error(err); }
+            
+        } else if (filterableGenres.includes(genre)) {
+            targetContainer.classList.remove('d-none');
+            targetLabel.innerText = "Select Specific Item";
+            searchInput.placeholder = "Search items...";
+            
+            try {
+                const response = await fetch(`/api/admin/get_items_by_genre/${genre}`);
+                const data = await response.json();
+                if (data.success) {
+                    originalOptions[id] = data.items.map(i => ({...i, type: 'item'}));
+                    filterTaskItems(id); // Show initial list
+                }
+            } catch (err) { console.error(err); }
+        } else {
+            targetContainer.classList.add('d-none');
+        }
+    }
+
+    function filterTaskItems(id) {
+        const searchInput = document.getElementById(`search-${id}`);
+        const resultsDiv = document.getElementById(`results-${id}`);
+        const search = searchInput.value.toLowerCase();
+        const items = originalOptions[id] || [];
+        
+        const filtered = items.filter(i => i.title.toLowerCase().includes(search));
+        
+        if (filtered.length === 0 && !search) {
+            resultsDiv.classList.add('d-none');
+            return;
+        }
+
+        resultsDiv.classList.remove('d-none');
+        let html = '';
+        
+        // Add "All/General" option
+        html += `<div class="result-item" onclick="selectTaskItem(${id}, '0', 'All / General', 'all')">-- All / General --</div>`;
+        
+        filtered.slice(0, 50).forEach(item => {
+            html += `<div class="result-item" onclick="selectTaskItem(${id}, '${item.id}', '${item.title.replace(/'/g, "\\'")}', '${item.type}')">${item.title}</div>`;
+        });
+        
+        if (filtered.length > 50) {
+            html += `<div class="result-item text-muted small" style="cursor:default">Showing first 50 results...</div>`;
+        }
+        
+        resultsDiv.innerHTML = html;
+    }
+
+    function selectTaskItem(taskId, idValue, title, type) {
+        const targetIdInput = document.getElementById(`target-id-${taskId}`);
+        const targetGenreInput = document.getElementById(`target-genre-${taskId}`);
+        const selectedDisplay = document.getElementById(`selected-display-${taskId}`);
+        const resultsDiv = document.getElementById(`results-${taskId}`);
+        const searchInput = document.getElementById(`search-${taskId}`);
+
+        if (type === 'genre') {
+            targetIdInput.value = '0';
+            targetGenreInput.value = idValue;
+        } else if (type === 'item') {
+            targetIdInput.value = idValue;
+            targetGenreInput.value = '';
+        } else {
+            targetIdInput.value = '0';
+            targetGenreInput.value = '';
+        }
+
+        selectedDisplay.innerText = `Selected: ${title}`;
+        resultsDiv.classList.add('d-none');
+        searchInput.value = title;
+    }
+
+
+    function toggleCustomKeyword(selectEl, id) {
+        const customInput = document.getElementById(`custom-keyword-${id}`);
+        
+        if (selectEl.value === 'custom') {
+            customInput.classList.remove('d-none');
+            customInput.focus();
+        } else {
+            customInput.classList.add('d-none');
+        }
+        updateKeywordValue(id);
+    }
+
+    function updateKeywordValue(id) {
+        const selectEl = document.querySelector(`#task-${id} .task-keyword-select`);
+        const countInput = document.getElementById(`keyword-count-${id}`);
+        const customInput = document.getElementById(`custom-keyword-${id}`);
+        const finalInput = document.getElementById(`final-keyword-${id}`);
+        const previewEl = document.getElementById(`keyword-preview-${id}`);
+        
+        let finalVal = '';
+        if (selectEl.value === 'custom') {
+            finalVal = customInput.value;
+            countInput.classList.add('d-none');
+        } else {
+            countInput.classList.remove('d-none');
+            finalVal = selectEl.value + (countInput.value || '');
+        }
+        
+        finalInput.value = finalVal;
+        previewEl.innerText = finalVal ? `Tracking: ${finalVal}` : '';
     }
 
     function togglePrizeInputs() {
@@ -582,13 +1234,26 @@
         const charDiv = document.getElementById('charismaInput');
         
         achDiv.classList.add('d-none');
+        achDiv.querySelector('select').disabled = true;
+        
         itemDiv.classList.add('d-none');
+        
         charDiv.classList.add('d-none');
         charDiv.querySelector('input').disabled = true;
+        
+        document.getElementById('animSubSelect').classList.add('d-none');
 
-        if (type === 'achievement') achDiv.classList.remove('d-none');
-        else if (type === 'item') {
+        if (type === 'achievement') {
+            achDiv.classList.remove('d-none');
+            achDiv.querySelector('select').disabled = false;
+        } else if (type === 'item' || type === 'entrance_animation') {
             itemDiv.classList.remove('d-none');
+            
+            if (type === 'entrance_animation') {
+                document.getElementById('animSubSelect').classList.remove('d-none');
+                document.querySelector('select[name="new_prize_type"]').value = 'entrance_animation';
+            }
+            
             const isNew = document.getElementById('isNewPrize').checked;
             const existingDiv = document.getElementById('existingItemSelect');
             const newDiv = document.getElementById('newItemFields');
@@ -599,11 +1264,61 @@
             } else {
                 existingDiv.classList.remove('d-none');
                 newDiv.classList.add('d-none');
+                filterExistingPrizes(); 
             }
-        }
-        else if (type === 'charisma') {
+        } else if (type === 'charisma' || type === 'event_points') {
             charDiv.classList.remove('d-none');
             charDiv.querySelector('input').disabled = false;
+        }
+    }
+
+    function filterExistingPrizes() {
+        const prizeType = document.getElementById('prizeType').value;
+        const animSub = document.getElementById('animSubType').value;
+        const prizeSelect = document.querySelector('select[name="prize_item_id"]');
+        const options = prizeSelect.querySelectorAll('option');
+        
+        // Default behavior: show everything
+        let showAny = false;
+        
+        options.forEach(opt => {
+            if (opt.value === "") {
+                opt.style.display = 'block';
+                return;
+            }
+            
+            const itemType = opt.getAttribute('data-type'); // Need to add this to the template
+            
+            if (prizeType === 'item') {
+                // Show EVERYTHING in the general item category (Borders, Animations, Glows, Badges, etc.)
+                opt.style.display = 'block';
+                showAny = true;
+            } else if (prizeType === 'entrance_animation') {
+                // Filter by specific animation slot — ONLY exact matches
+                const mapping = {
+                    'animation_login': ['animation_login', 'login_anim'],
+                    'animation_logout': ['animation_logout', 'logout_anim'],
+                    'animation_manga_enter': ['animation_manga_enter', 'manga_enter', 'entrance_animation'],
+                    'animation_banner': ['animation_banner', 'banner_anim']
+                };
+                
+                const allowedTypes = mapping[animSub] || [animSub];
+                
+                if (allowedTypes.includes(itemType)) {
+                    opt.style.display = 'block';
+                    showAny = true;
+                } else {
+                    opt.style.display = 'none';
+                }
+            }
+
+
+
+        });
+        
+        // Reset selection if current choice is hidden
+        if (prizeSelect.selectedOptions[0] && prizeSelect.selectedOptions[0].style.display === 'none') {
+            prizeSelect.value = "";
         }
     }
 
@@ -661,7 +1376,11 @@
     function previewPrizeFile(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-            prizePreview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`;
+            if (file.type.startsWith('video/')) {
+                prizePreview.innerHTML = `<video src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" autoplay loop muted></video>`;
+            } else {
+                prizePreview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`;
+            }
         };
         reader.readAsDataURL(file);
     }
@@ -683,10 +1402,118 @@
     // No serialization needed - task inputs have proper name attributes
     // and will be submitted naturally by the browser
 
+    document.getElementById('eventForm').onsubmit = async function(e) {
+        e.preventDefault();
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalBtnHtml = submitBtn.innerHTML;
+        
+        // Prevent double submission
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing...';
+        
+        const formData = new FormData(this);
+        const isEdit = this.action.includes('/edit/');
+        
+        try {
+            const res = await fetch(this.action, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                const ev = data.event;
+                if (isEdit) {
+                    const row = document.getElementById('event-row-' + ev.id);
+                    if (row) {
+                        updateEventRow(row, ev);
+                        row.style.background = 'rgba(0, 255, 0, 0.1)';
+                        setTimeout(() => row.style.background = '', 1000);
+                    }
+                } else {
+                    const tbody = document.getElementById('eventsTableBody');
+                    const newRow = document.createElement('tr');
+                    newRow.id = 'event-row-' + ev.id;
+                    newRow.className = 'status-' + ev.status;
+                    updateEventRow(newRow, ev);
+                    tbody.prepend(newRow);
+                    newRow.style.background = 'rgba(0, 255, 0, 0.1)';
+                    setTimeout(() => newRow.style.background = '', 1000);
+                }
+                resetEventForm();
+            } else {
+                Swal.fire({
+                    title: 'Issue Detected',
+                    text: data.message,
+                    icon: 'warning',
+                    background: '#1e293b',
+                    color: '#fff',
+                    confirmButtonColor: '#22d3ee'
+                });
+            }
+        } catch (err) {
+            console.error(err);
+            Swal.fire({
+                title: 'Server Alert',
+                text: 'The server encountered an obstacle, but the operation might have partially succeeded. Please refresh and check the list.',
+                icon: 'error',
+                background: '#1e293b',
+                color: '#fff',
+                confirmButtonColor: '#22d3ee'
+            });
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHtml;
+        }
+    };
+
+    function updateEventRow(row, ev) {
+        const iconHtml = ev.icon && ev.icon.startsWith('/static/') ? 
+            `<img src="${ev.icon}" class="event-icon-sm">` : 
+            `<i class="${ev.icon || 'fas fa-star'}"></i>`;
+            
+        row.innerHTML = `
+            <td>
+                <div class="d-flex align-items-center gap-2">
+                    ${iconHtml}
+                    <div class="fw-bold">${ev.name}</div>
+                </div>
+            </td>
+            <td class="small text-muted">${ev.group_name || 'System'}</td>
+            <td>
+                <div class="small">${ev.start_date || 'N/A'}</div>
+                <div class="small text-muted">to ${ev.end_date || 'N/A'}</div>
+            </td>
+            <td>
+                <span class="status-badge status-${ev.status}">${ev.status.toUpperCase()}</span>
+            </td>
+            <td>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-info" onclick="editEvent(${ev.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent(${ev.id})">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+    }
+
     function deleteEvent(id) {
         if (confirm('Deconstruct this campaign architecture? This action is irreversible.')) {
             fetch(`/admin/events/delete/${id}`, { method: 'POST' })
-            .then(() => location.reload());
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const row = document.getElementById('event-row-' + id);
+                    if (row) {
+                        row.style.opacity = '0';
+                        row.style.transform = 'translateX(20px)';
+                        setTimeout(() => row.remove(), 300);
+                    }
+                }
+            });
         }
     }
 

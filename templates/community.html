@@ -567,6 +567,164 @@
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(0, 188, 212, 0.3);
     }
+
+    /* Featured Groups (Mission Card Style) */
+    .featured-groups-container {
+        margin-top: 10px;
+        margin-bottom: 25px;
+    }
+    .featured-groups-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        font-size: 1rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #06b6d4;
+    }
+    .featured-groups-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, rgba(6, 182, 212, 0.3), transparent);
+    }
+    .mission-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+    }
+    .mission-card {
+        background: rgba(15, 15, 20, 0.7);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        position: relative;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+    }
+    .mission-card:hover {
+        transform: translateY(-8px);
+        border-color: rgba(6, 182, 212, 0.3);
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5),
+                    0 0 30px rgba(6, 182, 212, 0.1);
+        color: inherit;
+    }
+    .mission-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(to right, transparent, #06b6d4, transparent);
+        opacity: 0;
+        transition: opacity 0.4s;
+    }
+    .mission-card:hover::before {
+        opacity: 1;
+    }
+    .mission-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+    .mission-icon {
+        width: 50px;
+        height: 50px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #06b6d4;
+        box-shadow: inset 0 0 15px rgba(6, 182, 212, 0.05);
+    }
+    .mission-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 15px;
+    }
+    .mission-badge {
+        padding: 4px 10px;
+        border-radius: 10px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .badge-featured { background: rgba(255, 193, 7, 0.1); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.2); }
+    .mission-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: #fff;
+        line-height: 1.2;
+    }
+    .mission-stats {
+        display: flex;
+        gap: 15px;
+        margin-top: auto;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+    }
+    .stat-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #fff;
+    }
+    .stat-label {
+        font-size: 0.65rem;
+        color: #64748b;
+        text-transform: uppercase;
+    }
+    
+    /* Sort By Feature Style */
+    .modern-sort-control {
+        display: flex;
+        background: rgba(15, 15, 20, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 4px;
+        backdrop-filter: blur(10px);
+    }
+    .sort-btn {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        padding: 6px 14px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .sort-btn:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .sort-btn.active {
+        background: rgba(6, 182, 212, 0.15);
+        color: #06b6d4;
+        box-shadow: 0 0 10px rgba(6, 182, 212, 0.1);
+    }
 </style>
 {% endblock %}
 
@@ -615,65 +773,37 @@
                 </div>
             </div>
 
-            <!-- Suggested Groups Section -->
-            <div class="community-card">
-                <h3 class="community-card-title">Suggested Groups</h3>
-                <div class="suggested-groups-row" id="suggestedGroupsContainer">
-                    {% if suggested_groups %}
-                    {% for group in suggested_groups[:6] %}
-                    <a href="{{ url_for('group_page', group_id=group.id) }}" class="group-item">
-                        <div class="group-icon">
-                            {% if group.icon_url %}
-                            <img src="{{ group.icon_url }}" alt="{{ group.name }}">
-                            {% else %}
-                            {% if group.group_type == 'genre' %}
-                            <i data-lucide="tag"></i>
-                            {% elif group.group_type == 'manga' %}
-                            <i data-lucide="book-image"></i>
-                            {% elif group.group_type == 'book' %}
-                            <i data-lucide="book-open"></i>
-                            {% else %}
-                            <i data-lucide="users"></i>
-                            {% endif %}
-                            {% endif %}
+            <!-- Featured Groups Section (sidebar) -->
+            {% if active_groups %}
+            <div class="community-card" style="background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2);">
+                <h3 class="community-card-title d-flex align-items-center gap-2" style="color: #06b6d4;">
+                    <i data-lucide="star"></i> Featured Groups
+                </h3>
+                <div class="groups-grid" style="display: flex; flex-direction: column; gap: 10px;">
+                    {% for group in active_groups %}
+                    <a href="{{ url_for('group_page', group_id=group.id) }}" class="mission-card" style="padding: 12px; border-radius: 12px; margin-bottom: 0;">
+                        <div class="mission-header" style="margin-bottom: 10px;">
+                            <div class="mission-icon" style="width: 36px; height: 36px; font-size: 1rem; border-radius: 10px;">
+                                {% if group.icon_url %}
+                                <img src="{{ group.icon_url }}" alt="{{ group.name }}" style="border-radius: 8px;">
+                                {% else %}
+                                <i data-lucide="{{ 'tag' if group.group_type == 'genre' else 'book' }}"></i>
+                                {% endif %}
+                            </div>
+                            <span class="mission-badge badge-featured" style="font-size: 0.55rem; padding: 2px 6px; height: fit-content;"><i class="fas fa-fire"></i> Hot</span>
                         </div>
-                        <span class="group-name">{{ group.name }}</span>
+                        <h3 class="mission-title" style="font-size: 0.95rem; margin-bottom: 5px;">{{ group.name }}</h3>
+                        <div class="mission-stats" style="padding-top: 8px; margin-top: 0; gap: 10px;">
+                            <div class="stat-item">
+                                <span class="stat-value" style="font-size: 0.8rem;">{{ group.member_count|format_count }}</span>
+                                <span class="stat-label" style="font-size: 0.55rem;">Members</span>
+                            </div>
+                        </div>
                     </a>
                     {% endfor %}
-                    {% else %}
-                    <p style="color: rgba(255,255,255,0.5); font-size: 12px;">No suggestions available</p>
-                    {% endif %}
                 </div>
-                <!-- Hidden extra groups -->
-                <div class="suggested-groups-row extra-groups" id="extraGroupsContainer" style="display: none;">
-                    {% if suggested_groups and suggested_groups|length > 6 %}
-                    {% for group in suggested_groups[6:] %}
-                    <a href="{{ url_for('group_page', group_id=group.id) }}" class="group-item">
-                        <div class="group-icon">
-                            {% if group.icon_url %}
-                            <img src="{{ group.icon_url }}" alt="{{ group.name }}">
-                            {% else %}
-                            {% if group.group_type == 'genre' %}
-                            <i data-lucide="tag"></i>
-                            {% elif group.group_type == 'manga' %}
-                            <i data-lucide="book-image"></i>
-                            {% else %}
-                            <i data-lucide="users"></i>
-                            {% endif %}
-                            {% endif %}
-                        </div>
-                        <span class="group-name">{{ group.name }}</span>
-                    </a>
-                    {% endfor %}
-                    {% endif %}
-                </div>
-                {% if suggested_groups and suggested_groups|length > 6 %}
-                <button class="show-more-btn" id="showMoreGroupsBtn">
-                    <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
-                    <span>Show More ({{ suggested_groups|length - 6 }})</span>
-                </button>
-                {% endif %}
             </div>
+            {% endif %}
 
             <!-- Your Group Activity Section -->
             <div class="community-card">
@@ -723,6 +853,8 @@
                 </div>
             </div>
 
+
+
             <!-- Search Bar -->
             <div class="community-search">
                 <i data-lucide="search" class="search-icon"></i>
@@ -731,19 +863,23 @@
             </div>
 
             <!-- Filters Row -->
-            <div class="community-filters">
+            <div class="community-filters" style="align-items: center;">
                 <div class="filter-tabs">
                     <button class="filter-tab active">All Posts</button>
                     <button class="filter-tab">Discussions</button>
                 </div>
-                <div class="sort-dropdown">
-                    <span>Sort By</span>
-                    <select>
-                        <option>(Newest, Hot, Top)</option>
-                        <option>Newest</option>
-                        <option>Hot</option>
-                        <option>Top</option>
-                    </select>
+                
+                {% set current_sort = request.args.get('sort', 'newest') %}
+                <div class="modern-sort-control">
+                    <button class="sort-btn {% if current_sort == 'newest' %}active{% endif %}" title="Newest Posts" onclick="applySort('newest')">
+                        <i data-lucide="clock"></i> Newest
+                    </button>
+                    <button class="sort-btn {% if current_sort == 'hot' %}active{% endif %}" title="Trending Posts" onclick="applySort('hot')">
+                        <i data-lucide="trending-up"></i> Hot
+                    </button>
+                    <button class="sort-btn {% if current_sort == 'top' %}active{% endif %}" title="Most Upvoted Posts" onclick="applySort('top')">
+                        <i data-lucide="award"></i> Top
+                    </button>
                 </div>
             </div>
 
@@ -781,7 +917,7 @@
                 <div class="top-contributors">
                     {% for contributor in top_contributors %}
                     <div class="contributor rank-{{ loop.index }}" 
-                        onclick="openUserInteractionModal({{ contributor.id }}, '{{ contributor.name }}', 'Top Contributor', '{{ contributor.avatar or '' }}', event)" 
+                        onclick="openUserInteractionModal({{ contributor.id }}, '{{ contributor.name }}', 'Top Contributor', '{{ contributor.avatar or '' }}', event, null, '{{ contributor.title_glow or 'none' }}')" 
                         style="cursor: pointer;">
                         <div class="contributor-avatar">
                             <img src="{{ contributor.avatar or url_for('static', filename='uploads/avatars/default.png') }}"
@@ -789,7 +925,7 @@
                             <span class="contributor-badge">{{ loop.index }}{{ 'st' if loop.index == 1 else 'nd' if
                                 loop.index == 2 else 'rd' }}</span>
                         </div>
-                        <span class="contributor-name">{{ contributor.name }}</span>
+                        <span class="contributor-name user-glow-rendered" data-glow="{{ contributor.title_glow or 'none' }}">{{ contributor.name }}</span>
                     </div>
                     {% endfor %}
                 </div>
@@ -797,23 +933,27 @@
 
             <!-- Featured Events Section -->
             {% if featured_events %}
-            <div class="community-card" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(0, 0, 0, 0.2)); border: 1px solid rgba(6, 182, 212, 0.3);">
-                <h3 class="community-card-title d-flex align-items-center gap-2">
-                    <i class="fas fa-bolt text-warning"></i> Featured Events
+            <div class="community-card" style="position: relative; overflow: hidden; border: 1px solid rgba(255, 215, 0, 0.3); background: rgba(20, 20, 25, 0.8);">
+                <!-- Animated Background Glow -->
+                <div style="position: absolute; top: -50px; right: -50px; width: 100px; height: 100px; background: rgba(255, 215, 0, 0.2); filter: blur(40px); border-radius: 50%;"></div>
+                
+                <h3 class="community-card-title d-flex align-items-center gap-2" style="color: #ffd700; border-bottom: 1px solid rgba(255, 215, 0, 0.2); padding-bottom: 10px; margin-bottom: 15px;">
+                    <i class="fas fa-bolt text-warning" style="filter: drop-shadow(0 0 5px rgba(255,215,0,0.5));"></i> Featured Events
                 </h3>
-                <div class="featured-events-list">
+                <div class="featured-events-list" style="display: flex; flex-direction: column; gap: 12px;">
                     {% for event in featured_events %}
-                    <div class="featured-event-card mb-3 p-3" style="background: rgba(255,255,255,0.03); border-radius: 12px; border-left: 4px solid {{ event.bg_color or '#06b6d4' }};">
-                        <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="featured-event-card premium-event-card mt-0 mb-0 p-0" style="background: rgba(0,0,0,0.4); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); padding: 12px !important; transition: all 0.3s ease; position: relative;">
+                        <div style="position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; background: {{ event.bg_color or '#06b6d4' }}; border-radius: 0 4px 4px 0; box-shadow: 0 0 8px {{ event.bg_color or '#06b6d4' }};"></div>
+                        <div class="d-flex align-items-center gap-2 mb-2" style="padding-left: 8px;">
                             {% if event.icon %}
-                            <i class="fas {{ event.icon }} h5 mb-0" style="color: {{ event.bg_color or '#06b6d4' }};"></i>
+                            <i class="fas {{ event.icon }}" style="color: {{ event.bg_color or '#06b6d4' }}; text-shadow: 0 0 10px {{ event.bg_color or '#06b6d4' }}80;"></i>
                             {% endif %}
-                            <h5 class="mb-0 small fw-bold">{{ event.name }}</h5>
+                            <h5 class="mb-0 fw-bold" style="font-size: 0.9rem; color: #fff; letter-spacing: 0.3px;">{{ event.name }}</h5>
                         </div>
-                        <p class="small text-muted mb-2">{{ event.description[:80] }}{{ '...' if event.description|length > 80 else '' }}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge" style="font-size: 0.65rem; background: rgba(255,255,255,0.05);">Starts: {{ event.start_date or 'Now' }}</span>
-                            <a href="/profile" class="btn btn-sm btn-outline-cyan" style="font-size: 0.7rem; padding: 2px 8px;">View Goals</a>
+                        <p class="text-muted mb-2" style="font-size: 0.75rem; padding-left: 8px; line-height: 1.4;">{{ event.description[:70] }}{{ '...' if event.description|length > 70 else '' }}</p>
+                        <div class="d-flex justify-content-between align-items-center" style="padding-left: 8px; margin-top: 10px;">
+                            <span class="badge" style="font-size: 0.6rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0; padding: 4px 8px;">Starts: {{ event.start_date or 'Now' }}</span>
+                            <a href="/profile" class="btn btn-sm" style="font-size: 0.65rem; padding: 4px 10px; background: rgba(6, 182, 212, 0.1); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 6px; font-weight: 600; text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='rgba(6, 182, 212, 0.2)'" onmouseout="this.style.background='rgba(6, 182, 212, 0.1)'">View Mission</a>
                         </div>
                     </div>
                     {% endfor %}
@@ -836,31 +976,7 @@
                 </div>
             </div>
 
-            <!-- Most Active Groups Section -->
-            <div class="community-card">
-                <h3 class="community-card-title">Most Active Groups</h3>
-                <div class="online-list">
-                    {% for group in active_groups %}
-                    <a href="{{ url_for('group_page', group_id=group.id) }}" class="online-user"
-                        style="text-decoration: none;">
-                        <div class="online-avatar">
-                            {% if group.icon_url %}
-                            <img src="{{ group.icon_url }}" alt="{{ group.name }}">
-                            {% else %}
-                            <div class="group-icon-placeholder"
-                                style="width: 40px; height: 40px; border-radius: 8px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;">
-                                <i data-lucide="{{ 'tag' if group.group_type == 'genre' else 'book' }}" size="20"></i>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="online-info">
-                            <span class="online-name">{{ group.name }}</span>
-                            <span class="online-handle">{{ group.member_count }} members</span>
-                        </div>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
+
 
             {% if session.get('role') == 'admin' %}
             <a href="{{ url_for('admin_create_group') }}" class="create-group-btn"
@@ -1088,10 +1204,13 @@
                     reactionsHtml += '</div>';
 
                     div.innerHTML = `
-                             <img src="${c.avatar || '/static/uploads/avatars/default.png'}" class="comment-avatar">
+                             <img src="${c.avatar || '/static/uploads/avatars/default.png'}" class="comment-avatar" onclick="openUserInteractionModal(${c.user_id}, '${c.username.replace(/'/g, "\\'")}', '${(c.role || 'reader').charAt(0).toUpperCase() + (c.role || 'reader').slice(1)}', '${c.avatar || '/static/uploads/avatars/default.png'}', event, null, '${c.title_glow || 'none'}')" style="cursor: pointer;">
                              <div class="comment-content">
-                                 <div class="comment-header">
-                                     <span class="comment-author">${c.username}</span>
+                                 <div class="comment-header" style="display: flex; align-items: center; gap: 8px;">
+                                     <span class="comment-author user-glow-rendered" data-glow="${c.title_glow || 'none'}" onclick="openUserInteractionModal(${c.user_id}, '${c.username.replace(/'/g, "\\'")}', '${(c.role || 'reader').charAt(0).toUpperCase() + (c.role || 'reader').slice(1)}', '${c.avatar || '/static/uploads/avatars/default.png'}', event, null, '${c.title_glow || 'none'}')" style="cursor: pointer; margin-right: 10px;">${c.username}</span>
+                                     ${c.role && ['admin', 'developer', 'moderator', 'publisher'].includes(c.role.toLowerCase()) ? `
+                                        <span class="role-badge role-${c.role.toLowerCase()}" style="font-size: 8px; padding: 1px 6px;">${c.role.toUpperCase()}</span>
+                                     ` : ''}
                                      <span class="comment-time">${new Date(c.created_at).toLocaleDateString()}</span>
                                      ${c.user_id === CURRENT_USER_ID ? `
                                         <div class="comment-manage-actions" style="margin-left: auto; display: flex; gap: 8px;">
@@ -1109,7 +1228,7 @@
                                         <span>React</span>
                                     </button>
                                     ${reactionsHtml}
-                                    <button class="reaction-btn" onclick="openCommentGiftPicker('comment', ${c.id}, this, ${postId})" style="margin-left: auto;" title="Send Gift">
+                                    <button class="reaction-btn" onclick="openCommentGiftPicker('comment', ${c.id}, this, ${postId}, ${c.user_id})" style="margin-left: auto;" title="Send Gift">
                                         <i data-lucide="gift" style="width: 14px; height: 14px;"></i>
                                         <span>Gift</span>
                                     </button>
@@ -1312,7 +1431,19 @@
             }
         };
 
-        window.openCommentGiftPicker = function (targetType, targetId, btn, postId) {
+        window.openCommentGiftPicker = function (targetType, targetId, btn, postId, authorId) {
+            // Self-gifting check: Only block if we have a valid authorId and it matches the current user
+            if (authorId && typeof CURRENT_USER_ID !== 'undefined' && authorId == CURRENT_USER_ID) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Operation Denied',
+                    text: 'You cannot gift your own content!',
+                    background: 'var(--community-card-bg)',
+                    color: '#fff',
+                    confirmButtonColor: 'var(--community-cyan)'
+                });
+                return;
+            }
             let existing = document.querySelector('.picker-popup');
             if (existing) {
                 existing.remove();
@@ -1322,7 +1453,13 @@
             const rect = btn.getBoundingClientRect();
             const picker = document.createElement('div');
             picker.className = 'picker-popup';
-            picker.style.cssText = `position: fixed; bottom: ${window.innerHeight - rect.top + 8}px; left: ${rect.left - 150}px; background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 12px; z-index: 10001; width: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); font-family: inherit;`;
+            
+            // Smart positioning: center on screen with max-height for scroll
+            const pickerWidth = 320;
+            let leftPos = Math.min(rect.left - 150, window.innerWidth - pickerWidth - 16);
+            leftPos = Math.max(8, leftPos);
+            
+            picker.style.cssText = `position: fixed; top: 50%; left: ${leftPos}px; transform: translateY(-50%); background: var(--community-card-bg); border: 1px solid var(--community-card-border); padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 12px; z-index: 10001; width: ${pickerWidth}px; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.4); font-family: inherit;`;
 
             // Header with Buy Coins button and balance
             picker.innerHTML = `
@@ -1353,19 +1490,268 @@
 
             updateBalance();
 
-            document.getElementById('buyCoinsBtn').onclick = async (e) => {
+            document.getElementById('buyCoinsBtn').onclick = (e) => {
                 e.stopPropagation();
-                try {
-                    const res = await fetch('/api/buy_coins', { method: 'POST' });
-                    const data = await res.json();
-                    if (data.success) {
-                        alert(`Success! You now have ${data.coins} coins.`);
-                        updateBalance();
-                    } else {
-                        alert(data.message);
-                    }
-                } catch (err) { console.error(err); }
+                openBuyCoinsModal(updateBalance);
             };
+
+            // ========== BUY COINS MODAL ==========
+            if (!window._buyCoinsModalInjected) {
+            window._buyCoinsModalInjected = true;
+
+            const coinModalStyle = document.createElement('style');
+            coinModalStyle.textContent = `
+                .coin-modal-overlay {
+                    position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+                    z-index: 20000; display: flex; align-items: center; justify-content: center;
+                    opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+                }
+                .coin-modal-overlay.active { opacity: 1; pointer-events: all; }
+                .coin-modal {
+                    background: linear-gradient(145deg, #1a1a2e, #16213e); border: 1px solid rgba(255,215,0,0.2);
+                    border-radius: 20px; width: 95%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(255,215,0,0.08);
+                    transform: scale(0.9) translateY(20px); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+                    padding: 0;
+                }
+                .coin-modal-overlay.active .coin-modal { transform: scale(1) translateY(0); }
+                .coin-modal-header {
+                    padding: 20px 24px 16px; display: flex; justify-content: space-between; align-items: center;
+                    border-bottom: 1px solid rgba(255,255,255,0.08);
+                }
+                .coin-modal-header h2 { margin: 0; font-size: 20px; font-weight: 800; color: #ffd700; display: flex; align-items: center; gap: 8px; }
+                .coin-modal-close {
+                    background: rgba(255,255,255,0.08); border: none; color: #fff; width: 32px; height: 32px;
+                    border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
+                    transition: background 0.2s;
+                }
+                .coin-modal-close:hover { background: rgba(255,50,50,0.3); }
+                .coin-packages-grid {
+                    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 20px 24px;
+                }
+                .coin-package {
+                    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+                    border-radius: 14px; padding: 16px 12px; text-align: center; cursor: pointer;
+                    transition: all 0.25s ease; position: relative; overflow: hidden;
+                }
+                .coin-package:hover {
+                    background: rgba(255,215,0,0.06); border-color: rgba(255,215,0,0.3);
+                    transform: translateY(-3px); box-shadow: 0 8px 20px rgba(255,215,0,0.1);
+                }
+                .coin-package.best-value { border-color: rgba(0,210,255,0.4); }
+                .coin-package.best-value::before {
+                    content: '⭐ BEST VALUE'; position: absolute; top: 0; left: 0; right: 0;
+                    background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: #fff; font-size: 9px;
+                    font-weight: 800; padding: 3px 0; letter-spacing: 1px;
+                }
+                .coin-package.best-value { padding-top: 28px; }
+                .coin-package-icon { font-size: 28px; margin-bottom: 6px; }
+                .coin-package-coins { font-size: 18px; font-weight: 800; color: #ffd700; }
+                .coin-package-bonus { font-size: 11px; color: #4ade80; font-weight: 600; margin-top: 2px; }
+                .coin-package-price {
+                    margin-top: 10px; background: linear-gradient(135deg, #ffd700, #ff9800); color: #000;
+                    border: none; border-radius: 8px; padding: 6px 14px; font-weight: 800; font-size: 13px;
+                    cursor: pointer; transition: all 0.2s; display: inline-block;
+                }
+                .coin-package:hover .coin-package-price { transform: scale(1.05); box-shadow: 0 4px 12px rgba(255,215,0,0.3); }
+                .payment-step { padding: 20px 24px; display: none; }
+                .payment-step.active { display: block; }
+                .payment-step h3 { color: #fff; font-size: 16px; margin: 0 0 6px; }
+                .payment-selected-pkg {
+                    background: rgba(255,215,0,0.08); border: 1px solid rgba(255,215,0,0.2);
+                    border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+                    display: flex; align-items: center; justify-content: space-between;
+                }
+                .payment-selected-pkg span { color: #ffd700; font-weight: 700; font-size: 14px; }
+                .payment-methods { display: flex; flex-direction: column; gap: 10px; }
+                .payment-method {
+                    display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+                    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+                    border-radius: 12px; cursor: pointer; transition: all 0.2s;
+                }
+                .payment-method:hover {
+                    background: rgba(255,255,255,0.08); border-color: rgba(0,210,255,0.4);
+                    box-shadow: 0 4px 12px rgba(0,210,255,0.1);
+                }
+                .payment-method-icon { font-size: 24px; width: 36px; text-align: center; }
+                .payment-method-info { flex: 1; }
+                .payment-method-name { color: #fff; font-weight: 700; font-size: 14px; }
+                .payment-method-desc { color: rgba(255,255,255,0.5); font-size: 11px; }
+                .payment-method-arrow { color: rgba(255,255,255,0.3); font-size: 14px; }
+                .payment-back-btn {
+                    margin-top: 14px; background: none; border: 1px solid rgba(255,255,255,0.15);
+                    color: rgba(255,255,255,0.6); padding: 8px 16px; border-radius: 8px; cursor: pointer;
+                    font-size: 13px; transition: all 0.2s; width: 100%;
+                }
+                .payment-back-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+                .coin-modal-processing {
+                    display: none; flex-direction: column; align-items: center; justify-content: center;
+                    padding: 40px 24px; gap: 16px;
+                }
+                .coin-modal-processing.active { display: flex; }
+                .coin-spinner {
+                    width: 40px; height: 40px; border: 3px solid rgba(255,215,0,0.2); border-top-color: #ffd700;
+                    border-radius: 50%; animation: coinSpin 0.8s linear infinite;
+                }
+                @keyframes coinSpin { to { transform: rotate(360deg); } }
+                .coin-success-check {
+                    width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #4ade80, #22c55e);
+                    display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff;
+                    animation: coinPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+                }
+                @keyframes coinPop { from { transform: scale(0); } to { transform: scale(1); } }
+            `;
+            document.head.appendChild(coinModalStyle);
+
+            window.openBuyCoinsModal = function(updateBalanceCb) {
+                let old = document.getElementById('buyCoinsModalOverlay');
+                if (old) old.remove();
+
+                const packages = [
+                    { id: 'starter', icon: '🪙', name: 'Starter Pack', coins: 100, bonus: 0, price: '$0.99' },
+                    { id: 'popular', icon: '💰', name: 'Popular Pack', coins: 500, bonus: 50, price: '$3.99', bestValue: true },
+                    { id: 'pro', icon: '🏆', name: 'Pro Pack', coins: 1200, bonus: 200, price: '$7.99' },
+                    { id: 'elite', icon: '⚡', name: 'Elite Pack', coins: 3000, bonus: 800, price: '$14.99' },
+                    { id: 'vip', icon: '👑', name: 'VIP Pack', coins: 7500, bonus: 2500, price: '$29.99' },
+                    { id: 'legendary', icon: '🐉', name: 'Legendary Pack', coins: 20000, bonus: 10000, price: '$49.99' }
+                ];
+
+                const paymentMethods = [
+                    { id: 'card', icon: '💳', name: 'Credit / Debit Card', desc: 'Visa, Mastercard, etc.' },
+                    { id: 'esewa', icon: '📱', name: 'eSewa / Khalti', desc: 'Mobile wallet payment' },
+                    { id: 'bank', icon: '🏦', name: 'Bank Transfer', desc: 'Direct bank payment' },
+                    { id: 'redeem', icon: '🎁', name: 'Redeem Code', desc: 'Enter a gift code' }
+                ];
+
+                const overlay = document.createElement('div');
+                overlay.id = 'buyCoinsModalOverlay';
+                overlay.className = 'coin-modal-overlay';
+                overlay.innerHTML = `
+                    <div class="coin-modal">
+                        <div id="coinPackagesStep">
+                            <div class="coin-modal-header">
+                                <h2>🪙 Buy Coins</h2>
+                                <button class="coin-modal-close" id="closeCoinModal">&times;</button>
+                            </div>
+                            <div class="coin-packages-grid">
+                                ${packages.map(p => `
+                                    <div class="coin-package ${p.bestValue ? 'best-value' : ''}" data-pkg-id="${p.id}">
+                                        <div class="coin-package-icon">${p.icon}</div>
+                                        <div class="coin-package-coins">${p.coins.toLocaleString()}</div>
+                                        ${p.bonus ? `<div class="coin-package-bonus">+ ${p.bonus.toLocaleString()} bonus</div>` : '<div class="coin-package-bonus" style="color:transparent;">-</div>'}
+                                        <div class="coin-package-price">${p.price}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="payment-step" id="coinPaymentStep">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+                                <button class="coin-modal-close" id="paymentBackBtn" style="width:28px;height:28px;font-size:14px;">←</button>
+                                <h3 style="margin:0;">Select Payment Method</h3>
+                            </div>
+                            <div class="payment-selected-pkg">
+                                <span id="selectedPkgLabel">-</span>
+                                <span id="selectedPkgPrice" style="color:#4ade80;">-</span>
+                            </div>
+                            <div class="payment-methods">
+                                ${paymentMethods.map(pm => `
+                                    <div class="payment-method" data-method="${pm.id}">
+                                        <div class="payment-method-icon">${pm.icon}</div>
+                                        <div class="payment-method-info">
+                                            <div class="payment-method-name">${pm.name}</div>
+                                            <div class="payment-method-desc">${pm.desc}</div>
+                                        </div>
+                                        <div class="payment-method-arrow">›</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <button class="payment-back-btn" id="paymentBackBtn2">← Back to packages</button>
+                        </div>
+                        <div class="coin-modal-processing" id="coinProcessingStep">
+                            <div class="coin-spinner"></div>
+                            <div style="color:#fff; font-weight:600;">Processing payment...</div>
+                        </div>
+                        <div class="coin-modal-processing" id="coinSuccessStep">
+                            <div class="coin-success-check">✓</div>
+                            <div style="color:#4ade80; font-weight:700; font-size:18px;" id="coinSuccessMsg">Coins added!</div>
+                            <div style="color:rgba(255,255,255,0.6); font-size:13px;" id="coinSuccessBalance"></div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(overlay);
+                requestAnimationFrame(() => overlay.classList.add('active'));
+
+                let selectedPkg = null;
+
+                const closeModal = () => {
+                    overlay.classList.remove('active');
+                    setTimeout(() => overlay.remove(), 300);
+                };
+                overlay.querySelector('#closeCoinModal').onclick = (e) => { e.stopPropagation(); closeModal(); };
+                overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
+
+                overlay.querySelectorAll('.coin-package').forEach(card => {
+                    card.onclick = (e) => {
+                        e.stopPropagation();
+                        const pkgId = card.dataset.pkgId;
+                        selectedPkg = packages.find(p => p.id === pkgId);
+                        if (!selectedPkg) return;
+
+                        document.getElementById('selectedPkgLabel').textContent = `${selectedPkg.icon} ${selectedPkg.name} — ${selectedPkg.coins.toLocaleString()} coins`;
+                        document.getElementById('selectedPkgPrice').textContent = selectedPkg.price;
+                        document.getElementById('coinPackagesStep').style.display = 'none';
+                        document.getElementById('coinPaymentStep').classList.add('active');
+                    };
+                });
+
+                const goBack = (e) => {
+                    e.stopPropagation();
+                    document.getElementById('coinPaymentStep').classList.remove('active');
+                    document.getElementById('coinPackagesStep').style.display = '';
+                };
+                overlay.querySelector('#paymentBackBtn').onclick = goBack;
+                overlay.querySelector('#paymentBackBtn2').onclick = goBack;
+
+                overlay.querySelectorAll('.payment-method').forEach(btn => {
+                    btn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (!selectedPkg) return;
+                        const method = btn.dataset.method;
+
+                        document.getElementById('coinPaymentStep').classList.remove('active');
+                        document.getElementById('coinProcessingStep').style.display = 'flex';
+
+                        try {
+                            const res = await fetch('/api/buy_coins', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ package_id: selectedPkg.id, payment_method: method })
+                            });
+                            const data = await res.json();
+
+                            document.getElementById('coinProcessingStep').style.display = 'none';
+
+                            if (data.success) {
+                                document.getElementById('coinSuccessMsg').textContent = `+${data.coins_added.toLocaleString()} Coins Added!`;
+                                document.getElementById('coinSuccessBalance').textContent = `New balance: 🪙 ${data.coins.toLocaleString()}`;
+                                document.getElementById('coinSuccessStep').style.display = 'flex';
+                                if (updateBalanceCb) updateBalanceCb();
+                                setTimeout(closeModal, 2200);
+                            } else {
+                                alert('Purchase failed: ' + (data.message || 'Unknown error'));
+                                document.getElementById('coinPaymentStep').classList.add('active');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            document.getElementById('coinProcessingStep').style.display = 'none';
+                            document.getElementById('coinPaymentStep').classList.add('active');
+                            alert('An error occurred.');
+                        }
+                    };
+                });
+            };
+            } // end _buyCoinsModalInjected check
 
             const giftGrid = picker.querySelector('#giftGrid');
             const gifts = [
@@ -2472,14 +2858,25 @@
         communitySearchInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 const query = this.value.trim();
+                const currentSort = new URLSearchParams(window.location.search).get('sort') || 'newest';
                 if (query) {
-                    window.location.href = `/community?q=${encodeURIComponent(query)}`;
+                    window.location.href = `/community?sort=${currentSort}&q=${encodeURIComponent(query)}`;
                 } else {
-                    window.location.href = '/community';
+                    window.location.href = `/community?sort=${currentSort}`;
                 }
             }
         });
     }
+
+    // === JS Sort Logic ===
+    window.applySort = function(sortType) {
+        const query = document.getElementById('communitySearchInput')?.value.trim();
+        let url = `/community?sort=${sortType}`;
+        if (query) {
+            url += `&q=${encodeURIComponent(query)}`;
+        }
+        window.location.href = url;
+    };
 
     // === Infinite Scroll Logic ===
     let isLoadingMore = false;
@@ -2512,6 +2909,12 @@
         const searchQuery = new URLSearchParams(window.location.search).get('q');
         if (searchQuery) {
             params.append('q', searchQuery);
+        }
+        
+        // Include sort query in infinite scroll
+        const sortQuery = new URLSearchParams(window.location.search).get('sort');
+        if (sortQuery) {
+            params.append('sort', sortQuery);
         }
 
         try {

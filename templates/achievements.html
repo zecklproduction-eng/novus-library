@@ -400,6 +400,10 @@
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         border: 1px solid rgba(255, 255, 255, 0.1);
         overflow: hidden;
+        width: fit-content;
+        max-width: 80%;
+        text-align: center;
+        white-space: nowrap;
     }
 
     /* All Tag Shimmer FX */
@@ -434,6 +438,27 @@
 
     .rarity-god.unlocked .achievement-icon-wrapper {
         animation: god-float 3s ease-in-out infinite;
+    }
+
+    /* Epic: Amethyst Pulse */
+    .rarity-epic .rarity-tag {
+        background: linear-gradient(135deg, #a855f7, #ec4899);
+        color: #fff;
+        box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+    }
+
+    .rarity-epic.unlocked .achievement-icon-wrapper {
+        animation: epic-pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes epic-pulse {
+        0%, 100% {
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4), 0 0 25px rgba(236, 72, 153, 0.2);
+        }
+        50% {
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.7), 0 0 45px rgba(236, 72, 153, 0.5);
+            transform: scale(1.02);
+        }
     }
 
     /* Legend: Solar Gold */
@@ -743,12 +768,26 @@
         }
     }
 
-    /* Support for Custom Image Icons */
-    .achievement-icon-img {
+    .achievement-icon-wrapper {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        position: relative;
+        transition: all 0.5s ease;
+        overflow: hidden; /* Added to clip video/image */
+    }
+
+    /* Support for Custom Image/Video Icons */
+    .achievement-icon-img, .achievement-icon-video {
         width: 100%;
         height: 100%;
-        object-fit: contain;
-        border-radius: 8px;
+        object-fit: cover;
+        border-radius: 50%;
     }
 
     /* Sakura - Cherry Blossom Drift */
@@ -1029,17 +1068,25 @@
                 <div class="legendary-halo"></div>
                 <div class="icon-inner">
                     {% if ach.icon_type == 'image' %}
-                    <img src="{{ ach.icon }}" class="achievement-icon-img" alt="{{ ach.name }}">
+                        {% if ach.icon.lower().endswith('.mp4') or ach.icon.lower().endswith('.webm') %}
+                        <video src="{{ ach.icon }}" class="achievement-icon-video" autoplay loop muted playsinline></video>
+                        {% else %}
+                        <img src="{{ ach.icon }}" class="achievement-icon-img" alt="{{ ach.name }}">
+                        {% endif %}
                     {% else %}
                     <i class="fas {{ ach.icon }}"></i>
                     {% endif %}
                 </div>
                 {% else %}
-                {% if ach.icon_type == 'image' %}
-                <img src="{{ ach.icon }}" class="achievement-icon-img" alt="{{ ach.name }}">
-                {% else %}
-                <i class="fas {{ ach.icon }}"></i>
-                {% endif %}
+                    {% if ach.icon_type == 'image' %}
+                        {% if ach.icon.lower().endswith('.mp4') or ach.icon.lower().endswith('.webm') %}
+                        <video src="{{ ach.icon }}" class="achievement-icon-video" autoplay loop muted playsinline></video>
+                        {% else %}
+                        <img src="{{ ach.icon }}" class="achievement-icon-img" alt="{{ ach.name }}">
+                        {% endif %}
+                    {% else %}
+                    <i class="fas {{ ach.icon }}"></i>
+                    {% endif %}
                 {% endif %}
             </div>
             <div class="achievement-info">
@@ -1234,6 +1281,11 @@
     }
 
     /* Detail rarity border glow */
+    .dtl-rarity-epic .detail-card-icon {
+        border-color: rgba(168, 85, 247, 0.7);
+        box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
+    }
+
     .dtl-rarity-god .detail-card-icon {
         border-color: rgba(168, 85, 247, 0.6);
         box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
@@ -1596,8 +1648,11 @@
                 const isEarned = ach.earned;
                 const borderColor = isEarned ? '#34d399' : 'rgba(255,255,255,0.08)';
                 const opacity = isEarned ? '1' : '0.5';
+                const isVideo = ach.icon && (ach.icon.toLowerCase().endsWith('.mp4') || ach.icon.toLowerCase().endsWith('.webm'));
                 const iconHtml = ach.icon_type === 'image'
-                    ? '<img src="' + escHtml(ach.icon) + '" style="width:28px; height:28px; border-radius:6px; object-fit:cover;">'
+                    ? (isVideo 
+                        ? '<video src="' + escHtml(ach.icon) + '" style="width:28px; height:28px; border-radius:6px; object-fit:cover;" autoplay loop muted playsinline></video>'
+                        : '<img src="' + escHtml(ach.icon) + '" style="width:28px; height:28px; border-radius:6px; object-fit:cover;">')
                     : '<i class="fas ' + escHtml(ach.icon) + '" style="font-size:1rem; color:' + (ach.badge_color || '#888') + ';"></i>';
 
                 const rarityHtml = (ach.rarity && ach.rarity !== 'none')
@@ -1644,9 +1699,12 @@
             const isEarned = ach.earned;
             const animClass = ach.animation_type && ach.animation_type !== 'none' ? 'dtl-anim-' + ach.animation_type : '';
             const rarityClass = ach.rarity && ach.rarity !== 'none' ? 'dtl-rarity-' + ach.rarity : '';
+            const isVideo = ach.icon && (ach.icon.toLowerCase().endsWith('.mp4') || ach.icon.toLowerCase().endsWith('.webm'));
             const iconHtml = ach.icon_type === 'image'
-                ? '<img src="' + escHtml(ach.icon) + '" style="width:44px; height:44px; border-radius:10px; object-fit:cover;">'
-                : '<i class="fas ' + escHtml(ach.icon) + '" style="font-size:2rem; color:' + (ach.badge_color || '#06b6d4') + ';"></i>';
+                ? (isVideo
+                    ? '<video src="' + escHtml(ach.icon) + '" style="width:100%; height:100%; border-radius:10px; object-fit:cover;" autoplay loop muted playsinline></video>'
+                    : '<img src="' + escHtml(ach.icon) + '" style="width:100%; height:100%; border-radius:10px; object-fit:cover;">')
+                : '<i class="fas ' + escHtml(ach.icon) + '" style="font-size:2.5rem; color:' + (ach.badge_color || '#06b6d4') + ';"></i>';
 
             const rarityTagHtml = ach.rarity && ach.rarity !== 'none'
                 ? '<span class="detail-rarity-tag ' + escHtml(ach.rarity) + '">' + escHtml(ach.rarity) + '</span>'

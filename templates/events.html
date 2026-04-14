@@ -252,6 +252,54 @@
     color: #fff;
 }
 
+/* Reward Shop Button */
+.shop-cta-container {
+    margin-top: 25px;
+    display: flex;
+    justify-content: center;
+}
+
+.btn-shop-cta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.1));
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 12px;
+    color: #ffd700;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.5px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+}
+
+.btn-shop-cta:hover {
+    transform: translateY(-3px) scale(1.02);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 165, 0, 0.2));
+    border-color: #ffd700;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+    color: #fff;
+}
+
+.btn-shop-cta i {
+    font-size: 1.2rem;
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+}
+
+.shop-cta-badge {
+    background: #ffd700;
+    color: #000;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 900;
+    margin-left: 5px;
+}
+
 /* Modal Enhancements */
 .hub-modal {
     background: #0f172a !important;
@@ -395,7 +443,58 @@
     from { transform: translateY(30px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
-/* --- End Modal Styles --- */
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* Progress Tracker */
+.progress-tracker {
+    background: rgba(0, 210, 255, 0.05);
+    border: 1px solid rgba(0, 210, 255, 0.1);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+.progress-tracker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.progress-tracker-label {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.progress-tracker-count {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #00d2ff;
+}
+.progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00d2ff, #7c3aed);
+    border-radius: 8px;
+    transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 12px rgba(0, 210, 255, 0.4);
+}
+.progress-bar-fill.complete {
+    background: linear-gradient(90deg, #10b981, #059669);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
 </style>
 
 <div class="events-page-wrapper">
@@ -404,6 +503,13 @@
         <div class="mission-center-hero">
             <h1>Mission Center</h1>
             <p class="hero-subtitle">Engage in systemic challenges, prove your reading prowess, and claim legendary rewards in the library network.</p>
+            <div class="shop-cta-container">
+                <a href="{{ url_for('shop') }}" class="btn-shop-cta">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Reward Exchange Shop</span>
+                    <span class="shop-cta-badge">New</span>
+                </a>
+            </div>
         </div>
 
         {% macro render_mission(event) %}
@@ -518,9 +624,10 @@
                 </div>
             </div>
             <div class="col-4">
-                <div class="stat-box">
+                <div class="stat-box" id="rewardStatBox" style="position: relative; overflow: visible;">
                     <span id="modalStatPrize" class="stat-val d-block" style="color: var(--accent-gold);">...</span>
                     <span class="stat-label">Reward</span>
+                    <div id="prizePreviewTooltip" style="display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 15px; width: 120px; height: 120px; background: rgba(0,0,0,0.8); border: 2px solid var(--accent-gold); border-radius: 12px; padding: 5px; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);"></div>
                 </div>
             </div>
         </div>
@@ -538,6 +645,17 @@
         <div class="modal-header text-start mb-4">
             <h2 id="tasksModalEventName" class="modal-title h3 mb-1">Mission Hub</h2>
             <p class="small text-muted mb-0">Complete assigned objectives to claim systemic rewards.</p>
+        </div>
+
+        <!-- Progress Tracker -->
+        <div class="progress-tracker" id="progressTracker">
+            <div class="progress-tracker-header">
+                <span class="progress-tracker-label">MISSION PROGRESS</span>
+                <span class="progress-tracker-count" id="progressCount">0 / 0</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBarFill" style="width: 0%"></div>
+            </div>
         </div>
         
         <div id="tasksContainer" style="max-height: 50vh; overflow-y: auto; padding-right: 10px;">
@@ -567,9 +685,78 @@ function showEventDetails(data) {
     document.getElementById('modalStatParticipants').innerText = data.participant_count;
     document.getElementById('modalStatTime').innerText = data.time_left_str;
     
-    let prize = data.prize_id;
-    if (data.prize_type === 'charisma') prize += ' CRP';
-    document.getElementById('modalStatPrize').innerText = prize;
+    // Set Reward Display
+    let prizeStr = 'Unknown';
+    if (data.prize_type === 'achievement') {
+        prizeStr = data.ach_name || data.prize_id;
+    } else if (data.prize_type === 'item' || data.prize_type === 'entrance_animation') {
+        prizeStr = data.item_name || 'Special Asset';
+    } else if (data.prize_type === 'charisma') {
+        prizeStr = '+' + (data.prize_id || 0) + ' Charisma';
+    } else if (data.prize_type === 'event_points') {
+        prizeStr = '+' + (data.prize_id || 0) + ' Points';
+    }
+    const prizeEl = document.getElementById('modalStatPrize');
+    const rewardStatBox = document.getElementById('rewardStatBox');
+    const tooltip = document.getElementById('prizePreviewTooltip');
+    
+    if (prizeEl) prizeEl.innerText = prizeStr;
+    
+    // Clear existing tooltip
+    if (tooltip) {
+        tooltip.innerHTML = '';
+        tooltip.style.display = 'none';
+        rewardStatBox.onmouseenter = null;
+        rewardStatBox.onmouseleave = null;
+        prizeEl.style.cursor = 'default';
+        prizeEl.style.textDecoration = 'none';
+    }
+
+    if ((data.prize_type === 'item' || data.prize_type === 'entrance_animation')) {
+        const previewUrl = data.item_value || (data.icon && data.icon.startsWith('/static/') ? data.icon : null);
+        
+        if (previewUrl) {
+            let mediaHtml = '';
+            if (previewUrl.endsWith('.mp4') || previewUrl.endsWith('.webm')) {
+                mediaHtml = `<video src="${previewUrl}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: contain; border-radius: 6px;"></video>`;
+            } else {
+                mediaHtml = `<img src="${previewUrl}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 6px;">`;
+            }
+            
+            if (tooltip && rewardStatBox) {
+                tooltip.innerHTML = mediaHtml;
+                prizeEl.style.cursor = 'help';
+                prizeEl.style.textDecoration = 'underline dotted var(--accent-gold)';
+                
+                rewardStatBox.onmouseenter = () => { tooltip.style.display = 'flex'; };
+                rewardStatBox.onmouseleave = () => { tooltip.style.display = 'none'; };
+            }
+        }
+    }
+
+    // Handle Icon/Asset Preview for the top Icon Box
+    const iconBox = document.getElementById('modalIconBox');
+    iconBox.innerHTML = ''; // Clear existing
+    iconBox.style.position = 'relative';
+
+    if (data.prize_type === 'item' && data.item_value) {
+        if (data.item_value.endsWith('.mp4') || data.item_value.endsWith('.webm')) {
+            iconBox.innerHTML = `<video src="${data.item_value}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;"></video>`;
+        } else {
+            iconBox.innerHTML = `<img src="${data.item_value}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;">`;
+        }
+    } else {
+        const iconClass = data.icon && !data.icon.startsWith('/static/') ? data.icon : 'fas fa-info-circle';
+        iconBox.innerHTML = `<i class="${iconClass}"></i>`;
+    }
+
+    if (data.prize_type === 'item' && data.item_rarity) {
+        const badge = document.createElement('span');
+        badge.className = `badge rarity-badge rarity-${data.item_rarity}`;
+        badge.style = 'position: absolute; top: -10px; right: -10px; font-size: 0.6rem; padding: 4px 8px; z-index: 10;';
+        badge.innerText = data.item_rarity.toUpperCase();
+        iconBox.appendChild(badge);
+    }
     
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -580,7 +767,11 @@ function closeEventModal() {
     document.body.style.overflow = '';
 }
 
+// Track current event data so we can patch it on task completion
+let _currentTasksEventData = null;
+
 async function showTasksModal(data) {
+    _currentTasksEventData = data; // Store reference for live patching
     const modal = document.getElementById('tasksModal');
     const container = document.getElementById('tasksContainer');
     document.getElementById('tasksModalEventName').innerText = data.name;
@@ -588,12 +779,39 @@ async function showTasksModal(data) {
     container.innerHTML = '';
     if (data.tasks && data.tasks.length > 0) {
         data.tasks.forEach(task => {
+            const isCompleted = task.completed;
+            const keywordCleaned = task.keyword ? task.keyword.replace(/_/g, ' ') : '';
+            
             const taskHtml = `
-                <div class="mission-task-card">
-                    <span class="task-type-tag tag-${task.task_type}">${task.task_type.toUpperCase()}</span>
-                    <div class="d-flex justify-content-between align-items-start gap-3">
-                        <p class="mb-0 text-light fw-medium">${task.description}</p>
+                <div class="mission-task-card ${isCompleted ? 'opacity-75' : ''}" id="task-card-${task.id}">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <span class="task-type-tag tag-${task.task_type}">${task.task_type.toUpperCase()}</span>
+                            <span class="badge bg-dark text-cyan ms-1" style="font-size: 0.65rem; border: 1px solid rgba(0, 210, 255, 0.2);">${task.genre || 'All'}</span>
+                        </div>
                         <span class="text-primary fw-bold" style="white-space: nowrap">+${task.coin_reward} <i class="fas fa-coins ms-1"></i></span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                            <p class="mb-1 text-light fw-medium">${task.description}</p>
+                            ${task.keyword ? `<p class="small text-muted mb-0" style="font-size: 0.75rem;"><i class="fas fa-link me-1"></i> ${keywordCleaned}</p>` : ''}
+                        </div>
+                        
+                        <div class="task-action">
+                            ${isCompleted ? 
+                                `<span class="badge bg-success-subtle text-success p-2 rounded-circle"><i class="fas fa-check"></i></span>` : 
+                                (task.keyword ? 
+                                    `<button onclick="completeTask('${task.keyword}', ${task.id})" class="btn btn-sm btn-primary py-1 px-3" style="font-size: 0.7rem; border-radius: 8px;">Claim</button>` : 
+                                    `<span class="badge bg-secondary p-2 rounded-circle" title="System Automated"><i class="fas fa-sync-alt fa-spin"></i></span>`
+                                )
+                            }
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2 pt-2 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
+                        <span class="small text-muted" style="font-size: 0.7rem;"><i class="fas fa-redo me-1"></i> Resets every ${task.refresh_count_days || 2} days</span>
+                        ${isCompleted ? `<span class="small text-success" style="font-size: 0.7rem;">Completed</span>` : ''}
                     </div>
                 </div>
             `;
@@ -604,6 +822,7 @@ async function showTasksModal(data) {
     }
     
     document.getElementById('tasksModalCtaUrl').href = '/community'; // Default fallback
+    updateProgressTracker(data.tasks);
     modal.classList.add('active');
     
     try {
@@ -611,6 +830,94 @@ async function showTasksModal(data) {
         const json = await res.json();
         if (json.success) document.getElementById('tasksModalTotalCoins').innerText = json.coins + ' Coins';
     } catch {}
+}
+
+function updateProgressTracker(tasks) {
+    if (!tasks || tasks.length === 0) {
+        document.getElementById('progressTracker').style.display = 'none';
+        return;
+    }
+    document.getElementById('progressTracker').style.display = '';
+    const total = tasks.length;
+    const completed = tasks.filter(t => t.completed).length;
+    const pct = Math.round((completed / total) * 100);
+    document.getElementById('progressCount').innerText = `${completed} / ${total}`;
+    const bar = document.getElementById('progressBarFill');
+    bar.style.width = pct + '%';
+    if (completed === total) {
+        bar.classList.add('complete');
+        document.getElementById('progressCount').style.color = '#10b981';
+    } else {
+        bar.classList.remove('complete');
+        document.getElementById('progressCount').style.color = '';
+    }
+}
+
+async function completeTask(keyword, taskId) {
+    try {
+        const response = await fetch(`/api/tasks/complete/${keyword}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Patch in-memory data so re-opening the modal shows correct state
+            if (_currentTasksEventData && _currentTasksEventData.tasks) {
+                const taskData = _currentTasksEventData.tasks.find(t => t.id === taskId);
+                if (taskData) taskData.completed = true;
+            }
+
+            // Show Success Popup
+            const popup = document.createElement('div');
+            popup.style = `
+                position: fixed; top: 20px; right: 20px; background: #059669; color: white; 
+                padding: 15px 25px; border-radius: 12px; z-index: 10000; font-weight: bold;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.3); animation: slideInRight 0.3s ease;
+                display: flex; align-items: center; gap: 10px;
+            `;
+            popup.innerHTML = `<i class="fas fa-check-circle"></i> <div>${data.message} <br> <small>+${data.coins_earned} Coins Earned!</small></div>`;
+            document.body.appendChild(popup);
+            
+            // Refresh coin display if in modal
+            const coinEl = document.getElementById('tasksModalTotalCoins');
+            if (coinEl) {
+                const current = parseInt(coinEl.innerText) || 0;
+                coinEl.innerText = (current + data.coins_earned) + ' Coins';
+            }
+            
+            // Auto hide popup
+            setTimeout(() => {
+                popup.style.animation = 'fadeOut 0.5s ease forwards';
+                setTimeout(() => popup.remove(), 500);
+            }, 3000);
+            
+            // Update UI without full reload
+            const card = document.getElementById(`task-card-${taskId}`);
+            if (card) {
+                card.classList.add('opacity-75');
+                const action = card.querySelector('.task-action');
+                if (action) action.innerHTML = `<span class="badge bg-success-subtle text-success p-2 rounded-circle"><i class="fas fa-check"></i></span>`;
+                
+                // Add "Completed" label to the bottom
+                const bottomBar = card.querySelector('.border-top');
+                if (bottomBar && !bottomBar.querySelector('.text-success')) {
+                    bottomBar.insertAdjacentHTML('beforeend', '<span class="small text-success" style="font-size: 0.7rem;">Completed</span>');
+                }
+            }
+
+            // Update progress tracker in real-time
+            if (_currentTasksEventData && _currentTasksEventData.tasks) {
+                updateProgressTracker(_currentTasksEventData.tasks);
+            }
+        } else {
+            alert(data.message || 'Action failed.');
+        }
+    } catch (e) {
+        console.error('Task completion error:', e);
+        alert('Communication error with network.');
+    }
 }
 
 function closeTasksModal() {
@@ -635,7 +942,35 @@ async function joinEvent(eventId, eventObj) {
         
         const data = await response.json();
         if (data.success) {
-            location.reload();
+            // Real-time Update: Find the button that triggered this and swap it
+            const allCards = document.querySelectorAll('.mission-card');
+            allCards.forEach(card => {
+                const joinBtn = card.querySelector(`[onclick*="joinEvent(${eventId}"]`);
+                if (joinBtn) {
+                    // Switch button to "Mission Hub"
+                    joinBtn.className = 'btn-hub btn-primary';
+                    joinBtn.innerHTML = 'Mission Hub';
+                    joinBtn.setAttribute('onclick', `location.reload()`); // Will load tasks on next click
+                    
+                    // Add "Active" badge to header
+                    const header = card.querySelector('.mission-header');
+                    const badgeArea = header ? header.querySelector('.d-flex') : null;
+                    if (badgeArea && !badgeArea.querySelector('.badge-joined')) {
+                        const badge = document.createElement('span');
+                        badge.className = 'mission-badge badge-joined';
+                        badge.innerHTML = '<i class="fas fa-check"></i> Active';
+                        badge.style.animation = 'fadeIn 0.4s ease';
+                        badgeArea.prepend(badge);
+                    }
+
+                    // Update participant count
+                    const statValue = card.querySelector('.stat-value');
+                    if (statValue) {
+                        const current = parseInt(statValue.textContent) || 0;
+                        statValue.textContent = current + 1;
+                    }
+                }
+            });
         } else {
             alert(data.message || 'Failed to join campaign.');
         }
@@ -646,8 +981,6 @@ async function joinEvent(eventId, eventObj) {
 }
 
 // Initializing state for localStorage mock progress
-document.addEventListener('DOMContentLoaded', () => {
     // We can use this to handle the "Joined" badges if the backend doesn't handle it yet
-});
 </script>
 {% endblock %}
