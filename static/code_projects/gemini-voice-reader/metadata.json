@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Voice Reader",
+  "description": "Convert PDF and TXT documents into natural-sounding speech using Gemini 2.5 TTS. Features document parsing, customizable voices, and high-fidelity audio playback.",
+  "requestFramePermissions": []
+}

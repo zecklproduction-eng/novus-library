@@ -1,0 +1,850 @@
+{% extends "base.html" %}
+
+{% block title %}Support / Request - NOVUS{% endblock %}
+
+{% block content %}
+<div class="support-container">
+    <!-- Header -->
+    <div class="support-header">
+        <h1>Support / Request</h1>
+        <p>Request new books or manga, vote on ideas, and track status.</p>
+    </div>
+
+    <div class="support-grid">
+        <!-- LEFT: New Request Form -->
+        <div class="support-card form-card">
+            <div class="card-header">
+                <h2>New Request</h2>
+            </div>
+            <form method="POST" action="{{ url_for('support_requests') }}">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" name="title" placeholder="e.g. Solo Leveling, Dune..." required class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label>Type</label>
+                    <select name="item_type" id="item_type" class="form-select" required onchange="toggleMangaSearch(this.value)">
+                        <option value="manga">Manga / Manhwa</option>
+                        <option value="book">Book / Novel</option>
+                        <option value="chapter">Chapter / Volume Request</option>
+                        <option value="feature">Feature Request</option>
+                    </select>
+                </div>
+
+                <!-- Manga search for Chapter Requests (Hidden by default) -->
+                <div id="manga_search_container" class="form-group" style="display: none; position: relative;">
+                    <label>Link to Manga <span style="color: var(--neon-blue);">*</span></label>
+                    <input type="text" id="manga_search" placeholder="Search for existing manga..." class="form-input" autocomplete="off">
+                    <input type="hidden" name="manga_id" id="manga_id">
+                    <div id="manga_results" class="search-dropdown"></div>
+                    <div id="selected_manga_preview" class="selected-manga" style="display: none;">
+                        <img src="" id="manga_prev_img" alt="">
+                        <div class="manga-info">
+                            <span id="manga_prev_title"></span>
+                            <small id="manga_prev_author"></small>
+                        </div>
+                        <button type="button" onclick="clearMangaSelection()" class="clear-btn">&times;</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Author / Creator (Optional)</label>
+                    <input type="text" name="author" placeholder="Original creator..." class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label>Reason / Notes</label>
+                    <textarea name="notes" placeholder="Why should we add this? Links allowed." class="form-textarea" rows="4"></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    Submit Request <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- RIGHT: Requests List -->
+        <div class="support-card list-card">
+            <div class="list-controls">
+                <div class="tabs">
+                    <a href="?tab=trending&type={{ active_filter }}" class="tab-btn {% if active_tab == 'trending' %}active{% endif %}">Trending</a>
+                    <a href="?tab=newest&type={{ active_filter }}" class="tab-btn {% if active_tab == 'newest' %}active{% endif %}">Newest</a>
+                    <a href="?tab=my_requests&type={{ active_filter }}" class="tab-btn {% if active_tab == 'my_requests' %}active{% endif %}">My Requests</a>
+                    <a href="?tab=answered&type={{ active_filter }}" class="tab-btn {% if active_tab == 'answered' %}active{% endif %}">Answered</a>
+                </div>
+                <div class="filters">
+                    <select onchange="window.location.href='?tab={{ active_tab }}&type=' + this.value" class="filter-select">
+                        <option value="all" {% if active_filter == 'all' %}selected{% endif %}>All Types</option>
+                        <option value="manga" {% if active_filter == 'manga' %}selected{% endif %}>Manga</option>
+                        <option value="book" {% if active_filter == 'book' %}selected{% endif %}>Books</option>
+                        <option value="feature" {% if active_filter == 'feature' %}selected{% endif %}>Features</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="requests-list">
+                {% for req in requests %}
+                <div class="request-item">
+                    <!-- Vote Widget -->
+                    <div class="vote-widget">
+                        <button class="vote-btn {% if req[7] == 1 %}active{% endif %}" onclick="vote('{{ req[0] }}', 1, this)">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
+                        <span class="vote-count">{{ req[5] }}</span>
+                        <!-- Downvote optional, simple upvote mostly used for requests -->
+                    </div>
+
+                    <!-- Content -->
+                    <div class="request-content">
+                        <div class="req-top">
+                            <h3 class="req-title">{{ req[1] }}</h3>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <span class="status-pill {{ req[4] | lower }}" {% if req[4] == 'Added' and req[12] %}title="Fulfilled by @{{ req[12] }}" style="cursor: help;"{% endif %}>{{ req[4] }}</span>
+                                {% if req[4] != 'Added' and (session['user_id'] == req[10] and req[4] == 'Requested' or session['role'] in ['admin', 'publisher']) %}
+                                    <div class="req-management-btns">
+                                        <button 
+                                            class="mgmt-btn edit btn-edit-request" 
+                                            title="Edit Request"
+                                            data-id="{{ req[0] }}"
+                                            data-title="{{ req[1] }}"
+                                            data-type="{{ req[2] }}"
+                                            data-author="{{ req[3] or '' }}"
+                                            data-notes="{{ req[11] or '' }}"
+                                            data-manga-id="{{ req[8] or '' }}"
+                                            data-manga-title="{{ req[9] or '' }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteRequest('{{ req[0] }}')" class="mgmt-btn delete" title="Delete Request">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Admin/Publisher Actions -->
+                        {% if session['role'] in ['admin', 'publisher'] and req[4] != 'Added' %}
+                        <div class="admin-actions" style="margin-bottom: 8px;">
+                            <a href="{{ url_for('add_book', request_id=req[0]) }}" class="fulfill-btn" style="text-decoration: none; display: inline-block;">
+                                <i class="fas fa-cloud-upload-alt"></i> Fulfill Request
+                            </a>
+                        </div>
+                        {% endif %}
+                        <div class="req-meta">
+                            <span class="req-type"><i class="fas {% if req[2] == 'manga' %}fa-book-open{% elif req[2] == 'book' %}fa-book{% elif req[2] == 'chapter' %}fa-layer-group{% else %}fa-star{% endif %}"></i> {{ req[2]|capitalize }}</span>
+                            {% if req[9] %}
+                            <span class="req-manga-link"><i class="fas fa-link"></i> For: <strong>{{ req[9] }}</strong></span>
+                            {% endif %}
+                            <span class="req-author">{% if req[3] %}by {{ req[3] }}{% endif %}</span>
+                            <span class="req-user">Required by @{{ req[6] }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No requests found in this category.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if session['role'] in ['admin', 'publisher'] %}
+            <div class="admin-panel-mini">
+                <small><i class="fas fa-shield-alt"></i> Admin: Click requests to manage status (Impl. Pending)</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Request Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content support-card">
+        <div class="card-header">
+            <h2>Edit Request</h2>
+            <button class="close-modal" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form id="editForm" onsubmit="submitEdit(event)">
+            <input type="hidden" name="request_id" id="edit_req_id">
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" name="title" id="edit_title" required class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select name="item_type" id="edit_item_type" class="form-select" required onchange="toggleEditMangaSearch(this.value)">
+                    <option value="manga">Manga / Manhwa</option>
+                    <option value="book">Book / Novel</option>
+                    <option value="chapter">Chapter / Volume Request</option>
+                    <option value="feature">Feature Request</option>
+                </select>
+            </div>
+            
+            <div id="edit_manga_search_container" class="form-group" style="position: relative;">
+                <label>Link to Manga</label>
+                <input type="text" id="edit_manga_search" placeholder="Search for existing manga..." class="form-input" autocomplete="off">
+                <input type="hidden" name="manga_id" id="edit_manga_id">
+                <div id="edit_manga_results" class="search-dropdown"></div>
+                <div id="edit_selected_manga_preview" class="selected-manga" style="display: none;">
+                    <img src="" id="edit_manga_prev_img" alt="">
+                    <div class="manga-info">
+                        <span id="edit_manga_prev_title"></span>
+                        <small id="edit_manga_prev_author"></small>
+                    </div>
+                    <button type="button" onclick="clearEditMangaSelection()" class="clear-btn">&times;</button>
+                </div>
+            </div>
+
+            <div class="form-group" id="edit_author_group">
+                <label>Author / Creator (Optional)</label>
+                <input type="text" name="author" id="edit_author" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Reason / Notes</label>
+                <textarea name="notes" id="edit_notes" class="form-textarea" rows="4"></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Support Page Scoped CSS */
+    .support-container {
+        padding: 20px 40px;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding-top: 100px; /* Navbar space */
+    }
+
+    .support-header {
+        margin-bottom: 30px;
+    }
+    .support-header h1 {
+        font-size: 2.5rem;
+        background: linear-gradient(90deg, #fff, #a5b4fc);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+    }
+    .support-header p {
+        color: #94a3b8;
+    }
+
+    .support-grid {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        gap: 30px;
+    }
+
+    /* Cards */
+    .support-card {
+        background: rgba(16, 20, 28, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        backdrop-filter: blur(12px);
+        overflow: hidden;
+    }
+
+    .form-card {
+        height: fit-content;
+        position: sticky;
+        top: 100px;
+    }
+    
+    .card-header {
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.02);
+    }
+    .card-header h2 {
+        font-size: 1.1rem;
+        color: #fff;
+        margin: 0;
+    }
+
+    form { padding: 20px; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+        display: block;
+        color: #94a3b8;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+    }
+    
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+        padding: 12px;
+        border-radius: 8px;
+        font-family: inherit;
+        transition: border 0.3s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        border-color: #6366f1;
+        outline: none;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    /* List Area */
+    .list-controls {
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 20px;
+    }
+    .tab-btn {
+        color: #64748b;
+        text-decoration: none;
+        font-weight: 500;
+        padding-bottom: 5px;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s;
+    }
+    .tab-btn:hover { color: #cbd5e1; }
+    .tab-btn.active {
+        color: #6366f1;
+        border-color: #6366f1;
+    }
+
+    .filter-select {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+    .filter-select option { background: #1e293b; }
+
+    /* Request Item */
+    .request-item {
+        display: flex;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        transition: background 0.2s;
+    }
+    .request-item:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .vote-widget {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-right: 20px;
+        min-width: 40px;
+    }
+    .vote-btn {
+        background: none;
+        border: none;
+        color: #475569;
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: 2px;
+        transition: color 0.2s;
+    }
+    .vote-btn:hover { color: #94a3b8; }
+    .vote-btn.active { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+    
+    .vote-count {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #fff;
+        margin: 2px 0;
+    }
+
+    .request-content { flex: 1; }
+    
+    .req-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 5px;
+    }
+    .req-title {
+        font-size: 1.1rem;
+        color: #fff;
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .status-pill {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    .status-pill.requested { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+    .status-pill.planned { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-pill.added { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); } /* Golden/Complete */
+    .status-pill.rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .req-meta {
+        font-size: 0.85rem;
+        color: #64748b;
+        display: flex;
+        gap: 15px;
+    }
+    .req-meta i { margin-right: 5px; }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #475569;
+    }
+    .empty-state i { font-size: 3rem; margin-bottom: 15px; opacity: 0.5; }
+
+    .admin-panel-mini {
+        padding: 10px 20px;
+        background: rgba(0,0,0,0.2);
+        color: #64748b;
+        border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* Mobile */
+    @media (max-width: 900px) {
+        .support-grid { grid-template-columns: 1fr; }
+        .form-card { display: none; } /* Hide form on mobile initially (use FAB logic usually, but here simplified) */
+        
+        /* Mobile Request FAB logic would go here, for now just stacking */
+        .form-card { display: block; position: static; margin-bottom: 20px; }
+        .support-container { padding: 80px 20px; }
+        .list-controls { flex-direction: column; align-items: flex-start; gap: 10px; }
+        .tabs { width: 100%; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { flex-shrink: 0; }
+    }
+    /* Admin/Publisher Button */
+    .fulfill-btn {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #34d399;
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .fulfill-btn:hover {
+        background: rgba(16, 185, 129, 0.2);
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+    /* Search Dropdown */
+    .search-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        z-index: 1000;
+        max-height: 250px;
+        overflow-y: auto;
+        display: none;
+        margin-top: 5px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .search-item {
+        padding: 10px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .search-item:hover { background: rgba(255, 255, 255, 0.05); }
+    .search-item img { width: 35px; height: 50px; object-fit: cover; border-radius: 4px; }
+    .search-item .title { font-weight: 600; font-size: 0.9rem; color: #fff; }
+    .search-item small { color: #64748b; font-size: 0.75rem; }
+
+    .selected-manga {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 10px;
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        border-radius: 8px;
+        margin-top: 5px;
+    }
+    .selected-manga img { width: 40px; height: 60px; object-fit: cover; border-radius: 4px; }
+    .selected-manga .manga-info { flex: 1; }
+    .selected-manga .manga-info span { display: block; font-weight: 600; color: #fff; }
+    .selected-manga .clear-btn {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.5rem;
+        cursor: pointer;
+        line-height: 1;
+    }
+    .selected-manga .clear-btn:hover { color: #f87171; }
+    /* Management Buttons */
+    .req-management-btns {
+        display: flex;
+        gap: 5px;
+    }
+    .mgmt-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s;
+    }
+    .mgmt-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+    .mgmt-btn.edit:hover { color: #6366f1; border-color: #6366f1; }
+    .mgmt-btn.delete:hover { color: #f87171; border-color: #f87171; }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal.show { display: flex; }
+    .modal-content {
+        width: 100%;
+        max-width: 500px;
+        margin: 20px;
+    }
+    .close-modal {
+        background: none; border: none; color: #94a3b8;
+        font-size: 1.5rem; cursor: pointer;
+    }
+    .close-modal:hover { color: #fff; }
+
+</style>
+
+<script>
+// Initialize on load
+window.addEventListener('DOMContentLoaded', () => {
+    toggleMangaSearch(document.getElementById('item_type').value);
+    
+    // Add event delegation for edit buttons
+    document.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.btn-edit-request');
+        if (editBtn) {
+            const data = editBtn.dataset;
+            openEditModal(
+                data.id,
+                data.title,
+                data.type,
+                data.author,
+                data.notes,
+                data.mangaId,
+                data.mangaTitle
+            );
+        }
+    });
+});
+
+function toggleMangaSearch(type) {
+    const container = document.getElementById('manga_search_container');
+    const titleInput = document.querySelector('input[name="title"]');
+    const authorGroup = document.querySelector('.form-group:has(input[name="author"])');
+    
+    if (type === 'chapter') {
+        container.style.display = 'block';
+        titleInput.placeholder = "e.g. Chapter 5, Volume 2...";
+        if (authorGroup) authorGroup.style.display = 'none';
+    } else {
+        container.style.display = 'none';
+        titleInput.placeholder = "e.g. Solo Leveling, Dune...";
+        if (authorGroup) authorGroup.style.display = 'block';
+        clearMangaSelection();
+    }
+}
+
+// Manga Search Logic
+const mangaSearch = document.getElementById('manga_search');
+const mangaResults = document.getElementById('manga_results');
+const mangaIdInput = document.getElementById('manga_id');
+const preview = document.getElementById('selected_manga_preview');
+
+if (mangaSearch) {
+    let debounceTimer;
+    mangaSearch.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+        if (query.length < 2) {
+            mangaResults.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/api/manga/search?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    mangaResults.innerHTML = '';
+                    if (data.length > 0) {
+                        data.forEach(m => {
+                            const item = document.createElement('div');
+                            item.className = 'search-item';
+                            item.innerHTML = `
+                                <img src="/static/${m.cover || 'img/no-cover.png'}" alt="">
+                                <div>
+                                    <div class="title">${m.title}</div>
+                                    <small>${m.author}</small>
+                                </div>
+                            `;
+                            item.onclick = () => selectManga(m);
+                            mangaResults.appendChild(item);
+                        });
+                        mangaResults.style.display = 'block';
+                    } else {
+                        mangaResults.style.display = 'none';
+                    }
+                });
+        }, 300);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!mangaSearch.contains(e.target) && !mangaResults.contains(e.target)) {
+            mangaResults.style.display = 'none';
+        }
+    });
+}
+
+function selectManga(m) {
+    mangaIdInput.value = m.id;
+    mangaSearch.style.display = 'none';
+    mangaResults.style.display = 'none';
+    
+    document.getElementById('manga_prev_img').src = `/static/${m.cover || 'img/no-cover.png'}`;
+    document.getElementById('manga_prev_title').textContent = m.title;
+    document.getElementById('manga_prev_author').textContent = m.author;
+    preview.style.display = 'flex';
+}
+
+function clearMangaSelection() {
+    mangaIdInput.value = '';
+    mangaSearch.style.display = 'block';
+    mangaSearch.value = '';
+    preview.style.display = 'none';
+}
+
+function clearMangaSelection() {
+    mangaIdInput.value = '';
+    mangaSearch.style.display = 'block';
+    mangaSearch.value = '';
+    preview.style.display = 'none';
+}
+
+// EDIT MODAL LOGIC
+function openEditModal(id, title, type, author, notes, mangaId, mangaTitle) {
+    document.getElementById('edit_req_id').value = id;
+    document.getElementById('edit_title').value = title;
+    document.getElementById('edit_item_type').value = type;
+    document.getElementById('edit_author').value = author;
+    document.getElementById('edit_notes').value = notes;
+    document.getElementById('edit_manga_id').value = mangaId;
+    
+    toggleEditMangaSearch(type);
+    
+    if (mangaId) {
+        // We don't have all manga details here, but we can show title
+        document.getElementById('edit_manga_prev_title').textContent = mangaTitle;
+        document.getElementById('edit_manga_prev_author').textContent = "";
+        document.getElementById('edit_manga_prev_img').style.display = 'none';
+        document.getElementById('edit_selected_manga_preview').style.display = 'flex';
+        document.getElementById('edit_manga_search').style.display = 'none';
+    } else {
+        clearEditMangaSelection();
+    }
+    
+    document.getElementById('editModal').classList.add('show');
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('show');
+}
+
+function toggleEditMangaSearch(type) {
+    const container = document.getElementById('edit_manga_search_container');
+    const authorGroup = document.getElementById('edit_author_group');
+    if (type === 'chapter') {
+        container.style.display = 'block';
+        if (authorGroup) authorGroup.style.display = 'none';
+    } else {
+        container.style.display = 'none';
+        if (authorGroup) authorGroup.style.display = 'block';
+    }
+}
+
+function clearEditMangaSelection() {
+    document.getElementById('edit_manga_id').value = '';
+    document.getElementById('edit_manga_search').style.display = 'block';
+    document.getElementById('edit_manga_search').value = '';
+    document.getElementById('edit_selected_manga_preview').style.display = 'none';
+}
+
+// Edit Autocomplete
+const editMangaSearch = document.getElementById('edit_manga_search');
+const editMangaResults = document.getElementById('edit_manga_results');
+if (editMangaSearch) {
+    let debounce;
+    editMangaSearch.addEventListener('input', () => {
+        clearTimeout(debounce);
+        const q = editMangaSearch.value.trim();
+        if (q.length < 2) { editMangaResults.style.display = 'none'; return; }
+        debounce = setTimeout(() => {
+            fetch(`/api/manga/search?q=${q}`)
+                .then(r => r.json())
+                .then(data => {
+                    editMangaResults.innerHTML = '';
+                    if (data.length) {
+                        data.forEach(m => {
+                            const div = document.createElement('div');
+                            div.className = 'search-item';
+                            div.innerHTML = `<img src="/static/${m.cover || 'img/no-cover.png'}"> <div><div class="title">${m.title}</div><small>${m.author}</small></div>`;
+                            div.onclick = () => {
+                                document.getElementById('edit_manga_id').value = m.id;
+                                editMangaSearch.style.display = 'none';
+                                document.getElementById('edit_manga_prev_img').src = `/static/${m.cover || 'img/no-cover.png'}`;
+                                document.getElementById('edit_manga_prev_img').style.display = 'block';
+                                document.getElementById('edit_manga_prev_title').textContent = m.title;
+                                document.getElementById('edit_manga_prev_author').textContent = m.author;
+                                document.getElementById('edit_selected_manga_preview').style.display = 'flex';
+                                editMangaResults.style.display = 'none';
+                            };
+                            editMangaResults.appendChild(div);
+                        });
+                        editMangaResults.style.display = 'block';
+                    }
+                });
+        }, 300);
+    });
+}
+
+function submitEdit(e) {
+    e.preventDefault();
+    const data = {
+        request_id: document.getElementById('edit_req_id').value,
+        title: document.getElementById('edit_title').value,
+        item_type: document.getElementById('edit_item_type').value,
+        author: document.getElementById('edit_author').value,
+        notes: document.getElementById('edit_notes').value,
+        manga_id: document.getElementById('edit_manga_id').value
+    };
+    
+    fetch('/api/requests/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    }).then(r => r.json()).then(res => {
+        if (res.success) window.location.reload();
+        else alert(res.error);
+    });
+}
+
+function deleteRequest(id) {
+    if (!confirm("Are you sure you want to delete this request?")) return;
+    fetch('/api/requests/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: id })
+    }).then(r => r.json()).then(res => {
+        if (res.success) window.location.reload();
+        else alert(res.error);
+    });
+}
+
+async function vote(reqId, val, btn) {
+    // Optimistic UI update
+    if (btn.classList.contains('active')) return; // Already voted
+
+    try {
+        const res = await fetch('/api/requests/vote', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ request_id: reqId, vote_value: val })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            // Update number
+            const countSpan = btn.parentElement.querySelector('.vote-count');
+            countSpan.textContent = data.new_count;
+            
+            // Toggle active state
+            if (data.user_vote === 1) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    } catch (e) {
+        console.error("Vote failed", e);
+        alert("Failed to cast vote.");
+    }
+}
+
+async function updateStatus(reqId, status, btn) {
+    if (!confirm('Mark this request as "' + status + '"?')) return;
+
+    try {
+        const res = await fetch('/api/requests/status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ request_id: reqId, status: status })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            // Update UI - refresh page or update DOM
+            window.location.reload(); 
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (e) {
+        console.error("Status update failed", e);
+        alert("Failed to update status.");
+    }
+}
+</script>
+{% endblock %}

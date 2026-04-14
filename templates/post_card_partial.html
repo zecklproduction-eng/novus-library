@@ -1,0 +1,208 @@
+<article class="post-card" data-post-id="{{ post.id }}" data-post-type="{{ post.post_type }}"
+    data-channel-id="{{ post.channel_id if post.channel_id else 'default' }}">
+    <!-- Vote Column -->
+    <div class="vote-column" data-post-id="{{ post.id }}">
+        <button class="vote-btn upvote {% if post.user_vote == 1 %}active{% endif %}" title="Upvote"
+            onclick="votePost({{ post.id }}, 1, this)">
+            <i data-lucide="thumbs-up"></i>
+            <span class="upvote-count">{{ post.upvotes|format_count }}</span>
+        </button>
+        <button class="vote-btn downvote {% if post.user_vote == -1 %}active{% endif %}" title="Downvote"
+            onclick="votePost({{ post.id }}, -1, this)">
+            <i data-lucide="thumbs-down"></i>
+            <span class="downvote-count">{{ post.downvotes|format_count }}</span>
+        </button>
+        {% if post.charisma and post.charisma > 0 %}
+        <div class="post-charisma-stat" title="Total charisma earned from gifts"
+            style="display: flex; flex-direction: column; align-items: center; color: #ff85c2; font-size: 11px; margin-top: 8px; font-weight: bold;">
+            <span style="font-size: 14px;">✨</span>
+            <span id="post-charisma-{{ post.id }}">{{ post.charisma }}</span>
+            
+            {% if session.get('user_id') == post.user_id %}
+            <button class="view-gifters-btn" onclick="openGiftersList({{ post.id }})" 
+                style="background: none; border: none; padding: 2px; cursor: pointer; color: #ff85c2; opacity: 0.7; transition: opacity 0.2s;"
+                onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'"
+                title="View who sent gifts">
+                <i data-lucide="users" style="width: 12px; height: 12px;"></i>
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Thumbnail / Meta -->
+    <div class="post-main-content">
+        <div class="post-header-meta">
+            <div class="post-author">
+                <img src="{{ post.avatar or url_for('static', filename='uploads/avatars/default.png') }}"
+                    alt="{{ post.username }}" class="post-author-avatar"
+                    onclick="openUserInteractionModal({{ post.user_id }}, '{{ post.username }}', '{{ post.role|default('reader')|capitalize }}', '{{ post.avatar or url_for('static', filename='uploads/avatars/default.png') }}', event, null, '{{ post.author_title_glow or 'none' }}')"
+                    style="cursor: pointer;">
+                <div class="author-info">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="post-author-name user-glow-rendered" data-glow="{{ post.author_title_glow or 'none' }}"
+                            onclick="openUserInteractionModal({{ post.user_id }}, '{{ post.username }}', '{{ post.role|default('reader')|capitalize }}', '{{ post.avatar or url_for('static', filename='uploads/avatars/default.png') }}', event, null, '{{ post.author_title_glow or 'none' }}')"
+                            style="cursor: pointer; margin-right: 10px;">{{ post.username }}</span>
+                        {% if post.role and post.role in ['admin', 'developer', 'moderator', 'publisher'] %}
+                        <span class="role-badge role-{{ post.role }}">{{ post.role|upper }}</span>
+                        {% endif %}
+                        {% if post.author_achievements %}
+                        <div class="author-badges" style="display: flex; gap: 4px;">
+                            {% for ach in post.author_achievements %}
+                            <i class="fas {{ ach.icon }}"
+                                style="font-size: 10px; color: {{ '#00d4ff' if ach.badge_color == 'cyan' else '#a855f7' if ach.badge_color == 'purple' else '#eab308' if ach.badge_color == 'yellow' else '#10b981' if ach.badge_color == 'green' else '#3b82f6' if ach.badge_color == 'blue' else '#f59e0b' if ach.badge_color == 'orange' else '#fff' }};"
+                                title="{{ ach.name }}"></i>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <span class="posted-time">{{ post.created_at|time_ago }} in <a
+                            href="{{ url_for('group_page', group_id=post.group_id) }}">{{
+                            post.group_name }}</a></span>
+                </div>
+            </div>
+            <span class="post-type-badge {{ post.post_type }}">{{ post.post_type|capitalize }}</span>
+        </div>
+
+        <h2 class="post-title">{{ post.title }}</h2>
+
+        <div class="post-body">
+            {{ post.content|truncate(300)|mentions|safe }}
+        </div>
+
+        <!-- Attachments Rendering -->
+        {% if post.attachments %}
+        <div class="post-attachments-grid">
+            {% for attach in post.attachments %}
+            {% if attach.file_type == 'manga_link' %}
+            <a href="{{ attach.file_url }}" class="post-attachment-manga">
+                {% if attach.manga_cover %}
+                <img src="{{ attach.manga_cover }}" class="manga-preview-img"
+                    onerror="this.src='https://via.placeholder.com/200x300?text=No+Cover'">
+                {% else %}
+                <i data-lucide="book" style="width:32px;height:32px;color:#00bcd4;"></i>
+                {% endif %}
+                <div class="manga-link-info">
+                    <h4>{{ attach.manga_title or 'Series Link' }}</h4>
+                    <p>Click to view details</p>
+                </div>
+            </a>
+            {% elif attach.file_type in ['jpg', 'jpeg', 'png', 'webp', 'gif'] %}
+            <div class="attachment-image">
+                <img src="{{ attach.file_url }}" alt="Attachment" onclick="window.open(this.src)">
+            </div>
+            {% else %}
+            <a href="{{ attach.file_url }}" class="attachment-file" download>
+                <i data-lucide="file-text"></i>
+                <span>{{ attach.file_name }}</span>
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Poll Rendering -->
+        {% if post.post_type == 'poll' and post.poll %}
+        <div class="poll-container" data-poll-id="{{ post.poll.id }}">
+            <div class="poll-options-display">
+                {% for opt in post.poll.options %}
+                <div class="poll-option-vote {% if opt.id in post.poll.user_votes %}voted{% endif %}"
+                    data-option-id="{{ opt.id }}">
+                    <div class="poll-option-bar"
+                        style="width: {{ (opt.vote_count / post.poll.total_votes * 100)|round if post.poll.total_votes > 0 else 0 }}%">
+                    </div>
+                    <span class="poll-option-text">{{ opt.option_text }}</span>
+                    <span class="poll-option-percent">{{ (opt.vote_count / post.poll.total_votes *
+                        100)|round|int if post.poll.total_votes > 0 else 0 }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="poll-footer">
+                <span>{{ post.poll.total_votes }} votes</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="post-actions">
+            <button class="comments-btn" onclick="toggleComments({{ post.id }})">
+                <i data-lucide="message-circle"></i>
+                <span id="comment-count-{{ post.id }}">{{ post.comment_count|format_count }} Comments</span>
+            </button>
+            <button class="share-btn" title="Share">
+                <i data-lucide="share-2"></i>
+            </button>
+            <button class="gift-btn" title="Send a gift to this post" onclick="openCommentGiftPicker('post', {{ post.id }}, this, {{ post.id }}, {{ post.user_id }})" style="margin-left: auto; color: var(--community-cyan); background: rgba(0,212,255,0.05);">
+                <i data-lucide="gift"></i>
+                <span class="btn-text">Gift</span>
+            </button>
+        </div>
+
+        <!-- Hidden Comments Section -->
+        <div id="comments-section-{{ post.id }}" class="comments-section" style="display: none;">
+            <div class="comments-sort-header"
+                style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <button onclick="toggleComments({{ post.id }})"
+                    style="background:none; border:none; color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px;">
+                    <i data-lucide="chevron-up" style="width: 14px; height: 14px;"></i>
+                    <span>Hide</span>
+                </button>
+                <select onchange="loadComments({{ post.id }}, this.value)"
+                    style="background: rgba(255,255,255,0.05); color: #ccc; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer;">
+                    <option value="oldest">Oldest First</option>
+                    <option value="newest">Newest First</option>
+                    <option value="most_reacted">Most Reacted</option>
+                </select>
+            </div>
+            <div class="comments-list" id="comments-list-{{ post.id }}">
+                <!-- Comments loaded via JS -->
+                <div class="loading-spinner">Loading comments...</div>
+            </div>
+
+            <div class="comment-attachments-preview" id="comment-preview-{{ post.id }}"></div>
+
+            <form class="comment-form" onsubmit="submitComment(event, {{ post.id }})">
+                <div class="rich-comment-editor">
+                    <div class="editor-input-area">
+                        <textarea name="content" placeholder="Write a comment..."></textarea>
+                    </div>
+                    <div class="editor-toolbar">
+                        <div class="editor-tools">
+                            <button type="button" onclick="triggerCommentFile({{ post.id }})" title="Add Image">
+                                <i data-lucide="image"></i>
+                            </button>
+                            <button type="button" onclick="triggerCommentFile({{ post.id }})" title="Add File">
+                                <i data-lucide="file-text"></i>
+                            </button>
+                            <button type="button" title="Mention" onclick="insertAtCursor(this, '@')">
+                                <i data-lucide="at-sign"></i>
+                            </button>
+                            <button type="button" title="Link Book/Manga"
+                                onclick="openCommentMangaSearch({{ post.id }})">
+                                <i data-lucide="book"></i>
+                            </button>
+                            <div class="tool-separator"></div>
+                            <button type="button" title="Gift" onclick="openCommentGiftPicker('post', {{ post.id }}, this, {{ post.id }}, {{ post.user_id }})">
+                                <i data-lucide="gift"></i>
+                            </button>
+                            <button type="button" title="Sticker"
+                                onclick="openCommentStickerPicker({{ post.id }}, this)">
+                                <i data-lucide="sticky-note"></i>
+                            </button>
+                            <button type="button" title="Emoji" onclick="openCommentEmojiPicker(this)">
+                                <i data-lucide="smile-plus"></i>
+                            </button>
+                            <button type="button" title="Emoticons" onclick="openCommentEmoticonPicker(this)">
+                                <i data-lucide="smile"></i>
+                            </button>
+                        </div>
+                        <button type="submit" class="comment-submit-btn-pill">
+                            Reply
+                        </button>
+                    </div>
+                    <input type="file" id="comment-file-{{ post.id }}" name="attachments" multiple hidden
+                        onchange="previewCommentFiles({{ post.id }})">
+                </div>
+            </form>
+        </div>
+    </div>
+</article>

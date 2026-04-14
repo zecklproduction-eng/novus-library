@@ -24,11 +24,18 @@ def test_manga_ai_summary():
     mm = re.search(r'id="mangaDescription">([\s\S]*?)</p>', r.text)
     desc = mm.group(1).strip() if mm else ''
 
-    # call ai_summary
-    resp = s.post('http://127.0.0.1:5000/ai_summary', json={'text': desc, 'max_sentences': 3})
+    # call new manga summary endpoint
+    resp = s.get(f'http://127.0.0.1:5000/api/manga/{manga_id}/summary')
     assert resp.status_code == 200, resp.text
     data = resp.json()
     assert 'summary' in data and isinstance(data['summary'], str)
     assert len(data['summary'].strip()) > 0
 
     print('AI summary:', data['summary'])
+
+if __name__ == "__main__":
+    try:
+        test_manga_ai_summary()
+        print("Test passed!")
+    except Exception as e:
+        print(f"Test failed: {e}")

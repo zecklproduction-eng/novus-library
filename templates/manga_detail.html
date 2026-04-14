@@ -1,0 +1,482 @@
+{% extends "base.html" %}
+{% block title %}{{ manga[1] }} | NOVUS Manga{% endblock %}
+
+{% block content %}
+<div class="manga-detail-page">
+
+    <!-- BREADCRUMB -->
+    <nav class="manga-detail-breadcrumb">
+        <a href="{{ url_for('home') }}">Home</a>
+        <span class="breadcrumb-sep">•</span>
+        <a href="{{ url_for('manga') }}">Manga</a>
+        <span class="breadcrumb-sep">•</span>
+        <span class="breadcrumb-current">{{ manga[1] }}</span>
+    </nav>
+
+    <!-- MAIN CONTENT GRID -->
+    <div class="manga-detail-container">
+
+        <!-- LEFT SECTION: Cover + Info -->
+        <div class="manga-detail-main">
+
+            <!-- Hero Section -->
+            <div class="manga-detail-hero">
+
+                <!-- Cover Image -->
+                <div class="manga-detail-cover-wrapper">
+                    <div class="manga-detail-cover">
+                        {% if manga[6] %}
+                        <img src="{{ url_for('static', filename=manga[6]) }}" alt="{{ manga[1] }}">
+                        {% else %}
+                        <div class="manga-detail-cover-placeholder">📖</div>
+                        {% endif %}
+                    </div>
+                    <div class="watch-together-badge">
+                        <i class="fas fa-users"></i>
+                        <span>ReadTogether</span>
+                    </div>
+                </div>
+
+                <!-- Info Section -->
+                <div class="manga-detail-info">
+                    <h1 class="manga-detail-title">{{ manga[1] }}</h1>
+
+                    <!-- Badges Row -->
+                    <div class="manga-detail-badges">
+                        {% if avg_rating %}
+                        <span class="detail-badge badge-rating">★ {{ "%.1f"|format(avg_rating) }}</span>
+                        {% endif %}
+                        <span class="detail-badge badge-hd">HD</span>
+                        <span class="detail-badge badge-type">Manga</span>
+                        {% if chapter_count %}
+                        <span class="detail-badge badge-chapters">{{ chapter_count }} Ch</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Read Now Button -->
+                    <a href="{{ url_for('read_manga', id=manga[0]) }}" class="btn-read-now">
+                        <i class="fas fa-play"></i>
+                        <span>Read now</span>
+                    </a>
+
+                    <!-- Description -->
+                    <div class="manga-detail-description">
+                        <p id="mangaDescription"
+                            class="description-text {% if manga[7] and manga[7]|length > 300 %}collapsed{% endif %}">
+                            {{ manga[7] or 'No description available for this manga series.' }}
+                        </p>
+                        {% if manga[7] and manga[7]|length > 300 %}
+                        <button class="description-toggle" onclick="toggleDescription()">
+                            <span class="toggle-text">+ More</span>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHAPTER LIST SECTION -->
+            <section class="manga-chapters-section">
+                <div class="chapters-header">
+                    <h2 class="manga-rec-title">Chapters ({{ chapter_count or 0 }})</h2>
+                    <div class="chapter-search-box">
+                        <i class="fas fa-search chapter-search-icon"></i>
+                        <input type="text" id="chapterSearchInput" placeholder="Search chapter number or title..." onkeyup="filterChapters()">
+                    </div>
+                </div>
+
+                <div class="chapters-list-container" id="chaptersListContainer">
+                    {% if chapters %}
+                        {% for ch in chapters %}
+                        <a href="{{ url_for('read_manga', id=manga[0]) }}?chapter_id={{ ch[0] }}" class="chapter-item" data-search="{{ ch[1] }} {{ ch[2]|lower }}">
+                            <div class="chapter-item-left">
+                                <span class="chapter-number">Ch. {{ ch[1] }}</span>
+                                {% if ch[2] %}
+                                <span class="chapter-name">{{ ch[2] }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="chapter-item-right">
+                                <span class="chapter-meta"><i class="fas fa-eye"></i> {{ ch[4] or 0 }}</span>
+                                <span class="chapter-meta">{{ ch[3].split(' ')[0] if ch[3] else '' }}</span>
+                                <i class="fas fa-play chapter-play-icon"></i>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-chapters-msg">
+                            <i class="fas fa-folder-open"></i>
+                            <p>No chapters available yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- RECOMMENDED FOR YOU SECTION -->
+            <section class="manga-rec-section">
+                <h2 class="manga-rec-title">Recommended for you</h2>
+                <div class="manga-rec-slider">
+                    {% if recommendations %}
+                    {% for rec in recommendations %}
+                    <a href="{{ url_for('manga_detail', id=rec[0]) }}" class="manga-rec-card">
+                        <div class="manga-rec-cover">
+                            {% if rec[6] %}
+                            <img src="{{ url_for('static', filename=rec[6]) }}" alt="{{ rec[1] }}" loading="lazy">
+                            {% else %}
+                            <div class="manga-rec-placeholder">📖</div>
+                            {% endif %}
+                        </div>
+                        <div class="manga-rec-info">
+                            <h4 class="manga-rec-name">{{ rec[1][:25] }}{% if rec[1]|length > 25 %}...{% endif %}</h4>
+                            <div class="manga-rec-meta">
+                                <span>Manga</span>
+                                <span class="meta-dot">•</span>
+                                <span>{{ rec[7] or 0 }} Ch</span>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                    {% else %}
+                    <div class="manga-rec-empty">
+                        <p>No recommendations available yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+        </div>
+
+        <!-- RIGHT SIDEBAR: Metadata + Most Popular -->
+        <aside class="manga-detail-sidebar">
+
+            <!-- Metadata Card -->
+            <div class="manga-meta-card">
+                {% if avg_rating %}
+                <div class="meta-item">
+                    <span class="meta-label">Score:</span>
+                    <span class="meta-value meta-score">{{ "%.2f"|format(avg_rating) }}</span>
+                </div>
+                {% endif %}
+
+                <div class="meta-item">
+                    <span class="meta-label">Chapters:</span>
+                    <span class="meta-value">{{ chapter_count or 0 }}</span>
+                </div>
+
+                <div class="meta-item">
+                    <span class="meta-label">Genres:</span>
+                    <div class="meta-genres">
+                        {% set categories = manga[3].split(',') if manga[3] else ['Unknown'] %}
+                        {% for cat in categories %}
+                        <a href="{{ url_for('manga', category=cat|trim) }}" class="genre-tag">{{ cat|trim }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% if manga[2] %}
+                <div class="meta-item">
+                    <span class="meta-label">Author:</span>
+                    <span class="meta-value meta-author">{{ manga[2] }}</span>
+                </div>
+                {% endif %}
+
+                {% if manga[8] %}
+                <div class="meta-item">
+                    <span class="meta-label">Publisher:</span>
+                    <span class="meta-value meta-publisher">{{ manga[8] }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- MOST POPULAR SECTION -->
+            <div class="manga-popular-section">
+                <h3 class="manga-popular-title">Most Popular</h3>
+                <div class="manga-popular-list">
+                    {% if popular_manga %}
+                    {% for pop in popular_manga %}
+                    <a href="{{ url_for('manga_detail', id=pop[0]) }}" class="manga-popular-item">
+                        <div class="popular-cover">
+                            {% if pop[6] %}
+                            <img src="{{ url_for('static', filename=pop[6]) }}" alt="{{ pop[1] }}" loading="lazy">
+                            {% else %}
+                            <div class="popular-placeholder">📖</div>
+                            {% endif %}
+                        </div>
+                        <div class="popular-info">
+                            <h4 class="popular-name">{{ pop[1][:22] }}{% if pop[1]|length > 22 %}...{% endif %}</h4>
+                            <div class="popular-stats">
+                                <span class="stat-item"><i class="fas fa-eye"></i> {{ pop[8] or 0 }}</span>
+                                <span class="stat-item"><i class="fas fa-heart"></i> {{ pop[9] or 0 }}</span>
+                                <span class="stat-item">{{ pop[7] or 0 }} Ch</span>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                    {% else %}
+                    <p class="popular-empty">No data available</p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </aside>
+
+    </div>
+
+</div>
+
+<script>
+    // Toggle description collapse
+    function toggleDescription() {
+        const desc = document.getElementById('mangaDescription');
+        const btn = document.querySelector('.description-toggle .toggle-text');
+
+        if (desc.classList.contains('collapsed')) {
+            desc.classList.remove('collapsed');
+            btn.textContent = '- Less';
+        } else {
+            desc.classList.add('collapsed');
+            btn.textContent = '+ More';
+        }
+    }
+
+    // Filter chapters based on search input
+    function filterChapters() {
+        const input = document.getElementById('chapterSearchInput');
+        const filter = input.value.toLowerCase();
+        const container = document.getElementById('chaptersListContainer');
+        const items = container.getElementsByClassName('chapter-item');
+        let visibleCount = 0;
+
+        for (let i = 0; i < items.length; i++) {
+            const searchData = items[i].getAttribute('data-search') || "";
+            if (searchData.indexOf(filter) > -1) {
+                items[i].style.display = "";
+                visibleCount++;
+            } else {
+                items[i].style.display = "none";
+            }
+        }
+
+        // Handle no results state
+        let noResultsMsg = document.getElementById('noResultsMsg');
+        if (visibleCount === 0 && items.length > 0) {
+            if (!noResultsMsg) {
+                noResultsMsg = document.createElement('div');
+                noResultsMsg.id = 'noResultsMsg';
+                noResultsMsg.className = 'no-chapters-msg';
+                noResultsMsg.innerHTML = '<i class="fas fa-search"></i><p>No matching chapters found.</p>';
+                container.appendChild(noResultsMsg);
+            }
+            noResultsMsg.style.display = 'flex';
+        } else if (noResultsMsg) {
+            noResultsMsg.style.display = 'none';
+        }
+    }
+</script>
+<style>
+/* Modern Chapter List Styles */
+.manga-chapters-section {
+    margin-top: 40px;
+    margin-bottom: 40px;
+    background: rgba(15, 17, 23, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 24px;
+}
+
+.chapters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.chapter-search-box {
+    position: relative;
+    flex: 1;
+    max-width: 350px;
+    min-width: 200px;
+}
+
+.chapter-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+#chapterSearchInput {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 10px 14px 10px 38px;
+    color: #fff;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+#chapterSearchInput:focus {
+    background: rgba(0, 212, 255, 0.05);
+    border-color: rgba(0, 212, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+}
+
+.chapters-list-container {
+    max-height: 500px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.chapters-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chapters-list-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+.chapter-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 14px 18px;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.chapter-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(0, 212, 255, 0.3);
+    transform: translateX(4px);
+}
+
+.chapter-item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.chapter-number {
+    font-weight: 700;
+    color: #fff;
+    font-size: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 10px;
+    border-radius: 8px;
+}
+
+.chapter-item:hover .chapter-number {
+    background: var(--neon-blue);
+    color: #000;
+}
+
+.chapter-name {
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.chapter-item-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.chapter-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chapter-play-icon {
+    color: var(--neon-blue);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.3s ease;
+}
+
+.chapter-item:hover .chapter-play-icon {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.no-chapters-msg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    text-align: center;
+    gap: 12px;
+}
+
+.no-chapters-msg i {
+    font-size: 32px;
+    opacity: 0.5;
+}
+
+body.theme-light .manga-chapters-section {
+    background: #fff;
+    border-color: #e5e7eb;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+
+body.theme-light #chapterSearchInput {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #111;
+}
+
+body.theme-light .chapter-item {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+body.theme-light .chapter-item:hover {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+body.theme-light .chapter-number {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+body.theme-light .chapter-name {
+    color: #4b5563;
+}
+
+@media (max-width: 600px) {
+    .chapters-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .chapter-search-box {
+        width: 100%;
+        max-width: none;
+    }
+    
+    .chapter-item-right .chapter-meta {
+        display: none; /* Hide extra stats on mobile to save space */
+    }
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,8 @@
+
+{
+  "name": "Lumina E-Library Reader",
+  "description": "An advanced PDF reader for e-libraries featuring AI-powered summaries, synchronized audio transcripts with text highlighting, and an integrated AI research assistant.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

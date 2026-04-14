@@ -2,254 +2,394 @@
 {% block title %}FAQ & Guidelines | NOVUS{% endblock %}
 
 {% block content %}
-<div style="max-width: 900px; margin: 0 auto; padding: 30px 20px;">
-  <!-- Page Header -->
-  <div style="text-align: center; margin-bottom: 50px;">
-    <h1 style="color: var(--text-primary); margin-bottom: 10px; font-size: 36px;">
-      <i class="fas fa-question-circle" style="color: var(--neon-blue); margin-right: 15px;"></i>
-      Frequently Asked Questions
-    </h1>
-    <p style="color: var(--text-muted); font-size: 16px; max-width: 600px; margin: 0 auto;">
-      Find answers to common questions about using NOVUS, uploading content, and managing your library.
-    </p>
-  </div>
+<div class="container mt-5 mb-5" style="max-width: 1000px;">
+    
+    <!-- Hero / Header -->
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold text-white mb-3" style="text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);">
+            How can we <span class="text-info">help</span> you?
+        </h1>
+        <p class="text-muted lead mb-4">
+            Search our knowledge base or browse categories below to find answers.
+        </p>
 
-  <!-- FAQ Sections -->
-  <div style="background: rgba(102, 126, 234, 0.05); border: 1px solid rgba(102, 126, 234, 0.15); border-radius: 12px; padding: 40px; margin-bottom: 30px;">
-
-    <!-- Getting Started Section -->
-    <h2 style="color: var(--neon-blue); font-size: 22px; margin-top: 0; margin-bottom: 25px; padding-bottom: 12px; border-bottom: 2px solid rgba(102, 126, 234, 0.3);">
-      <i class="fas fa-rocket" style="margin-right: 10px;"></i> Getting Started
-    </h2>
-
-    <!-- FAQ Item 1 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          How do I create an account?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>Click the "Register" button in the top right corner of the login page. Fill in your username, email, and password. You can choose to register as a Reader (to access and read content) or as a Publisher (to upload and manage books/manga). Once registered, log in to start exploring!</p>
+        <!-- Search Bar -->
+        <div class="position-relative mx-auto" style="max-width: 600px;">
+            <input type="text" id="faqSearch" class="form-control form-control-lg bg-dark text-white border-secondary ps-5 rounded-pill shadow-lg" 
+                   placeholder="Search for questions (e.g. 'monetization', 'upload', 'manga')..."
+                   style="background: rgba(20, 20, 30, 0.8); backdrop-filter: blur(10px);">
+            <i class="fas fa-search position-absolute text-muted" style="top: 50%; left: 20px; transform: translateY(-50%); font-size: 1.2rem;"></i>
         </div>
-      </details>
     </div>
 
-    <!-- FAQ Item 2 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          What's the difference between Reader and Publisher roles?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p><strong>Readers</strong> can browse, read books, and manage their watchlist. <strong>Publishers</strong> can do everything Readers can, plus upload new books and manga, edit their uploads, manage chapters, and track their reader engagement.</p>
-        </div>
-      </details>
+    <!-- Category Tabs -->
+    <div class="d-flex flex-wrap justify-content-center gap-3 mb-5" id="faqTabs">
+        <button class="btn btn-outline-secondary active rounded-pill px-4" data-category="all">
+            All Questions
+        </button>
+        <button class="btn btn-outline-secondary rounded-pill px-4" data-category="general">
+            <i class="fas fa-rocket me-2"></i>General
+        </button>
+        <button class="btn btn-outline-secondary rounded-pill px-4" data-category="reading">
+            <i class="fas fa-book-open me-2"></i>Reading
+        </button>
+        <button class="btn btn-outline-secondary rounded-pill px-4" data-category="publishing">
+            <i class="fas fa-pen-fancy me-2"></i>Publishing
+        </button>
+        <button class="btn btn-outline-secondary rounded-pill px-4" data-category="monetization">
+            <i class="fas fa-coins me-2"></i>Monetization
+        </button>
+        <button class="btn btn-outline-secondary rounded-pill px-4" data-category="requests">
+            <i class="fas fa-clipboard-list me-2"></i>Requests
+        </button>
     </div>
 
-    <!-- FAQ Item 3 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          Can I change my role after registration?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>Contact the admin team through the Help & Info menu if you wish to upgrade your role from Reader to Publisher or have other role-related requests.</p>
+    <!-- FAQ Content Container -->
+    <div class="row g-4" id="faqContainer">
+
+        <!-- GENERAL -->
+        <div class="col-12 faq-item" data-category="general">
+            <div class="card bg-dark border-secondary h-100 faq-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="btn btn-icon btn-sm btn-soft-primary rounded-circle me-3">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <h5 class="card-title text-info mb-0">Getting Started</h5>
+                    </div>
+                    
+                    <div class="accordion accordion-flush" id="accordionGeneral">
+                        <div class="accordion-item bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent text-white shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#gen1">
+                                    How do I create an account?
+                                </button>
+                            </h2>
+                            <div id="gen1" class="accordion-collapse collapse" data-bs-parent="#accordionGeneral">
+                                <div class="accordion-body text-muted">
+                                    Click "Register" in the top right. You can join as a <strong>Reader</strong> (to consume content) or a <strong>Publisher</strong> (to upload content). Both are free!
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent text-white shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#gen2">
+                                    Can I customize my profile?
+                                </button>
+                            </h2>
+                            <div id="gen2" class="accordion-collapse collapse" data-bs-parent="#accordionGeneral">
+                                <div class="accordion-body text-muted">
+                                    Yes! Visit your profile to access the <strong>Avatar Studio</strong>, where you can customize your avatar frame, border, background, and effects. Upgrading to Pro or Ultimate unlocks exclusive animated backgrounds and special effects.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </details>
+
+        <!-- READING -->
+        <div class="col-12 faq-item" data-category="reading">
+            <div class="card bg-dark border-secondary h-100 faq-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="btn btn-icon btn-sm btn-soft-success rounded-circle me-3">
+                            <i class="fas fa-book-reader"></i>
+                        </div>
+                        <h5 class="card-title text-success mb-0">Reading & Library</h5>
+                    </div>
+                    
+                    <div class="accordion accordion-flush" id="accordionReading">
+                        <div class="accordion-item bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent text-white shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#read1">
+                                    How does the Manga Reader work?
+                                </button>
+                            </h2>
+                            <div id="read1" class="accordion-collapse collapse" data-bs-parent="#accordionReading">
+                                <div class="accordion-body text-muted">
+                                    Our manga reader supports vertical scroll (webtoon style) and single/double page layouts. It automatically remembers your progress. You can switch reading modes in the settings menu while reading.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent text-white shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#read2">
+                                    What is the Watchlist?
+                                </button>
+                            </h2>
+                            <div id="read2" class="accordion-collapse collapse" data-bs-parent="#accordionReading">
+                                <div class="accordion-body text-muted">
+                                    The Watchlist tracks what you're reading. Statuses include: <strong>Planned</strong>, <strong>Reading</strong>, <strong>Completed</strong>, <strong>On Hold</strong>, and <strong>Dropped</strong>. We automatically update a book to "Reading" when you start it.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PUBLISHING -->
+        <div class="col-12 faq-item" data-category="publishing">
+            <div class="card bg-dark border-secondary h-100 faq-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="btn btn-icon btn-sm btn-soft-warning rounded-circle me-3">
+                            <i class="fas fa-upload"></i>
+                        </div>
+                        <h5 class="card-title text-warning mb-0">Publishing Content</h5>
+                    </div>
+                    
+                    <div class="accordion accordion-flush" id="accordionPub">
+                        <div class="accordion-item bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent text-white shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#pub1">
+                                    How do I become a Publisher?
+                                </button>
+                            </h2>
+                            <div id="pub1" class="accordion-collapse collapse" data-bs-parent="#accordionPub">
+                                <div class="accordion-body text-muted">
+                                    You can select the "Publisher" role during registration. If you already have a Reader account, you can request a role upgrade via the "Help & Info" menu or by contacting support.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent text-white shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#pub2">
+                                    What formats are supported?
+                                </button>
+                            </h2>
+                            <div id="pub2" class="accordion-collapse collapse" data-bs-parent="#accordionPub">
+                                <div class="accordion-body text-muted">
+                                    <ul>
+                                        <li><strong>Books:</strong> PDF files (Standard text/images)</li>
+                                        <li><strong>Manga:</strong> PDF per chapter (Images embedded in PDF)</li>
+                                        <li><strong>Audio:</strong> MP3 files for audiobooks</li>
+                                        <li><strong>Covers:</strong> JPG, PNG, WEBP (Max 5MB)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MONETIZATION -->
+        <div class="col-12 faq-item" data-category="monetization">
+            <div class="card bg-dark border-secondary h-100 faq-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="btn btn-icon btn-sm btn-soft-danger rounded-circle me-3">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <h5 class="card-title text-danger mb-0">Monetization & Rewards</h5>
+                    </div>
+                    
+                    <div class="accordion accordion-flush" id="accordionMon">
+                        <div class="accordion-item bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent text-white shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mon1">
+                                    How can I earn money?
+                                </button>
+                            </h2>
+                            <div id="mon1" class="accordion-collapse collapse" data-bs-parent="#accordionMon">
+                                <div class="accordion-body text-muted">
+                                    Publishers earn money by <strong>fulfilling content requests</strong>. 
+                                    <ul>
+                                        <li>Base Reward: <strong>$0.50</strong> per fulfilled book/manga request.</li>
+                                        <li>Chapter Reward: <strong>$0.15</strong> per specific chapter request.</li>
+                                        <li>Bonus: <strong>+$0.20</strong> for every 2 upvotes the request had!</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent text-white shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mon2">
+                                    How do I get paid?
+                                </button>
+                            </h2>
+                            <div id="mon2" class="accordion-collapse collapse" data-bs-parent="#accordionMon">
+                                <div class="accordion-body text-muted">
+                                    Earnings are tracked in your dashboard. Payouts are processed monthly for balances over $20. Ensure your payout details are updated in your settings.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REQUESTS -->
+        <div class="col-12 faq-item" data-category="requests">
+            <div class="card bg-dark border-secondary h-100 faq-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="btn btn-icon btn-sm btn-soft-info rounded-circle me-3">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <h5 class="card-title text-info mb-0">Content Requests</h5>
+                    </div>
+                    
+                    <div class="accordion accordion-flush" id="accordionReq">
+                        <div class="accordion-item bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent text-white shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#req1">
+                                    How do I request a book or manga?
+                                </button>
+                            </h2>
+                            <div id="req1" class="accordion-collapse collapse" data-bs-parent="#accordionReq">
+                                <div class="accordion-body text-muted">
+                                    Visit the <strong>Support & Requests</strong> page. Click "New Request" to ask for a specific title. You can vote on existing requests to bump their priority—Publishers see popular requests first!
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent text-white shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#req2">
+                                    Can I request missing chapters?
+                                </button>
+                            </h2>
+                            <div id="req2" class="accordion-collapse collapse" data-bs-parent="#accordionReq">
+                                <div class="accordion-body text-muted">
+                                    Yes! When making a request, you can link it to an existing Manga series and specify which chapters or volumes are missing. This helps publishers know exactly what to upload.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- Using the Library Section -->
-    <h2 style="color: var(--neon-blue); font-size: 22px; margin-top: 35px; margin-bottom: 25px; padding-bottom: 12px; border-bottom: 2px solid rgba(102, 126, 234, 0.3);">
-      <i class="fas fa-book-open" style="margin-right: 10px;"></i> Using the Library
-    </h2>
-
-    <!-- FAQ Item 4 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          How do I search for books?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>Use the search bar on the dashboard to search by title or author. You can also filter by category using the category dropdown. Search results update instantly as you type.</p>
-        </div>
-      </details>
+    <!-- Contact Support Footer -->
+    <div class="text-center mt-5 pt-4">
+        <p class="text-muted">Still have questions?</p>
+        <a href="{{ url_for('support_requests') }}" class="btn btn-gradient-primary rounded-pill px-5 py-2">
+            <i class="fas fa-envelope me-2"></i>Contact Support
+        </a>
     </div>
-
-    <!-- FAQ Item 5 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          What's the Watchlist feature?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>Your Watchlist is a personal collection where you can track books you want to read, are currently reading, or have finished. Click the bookmark icon on any book to add it to your watchlist. You can organize books by status (Planned, Reading, On Hold, Dropped) and set your reading progress percentage. Use the search and filter buttons to quickly find books in your watchlist.</p>
-        </div>
-      </details>
-    </div>
-
-    <!-- FAQ Item 6 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          Can I download books offline?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>PDF files can be downloaded and read in any PDF reader. Audio files can be streamed or downloaded depending on your device. Check individual book pages for download options.</p>
-        </div>
-      </details>
-    </div>
-
-    <!-- Publishing Content Section -->
-    <h2 style="color: var(--neon-blue); font-size: 22px; margin-top: 35px; margin-bottom: 25px; padding-bottom: 12px; border-bottom: 2px solid rgba(102, 126, 234, 0.3);">
-      <i class="fas fa-pen-fancy" style="margin-right: 10px;"></i> Publishing Content
-    </h2>
-
-    <!-- FAQ Item 7 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          How do I upload a book or manga?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>As a Publisher, go to "Add New Content" in the navigation menu. Choose either Book or Manga, fill in the title, author, category, and description. Upload a PDF file and optionally an audio file (for books) or first chapter PDF (for manga). Add a cover image and click "Publish to Catalog" or "Create Manga Series".</p>
-        </div>
-      </details>
-    </div>
-
-    <!-- FAQ Item 8 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          What file formats are supported?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p><strong>Documents:</strong> PDF (up to 50MB) for books and manga chapters.<br><strong>Audio:</strong> MP3 (up to 100MB) for audiobook narration.<br><strong>Images:</strong> JPG or PNG (up to 5MB) for cover images.</p>
-        </div>
-      </details>
-    </div>
-
-    <!-- FAQ Item 9 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          How do I add chapters to my manga?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>Go to your profile or "My Uploads" page and find the manga series. Click "Upload Chapter" to add a new chapter PDF. Each chapter should be a complete PDF file with numbered pages.</p>
-        </div>
-      </details>
-    </div>
-
-    <!-- FAQ Item 10 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          Can I edit my uploaded content?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>Yes! Go to "My Uploads" to see all your books and manga. Click "Edit" on any title to update the description, category, cover image, or other details. You can also delete content if needed.</p>
-        </div>
-      </details>
-    </div>
-
-    <!-- Categories Section -->
-    <h2 style="color: var(--neon-blue); font-size: 22px; margin-top: 35px; margin-bottom: 25px; padding-bottom: 12px; border-bottom: 2px solid rgba(102, 126, 234, 0.3);">
-      <i class="fas fa-tag" style="margin-right: 10px;"></i> Content Categories
-    </h2>
-
-    <!-- FAQ Item 11 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          What categories are available?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p><strong>For Books:</strong> Action, Adventure, Children, Comedy, Drama, Fantasy, General, Historical, Horror, Mystery, Poetry, Romance, Science Fiction, Supernatural, Thriller, Young Adult.</p>
-          <p><strong>For Manga:</strong> Action, Adventure, Comedy, Drama, Fantasy, Historical, Horror, Medical, Music, Post-Apocalyptic, Psychological, Romance, School, Sci-Fi, Slice of Life, Sports, Supernatural.</p>
-          <p>Choose the category that best fits your content when uploading.</p>
-        </div>
-      </details>
-    </div>
-
-    <!-- FAQ Item 12 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          Can I change a book's category after uploading?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>Yes! Go to "My Uploads", click "Edit" on the book, and update the category field. Save your changes and the category will be updated immediately.</p>
-        </div>
-      </details>
-    </div>
-
-    <!-- Account & Profile Section -->
-    <h2 style="color: var(--neon-blue); font-size: 22px; margin-top: 35px; margin-bottom: 25px; padding-bottom: 12px; border-bottom: 2px solid rgba(102, 126, 234, 0.3);">
-      <i class="fas fa-user" style="margin-right: 10px;"></i> Account & Profile
-    </h2>
-
-    <!-- FAQ Item 13 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          How do I view my profile?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>Click your username in the top-right navigation bar to access your profile. Here you can see your reading history, currently reading books, and uploaded content (if you're a Publisher).</p>
-        </div>
-      </details>
-    </div>
-
-    <!-- FAQ Item 14 -->
-    <div style="margin-bottom: 25px; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          How do I reset my password?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>Password reset functionality is currently being developed. For now, contact the admin team through Help & Info for password assistance.</p>
-        </div>
-      </details>
-    </div>
-
-    <!-- FAQ Item 15 -->
-    <div style="margin-bottom: 0; border-left: 3px solid rgba(102, 126, 234, 0.3); padding-left: 20px;">
-      <details style="cursor: pointer;">
-        <summary style="font-weight: 600; color: var(--text-primary); font-size: 15px; padding: 12px 0; user-select: none;">
-          Can I delete my account?
-        </summary>
-        <div style="color: var(--text-muted); margin-top: 12px; line-height: 1.6; font-size: 14px;">
-          <p>Account deletion requests can be submitted through Help & Info. This action is permanent and will remove all your data from the system.</p>
-        </div>
-      </details>
-    </div>
-
-  </div>
-
-  <!-- Contact Section -->
-  <div style="text-align: center; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 12px; padding: 40px; margin-top: 40px;">
-    <h3 style="color: var(--text-primary); margin-bottom: 15px;">Didn't find your answer?</h3>
-    <p style="color: var(--text-muted); margin-bottom: 20px;">
-      If you have a question not covered here, feel free to reach out through the Help & Info menu for more personalized assistance.
-    </p>
-    <a href="{{ url_for('home') }}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: 600; transition: all 0.3s;">
-      Back to Home
-    </a>
-  </div>
 
 </div>
 
 <style>
-details {
-  transition: all 0.3s ease;
+/* FAQ Custom Styles */
+.faq-card {
+    background: rgba(30, 30, 40, 0.6) !important;
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
-details summary:hover {
-  color: var(--neon-blue) !important;
+.faq-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-details[open] summary {
-  color: var(--neon-blue) !important;
+.accordion-button {
+    color: var(--bs-light);
+    font-weight: 500;
+}
+
+.accordion-button:not(.collapsed) {
+    color: var(--bs-info);
+    background-color: rgba(13, 202, 240, 0.1);
+    box-shadow: none;
+}
+
+.accordion-button::after {
+    filter: invert(1);
+    opacity: 0.7;
+}
+
+.accordion-button:not(.collapsed)::after {
+    filter: invert(1) sepia(100%) saturate(1000%) hue-rotate(180deg);
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(255,255,255,0.1);
+}
+
+.btn-soft-primary { background: rgba(13, 110, 253, 0.15); color: #0d6efd; }
+.btn-soft-success { background: rgba(25, 135, 84, 0.15); color: #198754; }
+.btn-soft-warning { background: rgba(255, 193, 7, 0.15); color: #ffc107; }
+.btn-soft-danger { background: rgba(220, 53, 69, 0.15); color: #dc3545; }
+.btn-soft-info { background: rgba(13, 202, 240, 0.15); color: #0dcaf0; }
+
+.btn-outline-secondary.active {
+    background-color: var(--bs-light);
+    color: var(--bs-dark);
+    border-color: var(--bs-light);
+}
+
+/* Gradient Button */
+.btn-gradient-primary {
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    border: none;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 114, 255, 0.3);
+}
+.btn-gradient-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 114, 255, 0.4);
+    color: white;
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('faqSearch');
+    const tabs = document.querySelectorAll('#faqTabs button');
+    const items = document.querySelectorAll('.faq-item');
+
+    // Tab Filtering
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Update active state
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            const category = tab.dataset.category;
+            
+            items.forEach(item => {
+                if (category === 'all' || item.dataset.category === category) {
+                    item.style.display = 'block';
+                    // Reset search visibility if tab clicked
+                    item.classList.remove('d-none'); 
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Clear search when switching tabs
+            searchInput.value = '';
+        });
+    });
+
+    // Search Filtering
+    searchInput.addEventListener('input', function(e) {
+        const term = e.target.value.toLowerCase();
+        
+        // Reset tabs to 'All' when searching
+        if (term.length > 0) {
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-category="all"]').classList.add('active');
+        }
+
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            if (term === '' || text.includes(term)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+
 {% endblock %}

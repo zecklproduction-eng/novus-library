@@ -2,85 +2,384 @@
 {% block title %}User Management | NOVUS{% endblock %}
 
 {% block content %}
-<div class="container mt-4 mb-5">
-  <h2 class="mb-3" style="color: var(--text-primary);">User Management</h2>
-  <p class="text-muted mb-4">
-    Ban / unban or delete accounts. Banned users cannot log in.
-  </p>
+<style>
+    :root {
+        --neon-blue: #00d4ff;
+        --neon-purple: #9d50bb;
+        --neon-warning: #fbbf24;
+        --deep-dark: #0c0c0e;
+        --glass-bg: rgba(255, 255, 255, 0.03);
+        --glass-border: rgba(255, 255, 255, 0.08);
+    }
 
-  <div class="section-container">
-    <div class="table-responsive">
-      <table class="table table-dark table-striped align-middle mb-0">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Role</th>
-             <th>Avatar</th>
-            <th>Status</th>
-            <th style="width: 260px;">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for u in users %}
-          <tr>
-            <td>{{ u[0] }}</td>
-            <td>{{ u[1] }}</td>
-            <td>
-              <span class="badge bg-secondary text-uppercase">{{ u[2] }}</span>
-            </td>
-             <td>
-               {% if u[5] %}
-                 <img src="{{ u[5] }}" alt="{{ u[1] }}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-               {% else %}
-                 <span class="text-muted">—</span>
-               {% endif %}
-             </td>
-            <td>
-              {% if u[3] == 'banned' %}
-              <span class="badge bg-danger">Banned</span>
-              {% else %}
-              <span class="badge bg-success">Active</span>
-              {% endif %}
-            </td>
-            <td>
-              <div class="d-flex gap-2">
-                {% if u[3] != 'banned' %}
-                <form method="post" action="{{ url_for('user_ban', user_id=u[0]) }}">
-                  <button class="btn btn-sm btn-outline-warning"
-                          onclick="return confirm('Ban this user?')">
-                    Ban
-                  </button>
-                </form>
-                {% else %}
-                <form method="post" action="{{ url_for('user_unban', user_id=u[0]) }}">
-                  <button class="btn btn-sm btn-outline-success">
-                    Unban
-                  </button>
-                </form>
-                {% endif %}
+    /* Force Dark Theme */
+    body, html {
+        background-color: var(--deep-dark) !important;
+        color: #e4e4e7 !important;
+    }
 
-                {% if u[2] != 'admin' %}
-                <form method="post" action="{{ url_for('user_delete', user_id=u[0]) }}">
-                  <button class="btn btn-sm btn-outline-danger"
-                          onclick="return confirm('Delete this user permanently?')">
-                    Delete
-                  </button>
-                </form>
-                {% endif %}
-              </div>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="text-center text-muted py-3">
-              No users found.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    .admin-container {
+        padding: 40px 20px;
+        max-width: 1240px;
+        margin: 0 auto;
+        min-height: 100vh;
+        background-color: var(--deep-dark);
+        animation: fadeIn 0.8s ease-out;
+    }
+
+    /* Glass Header */
+    .admin-header {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 30px 40px;
+        margin-bottom: 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .admin-title-group {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .admin-icon-box {
+        width: 60px;
+        height: 60px;
+        background: rgba(0, 212, 255, 0.1);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--neon-blue);
+        font-size: 1.5rem;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    }
+
+    .admin-title {
+        font-size: 2rem;
+        font-weight: 800;
+        margin: 0;
+        background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Section Cards */
+    .premium-card {
+        background: rgba(20, 20, 25, 0.6) !important;
+        backdrop-filter: blur(15px);
+        border: 1px solid var(--glass-border) !important;
+        border-radius: 24px;
+        margin-bottom: 40px;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    .premium-card:hover {
+        border-color: rgba(0, 212, 255, 0.3) !important;
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-header-premium {
+        padding: 24px 30px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--glass-border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .card-title-text {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+    }
+
+    /* Table Styles */
+    .table-responsive {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .table-premium {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: transparent !important;
+        color: #e4e4e7 !important;
+    }
+
+    .table-premium th {
+        background: rgba(255, 255, 255, 0.03) !important;
+        color: #71717a !important;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 20px 30px;
+        border: none !important;
+    }
+
+    .table-premium td {
+        padding: 24px 30px;
+        color: #e4e4e7 !important;
+        border-top: 1px solid var(--glass-border) !important;
+        background: transparent !important;
+        vertical-align: middle;
+    }
+
+    .table-premium th:last-child,
+    .table-premium td:last-child {
+        min-width: 150px;
+        text-align: right;
+    }
+
+    .table-premium tr:hover td {
+        background: rgba(255, 255, 255, 0.02) !important;
+    }
+
+    /* User Row Decoration */
+    .user-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        object-fit: cover;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .user-initials {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #000;
+        font-weight: 800;
+        font-size: 1rem;
+        box-shadow: 0 5px 15px rgba(0, 212, 255, 0.2);
+    }
+
+    .badge-premium {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .badge-role { background: rgba(0, 212, 255, 0.1); color: var(--neon-blue); border: 1px solid rgba(0, 212, 255, 0.2); }
+    .badge-status-active { background: rgba(34, 197, 94, 0.1); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.2); }
+    .badge-status-banned { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .badge-plan { background: rgba(157, 80, 187, 0.1); color: #c084fc; border: 1px solid rgba(157, 80, 187, 0.2); }
+
+    /* Buttons */
+    .btn-action {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid var(--glass-border);
+        background: rgba(255, 255, 255, 0.03);
+        color: #a1a1aa;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-approve { color: #4ade80 !important; }
+    .btn-approve:hover { background: rgba(34, 197, 94, 0.2); border-color: #22c55e; }
+
+    .btn-reject { color: #f87171 !important; }
+    .btn-reject:hover { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; }
+
+    .btn-ban { color: #fbbf24 !important; }
+    .btn-ban:hover { background: rgba(251, 191, 36, 0.2); border-color: #f59e0b; }
+
+    .btn-delete { color: #f87171 !important; }
+    .btn-delete:hover { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+        animation: fadeIn 0.8s ease-out forwards;
+        opacity: 0;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+</style>
+
+<div class="admin-container">
+    
+    <!-- HEADER -->
+    <header class="admin-header animate-in">
+        <div class="admin-title-group">
+            <div class="admin-icon-box">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div>
+                <h2 class="admin-title">User Management</h2>
+                <p class="text-zinc-500 mb-0">Manage roles, permissions, and account status.</p>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_reports') }}" class="btn-action" style="width: auto; padding: 0 20px; border-radius: 12px;">
+                <i class="fas fa-flag me-2"></i>Reports
+            </a>
+        </div>
+    </header>
+
+    <!-- PENDING REQUESTS -->
+    {% if requests %}
+    <div class="premium-card animate-in delay-1">
+        <div class="card-header-premium">
+            <i class="fas fa-id-card text-warning"></i>
+            <h5 class="card-title-text text-warning">Pending Publisher Requests</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-premium align-middle">
+                <thead>
+                    <tr>
+                        <th class="ps-4">User</th>
+                        <th>Plan</th>
+                        <th>Requested Role</th>
+                        <th>Date</th>
+                        <th class="text-end pe-4" style="min-width: 140px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in requests %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold">{{ r[1] }}</div>
+                        </td>
+                        <td><span class="badge-premium badge-plan">{{ r[4] }}</span></td>
+                        <td><span class="badge-premium badge-role text-white">{{ r[2] }}</span></td>
+                        <td><span class="text-muted small">{{ r[3] }}</span></td>
+                        <td class="pe-4">
+                            <div class="d-flex justify-content-end gap-2">
+                                <form method="POST" action="{{ url_for('approve_role_request') }}">
+                                    <input type="hidden" name="request_id" value="{{ r[0] }}">
+                                    <button type="submit" name="action" value="approve" class="btn-action btn-approve" title="Approve">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('approve_role_request') }}">
+                                    <input type="hidden" name="request_id" value="{{ r[0] }}">
+                                    <button type="submit" name="action" value="reject" class="btn-action btn-reject" title="Reject">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-  </div>
+    {% endif %}
+
+    <!-- USER LIST -->
+    <div class="premium-card animate-in delay-2">
+        <div class="card-header-premium">
+            <i class="fas fa-users"></i>
+            <h5 class="card-title-text">All Users</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-premium align-middle">
+                <thead>
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4" style="min-width: 150px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td class="ps-4 text-muted small">#{{ u.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                {% if u.avatar_url %}
+                                    <img src="{{ u.avatar_url }}" class="user-avatar" alt="{{ u.username }}">
+                                {% else %}
+                                    <div class="user-initials">{{ u.username[0] if u.username else '?' }}</div>
+                                {% endif %}
+                                <div class="fw-bold">{{ u.username }}</div>
+                            </div>
+                        </td>
+                        <td><span class="badge-premium badge-role">{{ u.role }}</span></td>
+                        <td>
+                            {% if u.status == 'banned' %}
+                                <span class="badge-premium badge-status-banned">Banned</span>
+                            {% else %}
+                                <span class="badge-premium badge-status-active">Active</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-4">
+                            <div class="d-flex justify-content-end gap-2">
+                                {% if u.status != 'banned' %}
+                                <form method="post" action="{{ url_for('user_ban', user_id=u.id) }}">
+                                    <button class="btn-action btn-ban" title="Ban User" onclick="return confirm('Ban this user?')">
+                                        <i class="fas fa-user-slash"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="{{ url_for('user_unban', user_id=u.id) }}">
+                                    <button class="btn-action btn-approve" title="Unban User">
+                                        <i class="fas fa-user-check"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                {% if u.role != 'admin' %}
+                                <form method="post" action="{{ url_for('user_delete', user_id=u.id) }}">
+                                    <button class="btn-action btn-delete" title="Delete User" onclick="return confirm('Delete this user permanently?')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-zinc-500">
+                            No users found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}

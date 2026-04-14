@@ -1,0 +1,29 @@
+  <!-- Profile -->
+  <a href="{{ url_for('profile') }}" class="nav-item">
+    <i class="fas fa-user"></i>
+    <span class="tooltip-text">My Profile</span>
+  </a>
+
+  <!-- My Uploads (admin + publisher only) -->
+  {% if session.get('role') in ['admin', 'publisher'] %}
+  <a href="{{ url_for('my_uploads') }}" class="nav-item">
+    <i class="fas fa-folder-open"></i>
+    <span class="tooltip-text">My Uploads</span>
+  </a>
+  {% endif %}
+
+  <!-- Customization (all users) -->
+  <a href="{{ url_for('customization') }}" class="nav-item nav-customization">
+    <i class="fas fa-wand-magic-sparkles"></i>
+    <span class="tooltip-text">Customization</span>
+  </a>
+
+  <!-- Logout -->
+  {% if session.get('user_id') %}
+  <a href="#" onclick="handleLogout(event)" class="nav-item nav-item-logout">
+    <i class="fas fa-sign-out-alt"></i>
+    <span class="tooltip-text">Logout</span>
+  </a>
+  {% endif %}
+
+</div>

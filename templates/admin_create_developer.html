@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Create Developer Account | NOVUS Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5" style="max-width: 600px;">
+    <h2 class="text-white mb-4">
+        <i class="fas fa-hammer text-warning me-2"></i>Create Developer Account
+    </h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="glass-panel p-4">
+        <div class="alert alert-warning mb-4">
+            <strong><i class="fas fa-exclamation-triangle"></i> Warning</strong>
+            <p class="mb-0 small mt-1">Developers have elevated rights, including access to community moderation, shop customization, revenue views, user management (excluding banning other admins), and tool management. Only create developer accounts for trusted team members.</p>
+        </div>
+
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label text-white-50">Username</label>
+                <input type="text" name="username" class="form-control bg-dark text-white border-secondary" required placeholder="e.g. dev_johndoe">
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label text-white-50">Email Address</label>
+                <input type="email" name="email" class="form-control bg-dark text-white border-secondary" required placeholder="name@example.com">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label text-white-50">Password</label>
+                <input type="password" name="password" class="form-control bg-dark text-white border-secondary" required placeholder="Strong password">
+            </div>
+
+            <button type="submit" class="btn btn-warning w-100 fw-bold">
+                <i class="fas fa-user-plus me-2"></i>Create Developer
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

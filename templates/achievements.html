@@ -1,0 +1,1763 @@
+{% extends "base.html" %}
+
+{% block title %}Achievements | NOVUS{% endblock %}
+
+{% block extra_head %}
+<style>
+    :root {
+        --achievement-locked-opacity: 0.4;
+        --achievement-locked-grayscale: 100%;
+    }
+
+    .achievements-container {
+        padding: 40px 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .achievements-hero {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 40px;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .achievements-hero h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 10px;
+        background: linear-gradient(90deg, #00d4ff, #0090ff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .progress-overview {
+        max-width: 600px;
+        margin: 20px auto 0;
+    }
+
+    .progress-stats {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+        color: #ccc;
+    }
+
+    .main-progress-bar {
+        height: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .main-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00d4ff, #0090ff);
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+        transition: width 1s ease-out;
+    }
+
+    .sync-btn-container {
+        margin-top: 25px;
+    }
+
+    .btn-sync {
+        background: rgba(0, 212, 255, 0.1);
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        color: #00d4ff;
+        padding: 10px 24px;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-sync:hover {
+        background: rgba(0, 212, 255, 0.2);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .btn-sync i {
+        font-size: 1rem;
+    }
+
+    .btn-sync.loading i {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .achievements-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 25px;
+    }
+
+    .achievement-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 25px;
+        text-align: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .achievement-card:hover {
+        transform: translateY(-5px);
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .achievement-icon-wrapper {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        position: relative;
+        transition: all 0.5s ease;
+    }
+
+    .achievement-card.locked .achievement-icon-wrapper {
+        filter: grayscale(100%);
+        opacity: 0.4;
+        background: rgba(0, 0, 0, 0.3) !important;
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+    }
+
+    .achievement-card.unlocked .achievement-icon-wrapper {
+        box-shadow: 0 0 20px var(--badge-glow);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .achievement-card.unlocked .achievement-icon-wrapper::after {
+        content: '';
+        position: absolute;
+        inset: -5px;
+        border-radius: 50%;
+        background: var(--badge-glow);
+        opacity: 0.2;
+        filter: blur(10px);
+        z-index: -1;
+    }
+
+    .achievement-info h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #fff;
+    }
+
+    .achievement-info p {
+        font-size: 0.9rem;
+        color: #aaa;
+        line-height: 1.5;
+        margin-bottom: 0;
+    }
+
+    .achievement-status {
+        margin-top: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .level-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .unlocked .level-badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .status-unlocked {
+        color: #34d399;
+    }
+
+    .status-locked {
+        color: #6b7280;
+    }
+
+    .earned-date {
+        display: block;
+        font-size: 0.75rem;
+        color: #666;
+        margin-top: 4px;
+        font-weight: 400;
+    }
+
+    /* Badge Color Variations */
+    .badge-cyan {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        --badge-glow: rgba(6, 182, 212, 0.4);
+    }
+
+    .badge-purple {
+        background: linear-gradient(135deg, #a855f7, #9333ea);
+        --badge-glow: rgba(168, 85, 247, 0.4);
+    }
+
+    .badge-yellow {
+        background: linear-gradient(135deg, #fbbf24, #d97706);
+        --badge-glow: rgba(251, 191, 36, 0.5);
+    }
+
+    .badge-orange {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+        --badge-glow: rgba(249, 115, 22, 0.6);
+    }
+
+    /* Level 10 Legendary Animation */
+    .achievement-card.level-10 .achievement-icon-wrapper {
+        position: relative;
+        padding: 4px;
+        /* Space for border */
+        background: none !important;
+        box-shadow: none !important;
+    }
+
+    .achievement-card.level-10 .icon-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f59e0b, #ea580c);
+        position: relative;
+        z-index: 2;
+        box-shadow: 0 0 30px rgba(255, 140, 0, 0.6);
+        overflow: hidden;
+    }
+
+    .achievement-card.level-10 .icon-inner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -150%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        transform: skewX(-20deg);
+        animation: shimmer 3s infinite;
+    }
+
+    /* Rotating Border */
+    .achievement-card.level-10 .achievement-icon-wrapper::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 50%;
+        padding: 3px;
+        background: conic-gradient(from 0deg, #ff8c00, #ffd700, #ff4500, #ff8c00);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+        -webkit-mask-composite: destination-out;
+        animation: rotate 2s linear infinite;
+        z-index: 1;
+    }
+
+    /* Pulsing Halo */
+    .achievement-card.level-10 .legendary-halo {
+        position: absolute;
+        inset: -15px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 140, 0, 0.3) 0%, transparent 70%);
+        animation: pulse-aura 2s ease-in-out infinite;
+        z-index: 0;
+    }
+
+    @keyframes rotate {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(180deg);
+        }
+    }
+
+    @keyframes shimmer {
+        100% {
+            left: 150%;
+        }
+    }
+
+    @keyframes pulse-aura {
+
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 0.3;
+        }
+
+        50% {
+            transform: scale(1.2);
+            opacity: 0.6;
+        }
+    }
+
+    /* Tier Styles - Getting cooler each level */
+    .achievement-card.level-1 {
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .achievement-card.level-2 {
+        border-color: rgba(168, 85, 247, 0.2);
+        box-shadow: 0 0 15px rgba(168, 85, 247, 0.1);
+    }
+
+    .achievement-card.level-3 {
+        border-color: rgba(168, 85, 247, 0.4);
+        box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+    }
+
+    .achievement-card.level-4 {
+        border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .achievement-card.level-5 {
+        border-color: rgba(59, 130, 246, 0.5);
+        box-shadow: 0 0 25px rgba(59, 130, 246, 0.2);
+    }
+
+    .achievement-card.level-6 {
+        border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    .achievement-card.level-7 {
+        border-color: rgba(234, 179, 8, 0.3);
+    }
+
+    .achievement-card.level-8 {
+        border-color: rgba(234, 179, 8, 0.5);
+        box-shadow: 0 0 30px rgba(234, 179, 8, 0.2);
+    }
+
+    .achievement-card.level-9 {
+        border-color: rgba(249, 115, 22, 0.5);
+        box-shadow: 0 0 35px rgba(249, 115, 22, 0.3);
+    }
+
+    .achievement-card.level-10 {
+        border-color: #f97316;
+        box-shadow: 0 0 45px rgba(249, 115, 22, 0.5);
+    }
+
+    .achievement-card.level-10 .achievement-icon-wrapper {
+        overflow: visible;
+        /* Ensure rotating border is not clipped */
+    }
+
+    /* --- Rarity Visuals --- */
+    .rarity-tag {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        z-index: 5;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+        width: fit-content;
+        max-width: 80%;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    /* All Tag Shimmer FX */
+    .rarity-tag::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        transform: skewX(-20deg);
+        animation: tag-shimmer 3s infinite;
+    }
+
+    /* God: Prismatic Nebula */
+    .rarity-god .rarity-tag {
+        background: linear-gradient(90deg, #00d4ff, #ff00ff, #00d4ff);
+        background-size: 200% auto;
+        color: #fff;
+        animation: gradient-flow 3s linear infinite;
+    }
+
+    .rarity-god.unlocked::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at center, rgba(255, 0, 255, 0.1) 0%, transparent 70%);
+        animation: nebula-aura 4s ease-in-out infinite;
+        z-index: -1;
+    }
+
+    .rarity-god.unlocked .achievement-icon-wrapper {
+        animation: god-float 3s ease-in-out infinite;
+    }
+
+    /* Epic: Amethyst Pulse */
+    .rarity-epic .rarity-tag {
+        background: linear-gradient(135deg, #a855f7, #ec4899);
+        color: #fff;
+        box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+    }
+
+    .rarity-epic.unlocked .achievement-icon-wrapper {
+        animation: epic-pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes epic-pulse {
+        0%, 100% {
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4), 0 0 25px rgba(236, 72, 153, 0.2);
+        }
+        50% {
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.7), 0 0 45px rgba(236, 72, 153, 0.5);
+            transform: scale(1.02);
+        }
+    }
+
+    /* Legend: Solar Gold */
+    .rarity-legend .rarity-tag {
+        background: linear-gradient(135deg, #fbbf24, #d97706);
+        color: #000;
+    }
+
+    /* Hardcore: Lava Pulse */
+    .rarity-hardcore .rarity-tag {
+        background: linear-gradient(135deg, #ef4444, #991b1b);
+        color: #fff;
+    }
+
+    .rarity-hardcore.unlocked .achievement-icon-wrapper {
+        animation: lava-pulse 2.5s ease-in-out infinite;
+    }
+
+    /* Intermediate: Electric Blue */
+    .rarity-intermediate .rarity-tag {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: #fff;
+    }
+
+    /* Limited: Angelic Divine */
+    .rarity-limited .rarity-tag {
+        background: linear-gradient(135deg, #ffffff, #fbbf24, #ffffff);
+        background-size: 200% auto;
+        color: #000;
+        font-weight: 950;
+        animation: angelic-glow 3s linear infinite;
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 5px #fbbf24;
+        border: 1px solid #fbbf24;
+    }
+
+    .rarity-limited.unlocked .achievement-icon-wrapper {
+        animation: angelic-float 4s ease-in-out infinite;
+    }
+
+    .rarity-limited.unlocked .achievement-icon-wrapper::before {
+        content: '';
+        position: absolute;
+        inset: -10px;
+        border-radius: 50%;
+        border: 2px solid rgba(251, 191, 36, 0.5);
+        border-top-color: #fff;
+        animation: halo-rotate 4s linear infinite;
+        z-index: 1;
+    }
+
+    /* Angelic Particles */
+    .rarity-limited.unlocked::after {
+        content: '🕊️';
+        position: absolute;
+        font-size: 1rem;
+        top: 20%;
+        left: 50%;
+        opacity: 0;
+        animation: feather-float 5s linear infinite;
+        pointer-events: none;
+    }
+
+    /* Keyframes */
+    @keyframes tag-shimmer {
+        0% {
+            left: -100%;
+        }
+
+        20%,
+        100% {
+            left: 150%;
+        }
+    }
+
+    @keyframes gradient-flow {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        100% {
+            background-position: 200% 50%;
+        }
+    }
+
+    @keyframes nebula-aura {
+
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 0.1;
+        }
+
+        50% {
+            transform: scale(1.3);
+            opacity: 0.3;
+        }
+    }
+
+    @keyframes god-float {
+
+        0%,
+        100% {
+            transform: translateY(0) scale(1.05);
+        }
+
+        50% {
+            transform: translateY(-8px) scale(1.1);
+        }
+    }
+
+    @keyframes lava-pulse {
+
+        0%,
+        100% {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+
+        50% {
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.7);
+        }
+    }
+
+    @keyframes angelic-glow {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        100% {
+            background-position: 200% 50%;
+        }
+    }
+
+    @keyframes angelic-float {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-12px);
+        }
+    }
+
+    @keyframes halo-rotate {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes feather-float {
+        0% {
+            transform: translate(-50%, 0) scale(0);
+            opacity: 0;
+        }
+
+        20% {
+            opacity: 0.8;
+        }
+
+        100% {
+            transform: translate(50px, -100px) scale(1.2);
+            opacity: 0;
+        }
+    }
+
+    @keyframes shimmer {
+        100% {
+            left: 150%;
+        }
+    }
+
+    /* Custom Animation Overrides (Max Level) */
+    .anim-rotating .legendary-halo {
+        animation: rotate 4s linear infinite !important;
+    }
+
+    .anim-pulsing .achievement-icon-wrapper {
+        animation: pulse 2s ease-in-out infinite !important;
+    }
+
+    .anim-floating .achievement-icon-wrapper {
+        animation: floating 3s ease-in-out infinite !important;
+    }
+
+    .anim-glitch.unlocked .achievement-icon-wrapper {
+        animation: glitch 0.5s infinite;
+    }
+
+    /* Void - Black Hole Effect */
+    .anim-void .achievement-icon-wrapper {
+        animation: void-gravitate 4s ease-in-out infinite !important;
+        background: radial-gradient(circle, #222 0%, #000 80%) !important;
+        border-color: #333 !important;
+    }
+
+    @keyframes void-gravitate {
+
+        0%,
+        100% {
+            transform: scale(1) rotate(0deg);
+            filter: brightness(1) contrast(1.2);
+        }
+
+        50% {
+            transform: scale(0.85) rotate(180deg);
+            filter: brightness(0.4) contrast(2);
+            box-shadow: 0 0 40px #000 inset;
+        }
+    }
+
+    /* Rainbow - Chromatic Flow */
+    .anim-rainbow .achievement-icon-wrapper {
+        animation: rainbow-flow 4s linear infinite !important;
+    }
+
+    @keyframes rainbow-flow {
+        0% {
+            filter: hue-rotate(0deg) drop-shadow(0 0 5px red);
+        }
+
+        25% {
+            filter: hue-rotate(90deg) drop-shadow(0 0 5px yellow);
+        }
+
+        50% {
+            filter: hue-rotate(180deg) drop-shadow(0 0 5px lime);
+        }
+
+        75% {
+            filter: hue-rotate(270deg) drop-shadow(0 0 5px blue);
+        }
+
+        100% {
+            filter: hue-rotate(360deg) drop-shadow(0 0 5px red);
+        }
+    }
+
+    /* Storm - Lightning Static */
+    .anim-storm .achievement-icon-wrapper {
+        animation: storm-flash 3s infinite !important;
+        border-color: #00d2ff !important;
+    }
+
+    @keyframes storm-flash {
+
+        0%,
+        85%,
+        90%,
+        95%,
+        100% {
+            filter: brightness(1) drop-shadow(0 0 5px #00d2ff);
+        }
+
+        87%,
+        92% {
+            filter: brightness(4) contrast(1.5) drop-shadow(0 0 20px #fff);
+        }
+    }
+
+    /* Zen - Breathing Pulse */
+    .anim-zen .achievement-icon-wrapper {
+        animation: zen-breathe 6s ease-in-out infinite !important;
+        border-color: #fff !important;
+    }
+
+    @keyframes zen-breathe {
+
+        0%,
+        100% {
+            transform: scale(1);
+            filter: blur(0px) opacity(0.8);
+        }
+
+        50% {
+            transform: scale(1.08);
+            filter: blur(1px) opacity(1);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
+        }
+    }
+
+    @keyframes glitch {
+        0% {
+            transform: translate(0);
+            text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff;
+        }
+
+        25% {
+            transform: translate(-2px, 2px);
+        }
+
+        50% {
+            transform: translate(2px, -2px);
+            text-shadow: 2px 0 #ff00ff, -2px 0 #00ffff;
+        }
+
+        75% {
+            transform: translate(-1px, -1px);
+        }
+
+        100% {
+            transform: translate(0);
+        }
+    }
+
+    .achievement-icon-wrapper {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        position: relative;
+        transition: all 0.5s ease;
+        overflow: hidden; /* Added to clip video/image */
+    }
+
+    /* Support for Custom Image/Video Icons */
+    .achievement-icon-img, .achievement-icon-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+
+    /* Sakura - Cherry Blossom Drift */
+    .anim-sakura .achievement-icon-wrapper {
+        animation: sakura-drift 5s ease-in-out infinite !important;
+        border-color: #f9a8d4 !important;
+    }
+
+    @keyframes sakura-drift {
+
+        0%,
+        100% {
+            transform: translateY(0) rotate(0deg);
+            filter: drop-shadow(0 0 8px rgba(249, 168, 212, 0.4));
+        }
+
+        25% {
+            transform: translateY(-5px) rotate(3deg);
+        }
+
+        50% {
+            transform: translateY(0) rotate(0deg);
+            filter: drop-shadow(0 0 15px rgba(249, 168, 212, 0.7));
+        }
+
+        75% {
+            transform: translateY(-3px) rotate(-2deg);
+        }
+    }
+
+    /* Cyber - Neon Glitch */
+    .anim-cyber .achievement-icon-wrapper {
+        animation: cyber-glitch 2s steps(1) infinite !important;
+        border-color: #00ff88 !important;
+        box-shadow: 0 0 10px #00ff88, inset 0 0 10px rgba(0, 255, 136, 0.1) !important;
+    }
+
+    @keyframes cyber-glitch {
+
+        0%,
+        100% {
+            filter: hue-rotate(0deg) drop-shadow(0 0 5px #00ff88);
+            transform: translate(0);
+        }
+
+        10% {
+            transform: translate(-2px, 1px);
+            filter: hue-rotate(90deg) drop-shadow(0 0 10px #ff00ff);
+        }
+
+        20% {
+            transform: translate(1px, -1px);
+            filter: hue-rotate(0deg) drop-shadow(0 0 5px #00ff88);
+        }
+
+        50% {
+            filter: hue-rotate(180deg) brightness(1.5) drop-shadow(0 0 15px #00ffff);
+        }
+
+        51% {
+            filter: hue-rotate(0deg) brightness(1) drop-shadow(0 0 5px #00ff88);
+        }
+
+        80% {
+            transform: translate(0);
+        }
+
+        85% {
+            transform: translate(2px, 0);
+            filter: brightness(2);
+        }
+
+        86% {
+            transform: translate(0);
+            filter: brightness(1);
+        }
+    }
+
+    /* Inferno - Fire Pulse */
+    .anim-inferno .achievement-icon-wrapper {
+        animation: inferno-blaze 3s ease-in-out infinite !important;
+        border-color: #ff4500 !important;
+    }
+
+    @keyframes inferno-blaze {
+
+        0%,
+        100% {
+            box-shadow: 0 0 10px #ff4500, 0 0 20px rgba(255, 69, 0, 0.3);
+            filter: brightness(1);
+        }
+
+        25% {
+            box-shadow: 0 0 20px #ff6a00, 0 0 40px rgba(255, 106, 0, 0.5), 0 -10px 30px rgba(255, 200, 0, 0.3);
+            filter: brightness(1.1);
+        }
+
+        50% {
+            box-shadow: 0 0 30px #ff4500, 0 0 60px rgba(255, 69, 0, 0.6), 0 -15px 40px rgba(255, 200, 0, 0.4);
+            filter: brightness(1.3);
+            transform: scale(1.05);
+        }
+
+        75% {
+            box-shadow: 0 0 15px #ff6a00, 0 0 30px rgba(255, 106, 0, 0.4);
+            filter: brightness(1.05);
+        }
+    }
+
+    /* Frost - Icy Shimmer */
+    .anim-frost .achievement-icon-wrapper {
+        animation: frost-shimmer 4s ease-in-out infinite !important;
+        border-color: #a5f3fc !important;
+    }
+
+    @keyframes frost-shimmer {
+
+        0%,
+        100% {
+            filter: brightness(1) drop-shadow(0 0 5px #a5f3fc);
+            box-shadow: 0 0 10px rgba(165, 243, 252, 0.2);
+        }
+
+        33% {
+            filter: brightness(1.2) drop-shadow(0 0 12px #67e8f9);
+            box-shadow: 0 0 20px rgba(103, 232, 249, 0.4);
+            transform: scale(1.02);
+        }
+
+        66% {
+            filter: brightness(0.95) saturate(1.3) drop-shadow(0 0 8px #22d3ee);
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+        }
+    }
+
+    /* Shadow - Dark Aura */
+    .anim-shadow .achievement-icon-wrapper {
+        animation: shadow-pulse 4s ease-in-out infinite !important;
+        border-color: #6b21a8 !important;
+    }
+
+    @keyframes shadow-pulse {
+
+        0%,
+        100% {
+            box-shadow: 0 0 15px rgba(107, 33, 168, 0.3), 0 0 30px rgba(0, 0, 0, 0.5);
+            filter: brightness(0.9);
+        }
+
+        50% {
+            box-shadow: 0 0 30px rgba(107, 33, 168, 0.6), 0 0 60px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(107, 33, 168, 0.2);
+            filter: brightness(0.7) contrast(1.3);
+            transform: scale(0.97);
+        }
+    }
+
+    /* Search Bar Styles */
+    .trophy-search-wrapper {
+        max-width: 400px;
+        margin: 20px auto 0;
+        position: relative;
+    }
+
+    .trophy-search-wrapper input {
+        width: 100%;
+        padding: 12px 15px 12px 42px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+    .trophy-search-wrapper input:focus {
+        outline: none;
+        border-color: #06b6d4;
+        box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+    }
+
+    .trophy-search-wrapper i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #666;
+    }
+
+    .trophy-filter-bar {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+
+    .trophy-filter-btn {
+        padding: 5px 14px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #aaa;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .trophy-filter-btn:hover,
+    .trophy-filter-btn.active {
+        background: rgba(6, 182, 212, 0.15);
+        border-color: #06b6d4;
+        color: #06b6d4;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="achievements-container">
+    <div class="achievements-hero">
+        <h1>Trophy Room</h1>
+        <p>Unlock achievements by engaging with the library beyond just reading.</p>
+
+        <div class="progress-overview">
+            <div class="progress-stats">
+                <span>{{ unlocked_count }} of {{ total_count }} Unlocked</span>
+                <span>{{ progress_percent }}% Complete</span>
+            </div>
+            <div class="main-progress-bar">
+                <div class="main-progress-fill" style="width: {{ progress_percent }}%;"></div>
+            </div>
+
+            <div class="sync-btn-container">
+                <button class="btn-sync" onclick="syncAchievements(this)">
+                    <i class="fas fa-sync-alt"></i>
+                    Sync My Progress
+                </button>
+            </div>
+
+            <!-- Search & Filter -->
+            <div class="trophy-search-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" id="trophy-search" placeholder="Search achievements..." oninput="filterTrophies()">
+            </div>
+            <div class="trophy-filter-bar">
+                <button class="trophy-filter-btn active" onclick="setFilter('all', this)">All</button>
+                <button class="trophy-filter-btn" onclick="setFilter('unlocked', this)">🏆 Unlocked</button>
+                <button class="trophy-filter-btn" onclick="setFilter('locked', this)">🔒 Locked</button>
+                <button class="trophy-filter-btn" onclick="setFilter('legend', this)">⭐ Legend</button>
+                <button class="trophy-filter-btn" onclick="setFilter('god', this)">⚡ God</button>
+                <button class="trophy-filter-btn" onclick="setFilter('limited', this)">💎 Limited</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="achievements-grid">
+        {% for ach in achievements %}
+        <div class="achievement-card {% if ach.earned %}unlocked{% else %}locked{% endif %} {% if ach.is_limited %}limited{% endif %} level-{{ ach.level }} rarity-{{ ach.rarity }} anim-{{ ach.animation_type }}"
+            data-name="{{ ach.name|lower }}" data-rarity="{{ ach.rarity }}"
+            data-status="{% if ach.earned %}unlocked{% else %}locked{% endif %}" {% if ach.group_count> 1
+            %}onclick="showGroupPopup('{{ ach.group_key }}')" style="cursor:pointer;"{% endif %}>
+            {% if ach.is_limited %}
+            <span class="limited-tag">Limited</span>
+            {% endif %}
+            <div class="level-badge">Level {{ ach.level }}</div>
+            {% if ach.group_count > 1 %}
+            <div
+                style="position:absolute; top:8px; right:8px; background:rgba(6,182,212,0.8); color:#fff; font-size:0.6rem; font-weight:700; padding:2px 7px; border-radius:10px; z-index:5; backdrop-filter:blur(4px);">
+                {% if ach.earned_count is defined and ach.earned_count > 0 %}{{ ach.earned_count }}/{% endif %}{{
+                ach.group_count }} <i class="fas fa-layer-group" style="font-size:0.5rem;"></i>
+            </div>
+            {% endif %}
+            {% if ach.rarity and ach.rarity != 'none' %}
+            <div class="rarity-tag rarity-tag-{{ ach.rarity }}">{{ ach.rarity }}</div>
+            {% endif %}
+
+            <div class="achievement-icon-wrapper badge-{{ ach.badge_color }}">
+                {% if ach.level == 10 %}
+                <div class="legendary-halo"></div>
+                <div class="icon-inner">
+                    {% if ach.icon_type == 'image' %}
+                        {% if ach.icon.lower().endswith('.mp4') or ach.icon.lower().endswith('.webm') %}
+                        <video src="{{ ach.icon }}" class="achievement-icon-video" autoplay loop muted playsinline></video>
+                        {% else %}
+                        <img src="{{ ach.icon }}" class="achievement-icon-img" alt="{{ ach.name }}">
+                        {% endif %}
+                    {% else %}
+                    <i class="fas {{ ach.icon }}"></i>
+                    {% endif %}
+                </div>
+                {% else %}
+                    {% if ach.icon_type == 'image' %}
+                        {% if ach.icon.lower().endswith('.mp4') or ach.icon.lower().endswith('.webm') %}
+                        <video src="{{ ach.icon }}" class="achievement-icon-video" autoplay loop muted playsinline></video>
+                        {% else %}
+                        <img src="{{ ach.icon }}" class="achievement-icon-img" alt="{{ ach.name }}">
+                        {% endif %}
+                    {% else %}
+                    <i class="fas {{ ach.icon }}"></i>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div class="achievement-info">
+                <h3>{{ ach.name }}</h3>
+                <p>{{ ach.description }}</p>
+
+                <div class="achievement-status">
+                    {% if ach.earned %}
+                    <span class="status-unlocked">
+                        {% if ach.level == 10 %}
+                        <i class="fas fa-crown me-1"></i> Legendary
+                        {% elif ach.rarity == 'god' %}
+                        <i class="fas fa-bolt-lightning me-1"></i> Godlike
+                        {% else %}
+                        <i class="fas fa-check-circle me-1"></i> Unlocked
+                        {% endif %}
+                    </span>
+                    <span class="earned-date">{{ ach.earned_at|time_ago }}</span>
+                    {% else %}
+                    <span class="status-locked"><i class="fas fa-lock me-1"></i> Locked</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Group Popup Modal -->
+<div id="group-popup"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:9999; backdrop-filter:blur(8px);"
+    onclick="if(event.target===this)closeGroupPopup()">
+    <div
+        style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#12121e; border:1px solid rgba(6,182,212,0.2); border-radius:16px; padding:30px; width:520px; max-width:92vw; max-height:80vh; overflow-y:auto; box-shadow:0 0 60px rgba(6,182,212,0.1);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h5 id="group-popup-title" style="margin:0; color:#06b6d4;"><i
+                    class="fas fa-layer-group me-2"></i>Achievement Levels</h5>
+            <button onclick="closeGroupPopup()"
+                style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;"><i
+                    class="fas fa-times"></i></button>
+        </div>
+        <div id="group-popup-content"></div>
+    </div>
+</div>
+
+<!-- Achievement Detail Card Popup -->
+<div id="detail-popup"
+    style="display:none; position:fixed; inset:0; z-index:10001; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);"
+    onclick="if(event.target===this)closeDetailPopup()">
+    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:360px; max-width:92vw;">
+        <div id="detail-popup-card"
+            style="background:#12121e; border-radius:18px; overflow:hidden; box-shadow:0 0 60px rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2);">
+        </div>
+        <button onclick="closeDetailPopup()"
+            style="position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.5); border:none; color:#aaa; font-size:1rem; cursor:pointer; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; z-index:2;"><i
+                class="fas fa-times"></i></button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    /* Detail Card Styles */
+    .detail-card-icon {
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid transparent;
+        margin: 0 auto;
+        position: relative;
+    }
+
+    .detail-rarity-tag {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: 0.6rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .detail-rarity-tag::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        transform: skewX(-20deg);
+        animation: dtl-shimmer 3s infinite;
+    }
+
+    .detail-rarity-tag.god {
+        background: linear-gradient(90deg, #00d4ff, #ff00ff, #00d4ff);
+        background-size: 200% auto;
+        color: #fff;
+        animation: dtl-gradient 3s linear infinite;
+    }
+
+    .detail-rarity-tag.legend {
+        background: linear-gradient(135deg, #fbbf24, #d97706);
+        color: #000;
+    }
+
+    .detail-rarity-tag.hardcore {
+        background: linear-gradient(135deg, #ef4444, #991b1b);
+        color: #fff;
+    }
+
+    .detail-rarity-tag.intermediate {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: #fff;
+    }
+
+    .detail-rarity-tag.limited {
+        background: linear-gradient(135deg, #fff, #fbbf24, #fff);
+        background-size: 200% auto;
+        color: #000;
+        animation: dtl-angelic 3s linear infinite;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    /* Detail icon animations */
+    .dtl-anim-sakura .detail-card-icon {
+        animation: dtl-sakura 5s ease-in-out infinite;
+        border-color: #f9a8d4;
+    }
+
+    .dtl-anim-cyber .detail-card-icon {
+        animation: dtl-cyber 2s steps(1) infinite;
+        border-color: #00ff88;
+        box-shadow: 0 0 12px #00ff88;
+    }
+
+    .dtl-anim-inferno .detail-card-icon {
+        animation: dtl-inferno 3s ease-in-out infinite;
+        border-color: #ff4500;
+    }
+
+    .dtl-anim-frost .detail-card-icon {
+        animation: dtl-frost 4s ease-in-out infinite;
+        border-color: #a5f3fc;
+    }
+
+    .dtl-anim-shadow .detail-card-icon {
+        animation: dtl-shadow 4s ease-in-out infinite;
+        border-color: #6b21a8;
+    }
+
+    .dtl-anim-void .detail-card-icon {
+        animation: dtl-void 4s ease-in-out infinite;
+        background: radial-gradient(circle, #222, #000);
+        border-color: #333;
+    }
+
+    .dtl-anim-rainbow .detail-card-icon {
+        animation: dtl-rainbow 4s linear infinite;
+    }
+
+    .dtl-anim-storm .detail-card-icon {
+        animation: dtl-storm 3s infinite;
+        border-color: #00d2ff;
+    }
+
+    .dtl-anim-zen .detail-card-icon {
+        animation: dtl-zen 6s ease-in-out infinite;
+        border-color: #fff;
+    }
+
+    .dtl-anim-glitch .detail-card-icon {
+        animation: dtl-glitch 0.5s infinite;
+    }
+
+    .dtl-anim-pulsing .detail-card-icon {
+        animation: dtl-pulse 2s ease-in-out infinite;
+    }
+
+    .dtl-anim-floating .detail-card-icon {
+        animation: dtl-float 3s ease-in-out infinite;
+    }
+
+    .dtl-anim-rotating .detail-card-icon {
+        animation: dtl-rotate 4s linear infinite;
+    }
+
+    /* Detail rarity border glow */
+    .dtl-rarity-epic .detail-card-icon {
+        border-color: rgba(168, 85, 247, 0.7);
+        box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
+    }
+
+    .dtl-rarity-god .detail-card-icon {
+        border-color: rgba(168, 85, 247, 0.6);
+        box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+    }
+
+    .dtl-rarity-legend .detail-card-icon {
+        border-color: rgba(251, 191, 36, 0.6);
+        box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+    }
+
+    .dtl-rarity-hardcore .detail-card-icon {
+        border-color: rgba(239, 68, 68, 0.6);
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+    }
+
+    .dtl-rarity-limited .detail-card-icon {
+        border-color: rgba(251, 191, 36, 0.7);
+        box-shadow: 0 0 25px rgba(251, 191, 36, 0.4);
+    }
+
+    .dtl-rarity-intermediate .detail-card-icon {
+        border-color: rgba(59, 130, 246, 0.6);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+
+    /* Keyframes */
+    @keyframes dtl-shimmer {
+        0% {
+            left: -100%
+        }
+
+        20%,
+        100% {
+            left: 150%
+        }
+    }
+
+    @keyframes dtl-gradient {
+        0% {
+            background-position: 0% 50%
+        }
+
+        100% {
+            background-position: 200% 50%
+        }
+    }
+
+    @keyframes dtl-angelic {
+        0% {
+            background-position: 0% 50%
+        }
+
+        100% {
+            background-position: 200% 50%
+        }
+    }
+
+    @keyframes dtl-sakura {
+
+        0%,
+        100% {
+            transform: translateY(0) rotate(0deg);
+            filter: drop-shadow(0 0 8px rgba(249, 168, 212, 0.4))
+        }
+
+        25% {
+            transform: translateY(-6px) rotate(3deg)
+        }
+
+        50% {
+            filter: drop-shadow(0 0 15px rgba(249, 168, 212, 0.7))
+        }
+
+        75% {
+            transform: translateY(-3px) rotate(-2deg)
+        }
+    }
+
+    @keyframes dtl-cyber {
+
+        0%,
+        100% {
+            filter: hue-rotate(0deg) drop-shadow(0 0 5px #00ff88);
+            transform: translate(0)
+        }
+
+        10% {
+            transform: translate(-2px, 1px);
+            filter: hue-rotate(90deg)
+        }
+
+        50% {
+            filter: hue-rotate(180deg) brightness(1.4) drop-shadow(0 0 12px #00ffff)
+        }
+
+        51% {
+            filter: hue-rotate(0deg) brightness(1)
+        }
+    }
+
+    @keyframes dtl-inferno {
+
+        0%,
+        100% {
+            box-shadow: 0 0 10px #ff4500;
+            filter: brightness(1)
+        }
+
+        50% {
+            box-shadow: 0 0 25px #ff4500, 0 0 50px rgba(255, 69, 0, 0.5), 0 -10px 30px rgba(255, 200, 0, 0.3);
+            filter: brightness(1.2);
+            transform: scale(1.05)
+        }
+    }
+
+    @keyframes dtl-frost {
+
+        0%,
+        100% {
+            filter: brightness(1) drop-shadow(0 0 5px #a5f3fc)
+        }
+
+        33% {
+            filter: brightness(1.2) drop-shadow(0 0 12px #67e8f9);
+            transform: scale(1.03)
+        }
+
+        66% {
+            filter: brightness(0.95) saturate(1.3)
+        }
+    }
+
+    @keyframes dtl-shadow {
+
+        0%,
+        100% {
+            box-shadow: 0 0 15px rgba(107, 33, 168, 0.3), 0 0 30px rgba(0, 0, 0, 0.5);
+            filter: brightness(0.9)
+        }
+
+        50% {
+            box-shadow: 0 0 30px rgba(107, 33, 168, 0.6), 0 0 60px rgba(0, 0, 0, 0.7);
+            filter: brightness(0.7);
+            transform: scale(0.97)
+        }
+    }
+
+    @keyframes dtl-void {
+
+        0%,
+        100% {
+            transform: scale(1) rotate(0deg);
+            filter: brightness(1)
+        }
+
+        50% {
+            transform: scale(0.88) rotate(180deg);
+            filter: brightness(0.4)
+        }
+    }
+
+    @keyframes dtl-rainbow {
+        0% {
+            filter: hue-rotate(0deg) drop-shadow(0 0 5px red)
+        }
+
+        25% {
+            filter: hue-rotate(90deg) drop-shadow(0 0 5px yellow)
+        }
+
+        50% {
+            filter: hue-rotate(180deg) drop-shadow(0 0 5px lime)
+        }
+
+        75% {
+            filter: hue-rotate(270deg) drop-shadow(0 0 5px blue)
+        }
+
+        100% {
+            filter: hue-rotate(360deg) drop-shadow(0 0 5px red)
+        }
+    }
+
+    @keyframes dtl-storm {
+
+        0%,
+        85%,
+        90%,
+        95%,
+        100% {
+            filter: brightness(1) drop-shadow(0 0 5px #00d2ff)
+        }
+
+        87%,
+        92% {
+            filter: brightness(4) contrast(1.5) drop-shadow(0 0 20px #fff)
+        }
+    }
+
+    @keyframes dtl-zen {
+
+        0%,
+        100% {
+            transform: scale(1);
+            filter: opacity(0.85)
+        }
+
+        50% {
+            transform: scale(1.08);
+            filter: blur(0.5px) opacity(1);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.3)
+        }
+    }
+
+    @keyframes dtl-glitch {
+        0% {
+            transform: translate(0)
+        }
+
+        25% {
+            transform: translate(-2px, 2px)
+        }
+
+        50% {
+            transform: translate(2px, -2px)
+        }
+
+        75% {
+            transform: translate(-1px, -1px)
+        }
+
+        100% {
+            transform: translate(0)
+        }
+    }
+
+    @keyframes dtl-pulse {
+
+        0%,
+        100% {
+            transform: scale(1)
+        }
+
+        50% {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3)
+        }
+    }
+
+    @keyframes dtl-float {
+
+        0%,
+        100% {
+            transform: translateY(0)
+        }
+
+        50% {
+            transform: translateY(-8px)
+        }
+    }
+
+    @keyframes dtl-rotate {
+        from {
+            transform: rotate(0deg)
+        }
+
+        to {
+            transform: rotate(360deg)
+        }
+    }
+</style>
+<script>
+    async function syncAchievements(btn) {
+        if (btn.classList.contains('loading')) return;
+
+        btn.classList.add('loading');
+        btn.disabled = true;
+        const icon = btn.querySelector('i');
+        const originalText = btn.lastChild.textContent;
+        btn.lastChild.textContent = ' Syncing...';
+
+        try {
+            const res = await fetch('/api/achievements/recheck', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                btn.innerHTML = '<i class="fas fa-check"></i> Updated!';
+                btn.style.borderColor = '#34d399';
+                btn.style.color = '#34d399';
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (err) {
+            console.error('Sync failed:', err);
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+            btn.style.borderColor = '#ef4444';
+            btn.style.color = '#ef4444';
+            setTimeout(() => {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync My Progress';
+                btn.style.borderColor = '';
+                btn.style.color = '';
+            }, 3000);
+        }
+    }
+
+    // --- TROPHY SEARCH & FILTER ---
+    let activeFilter = 'all';
+
+    function filterTrophies() {
+        const query = (document.getElementById('trophy-search')?.value || '').toLowerCase().trim();
+        document.querySelectorAll('.achievement-card').forEach(card => {
+            const name = card.dataset.name || '';
+            const rarity = card.dataset.rarity || '';
+            const status = card.dataset.status || '';
+
+            let matchesSearch = !query || name.includes(query);
+            let matchesFilter = true;
+
+            if (activeFilter === 'unlocked') matchesFilter = status === 'unlocked';
+            else if (activeFilter === 'locked') matchesFilter = status === 'locked';
+            else if (['legend', 'god', 'limited'].includes(activeFilter)) matchesFilter = rarity === activeFilter;
+
+            card.style.display = (matchesSearch && matchesFilter) ? '' : 'none';
+        });
+    }
+
+    function setFilter(filter, btn) {
+        activeFilter = filter;
+        document.querySelectorAll('.trophy-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filterTrophies();
+    }
+
+    // --- GROUP POPUP ---
+    const allAchievements = {{ all_achievements_json | tojson | safe }};
+
+    function escHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/`/g, '&#96;');
+    }
+
+    function showGroupPopup(groupKey) {
+        try {
+            const group = allAchievements.filter(a => a.group_key === groupKey);
+            if (!group.length) return;
+
+            group.sort((a, b) => a.level - b.level);
+
+            const title = group[0].category.charAt(0).toUpperCase() + group[0].category.slice(1);
+            document.getElementById('group-popup-title').innerHTML = '<i class="fas fa-layer-group me-2"></i>' + escHtml(title) + ' — All Levels';
+
+            let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+            group.forEach((ach, idx) => {
+                const isEarned = ach.earned;
+                const borderColor = isEarned ? '#34d399' : 'rgba(255,255,255,0.08)';
+                const opacity = isEarned ? '1' : '0.5';
+                const isVideo = ach.icon && (ach.icon.toLowerCase().endsWith('.mp4') || ach.icon.toLowerCase().endsWith('.webm'));
+                const iconHtml = ach.icon_type === 'image'
+                    ? (isVideo 
+                        ? '<video src="' + escHtml(ach.icon) + '" style="width:28px; height:28px; border-radius:6px; object-fit:cover;" autoplay loop muted playsinline></video>'
+                        : '<img src="' + escHtml(ach.icon) + '" style="width:28px; height:28px; border-radius:6px; object-fit:cover;">')
+                    : '<i class="fas ' + escHtml(ach.icon) + '" style="font-size:1rem; color:' + (ach.badge_color || '#888') + ';"></i>';
+
+                const rarityHtml = (ach.rarity && ach.rarity !== 'none')
+                    ? '<span style="font-size:0.55rem; padding:1px 5px; border-radius:3px; background:rgba(251,191,36,0.1); color:#fbbf24; text-transform:uppercase; font-weight:700;">' + escHtml(ach.rarity) + '</span>'
+                    : '';
+
+                const statusIcon = isEarned
+                    ? '<span style="color:#34d399; font-size:0.75rem;"><i class="fas fa-check-circle"></i></span>'
+                    : '<span style="color:#555; font-size:0.75rem;"><i class="fas fa-lock"></i></span>';
+
+                html += '<div onclick="showDetailPopup(\'' + escHtml(groupKey) + '\', ' + idx + ')" style="display:flex; align-items:center; gap:14px; padding:12px 14px; background:rgba(255,255,255,0.03); border:1px solid ' + borderColor + '; border-radius:10px; opacity:' + opacity + '; transition:all 0.2s; cursor:pointer;" onmouseenter="this.style.background=\'rgba(6,182,212,0.05)\'; this.style.transform=\'translateX(4px)\'" onmouseleave="this.style.background=\'rgba(255,255,255,0.03)\'; this.style.transform=\'\'">'
+                    + '<div style="width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.05); border-radius:8px; flex-shrink:0;">' + iconHtml + '</div>'
+                    + '<div style="flex:1; min-width:0;">'
+                    + '<div style="display:flex; align-items:center; gap:8px;">'
+                    + '<span style="font-weight:600; color:' + (isEarned ? '#e2e8f0' : '#888') + '; font-size:0.85rem;">' + escHtml(ach.name) + '</span>'
+                    + '<span style="font-size:0.6rem; padding:2px 6px; border-radius:4px; background:rgba(6,182,212,0.1); color:#06b6d4; font-weight:600;">Lv.' + ach.level + '</span>'
+                    + rarityHtml
+                    + '</div>'
+                    + '<p style="margin:2px 0 0; font-size:0.7rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escHtml(ach.description) + '</p>'
+                    + '</div>'
+                    + '<div style="flex-shrink:0; display:flex; align-items:center; gap:8px;">' + statusIcon + '<i class="fas fa-chevron-right" style="color:#444; font-size:0.6rem;"></i></div>'
+                    + '</div>';
+            });
+            html += '</div>';
+
+            document.getElementById('group-popup-content').innerHTML = html;
+            document.getElementById('group-popup').style.display = 'block';
+        } catch (e) {
+            console.error('Error in showGroupPopup:', e);
+        }
+    }
+
+    function closeGroupPopup() {
+        document.getElementById('group-popup').style.display = 'none';
+    }
+
+    // --- DETAIL CARD POPUP ---
+    function showDetailPopup(groupKey, index) {
+        try {
+            const group = allAchievements.filter(a => a.group_key === groupKey).sort((a, b) => a.level - b.level);
+            const ach = group[index];
+            if (!ach) return;
+
+            const isEarned = ach.earned;
+            const animClass = ach.animation_type && ach.animation_type !== 'none' ? 'dtl-anim-' + ach.animation_type : '';
+            const rarityClass = ach.rarity && ach.rarity !== 'none' ? 'dtl-rarity-' + ach.rarity : '';
+            const isVideo = ach.icon && (ach.icon.toLowerCase().endsWith('.mp4') || ach.icon.toLowerCase().endsWith('.webm'));
+            const iconHtml = ach.icon_type === 'image'
+                ? (isVideo
+                    ? '<video src="' + escHtml(ach.icon) + '" style="width:100%; height:100%; border-radius:10px; object-fit:cover;" autoplay loop muted playsinline></video>'
+                    : '<img src="' + escHtml(ach.icon) + '" style="width:100%; height:100%; border-radius:10px; object-fit:cover;">')
+                : '<i class="fas ' + escHtml(ach.icon) + '" style="font-size:2.5rem; color:' + (ach.badge_color || '#06b6d4') + ';"></i>';
+
+            const rarityTagHtml = ach.rarity && ach.rarity !== 'none'
+                ? '<span class="detail-rarity-tag ' + escHtml(ach.rarity) + '">' + escHtml(ach.rarity) + '</span>'
+                : '';
+
+            const animTagHtml = ach.animation_type && ach.animation_type !== 'none'
+                ? '<span style="font-size:0.55rem; padding:2px 7px; border-radius:4px; background:rgba(16,185,129,0.1); color:#34d399; font-weight:600;">✦ ' + escHtml(ach.animation_type) + '</span>'
+                : '';
+
+            let earnedHtml;
+            if (isEarned) {
+                const dateStr = ach.earned_at ? ' on ' + new Date(ach.earned_at).toLocaleDateString() : '';
+                earnedHtml = '<div style="display:flex; align-items:center; gap:6px; color:#34d399; font-size:0.75rem; margin-top:10px;"><i class="fas fa-check-circle"></i><span>Earned' + dateStr + '</span></div>';
+            } else {
+                earnedHtml = '<div style="display:flex; align-items:center; gap:6px; color:#555; font-size:0.75rem; margin-top:10px;"><i class="fas fa-lock"></i><span>Not yet earned</span></div>';
+            }
+
+            const card = document.getElementById('detail-popup-card');
+            card.className = animClass + ' ' + rarityClass;
+            card.innerHTML = '<div style="background:linear-gradient(135deg, rgba(6,182,212,0.05), rgba(139,92,246,0.05)); padding:30px 24px 20px; text-align:center;">'
+                + '<div class="detail-card-icon">' + iconHtml + '</div>'
+                + '<h4 style="margin:16px 0 4px; color:#e2e8f0; font-size:1.1rem; font-weight:700;">' + escHtml(ach.name) + '</h4>'
+                + '<div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;">'
+                + '<span style="font-size:0.65rem; padding:2px 8px; border-radius:5px; background:rgba(6,182,212,0.15); color:#06b6d4; font-weight:700;">Level ' + ach.level + '</span>'
+                + rarityTagHtml + animTagHtml
+                + '</div></div>'
+                + '<div style="padding:16px 24px 24px;">'
+                + '<p style="color:#94a3b8; font-size:0.8rem; line-height:1.5; margin:0 0 12px;">' + escHtml(ach.description || 'No description available.') + '</p>'
+                + '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">'
+                + '<span style="font-size:0.6rem; padding:2px 8px; border-radius:4px; background:rgba(255,255,255,0.05); color:#666; text-transform:uppercase; letter-spacing:0.5px;"><i class="fas fa-folder me-1"></i>' + escHtml(ach.category || 'General') + '</span>'
+                + '</div>'
+                + earnedHtml
+                + '</div>';
+
+            document.getElementById('detail-popup').style.display = 'block';
+        } catch (e) {
+            console.error('Error in showDetailPopup:', e);
+        }
+    }
+
+    function closeDetailPopup() {
+        document.getElementById('detail-popup').style.display = 'none';
+    }
+
+    // Escape key to close popups
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            if (document.getElementById('detail-popup').style.display === 'block') {
+                closeDetailPopup();
+            } else {
+                closeGroupPopup();
+            }
+        }
+    });
+</script>
+{% endblock %}

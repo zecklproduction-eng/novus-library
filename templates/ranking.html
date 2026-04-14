@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block title %}Rankings | NOVUS{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/page_ranking.css') }}?v=10">
+
+<div class="ranking-page">
+    <div class="ranking-container">
+        <!-- Header -->
+        <header class="ranking-header">
+            <div class="header-top">
+                <h1>Ranking</h1>
+                
+                <!-- Search Bar -->
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search manga, authors, or books..." oninput="handleSearch()">
+                    <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Type Tabs and Sort Controls -->
+            <div class="controls-row">
+                <div class="ranking-tabs">
+                    <button class="tab-btn active" onclick="filterType('Manga', this)">Manga</button>
+                    <button class="tab-btn" onclick="filterType('Book', this)">Books</button>
+                </div>
+                
+                <!-- Sort Controls -->
+                <div class="sort-controls">
+                    <select id="sortBy" class="sort-select" onchange="handleSort()">
+                        <option value="Rank">Rank</option>
+                        <option value="Views">Views</option>
+                        <option value="Title">Title</option>
+                    </select>
+                    <button class="sort-order-btn" id="sortOrderBtn" onclick="toggleSortOrder()">
+                        <i class="fas fa-arrow-up-arrow-down"></i>
+                        <span id="sortOrderText">ASC</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category Filters -->
+            <div class="filters-scroll">
+                <button class="filter-btn active" onclick="filterCategory('Hottest', this)">
+                    Hottest
+                    <div class="filter-indicator"></div>
+                </button>
+                <button class="filter-btn" onclick="filterCategory('Trending', this)">
+                    Trending
+                    <div class="filter-indicator"></div>
+                </button>
+                <button class="filter-btn" onclick="filterCategory('Most Popular', this)">
+                    Most Popular
+                    <div class="filter-indicator"></div>
+                </button>
+                 <button class="filter-btn" onclick="filterCategory('Ongoing', this)">
+                    Ongoing
+                    <div class="filter-indicator"></div>
+                </button>
+                <button class="filter-btn" onclick="filterCategory('Completed', this)">
+                    Completed
+                    <div class="filter-indicator"></div>
+                </button>
+            </div>
+        </header>
+
+        <!-- Grid -->
+        <div class="ranking-grid" id="rankingGrid">
+            {% for item in items %}
+            <div class="ranking-card-wrapper animate-card" 
+                 style="animation-delay: {{ loop.index0 * 100 }}ms"
+                 data-type="{{ item.type }}"
+                 data-categories="{{ item.categories|join(',') }}">
+                
+                <a href="{{ url_for('read_manga', id=item.id) if item.type == 'Manga' else url_for('view_book', id=item.id) }}" class="ranking-card">
+                    <!-- Image -->
+                    <div class="card-image-container">
+                        <img src="{{ item.imageUrl }}" alt="{{ item.title }}" class="card-img" loading="lazy">
+                        <div class="card-overlay"></div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="card-content">
+                        <div class="card-stats">
+                            <span class="rank-number">#{{ item.rank }}</span>
+                            <div class="view-count">
+                                <i class="fas fa-fire"></i>
+                                <span>{{ "{:,}".format(item.views) }}</span>
+                            </div>
+                        </div>
+
+                        <h3 class="card-title">{{ item.title }}</h3>
+                        <p class="card-author">{{ item.author }}</p>
+                        <p class="card-desc">{{ item.description }}</p>
+
+                        <div class="card-languages">
+                            {% for lang in item.languages %}
+                            <span class="lang-badge">{{ lang }}</span>
+                            {% endfor %}
+                        </div>
+
+                         <div class="card-actions">
+                             <div class="btn-read">
+                                 <i class="fas fa-book-open"></i> Read Now
+                             </div>
+                             <button class="btn-action-secondary fav-btn {% if item.is_favorited %}active{% endif %}" 
+                                     data-book-id="{{ item.id }}"
+                                     onclick="event.preventDefault(); toggleFavorite({{ item.id }}, '{{ item.title }}', this)">
+                                 <i class="{% if item.is_favorited %}fas{% else %}far{% endif %} fa-heart"></i> 
+                                 <span class="fav-text">{% if item.is_favorited %}Favorited{% else %}Add to Favorites{% endif %}</span>
+                             </button>
+                             <button class="btn-action-secondary" onclick="event.preventDefault(); shareItem('{{ item.title }}', '{{ item.id }}', '{{ item.type }}')">
+                                 <i class="fas fa-share-alt"></i> Share
+                             </button>
+                         </div>
+                    </div>
+                </a>
+
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Empty State (Hidden by default) -->
+        <div id="emptyState" style="display: none; text-align: center; padding: 5rem 0; color: #6b7280;">
+             <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+             <p>No results found for this category.</p>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="ranking-footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <span class="logo-manga">MANGA</span>
+                    <span class="logo-plus">PLUS</span>
+                </div>
+                <p class="footer-description">
+                    Experience the world's most popular manga and literature platform. 
+                    Always official, always supportive of the original creators.
+                </p>
+            </div>
+            
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>PLATFORM</h4>
+                    <a href="#">Mobile App</a>
+                    <a href="#">Creators Console</a>
+                    <a href="#">Submissions</a>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>COMPANY</h4>
+                    <a href="{{ url_for('about') }}">About Us</a>
+                    <a href="#">Press</a>
+                    <a href="#">Careers</a>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>FOLLOW</h4>
+                    <a href="#">X (Twitter)</a>
+                    <a href="#">Discord</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>© 2024 NOVUS Digital Library</p>
+        </div>
+    </footer>
+    
+    <!-- Scroll to Top Button -->
+    <button class="scroll-to-top" id="scrollToTop" onclick="scrollToTop()">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+</div>
+
+<script>
+    let currentType = 'Manga';
+    let currentCategory = 'Hottest';
+    let currentSortBy = 'Rank';
+    let currentSortOrder = 'ASC';
+    let searchQuery = '';
+
+    function filterType(type, btn) {
+        currentType = type;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilters();
+    }
+
+    function filterCategory(category, btn) {
+        currentCategory = category;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilters();
+    }
+    
+    function handleSearch() {
+        searchQuery = document.getElementById('searchInput').value.toLowerCase();
+        const clearBtn = document.getElementById('searchClear');
+        clearBtn.style.display = searchQuery ? 'flex' : 'none';
+        applyFilters();
+    }
+    
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        searchQuery = '';
+        document.getElementById('searchClear').style.display = 'none';
+        applyFilters();
+    }
+    
+    function handleSort() {
+        currentSortBy = document.getElementById('sortBy').value;
+        applyFilters();
+    }
+    
+    function toggleSortOrder() {
+        currentSortOrder = currentSortOrder === 'ASC' ? 'DESC' : 'ASC';
+        document.getElementById('sortOrderText').textContent = currentSortOrder;
+        applyFilters();
+    }
+    
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function applyFilters() {
+        const cards = Array.from(document.querySelectorAll('.ranking-card-wrapper'));
+        let visibleCards = [];
+        
+        cards.forEach(card => {
+            const types = card.dataset.type;
+            const categories = card.dataset.categories.split(',');
+            const title = card.querySelector('.card-title').textContent.toLowerCase();
+            const author = card.querySelector('.card-author').textContent.toLowerCase();
+            
+            const matchType = types === currentType;
+            const matchCategory = categories.includes(currentCategory);
+            const matchSearch = !searchQuery || title.includes(searchQuery) || author.includes(searchQuery);
+            
+            if (matchType && matchCategory && matchSearch) {
+                visibleCards.push(card);
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Sort visible cards
+        visibleCards.sort((a, b) => {
+            let aValue, bValue;
+            
+            if (currentSortBy === 'Rank') {
+                aValue = parseInt(a.querySelector('.rank-number').textContent.replace('#', ''));
+                bValue = parseInt(b.querySelector('.rank-number').textContent.replace('#', ''));
+            } else if (currentSortBy === 'Views') {
+                aValue = parseInt(a.querySelector('.view-count span').textContent.replace(/,/g, ''));
+                bValue = parseInt(b.querySelector('.view-count span').textContent.replace(/,/g, ''));
+            } else if (currentSortBy === 'Title') {
+                aValue = a.querySelector('.card-title').textContent;
+                bValue = b.querySelector('.card-title').textContent;
+                return currentSortOrder === 'ASC' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+            }
+            
+            return currentSortOrder === 'ASC' ? aValue - bValue : bValue - aValue;
+        });
+        
+        // Display sorted cards
+        const grid = document.getElementById('rankingGrid');
+        visibleCards.forEach((card, index) => {
+            card.style.display = 'block';
+            card.style.animationDelay = `${index * 60}ms`;
+            grid.appendChild(card);
+        });
+        
+        const emptyState = document.getElementById('emptyState');
+        emptyState.style.display = visibleCards.length === 0 ? 'block' : 'none';
+    }
+    
+    // Scroll to top button visibility
+    window.addEventListener('scroll', () => {
+        const scrollBtn = document.getElementById('scrollToTop');
+        scrollBtn.style.display = window.scrollY > 400 ? 'flex' : 'none';
+    });
+    
+    // Toggle favorite function using AJAX
+    async function toggleFavorite(id, title, btn) {
+        const icon = btn.querySelector('i');
+        const text = btn.querySelector('.fav-text');
+        
+        try {
+            const response = await fetch('/api/favorites/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ book_id: id })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                if (result.status === 'added') {
+                    icon.classList.remove('far');
+                    icon.classList.add('fas');
+                    btn.classList.add('active');
+                    text.textContent = 'Favorited';
+                    showToast(`Added "${title}" to favorites!`);
+                } else {
+                    icon.classList.remove('fas');
+                    icon.classList.add('far');
+                    btn.classList.remove('active');
+                    text.textContent = 'Add to Favorites';
+                    showToast(`Removed "${title}" from favorites`);
+                }
+            } else {
+                if (response.status === 401) {
+                    showToast('Please login to save favorites');
+                } else {
+                    showToast('Error: ' + (result.error || 'Something went wrong'));
+                }
+            }
+        } catch (error) {
+            console.error('Favorite Toggle Error:', error);
+            showToast('Unable to sync favorites. Please check your connection.');
+        }
+    }
+    
+    // Share function
+    function shareItem(title, id, type) {
+        const url = window.location.origin + (type === 'Manga' ? `/read/${id}` : `/book/${id}`);
+        
+        if (navigator.share) {
+            navigator.share({
+                title: title,
+                text: `Check out "${title}" on NOVUS!`,
+                url: url
+            });
+        } else {
+            // Fallback: copy to clipboard
+            navigator.clipboard.writeText(url).then(() => {
+                // showToast('Link copied to clipboard!');
+            });
+        }
+    }
+    
+    // Initial run
+    applyFilters();
+</script>
+{% endblock %}

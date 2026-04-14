@@ -74,12 +74,12 @@
       <!-- Images Upload Section -->
       <div id="imagesUploadSection" style="margin-bottom: 30px;">
         <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter Pages *</label>
-        <p style="color: #999; font-size: 12px; margin-bottom: 12px;">Upload multiple page images (JPG, PNG). They will be automatically ordered by upload order.</p>
+        <p style="color: #999; font-size: 12px; margin-bottom: 12px;">Upload multiple page images (JPG, PNG, WEBP). They will be automatically ordered by upload order.</p>
         <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterPages').click()" id="dropZone">
-          <input type="file" name="chapter_pages" id="chapterPages" accept="image/jpeg,image/png" multiple style="display:none">
+          <input type="file" name="chapter_pages" id="chapterPages" accept="image/jpeg,image/png,image/webp" multiple style="display:none">
           <i class="fas fa-images" style="color: var(--neon-blue); font-size: 40px;"></i>
           <p style="margin: 15px 0; color: #bbb;">Drag & Drop or Browse</p>
-          <small style="color: #999;">Image files (JPG, PNG - Max 5MB each)</small>
+          <small style="color: #999;">Image files (JPG, PNG, WEBP - Max 5MB each)</small>
           <div id="pageCount" style="display: none; color: #667eea; margin-top: 15px; font-weight: 500;"></div>
         </div>
         <div id="pagePreviewContainer" style="margin-top: 15px; max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; display: none;">

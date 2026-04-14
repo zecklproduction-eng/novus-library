@@ -1,662 +1,1278 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="max-width: 1200px; margin: 30px auto; padding: 0 20px;">
-  <h2 class="mb-4" style="color: var(--text-primary)">
-    <i class="fas fa-cloud-upload-alt me-2" style="color: var(--neon-blue)"></i>
-    Add New Content
-  </h2>
+<div class="upload-page-container">
+    <!-- Premium Page Header -->
+    <div class="upload-header-section animate-in">
+        <div class="upload-header-content">
+            <h1 class="upload-header-title">
+                <i class="fas fa-cloud-upload-alt"></i>
+                Add New Content
+            </h1>
+            <p class="upload-header-subtitle">Share your books and manga with the world</p>
+        </div>
 
-  <!-- TYPE SELECTOR TABS -->
-  <div style="display: flex; gap: 10px; border-bottom: 2px solid rgba(102, 126, 234, 0.2); margin-bottom: 30px;">
-    <button class="type-tab active" onclick="switchTab('book')" style="background: none; border: none; color: #999; padding: 15px 20px; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 3px solid transparent; transition: all 0.3s; font-weight: 500;">
-      <i class="fas fa-book"></i>
-      <span>Book</span>
-    </button>
-    <button class="type-tab" onclick="switchTab('manga')" style="background: none; border: none; color: #999; padding: 15px 20px; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 3px solid transparent; transition: all 0.3s; font-weight: 500;">
-      <i class="fas fa-images"></i>
-      <span>Manga</span>
-    </button>
-  </div>
-
-  <!-- ===== BOOK UPLOAD FORM ===== -->
-  <div id="bookTab" class="tab-content" style="display: block;">
-    <form method="POST" action="{{ url_for('add_book') }}" enctype="multipart/form-data" id="addBookForm" onsubmit="return simulatePublish(event)">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
-        <!-- LEFT COLUMN -->
-        <div style="grid-column: span 2;">
-          <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-            <h5 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Book Details</h5>
-
-            <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Title</label>
-              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="title" required>
+        {% if request_data %}
+        <div class="request-badge-premium">
+            <div class="d-flex align-items-center gap-3">
+                <div class="request-icon-glow">
+                    <i class="fas fa-magic"></i>
+                </div>
+                <div>
+                    <h5 class="mb-0 text-white">Fulfilling Request</h5>
+                    <p class="mb-0 text-muted small">{{ request_data.title }}</p>
+                </div>
+                <a href="{{ url_for('add_book') }}" class="btn-close-mini">
+                    <i class="fas fa-times"></i>
+                </a>
             </div>
+        </div>
+        {% endif %}
+    </div>
 
-            <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Author</label>
-              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="author" required>
-            </div>
+    <!-- TYPE SELECTOR TABS -->
+    <div class="upload-tabs animate-in delay-1">
+        <button class="type-tab {% if not request_data or request_data.type != 'manga' %}active{% endif %}"
+            onclick="switchTab('book')">
+            <i class="fas fa-book"></i>
+            <span>Book</span>
+        </button>
+        <button class="type-tab {% if request_data and request_data.type == 'manga' %}active{% endif %}"
+            onclick="switchTab('manga')">
+            <i class="fas fa-images"></i>
+            <span>Manga</span>
+        </button>
+        <button class="type-tab" onclick="switchTab('research_paper')">
+            <i class="fas fa-file-contract"></i>
+            <span>Research Paper</span>
+        </button>
+        <button class="type-tab" onclick="switchTab('manhwa')">
+            <i class="fas fa-scroll"></i>
+            <span>Manhwa</span>
+        </button>
+        <button class="type-tab" onclick="switchTab('light_novel')">
+            <i class="fas fa-feather-alt"></i>
+            <span>Light Novel</span>
+        </button>
+    </div>
 
-            <label class="form-label mt-2" style="color: #ddd; font-weight:600;">Type</label>
-            <select name="book_type" class="form-select" style="width:100%; margin-bottom: 16px; background: rgba(255,255,255,0.03); color:#fff; border:1px solid rgba(102,126,234,0.2); padding:10px 12px; border-radius:6px;" required>
-              <option value="book">Book</option>
-              <option value="manga">Manga</option>
-            </select>
+    <!-- ===== BOOK UPLOAD FORM ===== -->
+    <div id="bookTab" class="tab-content {% if not request_data or request_data.type != 'manga' %}active{% endif %}">
+        <form method="POST" action="{{ url_for('add_book') }}" enctype="multipart/form-data" id="addBookForm"
+            onsubmit="return simulatePublish(event)">
+            {% if request_data %}<input type="hidden" name="request_id" value="{{ request_data.id }}">{% endif %}
 
-            <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 12px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-bookmark" style="color: var(--neon-blue);"></i>
-                Categories
-              </label>
-              <div id="bookCategoriesContainer" class="categories-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Action" onchange="updateBookCategoryCount()"> Action
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Adventure" onchange="updateBookCategoryCount()"> Adventure
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Children" onchange="updateBookCategoryCount()"> Children
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Comedy" onchange="updateBookCategoryCount()"> Comedy
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Drama" onchange="updateBookCategoryCount()"> Drama
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Fantasy" onchange="updateBookCategoryCount()"> Fantasy
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="General" onchange="updateBookCategoryCount()"> General
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Historical" onchange="updateBookCategoryCount()"> Historical
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Horror" onchange="updateBookCategoryCount()"> Horror
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Mystery" onchange="updateBookCategoryCount()"> Mystery
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Poetry" onchange="updateBookCategoryCount()"> Poetry
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Romance" onchange="updateBookCategoryCount()"> Romance
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Science Fiction" onchange="updateBookCategoryCount()"> Sci-Fi
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Supernatural" onchange="updateBookCategoryCount()"> Supernatural
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Thriller" onchange="updateBookCategoryCount()"> Thriller
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Young Adult" onchange="updateBookCategoryCount()"> YA
-                </label>
-              </div>
-              <div id="bookCategoryCount" style="color: var(--neon-blue); font-size: 12px; margin-top: 10px; font-weight: 500; display: flex; align-items: center; gap: 6px;"><i class="fas fa-check-circle"></i><span>Select at least one category</span></div>
-            </div>
+            <div class="row g-4">
+                <!-- LEFT COLUMN: Primary Details -->
+                <div class="col-lg-8">
+                    <div class="upload-card">
+                        <h5 class="upload-card-title">
+                            <i class="fas fa-info-circle"></i>
+                            Book Information
+                        </h5>
 
-            <!-- DESCRIPTION -->
-            <div style="margin-bottom: 20px;">
-              <h5 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Description</h5>
-              <div class="description-editor-container">
-                <div class="toolbar" id="editor-toolbar" style="margin-bottom:8px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                  <button type="button" class="btn btn-sm" style="display:inline-flex; align-items:center; justify-content:center; background:none; color:#ddd; border:none;" onclick="formatText('bold')"><i class="fas fa-bold"></i></button>
-                  <button type="button" class="btn btn-sm" style="background:none; color:#ddd; border:none;" onclick="formatText('italic')"><i class="fas fa-italic"></i></button>
-                  <button type="button" class="btn btn-sm" style="background:none; color:#ddd; border:none;" onclick="formatText('underline')"><i class="fas fa-underline"></i></button>
-                  <span class="mx-2" style="color:#555">|</span>
-                  <button type="button" class="btn btn-sm" style="background:none; color:#ddd; border:none;" onclick="formatText('insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
-                  <button type="button" class="btn btn-sm" style="background:none; color:#ddd; border:none;" onclick="formatText('insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label text-white">Title</label>
+                                    <input type="text" class="form-input" name="title"
+                                        value="{% if request_data %}{{ request_data.title }}{% endif %}"
+                                        placeholder="e.g. The Great Adventure" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label text-white">Author</label>
+                                    <input type="text" class="form-input" name="author"
+                                        value="{% if request_data %}{{ request_data.author }}{% endif %}"
+                                        placeholder="Author name" required>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="form-group">
+                            <label class="form-label text-white">
+                                <i class="fas fa-tags me-2" style="color: #00d4ff;"></i>
+                                Genres & Categories
+                            </label>
+                            <div id="bookCategoriesContainer" class="categories-grid">
+                                {% for cat in ["Action", "Adventure", "Biography", "Business", "Children", "Comedy",
+                                "Cooking", "Crime", "Cyberpunk", "Documentary", "Drama", "Dystopian", "Fantasy",
+                                "General", "Graphic Novel", "Health", "Historical", "Horror", "Isekai", "Josei",
+                                "Lifestyle", "Magic", "Martial Arts", "Mecha", "Memoir", "Mystery", "Philosophy",
+                                "Poetry", "Politics", "Psychological", "Religion", "Romance", "School Life", "Science",
+                                "Science Fiction", "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports",
+                                "Supernatural", "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western",
+                                "Young Adult"] %}
+                                <label class="category-item">
+                                    <input type="checkbox" name="categories" value="{{ cat }}"
+                                        onchange="updateBookCategoryCount()"> {{ cat }}
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <div id="bookCategoryCount" class="mt-3 small text-muted">
+                                <i class="fas fa-exclamation-circle me-1"></i> Select at least one category
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label text-white">Description</label>
+                            <div class="description-editor-container">
+                                <div class="toolbar mb-2" id="editor-toolbar">
+                                    <button type="button" class="btn btn-sm btn-ghost" onclick="formatText('bold')"><i
+                                            class="fas fa-bold"></i></button>
+                                    <button type="button" class="btn btn-sm btn-ghost" onclick="formatText('italic')"><i
+                                            class="fas fa-italic"></i></button>
+                                    <button type="button" class="btn btn-sm btn-ghost"
+                                        onclick="formatText('underline')"><i class="fas fa-underline"></i></button>
+                                    <span class="mx-2 text-muted">|</span>
+                                    <button type="button" class="btn btn-sm btn-ghost"
+                                        onclick="formatText('insertUnorderedList')"><i
+                                            class="fas fa-list-ul"></i></button>
+                                </div>
+                                <div id="description" class="form-textarea" contenteditable="true"
+                                    data-placeholder="Tell us about this book..." style="min-height: 200px;"></div>
+                                <textarea id="description_hidden" name="description" hidden></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Metadata Fields (Transcript & TOC) -->
+                        <div id="audioMetadataFields" style="display: none;" class="mt-4 animate-in">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label text-white">Transcript for summary</label>
+                                        <!-- Metadata Storage - using textarea for larger capacity and easier escaping -->
+                                        <textarea name="transcript" id="transcript" style="display:none"></textarea>
+                                        <textarea name="custom_summary" id="custom_summary"
+                                            style="display:none"></textarea>
+                                        <textarea name="toc" id="toc" style="display:none"></textarea>
+
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-outline-info flex-grow-1"
+                                                data-bs-toggle="modal" data-bs-target="#audioMetadataModal">
+                                                <i class="fas fa-list-ul me-2"></i> Manage Transcript
+                                            </button>
+                                            <button type="button" class="btn btn-outline-warning flex-grow-1"
+                                                data-bs-toggle="modal" data-bs-target="#structuredSummaryModal">
+                                                <i class="fas fa-file-alt me-2"></i> Manage Summary & TOC
+                                            </button>
+                                        </div>
+                                        <div id="transcript_preview" class="small text-muted mt-2">
+                                            <i class="fas fa-info-circle me-1"></i> Add timestamps and text via the
+                                            popup.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label text-white">Table of Content Preview</label>
+                                        <div id="toc_display_preview"
+                                            class="p-3 bg-dark border border-secondary rounded text-muted small"
+                                            style="min-height: 100px;">
+                                            <i class="fas fa-info-circle me-1"></i> No TOC yet. Use "Manage Summary &
+                                            TOC" to create one.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Modals are included after both forms to prevent interaction issues -->
+                    </div>
                 </div>
 
-                <!-- visible editor -->
-                <div id="description"
-     class="form-control description-area"
-     contenteditable="true"
-     data-placeholder="Type your book description here..."
-     style="min-height:150px; padding:15px; background: rgba(255,255,255,0.03); border-radius:6px; border:1px solid rgba(102,126,234,0.12); color:#fff;"></div>
+                <!-- RIGHT COLUMN: Files & Status -->
+                <div class="col-lg-4">
+                    <!-- Cover Image -->
+                    <div class="upload-card mb-4">
+                        <h5 class="upload-card-title">
+                            <i class="fas fa-image"></i>
+                            Cover Art
+                        </h5>
+                        <div class="drop-zone" id="cover-drop-zone"
+                            onclick="document.getElementById('bookCover').click()">
+                            <input type="file" name="cover_image" id="bookCover" accept="image/*" style="display:none"
+                                onchange="previewImage(this, 'coverImagePreview')">
+                            <div id="cover-upload-text-overlay" class="d-flex flex-column align-items-center">
+                                <i class="fas fa-image upload-icon-lg"></i>
+                                <p>Cover Art</p>
+                                <small>JPG, PNG (Max 5MB)</small>
+                            </div>
+                            <img id="coverImagePreview" src="#" alt="Preview"
+                                style="display:none; max-width:100%; max-height:220px; object-fit:contain; border-radius:12px;">
+                        </div>
+                        <button type="button" id="remove-coverImagePreview"
+                            class="btn btn-sm btn-outline-danger w-100 mt-2" style="display:none"
+                            onclick="removePreview('coverImagePreview', 'bookCover', 'cover-upload-text-overlay'); event.stopPropagation();">
+                            Remove Image
+                        </button>
+                    </div>
 
-<textarea id="description_hidden" name="description" hidden></textarea>
+                    <!-- Files -->
+                    <div class="upload-card mb-4">
+                        <h5 class="upload-card-title">
+                            <i class="fas fa-file-upload"></i>
+                            Content Files
+                        </h5>
 
-              </div>
+                        <div class="form-group">
+                            <label class="form-label text-white">Main PDF File</label>
+                            <div class="drop-zone p-4" onclick="document.getElementById('bookPdf').click()">
+                                <input type="file" name="pdf_file" id="bookPdf" accept=".pdf" style="display:none">
+                                <i class="fas fa-file-pdf upload-icon-lg"></i>
+                                <div id="bookPdfName" class="mt-2 small font-weight-bold" style="color: #71717a;">Upload
+                                    PDF</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label text-white">Audio summary (Optional)</label>
+                            <div class="drop-zone p-4" onclick="document.getElementById('bookAudio').click()">
+                                <input type="file" name="audio_file" id="bookAudio" accept=".mp3" style="display:none"
+                                    onchange="handleAudioUpload(this)">
+                                <i class="fas fa-headphones upload-icon-lg"></i>
+                                <div id="bookAudioName" class="mt-2 small font-weight-bold" style="color: #71717a;">
+                                    Upload MP3</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Publishing Area -->
+                    <div class="upload-card status-card">
+                        <h5 class="upload-card-title">
+                            <i class="fas fa-paper-plane"></i>
+                            Publish
+                        </h5>
+
+                        <div id="initial-status" class="text-center py-2">
+                            <p class="small text-muted mb-3">Ensure all required fields are filled before publishing.
+                            </p>
+                            <button type="submit" id="publish-btn" class="btn-publish mb-3">
+                                <i class="fas fa-rocket me-2"></i>
+                                Publish Book
+                            </button>
+                        </div>
+
+                        <div id="progress-area" style="display:none">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span id="progress-text" class="small fw-bold text-white">Uploading...</span>
+                                <span id="progress-percentage" style="color: #00d4ff;">0%</span>
+                            </div>
+                            <div class="progress-container">
+                                <div id="progressBarFill" class="progress-bar-fill"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-check small text-muted mt-3">
+                            <input class="form-check-input" type="checkbox" id="termsAgree" required checked>
+                            <label class="form-check-label" for="termsAgree">
+                                I verify that this content adheres to all guidelines.
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
+            <input type="hidden" name="book_type" id="book_type_field" value="book">
+        </form>
+    </div>
 
-          <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-            <h5 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Book Files</h5>
+    <!-- ===== MANGA UPLOAD FORM ===== -->
+    <div id="mangaTab" class="tab-content {% if request_data and request_data.type == 'manga' %}active{% endif %}">
+        <form method="POST" action="{{ url_for('add_book') }}" enctype="multipart/form-data" id="mangaForm">
+            {% if request_data %}<input type="hidden" name="request_id" value="{{ request_data.id }}">{% endif %}
 
-            <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">PDF File</label>
-              <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 30px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('bookPdf').click()">
-                <input type="file" name="pdf_file" id="bookPdf" accept=".pdf" style="display:none">
-                <i class="fas fa-file-pdf" style="color: var(--neon-blue); font-size: 30px;"></i>
-                <p style="margin: 10px 0; color: #bbb;">Drag & Drop or Browse</p>
-                <small style="color: #999;">PDF only (Max 50MB)</small>
-                <div id="bookPdfName" style="display: none; color: #667eea; margin-top: 10px;"></div>
-              </div>
+            <div class="row g-4">
+                <!-- LEFT COLUMN -->
+                <div class="col-lg-8">
+                    <div class="upload-card">
+                        <h5 class="upload-card-title">
+                            <i class="fas fa-layer-group"></i>
+                            Manga Series Info
+                        </h5>
+
+                        <div class="row">
+                            <div class="col-md-7">
+                                <div class="form-group">
+                                    <label class="form-label text-white">Manga Title</label>
+                                    <input type="text" class="form-input" name="title"
+                                        value="{% if request_data %}{{ request_data.title }}{% endif %}"
+                                        placeholder="Series Title" required>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label class="form-label text-white">Author/Artist</label>
+                                    <input type="text" class="form-input" name="author"
+                                        value="{% if request_data %}{{ request_data.author }}{% endif %}"
+                                        placeholder="Creator name" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label text-white">Publishing Status</label>
+                                    <select name="status" class="form-select" required>
+                                        <option value="ongoing">🔄 Ongoing</option>
+                                        <option value="completed">✅ Completed</option>
+                                        <option value="hiatus">⏸️ On Hiatus</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label text-white">
+                                <i class="fas fa-tags me-2" style="color: #00d4ff;"></i>
+                                Genres
+                            </label>
+                            <div id="mangaCategoriesContainer" class="categories-grid">
+                                {% for cat in ["Action", "Adventure", "Biography", "Business", "Children", "Comedy",
+                                "Cooking", "Crime", "Cyberpunk", "Documentary", "Drama", "Dystopian", "Fantasy",
+                                "General", "Graphic Novel", "Health", "Historical", "Horror", "Isekai", "Josei",
+                                "Lifestyle", "Magic", "Martial Arts", "Mecha", "Memoir", "Mystery", "Philosophy",
+                                "Poetry", "Politics", "Psychological", "Religion", "Romance", "School Life", "Science",
+                                "Science Fiction", "Seinen", "Shoujo", "Shounen", "Slice of Life", "Sports",
+                                "Supernatural", "Suspense", "Technology", "Thriller", "Travel", "Vampire", "Western",
+                                "Young Adult"] %}
+                                <label class="category-item">
+                                    <input type="checkbox" name="categories" value="{{ cat }}"
+                                        onchange="updateMangaCategoryCount()"> {{ cat }}
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <div id="mangaCategoryCount" class="mt-3 small text-muted">
+                                <i class="fas fa-check-circle me-1"></i> Select at least one genre
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label text-white">Description</label>
+                            <textarea class="form-textarea" name="description" rows="5"
+                                placeholder="Short synopsis of the series..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Initial Chapter Upload -->
+                    <div class="upload-card mt-4">
+                        <h5 class="upload-card-title">
+                            <i class="fas fa-file-invoice"></i>
+                            First Chapter
+                        </h5>
+                        <p class="text-muted small mb-4">Start your series by uploading the very first chapter.</p>
+
+                        <div class="form-group">
+                            <label class="form-label text-white">Chapter Format</label>
+                            <div class="d-flex gap-4">
+                                <label class="category-item px-4">
+                                    <input type="radio" name="chapter_format" value="images" checked
+                                        onchange="toggleChapterFormat()">
+                                    Image Sequence
+                                </label>
+                                <label class="category-item px-4">
+                                    <input type="radio" name="chapter_format" value="pdf"
+                                        onchange="toggleChapterFormat()">
+                                    Single PDF
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Images Section -->
+                        <div id="imagesSection" class="form-group">
+                            <div class="drop-zone p-4" onclick="document.getElementById('chapterPages').click()">
+                                <input type="file" name="chapter_pages" id="chapterPages" accept="image/jpeg,image/png"
+                                    multiple style="display:none">
+                                <i class="fas fa-images upload-icon-lg"></i>
+                                <p>Select Chapter Pages</p>
+                                <small>JPG, PNG (Order preserved by filename)</small>
+                                <div id="chapterPagesCount" class="badge bg-primary mt-2" style="display: none;"></div>
+                            </div>
+                            <!-- Page Preview Container -->
+                            <div id="pagePreviewContainer" class="mt-4 p-3 bg-black rounded"
+                                style="display: none; max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05);">
+                                <div id="pagesList" class="row g-2"></div>
+                            </div>
+                        </div>
+
+                        <!-- PDF Section -->
+                        <div id="pdfSection" class="form-group" style="display: none;">
+                            <div class="drop-zone p-4" onclick="document.getElementById('chapterPdf').click()">
+                                <input type="file" name="chapter_pdf" id="chapterPdf" accept="application/pdf"
+                                    style="display:none">
+                                <i class="fas fa-file-pdf upload-icon-lg"></i>
+                                <p>Upload Chapter PDF</p>
+                                <div id="chapterPdfName" class="small mt-2 font-weight-bold"
+                                    style="color: var(--neon-blue); display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN -->
+                <div class="col-lg-4">
+                    <div class="upload-card mb-4">
+                        <h5 class="upload-card-title">
+                            <i class="fas fa-image"></i>
+                            Series Poster
+                        </h5>
+                        <div class="drop-zone" style="height: 350px;" id="manga-drop-zone"
+                            onclick="document.getElementById('mangaCover').click()">
+                            <input type="file" name="cover_image" id="mangaCover" accept="image/*" style="display:none"
+                                onchange="previewImage(this, 'mangaCoverPreview')">
+                            <div id="mangaCoverOverlay" class="d-flex flex-column align-items-center">
+                                <i class="fas fa-image upload-icon-lg"></i>
+                                <p>Series Poster</p>
+                                <small>JPG, PNG (Max 5MB)</small>
+                            </div>
+                            <img id="mangaCoverPreview" src="#" alt="Preview"
+                                style="display:none; max-width:100%; max-height:300px; object-fit:contain; border-radius:12px;">
+                        </div>
+                    </div>
+
+                    <div class="upload-card highlight-card">
+                        <h5 class="upload-card-title">
+                            <i class="fas fa-info-circle"></i>
+                            Guidelines
+                        </h5>
+                        <ul class="list-unstyled small text-muted mb-4">
+                            <li class="mb-2"><i class="fas fa-check text-info me-2"></i> High quality covers attract
+                                more readers.</li>
+                            <li class="mb-2"><i class="fas fa-check text-info me-2"></i> Ensure pages are in correct
+                                reading order.</li>
+                            <li class="mb-2"><i class="fas fa-check text-info me-2"></i> Descriptive titles reach more
+                                users.</li>
+                        </ul>
+                        <button type="submit" class="btn-publish">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            Create Series
+                        </button>
+                    </div>
+                </div>
             </div>
-
-            <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Audio File (Optional)</label>
-              <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 30px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('bookAudio').click()">
-                <input type="file" name="audio_file" id="bookAudio" accept=".mp3" style="display:none">
-                <i class="fas fa-headphones" style="color: var(--neon-blue); font-size: 30px;"></i>
-                <p style="margin: 10px 0; color: #bbb;">Drag & Drop or Browse</p>
-                <small style="color: #999;">MP3 only (Max 100MB)</small>
-                <div id="bookAudioName" style="display: none; color: #667eea; margin-top: 10px;"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="d-grid mt-4">
-            <button type="submit" id="publish-btn" class="btn btn-neon" style="font-size: 16px; padding: 12px;">
-              <i class="fas fa-check me-2"></i>PUBLISH TO CATALOG
-            </button>
-          </div>
-        </div>
-
-        <!-- RIGHT COLUMN -->
-        <div style="grid-column: span 1;">
-          <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-            <h5 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Cover Image</h5>
-            <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05); display: flex; align-items: center; justify-content: center; height: 200px;" onclick="document.getElementById('bookCover').click()">
-              <input type="file" name="cover_image" id="bookCover" accept="image/*" style="display:none" onchange="previewImage(this, 'coverImagePreview')">
-              <div id="cover-upload-text-overlay">
-                <i class="fas fa-cloud-upload-alt" style="color:var(--neon-blue); font-size: 40px;"></i>
-                <p style="margin-bottom: 10px; color:var(--text-muted);">
-                  Drag & Drop or <a href="#" onclick="event.preventDefault(); document.getElementById('bookCover').click();" style="color:var(--neon-blue)">Browse</a>
-                </p>
-                <small style="color: #999;">JPG, PNG (Max 5MB)</small>
-              </div>
-              <img id="coverImagePreview" src="#" alt="Cover Image Preview" style="display:none; max-width:100%; max-height:100%; object-fit:contain; border-radius:4px;">
-              <button type="button" id="remove-coverImagePreview" class="btn btn-sm btn-outline-danger mt-2" style="display:none" onclick="removePreview('coverImagePreview', 'bookCover', 'cover-upload-text-overlay'); event.stopPropagation();">Remove</button>
-            </div>
-          </div>
-
-          <!-- PUBLISHING STATUS -->
-          <div class="section-container mb-4" id="publish-progress-card" style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 8px; padding:20px;">
-            <h5 class="section-title" style="font-size:14px; color:#fff; text-transform:uppercase;">PUBLISHING STATUS</h5>
-            <div id="initial-status" class="text-center p-3">
-              <i class="fas fa-circle-notch fs-3 text-warning mb-2"></i>
-              <p class="small text-white fw-bold mb-1">Awaiting Publish Action</p>
-              <span class="small text-muted">Click 'Publish' to start upload process.</span>
-            </div>
-            <div id="progress-area" style="display:none">
-              <p id="progress-text" class="small fw-bold mb-1" style="color:var(--neon-blue)">Initializing...</p>
-              <div class="progress mt-1" style="height:8px; background:#333">
-                <div id="progressBarFill" class="progress-bar bg-info" role="progressbar" style="width:0%"></div>
-              </div>
-              <div class="d-flex justify-content-end small fw-bold mt-1">
-                <span id="progress-percentage" style="color:var(--neon-blue)">0%</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- CHECKLIST -->
-          <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 8px; padding: 20px;">
-            <h5 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Cataloging Checklist</h5>
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="checkbox" checked>
-              <label class="form-check-label small">Metadata Verified</label>
-            </div>
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="checkbox" checked>
-              <label class="form-check-label small">Cataloging Checklist</label>
-            </div>
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="checkbox">
-              <label class="form-check-label small">Cataloging process starts</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox">
-              <label class="form-check-label small">Cataloging procedures</label>
-            </div>
-          </div>
-        </div>
-      </div>
-      <input type="hidden" name="book_type" value="book">
-    </form>
-  </div>
-
-  <!-- ===== MANGA UPLOAD FORM ===== -->
-  <div id="mangaTab" class="tab-content" style="display: none;">
-    <form method="POST" action="{{ url_for('add_book') }}" enctype="multipart/form-data" id="mangaForm">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
-        <!-- LEFT COLUMN -->
-        <div style="grid-column: span 2;">
-          <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-            <h5 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Manga Details</h5>
-
-            <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Manga Title</label>
-              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="title" required>
-            </div>
-
-            <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Author/Artist</label>
-              <input type="text" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="author" required>
-            </div>
-
-            <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 12px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-bookmark" style="color: var(--neon-blue);"></i>
-                Categories
-              </label>
-              <div id="mangaCategoriesContainer" class="categories-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Action" onchange="updateMangaCategoryCount()"> Action
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Adventure" onchange="updateMangaCategoryCount()"> Adventure
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Comedy" onchange="updateMangaCategoryCount()"> Comedy
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Drama" onchange="updateMangaCategoryCount()"> Drama
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Fantasy" onchange="updateMangaCategoryCount()"> Fantasy
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Historical" onchange="updateMangaCategoryCount()"> Historical
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Horror" onchange="updateMangaCategoryCount()"> Horror
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Romance" onchange="updateMangaCategoryCount()"> Romance
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Sci-Fi" onchange="updateMangaCategoryCount()"> Sci-Fi
-                </label>
-                <label class="category-checkbox" style="display: flex; align-items: center; padding: 10px 12px; background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                  <input type="checkbox" name="categories" value="Supernatural" onchange="updateMangaCategoryCount()"> Supernatural
-                </label>
-              </div>
-              <div id="mangaCategoryCount" style="color: var(--neon-blue); font-size: 12px; margin-top: 10px; font-weight: 500; display: flex; align-items: center; gap: 6px;"><i class="fas fa-check-circle"></i><span>Select at least one category</span></div>
-            </div>
-
-            <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-sync-alt" style="color: var(--neon-blue);"></i>
-                Publishing Status
-              </label>
-              <select name="status" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(102, 126, 234, 0.05) 100%); border: 2px solid rgba(102, 126, 234, 0.3); color: #fff; border-radius: 8px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box; cursor: pointer; transition: all 0.3s ease;" required>
-                <option value="ongoing" style="background: #2a2a2a; color: #fff;">🔄 Ongoing</option>
-                <option value="completed" style="background: #2a2a2a; color: #fff;">✅ Completed</option>
-                <option value="hiatus" style="background: #2a2a2a; color: #fff;">⏸️ On Hiatus</option>
-              </select>
-            </div>
-
-            <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Description</label>
-              <textarea style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(102, 126, 234, 0.2); color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%; box-sizing: border-box;" name="description" rows="4" placeholder="Tell us about your manga..."></textarea>
-            </div>
-          </div>
-
-          <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-            <h5 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">First Chapter</h5>
-            <p style="color: #999; font-size: 13px; margin-bottom: 15px;">Upload the first chapter here. You can add more chapters later.</p>
-
-            <div style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Upload Format</label>
-              <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-                <label style="display: flex; align-items: center; cursor: pointer; color: #bbb;">
-                  <input type="radio" name="chapter_format" value="images" checked onchange="toggleChapterFormat()" style="margin-right: 8px; cursor: pointer;">
-                  <span>Images (Multiple Pages)</span>
-                </label>
-                <label style="display: flex; align-items: center; cursor: pointer; color: #bbb;">
-                  <input type="radio" name="chapter_format" value="pdf" onchange="toggleChapterFormat()" style="margin-right: 8px; cursor: pointer;">
-                  <span>PDF File</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Images Upload Section -->
-            <div id="imagesSection" style="margin-bottom: 20px;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter 1 Pages</label>
-              <p style="color: #999; font-size: 12px; margin-bottom: 12px;">Upload multiple page images (JPG, PNG). They will be automatically ordered by upload order.</p>
-              <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 30px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterPages').click()">
-                <input type="file" name="chapter_pages" id="chapterPages" accept="image/jpeg,image/png" multiple style="display:none">
-                <i class="fas fa-images" style="color: var(--neon-blue); font-size: 30px;"></i>
-                <p style="margin: 10px 0; color: #bbb;">Drag & Drop or Browse</p>
-                <small style="color: #999;">Image files (JPG, PNG - Max 5MB each)</small>
-                <div id="chapterPagesCount" style="display: none; color: #667eea; margin-top: 10px; font-weight: 600;"></div>
-              </div>
-              <div id="pagePreviewContainer" style="margin-top: 15px; max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; display: none;">
-                <p style="color: #aaa; font-size: 12px; margin: 0 0 10px 0;">Page Preview:</p>
-                <div id="pagesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px;"></div>
-              </div>
-            </div>
-
-            <!-- PDF Upload Section -->
-            <div id="pdfSection" style="margin-bottom: 20px; display: none;">
-              <label style="margin-bottom: 8px; color: #ddd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: block;">Chapter 1 PDF</label>
-              <p style="color: #999; font-size: 12px; margin-bottom: 12px;">Upload a single PDF file for this chapter.</p>
-              <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 30px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);" onclick="document.getElementById('chapterPdf').click()">
-                <input type="file" name="chapter_pdf" id="chapterPdf" accept="application/pdf" style="display:none">
-                <i class="fas fa-file-pdf" style="color: var(--neon-blue); font-size: 30px;"></i>
-                <p style="margin: 10px 0; color: #bbb;">Drag & Drop or Browse</p>
-                <small style="color: #999;">PDF file (Max 50MB)</small>
-                <div id="chapterPdfName" style="display: none; color: #667eea; margin-top: 10px; font-weight: 600;"></div>
-              </div>
-            </div>
-          </div>
-
-          <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: #fff; font-weight: 600; border-radius: 6px; transition: all 0.3s; cursor: pointer; width: 100%; font-size: 16px; padding: 12px;">
-            <i class="fas fa-check me-2"></i>CREATE MANGA SERIES
-          </button>
-        </div>
-
-        <!-- RIGHT COLUMN -->
-        <div style="grid-column: span 1;">
-          <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-            <h5 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Cover Image</h5>
-            <div style="border: 2px dashed rgba(102, 126, 234, 0.3); border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05); display: flex; align-items: center; justify-content: center; height: 240px;" onclick="document.getElementById('mangaCover').click()">
-              <input type="file" name="cover_image" id="mangaCover" accept="image/*" style="display:none" onchange="previewImage(this, 'mangaCoverPreview')">
-              <div id="mangaCoverPreview">
-                <i class="fas fa-cloud-upload-alt" style="color:var(--neon-blue); font-size: 40px;"></i>
-                <p style="margin-bottom: 10px; color:var(--text-muted);">
-                  Drag & Drop or <a href="#" onclick="event.preventDefault(); document.getElementById('mangaCover').click();" style="color:var(--neon-blue)">Browse</a>
-                </p>
-                <small style="color: #999;">JPG, PNG (Max 5MB)</small>
-              </div>
-            </div>
-          </div>
-
-          <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 8px; padding: 20px;">
-            <h5 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Info</h5>
-            <p style="font-size: 12px; color: #999; line-height: 1.6;">
-              After creating your manga series, you can upload additional chapters anytime from your dashboard.
-            </p>
-          </div>
-        </div>
-      </div>
-      <input type="hidden" name="book_type" value="manga">
-    </form>
-  </div>
+            <input type="hidden" name="book_type" value="manga">
+        </form>
+    </div>
 </div>
 
+<!-- Include modals OUTSIDE all forms to prevent click/interaction issues -->
+{% include 'audio_metadata_modal.html' %}
+{% include 'structured_summary_modal.html' %}
+
 <style>
-.type-tab:hover {
-  color: #667eea;
-}
+    /* ===== Upload Page Premium Styles ===== */
+    :root {
+        --neon-blue: #00d4ff;
+        --neon-purple: #9d50bb;
+        --glass-bg: rgba(20, 20, 25, 0.6);
+        --glass-border: rgba(255, 255, 255, 0.08);
+    }
 
-.type-tab.active {
-  color: #667eea !important;
-  border-bottom-color: #667eea !important;
-}
+    .upload-page-container {
+        max-width: 1300px;
+        margin: 40px auto;
+        padding: 0 40px;
+        animation: fadeIn 0.8s ease-out;
+    }
 
-.tab-content {
-  animation: fadeIn 0.3s ease-in;
-}
+    /* Premium Page Header */
+    .upload-header-section {
+        position: relative;
+        padding: 40px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 40px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+    .upload-header-section::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -20%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+        filter: blur(40px);
+        z-index: 0;
+    }
 
-select option {
-  background: #1a1a2e;
-  color: #fff;
-}
+    .upload-header-content {
+        position: relative;
+        z-index: 1;
+    }
 
-button[type="submit"]:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-}
+    .upload-header-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0;
+        background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
 
-@media (max-width: 768px) {
-  [style*="grid-column: span 2"] {
-    grid-column: span 1 !important;
-  }
-}
+    .upload-header-subtitle {
+        color: #a1a1aa;
+        margin-top: 8px;
+        font-size: 1.1rem;
+    }
+
+    /* Tabs Styling */
+    .upload-tabs {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 40px;
+        padding: 5px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        width: fit-content;
+    }
+
+    .type-tab {
+        background: transparent;
+        border: none;
+        color: #71717a;
+        padding: 12px 30px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 12px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .type-tab:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .type-tab.active {
+        background: linear-gradient(135deg, #00d4ff, #0ea5e9);
+        color: #000;
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+    }
+
+    /* Card Styling */
+    .upload-card {
+        background: rgba(20, 20, 25, 0.6);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .upload-card:hover {
+        border-color: rgba(0, 212, 255, 0.2);
+    }
+
+    .upload-card-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .upload-card-title i {
+        color: #00d4ff;
+    }
+
+    /* Form Controls */
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #a1a1aa;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px 18px;
+        color: #fff;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+        outline: none;
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.02);
+        box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.1);
+    }
+
+    /* Drop Zone */
+    .drop-zone {
+        border: 2px dashed rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 35px 20px;
+        min-height: 180px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.02);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .drop-zone:hover {
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.04);
+    }
+
+    .drop-zone i {
+        font-size: 2.5rem;
+        color: #00d4ff;
+        transition: transform 0.3s ease;
+    }
+
+    .drop-zone:hover i {
+        transform: translateY(-5px);
+    }
+
+    /* Categories Grid */
+    .categories-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 10px;
+        max-height: 250px;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+
+    .category-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+        color: #a1a1aa;
+    }
+
+    .category-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+    }
+
+    .category-item input {
+        margin-right: 10px;
+    }
+
+    .category-item.selected {
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.1);
+        color: #00d4ff;
+    }
+
+    /* Custom Scrollbar */
+    .categories-grid::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .categories-grid::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .categories-grid::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+
+    /* Publishing Status */
+    .status-card {
+        background: rgba(0, 212, 255, 0.03);
+        border: 1px solid rgba(0, 212, 255, 0.15);
+    }
+
+    .progress-container {
+        height: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 15px 0;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00d4ff, #0ea5e9);
+        width: 0%;
+        transition: width 0.3s ease;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+    }
+
+    /* Buttons */
+    .btn-publish {
+        background: linear-gradient(135deg, #00d4ff, #0ea5e9);
+        color: #000;
+        border: none;
+        padding: 16px;
+        border-radius: 14px;
+        font-size: 1.1rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%;
+    }
+
+    .btn-publish:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 212, 255, 0.4);
+    }
+
+    .highlight-card {
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        background: linear-gradient(135deg, rgba(20, 20, 25, 0.8) 0%, rgba(0, 212, 255, 0.05) 100%);
+    }
+
+    /* Premium Request Badge */
+    .request-badge-premium {
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 20px;
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+    }
+
+    .request-badge-premium::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--neon-blue);
+        box-shadow: 0 0 10px var(--neon-blue);
+    }
+
+    .request-icon-glow {
+        width: 40px;
+        height: 40px;
+        background: rgba(0, 212, 255, 0.1);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--neon-blue);
+        font-size: 1.2rem;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+    }
+
+    .btn-close-mini {
+        width: 28px;
+        height: 28px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #71717a;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-close-mini:hover {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    /* Category Chips */
+    .category-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 18px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #a1a1aa;
+        text-align: center;
+        user-select: none;
+    }
+
+    .category-item input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+    }
+
+    .category-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        transform: translateY(-2px);
+    }
+
+    .category-item.selected {
+        background: rgba(0, 212, 255, 0.08);
+        border-color: var(--neon-blue);
+        color: var(--neon-blue);
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+    }
+
+    .category-item.selected::before {
+        content: '\f00c';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        margin-right: 8px;
+        font-size: 0.8rem;
+    }
+
+    /* Description Editor */
+    .description-editor-container {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .description-editor-container:focus-within {
+        border-color: var(--neon-blue);
+        box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.1);
+    }
+
+    .description-editor-container .toolbar {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 10px 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .btn-ghost {
+        background: transparent;
+        border: none;
+        color: #71717a;
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .btn-ghost:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+
+    .btn-ghost.active {
+        background: rgba(0, 212, 255, 0.1);
+        color: var(--neon-blue);
+    }
+
+    .form-textarea[contenteditable="true"] {
+        padding: 20px;
+        min-height: 250px;
+        outline: none;
+        border: none;
+        background: transparent;
+        line-height: 1.6;
+        color: #e4e4e7;
+    }
+
+    .form-textarea[contenteditable="true"]:empty:before {
+        content: attr(data-placeholder);
+        color: #52525b;
+    }
+
+    /* Drop Zone Polish */
+    .drop-zone .upload-icon-lg {
+        font-size: 2.8rem;
+        margin-bottom: 5px;
+        background: linear-gradient(135deg, #00d4ff, #0ea5e9);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .drop-zone p {
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 0px;
+        font-size: 1rem;
+    }
+
+    .drop-zone small {
+        font-size: 0.75rem;
+        color: #71717a;
+        letter-spacing: 0.5px;
+    }
+
+    /* Tabs and Content */
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 992px) {
+        .upload-page-container {
+            padding: 0 20px;
+        }
+    }
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Update category count for book
-  window.updateBookCategoryCount = function() {
-    const countDiv = document.getElementById('bookCategoryCount');
-    const checkboxes = document.querySelectorAll('#bookCategoriesContainer input[type="checkbox"]:checked');
-    if (checkboxes.length === 0) {
-      countDiv.innerHTML = '<i class="fas fa-check-circle"></i><span>Select at least one category</span>';
-      countDiv.style.color = '#999';
-    } else if (checkboxes.length === 1) {
-      const selectedText = checkboxes[0].parentElement.textContent.trim();
-      countDiv.innerHTML = `<i class="fas fa-check-circle"></i><span>✓ ${selectedText}</span>`;
-      countDiv.style.color = 'var(--neon-blue)';
-    } else {
-      countDiv.innerHTML = `<i class="fas fa-check-circle"></i><span>✓ ${checkboxes.length} categories selected</span>`;
-      countDiv.style.color = 'var(--neon-blue)';
-    }
-  };
+    document.addEventListener('DOMContentLoaded', function () {
+        // Update category count for book
+        window.updateBookCategoryCount = function () {
+            const countDiv = document.getElementById('bookCategoryCount');
+            const checkboxes = document.querySelectorAll('#bookCategoriesContainer input[type="checkbox"]:checked');
 
-  // Update category count for manga
-  window.updateMangaCategoryCount = function() {
-    const countDiv = document.getElementById('mangaCategoryCount');
-    const checkboxes = document.querySelectorAll('#mangaCategoriesContainer input[type="checkbox"]:checked');
-    if (checkboxes.length === 0) {
-      countDiv.innerHTML = '<i class="fas fa-check-circle"></i><span>Select at least one category</span>';
-      countDiv.style.color = '#999';
-    } else if (checkboxes.length === 1) {
-      const selectedText = checkboxes[0].parentElement.textContent.trim();
-      countDiv.innerHTML = `<i class="fas fa-check-circle"></i><span>✓ ${selectedText}</span>`;
-      countDiv.style.color = 'var(--neon-blue)';
-    } else {
-      countDiv.innerHTML = `<i class="fas fa-check-circle"></i><span>✓ ${checkboxes.length} categories selected</span>`;
-      countDiv.style.color = 'var(--neon-blue)';
-    }
-  };
+            // Toggle 'selected' class on parent label for visual feedback
+            document.querySelectorAll('#bookCategoriesContainer .category-item').forEach(label => {
+                const cb = label.querySelector('input');
+                if (cb.checked) label.classList.add('selected');
+                else label.classList.remove('selected');
+            });
 
-  function switchTab(tab) {
-    const bookTab = document.getElementById('bookTab');
-    const mangaTab = document.getElementById('mangaTab');
-    const tabs = document.querySelectorAll('.type-tab');
-    
-    if (tab === 'book') {
-      bookTab.style.display = 'block';
-      mangaTab.style.display = 'none';
-      tabs[0].classList.add('active');
-      tabs[1].classList.remove('active');
-    } else {
-      bookTab.style.display = 'none';
-      mangaTab.style.display = 'block';
-      tabs[1].classList.add('active');
-      tabs[0].classList.remove('active');
-    }
-  }
+            if (checkboxes.length === 0) {
+                countDiv.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>Select at least one category';
+                countDiv.style.color = '#71717a';
+            } else {
+                countDiv.innerHTML = `<i class="fas fa-check-circle me-1"></i>${checkboxes.length} categories selected`;
+                countDiv.style.color = 'var(--neon-blue)';
+            }
+        };
 
-  window.switchTab = switchTab;
+        // Update category count for manga
+        window.updateMangaCategoryCount = function () {
+            const countDiv = document.getElementById('mangaCategoryCount');
+            const checkboxes = document.querySelectorAll('#mangaCategoriesContainer input[type="checkbox"]:checked');
 
-  function formatText(cmd) {
-    document.getElementById('description').focus();
-    try {
-      document.execCommand(cmd, false, null);
-    } catch (e) {
-      console.warn('Formatting command failed', cmd, e);
-    }
-  }
+            document.querySelectorAll('#mangaCategoriesContainer .category-item').forEach(label => {
+                const cb = label.querySelector('input');
+                if (cb.checked) label.classList.add('selected');
+                else label.classList.remove('selected');
+            });
 
-  function previewImage(input, previewId) {
-    if (input.files && input.files[0]) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const preview = document.getElementById(previewId);
-        if (!preview) return;
-        // If target is an <img>, set src and show it
-        if (preview.tagName.toLowerCase() === 'img') {
-          preview.src = e.target.result;
-          preview.style.display = 'block';
-          // hide overlay text if present
-          const overlay = document.getElementById('cover-upload-text-overlay');
-          if (overlay) overlay.style.display = 'none';
-          const removeBtn = document.getElementById('remove-coverImagePreview');
-          if (removeBtn) removeBtn.style.display = 'inline-block';
-        } else {
-          preview.innerHTML = '<img src="' + e.target.result + '" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">';
+            if (checkboxes.length === 0) {
+                countDiv.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>Select at least one genre';
+                countDiv.style.color = '#71717a';
+            } else {
+                countDiv.innerHTML = `<i class="fas fa-check-circle me-1"></i>${checkboxes.length} genres selected`;
+                countDiv.style.color = 'var(--neon-blue)';
+            }
+        };
+
+        function switchTab(tab) {
+            const bookTab = document.getElementById('bookTab');
+            const mangaTab = document.getElementById('mangaTab');
+            const tabs = document.querySelectorAll('.type-tab');
+            const bookTypeField = document.getElementById('book_type_field');
+
+            if (tab === 'book' || tab === 'research_paper') {
+                bookTab.style.display = 'block';
+                mangaTab.style.display = 'none';
+                if (tab === 'book') {
+                    tabs[0].classList.add('active');
+                    tabs[1].classList.remove('active');
+                    tabs[2].classList.remove('active');
+                    tabs[3].classList.remove('active');
+                    tabs[4].classList.remove('active');
+                    if (bookTypeField) bookTypeField.value = 'book';
+                } else {
+                    tabs[2].classList.add('active');
+                    tabs[1].classList.remove('active');
+                    tabs[0].classList.remove('active');
+                    tabs[3].classList.remove('active');
+                    tabs[4].classList.remove('active');
+                    if (bookTypeField) bookTypeField.value = 'research_paper';
+                }
+            } else {
+                bookTab.style.display = 'none';
+                mangaTab.style.display = 'block';
+                if (tab === 'manga') {
+                    tabs[1].classList.add('active');
+                    tabs[0].classList.remove('active');
+                    tabs[2].classList.remove('active');
+                    tabs[3].classList.remove('active');
+                    tabs[4].classList.remove('active');
+                    if (bookTypeField) bookTypeField.value = 'manga';
+                } else if (tab === 'manhwa') {
+                    tabs[3].classList.add('active');
+                    tabs[0].classList.remove('active');
+                    tabs[1].classList.remove('active');
+                    tabs[2].classList.remove('active');
+                    tabs[4].classList.remove('active');
+                    if (bookTypeField) bookTypeField.value = 'manhwa';
+                } else if (tab === 'light_novel') {
+                    tabs[4].classList.add('active');
+                    tabs[0].classList.remove('active');
+                    tabs[1].classList.remove('active');
+                    tabs[2].classList.remove('active');
+                    tabs[3].classList.remove('active');
+                    if (bookTypeField) bookTypeField.value = 'light_novel';
+                }
+            }
         }
-      };
-      reader.readAsDataURL(input.files[0]);
-    }
-  }
 
-  function removePreview(imgId, inputId, overlayId) {
-    const img = document.getElementById(imgId);
-    const input = document.getElementById(inputId);
-    const overlay = document.getElementById(overlayId);
-    if (img && img.tagName.toLowerCase() === 'img') {
-      img.src = '#';
-      img.style.display = 'none';
-    }
-    if (input) {
-      input.value = null;
-    }
-    if (overlay) {
-      overlay.style.display = 'block';
-    }
-    const removeBtn = document.getElementById('remove-coverImagePreview');
-    if (removeBtn) removeBtn.style.display = 'none';
-  }
+        window.switchTab = switchTab;
 
-  function simulatePublish(e) {
-    e.preventDefault();
-    const form = document.getElementById('addBookForm');
-    const desc = document.getElementById('description');
-    const descHidden = document.getElementById('description_hidden');
-    const initial = document.getElementById('initial-status');
-    const progressArea = document.getElementById('progress-area');
-    const progressBar = document.getElementById('progressBarFill');
-    const progressText = document.getElementById('progress-text');
-    const progressPercent = document.getElementById('progress-percentage');
+        function formatText(cmd) {
+            document.getElementById('description').focus();
+            try {
+                document.execCommand(cmd, false, null);
+            } catch (e) {
+                console.warn('Formatting command failed', cmd, e);
+            }
+        }
 
-    if (desc && descHidden) {
-      descHidden.value = desc.innerHTML.trim();
-    }
+        function previewImage(input, previewId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const preview = document.getElementById(previewId);
+                    if (!preview) return;
 
-    if (initial) initial.style.display = 'none';
-    if (progressArea) progressArea.style.display = 'block';
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
 
-    let val = 0;
-    progressText.textContent = 'Uploading...';
+                    // Hide relative overlay
+                    const overlayId = previewId.includes('manga') ? 'mangaCoverOverlay' : 'cover-upload-text-overlay';
+                    const overlay = document.getElementById(overlayId);
+                    if (overlay) overlay.style.display = 'none';
 
-    const interval = setInterval(function() {
-      val += Math.floor(Math.random() * 15) + 5; // bump progress
-      if (val > 100) val = 100;
-      if (progressBar) progressBar.style.width = val + '%';
-      if (progressPercent) progressPercent.textContent = val + '%';
+                    // Show remove button for book cover
+                    if (previewId === 'coverImagePreview') {
+                        const removeBtn = document.getElementById('remove-coverImagePreview');
+                        if (removeBtn) removeBtn.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
 
-      if (val >= 100) {
-        clearInterval(interval);
-        progressText.textContent = 'Finalizing...';
-        setTimeout(function() {
-          // submit the form for real
-          form.submit();
-        }, 600);
-      }
-    }, 300);
+        function removePreview(imgId, inputId, overlayId) {
+            const img = document.getElementById(imgId);
+            const input = document.getElementById(inputId);
+            const overlay = document.getElementById(overlayId);
+            if (img) {
+                img.src = '#';
+                img.style.display = 'none';
+            }
+            if (input) input.value = null;
+            if (overlay) overlay.style.display = 'flex';
 
-    return false; // prevent default immediate submit
-  }
+            const removeBtn = document.getElementById('remove-coverImagePreview');
+            if (removeBtn) removeBtn.style.display = 'none';
+        }
 
-  window.formatText = formatText;
-  window.previewImage = previewImage;
-  window.removePreview = removePreview;
-  window.simulatePublish = simulatePublish;
+        function simulatePublish(e) {
+            e.preventDefault();
+            const form = document.getElementById('addBookForm');
+            const desc = document.getElementById('description');
+            const descHidden = document.getElementById('description_hidden');
+            const initial = document.getElementById('initial-status');
+            const progressArea = document.getElementById('progress-area');
+            const progressBar = document.getElementById('progressBarFill');
+            const progressText = document.getElementById('progress-text');
+            const progressPercent = document.getElementById('progress-percentage');
+            const btn = document.getElementById('publish-btn');
 
-  // File name display handlers (guard existence)
-  const bookPdf = document.getElementById('bookPdf');
-  if (bookPdf) bookPdf.addEventListener('change', function() {
-    const name = document.getElementById('bookPdfName');
-    if (!name) return;
-    name.textContent = '✓ ' + (this.files[0]?.name || '');
-    name.style.display = this.files[0] ? 'block' : 'none';
-  });
+            if (desc && descHidden) {
+                descHidden.value = desc.innerHTML.trim();
+            }
 
-  const bookAudio = document.getElementById('bookAudio');
-  if (bookAudio) bookAudio.addEventListener('change', function() {
-    const name = document.getElementById('bookAudioName');
-    if (!name) return;
-    name.textContent = '✓ ' + (this.files[0]?.name || '');
-    name.style.display = this.files[0] ? 'block' : 'none';
-  });
+            if (btn) btn.disabled = true;
+            if (initial) initial.style.display = 'none';
+            if (progressArea) progressArea.style.display = 'block';
 
-  const chapter1 = document.getElementById('chapter1');
-  if (chapter1) chapter1.addEventListener('change', function() {
-    const name = document.getElementById('chapter1Name');
-    if (!name) return;
-    name.textContent = '✓ ' + (this.files[0]?.name || '');
-    name.style.display = this.files[0] ? 'block' : 'none';
-  });
+            let val = 0;
+            progressText.textContent = 'Uploading files...';
 
-  // Handle multiple chapter page uploads
-  const chapterPages = document.getElementById('chapterPages');
-  if (chapterPages) {
-    chapterPages.addEventListener('change', function() {
-      const files = this.files;
-      const countDiv = document.getElementById('chapterPagesCount');
-      const previewDiv = document.getElementById('pagePreviewContainer');
-      const pagesList = document.getElementById('pagesList');
-      
-      if (files.length > 0) {
-        countDiv.textContent = `✓ ${files.length} page${files.length !== 1 ? 's' : ''} selected`;
-        countDiv.style.display = 'block';
-        previewDiv.style.display = 'block';
-        pagesList.innerHTML = '';
-        
-        // Show preview of each page
-        Array.from(files).forEach((file, index) => {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            const thumbContainer = document.createElement('div');
-            thumbContainer.style.cssText = 'position: relative; cursor: pointer; border-radius: 4px; overflow: hidden;';
-            thumbContainer.innerHTML = `
-              <img src="${e.target.result}" style="width: 100%; height: 100px; object-fit: cover; border: 1px solid rgba(102,126,234,0.3); border-radius: 4px;">
-              <span style="position: absolute; top: 2px; right: 2px; background: var(--neon-blue); color: #000; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px;">${index + 1}</span>
-            `;
-            pagesList.appendChild(thumbContainer);
-          };
-          reader.readAsDataURL(file);
+            const interval = setInterval(function () {
+                val += Math.floor(Math.random() * 8) + 2;
+                if (val > 100) val = 100;
+
+                if (progressBar) progressBar.style.width = val + '%';
+                if (progressPercent) progressPercent.textContent = val + '%';
+
+                if (val >= 100) {
+                    clearInterval(interval);
+                    progressText.textContent = 'Finalizing...';
+                    setTimeout(() => form.submit(), 800);
+                } else if (val > 70) {
+                    progressText.textContent = 'Processing metadata...';
+                }
+            }, 150);
+
+            return false;
+        }
+
+        window.formatText = formatText;
+        window.previewImage = previewImage;
+        window.removePreview = removePreview;
+        window.simulatePublish = simulatePublish;
+
+        // File Name Displays
+        const pdfInput = document.getElementById('bookPdf');
+        if (pdfInput) pdfInput.addEventListener('change', function () {
+            const display = document.getElementById('bookPdfName');
+            if (display) {
+                display.textContent = this.files[0] ? `✓ ${this.files[0].name}` : 'Upload PDF';
+                display.style.color = this.files[0] ? 'var(--neon-blue)' : '#71717a';
+            }
         });
-      } else {
-        countDiv.style.display = 'none';
-        previewDiv.style.display = 'none';
-      }
-    });
-  }
 
-  // Handle PDF file selection
-  const chapterPdf = document.getElementById('chapterPdf');
-  if (chapterPdf) {
-    chapterPdf.addEventListener('change', function() {
-      const nameDiv = document.getElementById('chapterPdfName');
-      if (nameDiv) {
-        nameDiv.textContent = this.files[0] ? `✓ ${this.files[0].name}` : '';
-        nameDiv.style.display = this.files[0] ? 'block' : 'none';
-      }
-    });
-  }
+        const audioInput = document.getElementById('bookAudio');
+        if (audioInput) audioInput.addEventListener('change', function () {
+            const display = document.getElementById('bookAudioName');
+            const metadataFields = document.getElementById('audioMetadataFields');
 
-  // Toggle between images and PDF format
-  window.toggleChapterFormat = function() {
-    const format = document.querySelector('input[name="chapter_format"]:checked').value;
-    const imagesSection = document.getElementById('imagesSection');
-    const pdfSection = document.getElementById('pdfSection');
-    
-    if (format === 'images') {
-      imagesSection.style.display = 'block';
-      pdfSection.style.display = 'none';
-    } else {
-      imagesSection.style.display = 'none';
-      pdfSection.style.display = 'block';
-    }
-  };
-});
+            if (display) {
+                display.textContent = this.files[0] ? `✓ ${this.files[0].name}` : 'Upload MP3';
+                display.style.color = this.files[0] ? 'var(--neon-blue)' : '#71717a';
+            }
+
+            if (metadataFields) {
+                metadataFields.style.display = this.files[0] ? 'block' : 'none';
+            }
+        });
+
+        window.handleAudioUpload = function (input) {
+            const metadataFields = document.getElementById('audioMetadataFields');
+            if (metadataFields) {
+                metadataFields.style.display = input.files[0] ? 'block' : 'none';
+            }
+        };
+
+        const mangaPagesInput = document.getElementById('chapterPages');
+        if (mangaPagesInput) {
+            mangaPagesInput.addEventListener('change', function () {
+                const files = this.files;
+                const countBadge = document.getElementById('chapterPagesCount');
+                const previewCont = document.getElementById('pagePreviewContainer');
+                const list = document.getElementById('pagesList');
+
+                if (files.length > 0) {
+                    countBadge.textContent = `${files.length} pages selected`;
+                    countBadge.style.display = 'inline-block';
+                    previewCont.style.display = 'block';
+                    list.innerHTML = '';
+
+                    Array.from(files).slice(0, 12).forEach((file, idx) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const div = document.createElement('div');
+                            div.className = 'col-3 col-md-2';
+                            div.innerHTML = `
+                <div style="position:relative; aspect-ratio: 2/3; background: #111; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                    <img src="${e.target.result}" style="width:100%; height:100%; object-fit:cover;">
+                    <span style="position:absolute; bottom:0; right:0; background:var(--neon-blue); color:#000; font-size:10px; padding:2px 5px; font-weight:bold;">${idx + 1}</span>
+                </div>
+            `;
+                            list.appendChild(div);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                    if (files.length > 12) {
+                        const more = document.createElement('div');
+                        more.className = 'col-3 col-md-2 d-flex align-items-center justify-content-center text-muted small';
+                        more.innerHTML = `+${files.length - 12} more`;
+                        list.appendChild(more);
+                    }
+                } else {
+                    countBadge.style.display = 'none';
+                    previewCont.style.display = 'none';
+                }
+            });
+        }
+
+        const mangaPdfInput = document.getElementById('chapterPdf');
+        if (mangaPdfInput) mangaPdfInput.addEventListener('change', function () {
+            const display = document.getElementById('chapterPdfName');
+            if (display) {
+                display.textContent = this.files[0] ? `✓ ${this.files[0].name}` : '';
+                display.style.display = this.files[0] ? 'block' : 'none';
+            }
+        });
+
+        window.toggleChapterFormat = function () {
+            const format = document.querySelector('input[name="chapter_format"]:checked').value;
+            const imgSec = document.getElementById('imagesSection');
+            const pdfSec = document.getElementById('pdfSection');
+            if (format === 'images') {
+                imgSec.style.display = 'block';
+                pdfSec.style.display = 'none';
+            } else {
+                imgSec.style.display = 'none';
+                pdfSec.style.display = 'block';
+            }
+        };
+    });
 </script>
+
+{% include 'audio_metadata_modal.html' %}
 {% endblock %}

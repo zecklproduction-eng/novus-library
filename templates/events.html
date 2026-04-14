@@ -1,0 +1,986 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+:root {
+    --accent-primary: #00d2ff;
+    --accent-secondary: #3a7bd5;
+    --accent-gold: #ffc107;
+    --accent-success: #22c55e;
+    --card-bg: rgba(15, 15, 20, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+.events-page-wrapper {
+    min-height: 100vh;
+    padding: 60px 0;
+    background: radial-gradient(circle at 10% 10%, rgba(0, 210, 255, 0.05), transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(98, 0, 234, 0.05), transparent 40%);
+    font-family: 'Outfit', 'Inter', sans-serif;
+    color: #f0f0f0;
+}
+
+.mission-center-hero {
+    text-align: center;
+    margin-bottom: 80px;
+}
+
+.mission-center-hero h1 {
+    font-size: 3.5rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin-bottom: 15px;
+    background: linear-gradient(to right, #fff, #888);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: #94a3b8;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.section-wrapper {
+    margin-bottom: 80px;
+}
+
+.section-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 30px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent-primary);
+}
+
+.section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, rgba(0, 210, 255, 0.3), transparent);
+}
+
+.mission-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 30px;
+}
+
+.mission-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+}
+
+.mission-card:hover {
+    transform: translateY(-10px);
+    border-color: rgba(0, 210, 255, 0.3);
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(0, 210, 255, 0.1);
+}
+
+.mission-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--accent-primary), transparent);
+    opacity: 0;
+    transition: opacity 0.4s;
+}
+
+.mission-card:hover::before {
+    opacity: 1;
+}
+
+.mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 25px;
+}
+
+.mission-icon {
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: var(--accent-primary);
+    box-shadow: inset 0 0 20px rgba(0, 210, 255, 0.05);
+}
+
+.mission-badge {
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-featured { background: rgba(255, 193, 7, 0.1); color: var(--accent-gold); border: 1px solid rgba(255, 193, 7, 0.2); }
+.badge-joined { background: rgba(34, 197, 94, 0.1); color: var(--accent-success); border: 1px solid rgba(34, 197, 94, 0.2); }
+
+.mission-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #fff;
+    line-height: 1.2;
+}
+
+.mission-host {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 50px;
+    width: fit-content;
+    font-size: 0.85rem;
+}
+
+.host-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--accent-primary);
+}
+
+.mission-desc {
+    font-size: 0.95rem;
+    color: #94a3b8;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    height: 48px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.mission-stats {
+    display: flex;
+    gap: 20px;
+    margin-top: auto;
+    padding-top: 25px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.action-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn-hub {
+    padding: 14px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    color: #fff;
+    box-shadow: 0 10px 20px -5px rgba(0, 210, 255, 0.3);
+}
+
+.btn-primary:hover {
+    transform: scale(1.02);
+    box-shadow: 0 15px 30px -5px rgba(0, 210, 255, 0.4);
+    color: #fff;
+}
+
+.btn-outline {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+}
+
+.btn-outline:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+/* Reward Shop Button */
+.shop-cta-container {
+    margin-top: 25px;
+    display: flex;
+    justify-content: center;
+}
+
+.btn-shop-cta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.1));
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 12px;
+    color: #ffd700;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.5px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+}
+
+.btn-shop-cta:hover {
+    transform: translateY(-3px) scale(1.02);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 165, 0, 0.2));
+    border-color: #ffd700;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+    color: #fff;
+}
+
+.btn-shop-cta i {
+    font-size: 1.2rem;
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+}
+
+.shop-cta-badge {
+    background: #ffd700;
+    color: #000;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 900;
+    margin-left: 5px;
+}
+
+/* Modal Enhancements */
+.hub-modal {
+    background: #0f172a !important;
+    max-width: 650px !important;
+    border-color: rgba(0, 210, 255, 0.1) !important;
+}
+
+.mission-task-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: border-color 0.3s;
+}
+
+.mission-task-card:hover { border-color: rgba(0, 210, 255, 0.2); }
+
+.task-type-tag {
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: inline-block;
+}
+
+.tag-normal { background: rgba(0, 210, 255, 0.1); color: var(--accent-primary); }
+.tag-limited { background: rgba(244, 63, 94, 0.1); color: #f43f5e; }
+
+.empty-state {
+    text-align: center;
+    padding: 100px 40px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 32px;
+    border: 2px dashed rgba(255,255,255,0.05);
+}
+
+/* --- Added Modal Styles --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(2, 6, 23, 0.85);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.hub-modal {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    background: #0f172a;
+    border: 1px solid rgba(0, 210, 255, 0.2);
+    border-radius: 28px;
+    padding: 40px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    background: rgba(244, 63, 94, 0.1);
+    color: #f43f5e;
+    transform: rotate(90deg);
+}
+
+.modal-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.stat-box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 15px 10px;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.stat-box:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(0, 210, 255, 0.2);
+}
+
+.stat-val {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 2px;
+}
+
+.modal-description-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 25px;
+    color: #cbd5e1;
+    line-height: 1.6;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* Progress Tracker */
+.progress-tracker {
+    background: rgba(0, 210, 255, 0.05);
+    border: 1px solid rgba(0, 210, 255, 0.1);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+.progress-tracker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.progress-tracker-label {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.progress-tracker-count {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #00d2ff;
+}
+.progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00d2ff, #7c3aed);
+    border-radius: 8px;
+    transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 12px rgba(0, 210, 255, 0.4);
+}
+.progress-bar-fill.complete {
+    background: linear-gradient(90deg, #10b981, #059669);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+</style>
+
+<div class="events-page-wrapper">
+    <div class="container">
+        
+        <div class="mission-center-hero">
+            <h1>Mission Center</h1>
+            <p class="hero-subtitle">Engage in systemic challenges, prove your reading prowess, and claim legendary rewards in the library network.</p>
+            <div class="shop-cta-container">
+                <a href="{{ url_for('shop') }}" class="btn-shop-cta">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Reward Exchange Shop</span>
+                    <span class="shop-cta-badge">New</span>
+                </a>
+            </div>
+        </div>
+
+        {% macro render_mission(event) %}
+        {% set is_joined = event.id in joined_event_ids %}
+        <div class="mission-card">
+            <div class="mission-header">
+                <div class="mission-icon">
+                    {% if event.icon and event.icon.startswith('/static/') %}
+                    <img src="{{ event.icon }}" style="width: 40px; height: 40px; border-radius: 8px;">
+                    {% else %}
+                    <i class="{{ event.icon if event.icon else 'fas fa-rocket' }}"></i>
+                    {% endif %}
+                </div>
+                <div class="d-flex flex-column align-items-end gap-2">
+                    {% if is_joined %}<span class="mission-badge badge-joined"><i class="fas fa-check"></i> Active</span>{% endif %}
+                    {% if event.featured %}<span class="mission-badge badge-featured"><i class="fas fa-star"></i> Featured</span>{% endif %}
+                </div>
+            </div>
+
+            <h3 class="mission-title">{{ event.name }}</h3>
+            
+            <div class="mission-host">
+                <img src="{{ event.creator_avatar if event.creator_avatar else '/static/uploads/avatars/default.png' }}" class="host-avatar">
+                <span>{{ event.group_name + ' / ' if event.group_name else '' }}{{ event.creator_name }}</span>
+            </div>
+
+            <p class="mission-desc">{{ event.description }}</p>
+
+            <div class="mission-stats">
+                <div class="stat-item">
+                    <span class="stat-value">{{ event.participant_count }}</span>
+                    <span class="stat-label">Active Agents</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">{{ event.time_left_str }}</span>
+                    <span class="stat-label">Deadline</span>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button onclick='showEventDetails({{ event|tojson|forceescape }})' class="btn-hub btn-outline">Details</button>
+                {% if is_joined %}
+                <button onclick='showTasksModal({{ event|tojson|forceescape }})' class="btn-hub btn-primary">Mission Hub</button>
+                {% else %}
+                <button onclick="joinEvent({{ event.id }}, event)" class="btn-hub btn-primary">Join Campaign</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endmacro %}
+
+        {% if featured_events %}
+        <div class="section-wrapper">
+            <div class="section-label">High Priority Missions</div>
+            <div class="mission-grid">
+                {% for event in featured_events %}{{ render_mission(event) }}{% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if site_events %}
+        <div class="section-wrapper">
+            <div class="section-label">Global Directives</div>
+            <div class="mission-grid">
+                {% for event in site_events %}{{ render_mission(event) }}{% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if group_events %}
+        <div class="section-wrapper">
+            <div class="section-label">Local Group Operations</div>
+            <div class="mission-grid">
+                {% for event in group_events %}{{ render_mission(event) }}{% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not (featured_events or site_events or group_events) %}
+        <div class="empty-state">
+            <i class="fas fa-satellite-dish fa-3x mb-4" style="color: #334155;"></i>
+            <h2 class="h4 mb-2">Signal Lost: No Active Missions</h2>
+            <p class="text-muted">Currently scanning for new operation opportunities. Check back later.</p>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- Mission Details Modal -->
+<div id="eventModal" class="modal-overlay" onclick="closeEventModal()">
+    <div class="modal-content hub-modal" onclick="event.stopPropagation()">
+        <button class="modal-close" onclick="closeEventModal()"><i class="fas fa-times"></i></button>
+        <div class="modal-header">
+            <div class="mission-icon mb-4 mx-auto" id="modalIconBox"><i class="fas fa-info-circle"></i></div>
+            <h2 id="modalEventName" class="modal-title">Campaign Dossier</h2>
+            <p id="modalHostInfo" class="text-primary small fw-bold text-uppercase"></p>
+        </div>
+        <div class="modal-description-box">
+            <p id="modalTaskDesc" class="mb-0"></p>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-4">
+                <div class="stat-box">
+                    <span id="modalStatParticipants" class="stat-val d-block">0</span>
+                    <span class="stat-label">Agents</span>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stat-box">
+                    <span id="modalStatTime" class="stat-val d-block">...</span>
+                    <span class="stat-label">Duration</span>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stat-box" id="rewardStatBox" style="position: relative; overflow: visible;">
+                    <span id="modalStatPrize" class="stat-val d-block" style="color: var(--accent-gold);">...</span>
+                    <span class="stat-label">Reward</span>
+                    <div id="prizePreviewTooltip" style="display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 15px; width: 120px; height: 120px; background: rgba(0,0,0,0.8); border: 2px solid var(--accent-gold); border-radius: 12px; padding: 5px; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);"></div>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex gap-3">
+            <button class="btn-hub btn-outline flex-grow-1" onclick="closeEventModal()">Dismiss</button>
+            <a id="modalCtaUrl" href="#" class="btn-hub btn-primary flex-grow-1">Initialize</a>
+        </div>
+    </div>
+</div>
+
+<!-- Missions Modal (Task Hub) -->
+<div id="tasksModal" class="modal-overlay" onclick="closeTasksModal()">
+    <div class="modal-content hub-modal" onclick="event.stopPropagation()">
+        <button class="modal-close" onclick="closeTasksModal()"><i class="fas fa-times"></i></button>
+        <div class="modal-header text-start mb-4">
+            <h2 id="tasksModalEventName" class="modal-title h3 mb-1">Mission Hub</h2>
+            <p class="small text-muted mb-0">Complete assigned objectives to claim systemic rewards.</p>
+        </div>
+
+        <!-- Progress Tracker -->
+        <div class="progress-tracker" id="progressTracker">
+            <div class="progress-tracker-header">
+                <span class="progress-tracker-label">MISSION PROGRESS</span>
+                <span class="progress-tracker-count" id="progressCount">0 / 0</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBarFill" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div id="tasksContainer" style="max-height: 50vh; overflow-y: auto; padding-right: 10px;">
+            <!-- Tasks injected here -->
+        </div>
+
+        <div class="mt-4 p-3 rounded-4" style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.1);">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small">Current Balance</span>
+                <span id="tasksModalTotalCoins" class="fw-bold text-primary">--</span>
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn-hub btn-outline" onclick="closeTasksModal()">Close Hub</button>
+            <a id="tasksModalCtaUrl" href="#" class="btn-hub btn-primary">Go to Target</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function showEventDetails(data) {
+    const modal = document.getElementById('eventModal');
+    document.getElementById('modalEventName').innerText = data.name;
+    document.getElementById('modalHostInfo').innerText = 'Dossier Source: ' + (data.group_name || 'System');
+    document.getElementById('modalTaskDesc').innerText = data.description;
+    document.getElementById('modalStatParticipants').innerText = data.participant_count;
+    document.getElementById('modalStatTime').innerText = data.time_left_str;
+    
+    // Set Reward Display
+    let prizeStr = 'Unknown';
+    if (data.prize_type === 'achievement') {
+        prizeStr = data.ach_name || data.prize_id;
+    } else if (data.prize_type === 'item' || data.prize_type === 'entrance_animation') {
+        prizeStr = data.item_name || 'Special Asset';
+    } else if (data.prize_type === 'charisma') {
+        prizeStr = '+' + (data.prize_id || 0) + ' Charisma';
+    } else if (data.prize_type === 'event_points') {
+        prizeStr = '+' + (data.prize_id || 0) + ' Points';
+    }
+    const prizeEl = document.getElementById('modalStatPrize');
+    const rewardStatBox = document.getElementById('rewardStatBox');
+    const tooltip = document.getElementById('prizePreviewTooltip');
+    
+    if (prizeEl) prizeEl.innerText = prizeStr;
+    
+    // Clear existing tooltip
+    if (tooltip) {
+        tooltip.innerHTML = '';
+        tooltip.style.display = 'none';
+        rewardStatBox.onmouseenter = null;
+        rewardStatBox.onmouseleave = null;
+        prizeEl.style.cursor = 'default';
+        prizeEl.style.textDecoration = 'none';
+    }
+
+    if ((data.prize_type === 'item' || data.prize_type === 'entrance_animation')) {
+        const previewUrl = data.item_value || (data.icon && data.icon.startsWith('/static/') ? data.icon : null);
+        
+        if (previewUrl) {
+            let mediaHtml = '';
+            if (previewUrl.endsWith('.mp4') || previewUrl.endsWith('.webm')) {
+                mediaHtml = `<video src="${previewUrl}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: contain; border-radius: 6px;"></video>`;
+            } else {
+                mediaHtml = `<img src="${previewUrl}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 6px;">`;
+            }
+            
+            if (tooltip && rewardStatBox) {
+                tooltip.innerHTML = mediaHtml;
+                prizeEl.style.cursor = 'help';
+                prizeEl.style.textDecoration = 'underline dotted var(--accent-gold)';
+                
+                rewardStatBox.onmouseenter = () => { tooltip.style.display = 'flex'; };
+                rewardStatBox.onmouseleave = () => { tooltip.style.display = 'none'; };
+            }
+        }
+    }
+
+    // Handle Icon/Asset Preview for the top Icon Box
+    const iconBox = document.getElementById('modalIconBox');
+    iconBox.innerHTML = ''; // Clear existing
+    iconBox.style.position = 'relative';
+
+    if (data.prize_type === 'item' && data.item_value) {
+        if (data.item_value.endsWith('.mp4') || data.item_value.endsWith('.webm')) {
+            iconBox.innerHTML = `<video src="${data.item_value}" autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;"></video>`;
+        } else {
+            iconBox.innerHTML = `<img src="${data.item_value}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;">`;
+        }
+    } else {
+        const iconClass = data.icon && !data.icon.startsWith('/static/') ? data.icon : 'fas fa-info-circle';
+        iconBox.innerHTML = `<i class="${iconClass}"></i>`;
+    }
+
+    if (data.prize_type === 'item' && data.item_rarity) {
+        const badge = document.createElement('span');
+        badge.className = `badge rarity-badge rarity-${data.item_rarity}`;
+        badge.style = 'position: absolute; top: -10px; right: -10px; font-size: 0.6rem; padding: 4px 8px; z-index: 10;';
+        badge.innerText = data.item_rarity.toUpperCase();
+        iconBox.appendChild(badge);
+    }
+    
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEventModal() {
+    document.getElementById('eventModal').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// Track current event data so we can patch it on task completion
+let _currentTasksEventData = null;
+
+async function showTasksModal(data) {
+    _currentTasksEventData = data; // Store reference for live patching
+    const modal = document.getElementById('tasksModal');
+    const container = document.getElementById('tasksContainer');
+    document.getElementById('tasksModalEventName').innerText = data.name;
+    
+    container.innerHTML = '';
+    if (data.tasks && data.tasks.length > 0) {
+        data.tasks.forEach(task => {
+            const isCompleted = task.completed;
+            const keywordCleaned = task.keyword ? task.keyword.replace(/_/g, ' ') : '';
+            
+            const taskHtml = `
+                <div class="mission-task-card ${isCompleted ? 'opacity-75' : ''}" id="task-card-${task.id}">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <span class="task-type-tag tag-${task.task_type}">${task.task_type.toUpperCase()}</span>
+                            <span class="badge bg-dark text-cyan ms-1" style="font-size: 0.65rem; border: 1px solid rgba(0, 210, 255, 0.2);">${task.genre || 'All'}</span>
+                        </div>
+                        <span class="text-primary fw-bold" style="white-space: nowrap">+${task.coin_reward} <i class="fas fa-coins ms-1"></i></span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                            <p class="mb-1 text-light fw-medium">${task.description}</p>
+                            ${task.keyword ? `<p class="small text-muted mb-0" style="font-size: 0.75rem;"><i class="fas fa-link me-1"></i> ${keywordCleaned}</p>` : ''}
+                        </div>
+                        
+                        <div class="task-action">
+                            ${isCompleted ? 
+                                `<span class="badge bg-success-subtle text-success p-2 rounded-circle"><i class="fas fa-check"></i></span>` : 
+                                (task.keyword ? 
+                                    `<button onclick="completeTask('${task.keyword}', ${task.id})" class="btn btn-sm btn-primary py-1 px-3" style="font-size: 0.7rem; border-radius: 8px;">Claim</button>` : 
+                                    `<span class="badge bg-secondary p-2 rounded-circle" title="System Automated"><i class="fas fa-sync-alt fa-spin"></i></span>`
+                                )
+                            }
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2 pt-2 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
+                        <span class="small text-muted" style="font-size: 0.7rem;"><i class="fas fa-redo me-1"></i> Resets every ${task.refresh_count_days || 2} days</span>
+                        ${isCompleted ? `<span class="small text-success" style="font-size: 0.7rem;">Completed</span>` : ''}
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', taskHtml);
+        });
+    } else {
+        container.innerHTML = '<p class="text-center text-muted p-4">No tactical objectives found for this mission.</p>';
+    }
+    
+    document.getElementById('tasksModalCtaUrl').href = '/community'; // Default fallback
+    updateProgressTracker(data.tasks);
+    modal.classList.add('active');
+    
+    try {
+        const res = await fetch('/api/get_coins');
+        const json = await res.json();
+        if (json.success) document.getElementById('tasksModalTotalCoins').innerText = json.coins + ' Coins';
+    } catch {}
+}
+
+function updateProgressTracker(tasks) {
+    if (!tasks || tasks.length === 0) {
+        document.getElementById('progressTracker').style.display = 'none';
+        return;
+    }
+    document.getElementById('progressTracker').style.display = '';
+    const total = tasks.length;
+    const completed = tasks.filter(t => t.completed).length;
+    const pct = Math.round((completed / total) * 100);
+    document.getElementById('progressCount').innerText = `${completed} / ${total}`;
+    const bar = document.getElementById('progressBarFill');
+    bar.style.width = pct + '%';
+    if (completed === total) {
+        bar.classList.add('complete');
+        document.getElementById('progressCount').style.color = '#10b981';
+    } else {
+        bar.classList.remove('complete');
+        document.getElementById('progressCount').style.color = '';
+    }
+}
+
+async function completeTask(keyword, taskId) {
+    try {
+        const response = await fetch(`/api/tasks/complete/${keyword}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Patch in-memory data so re-opening the modal shows correct state
+            if (_currentTasksEventData && _currentTasksEventData.tasks) {
+                const taskData = _currentTasksEventData.tasks.find(t => t.id === taskId);
+                if (taskData) taskData.completed = true;
+            }
+
+            // Show Success Popup
+            const popup = document.createElement('div');
+            popup.style = `
+                position: fixed; top: 20px; right: 20px; background: #059669; color: white; 
+                padding: 15px 25px; border-radius: 12px; z-index: 10000; font-weight: bold;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.3); animation: slideInRight 0.3s ease;
+                display: flex; align-items: center; gap: 10px;
+            `;
+            popup.innerHTML = `<i class="fas fa-check-circle"></i> <div>${data.message} <br> <small>+${data.coins_earned} Coins Earned!</small></div>`;
+            document.body.appendChild(popup);
+            
+            // Refresh coin display if in modal
+            const coinEl = document.getElementById('tasksModalTotalCoins');
+            if (coinEl) {
+                const current = parseInt(coinEl.innerText) || 0;
+                coinEl.innerText = (current + data.coins_earned) + ' Coins';
+            }
+            
+            // Auto hide popup
+            setTimeout(() => {
+                popup.style.animation = 'fadeOut 0.5s ease forwards';
+                setTimeout(() => popup.remove(), 500);
+            }, 3000);
+            
+            // Update UI without full reload
+            const card = document.getElementById(`task-card-${taskId}`);
+            if (card) {
+                card.classList.add('opacity-75');
+                const action = card.querySelector('.task-action');
+                if (action) action.innerHTML = `<span class="badge bg-success-subtle text-success p-2 rounded-circle"><i class="fas fa-check"></i></span>`;
+                
+                // Add "Completed" label to the bottom
+                const bottomBar = card.querySelector('.border-top');
+                if (bottomBar && !bottomBar.querySelector('.text-success')) {
+                    bottomBar.insertAdjacentHTML('beforeend', '<span class="small text-success" style="font-size: 0.7rem;">Completed</span>');
+                }
+            }
+
+            // Update progress tracker in real-time
+            if (_currentTasksEventData && _currentTasksEventData.tasks) {
+                updateProgressTracker(_currentTasksEventData.tasks);
+            }
+        } else {
+            alert(data.message || 'Action failed.');
+        }
+    } catch (e) {
+        console.error('Task completion error:', e);
+        alert('Communication error with network.');
+    }
+}
+
+function closeTasksModal() {
+    document.getElementById('tasksModal').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+async function joinEvent(eventId, eventObj) {
+    if (eventObj) eventObj.preventDefault();
+    
+    try {
+        const response = await fetch(`/api/join_event/${eventId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.status === 401) {
+            alert('Please login to join this mission.');
+            window.location.href = '/login';
+            return;
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+            // Real-time Update: Find the button that triggered this and swap it
+            const allCards = document.querySelectorAll('.mission-card');
+            allCards.forEach(card => {
+                const joinBtn = card.querySelector(`[onclick*="joinEvent(${eventId}"]`);
+                if (joinBtn) {
+                    // Switch button to "Mission Hub"
+                    joinBtn.className = 'btn-hub btn-primary';
+                    joinBtn.innerHTML = 'Mission Hub';
+                    joinBtn.setAttribute('onclick', `location.reload()`); // Will load tasks on next click
+                    
+                    // Add "Active" badge to header
+                    const header = card.querySelector('.mission-header');
+                    const badgeArea = header ? header.querySelector('.d-flex') : null;
+                    if (badgeArea && !badgeArea.querySelector('.badge-joined')) {
+                        const badge = document.createElement('span');
+                        badge.className = 'mission-badge badge-joined';
+                        badge.innerHTML = '<i class="fas fa-check"></i> Active';
+                        badge.style.animation = 'fadeIn 0.4s ease';
+                        badgeArea.prepend(badge);
+                    }
+
+                    // Update participant count
+                    const statValue = card.querySelector('.stat-value');
+                    if (statValue) {
+                        const current = parseInt(statValue.textContent) || 0;
+                        statValue.textContent = current + 1;
+                    }
+                }
+            });
+        } else {
+            alert(data.message || 'Failed to join campaign.');
+        }
+    } catch (e) {
+        console.error('Join error:', e);
+        alert('An error occurred while joining the mission.');
+    }
+}
+
+// Initializing state for localStorage mock progress
+    // We can use this to handle the "Joined" badges if the backend doesn't handle it yet
+</script>
+{% endblock %}

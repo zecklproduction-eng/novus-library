@@ -1,93 +1,327 @@
 {% extends "base.html" %}
+
 {% block title %}AI Summaries Cache | NOVUS{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <h1>AI Summaries Cache</h1>
-  <p class="text-muted">TTL (days): {{ ttl_days }}</p>
+<style>
+    /* Page-specific styles for AI Summaries */
+    .glass-panel {
+        background: rgba(30, 30, 30, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .glass-panel:hover {
+        border-color: rgba(0, 212, 255, 0.3);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 212, 255, 0.1);
+    }
+    
+    .table-glass {
+        width: 100%;
+        border-collapse: separate; 
+        border-spacing: 0;
+        color: #e0e0e0;
+    }
+    
+    .table-glass thead th {
+        background: rgba(0, 0, 0, 0.4);
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        padding: 16px;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 1.5px;
+        color: var(--neon-blue);
+        font-weight: 700;
+    }
+    
+    .table-glass tbody td {
+        padding: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        vertical-align: middle;
+        font-size: 0.9rem;
+        transition: background-color 0.2s;
+    }
+    
+    .table-glass tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .table-glass tbody tr:hover td {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
 
-  <div class="mb-3">
-    <button id="clearSelected" class="btn btn-danger btn-sm">Clear selected</button>
-    <button id="clearExpired" class="btn btn-outline-light btn-sm">Clear expired</button>
-  </div>
+    .welcome-header {
+        background: linear-gradient(90deg, #1f1f1f 0%, #2a2a2a 100%);
+        border-radius: 16px;
+        padding: 30px;
+        border: 1px solid #333;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .welcome-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--neon-blue);
+        box-shadow: 0 0 20px var(--neon-blue);
+    }
 
-  <table class="table table-dark table-striped">
-    <thead>
-      <tr>
-        <th><input type="checkbox" id="chkAll" /></th>
-        <th>ID</th>
-        <th>Type</th>
-        <th>Item ID</th>
-        <th>Model</th>
-        <th>Created At</th>
-        <th>Summary</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in rows %}
-      <tr data-id="{{ r[0] }}">
-        <td><input class="rowChk" type="checkbox" value="{{ r[0] }}" /></td>
-        <td>{{ r[0] }}</td>
-        <td>{{ r[1] or '' }}</td>
-        <td>{{ r[2] or '' }}</td>
-        <td>{{ r[3] or '' }}</td>
-        <td>{{ r[4] or '' }}</td>
-        <td style="max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ r[5] or '' }}</td>
-      </tr>
-      {% else %}
-      <tr><td colspan="7">No cached summaries found.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    /* Custom Checkbox */
+    .custom-checkbox {
+        width: 18px;
+        height: 18px;
+        appearance: none;
+        background-color: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 4px;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s;
+    }
+    
+    .custom-checkbox:checked {
+        background-color: var(--neon-blue);
+        border-color: var(--neon-blue);
+        box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    }
+    
+    .custom-checkbox:checked::after {
+        content: '✓';
+        position: absolute;
+        color: #000;
+        font-size: 12px;
+        font-weight: bold;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    /* Summary Cell truncation */
+    .summary-cell {
+        max-width: 400px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #aaa;
+        font-style: italic;
+    }
+
+    /* Buttons */
+    .btn-action {
+        border-radius: 8px;
+        padding: 8px 20px;
+        font-weight: 600;
+        border: 1px solid transparent;
+        transition: all 0.3s;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-action-danger {
+        background: rgba(220, 53, 69, 0.1);
+        color: #ff6b6b;
+        border-color: rgba(220, 53, 69, 0.3);
+    }
+    
+    .btn-action-danger:hover {
+        background: #dc3545;
+        color: white;
+        box-shadow: 0 0 15px rgba(220, 53, 69, 0.4);
+    }
+
+    .btn-action-outline {
+        background: transparent;
+        color: #ccc;
+        border-color: #555;
+    }
+    
+    .btn-action-outline:hover {
+        border-color: #fff;
+        color: #fff;
+        background: rgba(255,255,255,0.05);
+    }
+</style>
+
+<div class="container-fluid pt-2 pb-5">
+    
+    <!-- Header -->
+    <div class="welcome-header d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-2">
+                <i class="fas fa-brain me-2 text-info"></i> AI Summaries Cache
+            </h1>
+            <p class="text-muted mb-0">Manage cached AI-generated summaries to optimize storage.</p>
+        </div>
+        <div class="text-end">
+            <div class="h2 mb-0 fw-bold text-white">{{ ttl_days }} <span class="fs-6 text-muted fw-normal">days</span></div>
+            <div class="small text-muted text-uppercase">Retention Period (TTL)</div>
+        </div>
+    </div>
+
+    <!-- Actions & Table -->
+    <div class="glass-panel">
+        <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-light border-opacity-10 bg-black bg-opacity-25">
+            <div>
+                <h4 class="mb-1 text-white fw-bold">Cached Summaries</h4>
+                <p class="small text-muted mb-0">Select items to remove them from the database.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button id="clearSelected" class="btn btn-action btn-action-danger">
+                    <i class="fas fa-trash-alt me-2"></i> Clear Selected
+                </button>
+                <button id="clearExpired" class="btn btn-action btn-action-outline">
+                    <i class="fas fa-clock me-2"></i> Clear Expired
+                </button>
+            </div>
+        </div>
+
+        <div class="p-0">
+            <div class="table-responsive">
+                <table class="table-glass">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;" class="text-center">
+                                <input type="checkbox" id="chkAll" class="custom-checkbox" />
+                            </th>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Item ID</th>
+                            <th>Model</th>
+                            <th>Created At</th>
+                            <th>Summary Preview</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in rows %}
+                        <tr data-id="{{ r[0] }}">
+                            <td class="text-center">
+                                <input class="rowChk custom-checkbox" type="checkbox" value="{{ r[0] }}" />
+                            </td>
+                            <td class="text-muted font-monospace">{{ r[0] }}</td>
+                            <td>
+                                <span class="badge bg-dark border border-secondary text-light">{{ r[1] or 'N/A' }}</span>
+                            </td>
+                            <td class="text-muted">{{ r[2] or 'N/A' }}</td>
+                            <td>
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">{{ r[3] or 'N/A' }}</span>
+                            </td>
+                            <td class="text-muted small">{{ r[4] or 'N/A' }}</td>
+                            <td>
+                                <div class="summary-cell" title="{{ r[5] or '' }}">
+                                    {{ r[5] or '' }}
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <i class="fas fa-robot mb-3 text-secondary" style="font-size: 2rem; opacity: 0.5;"></i>
+                                <p class="text-muted mb-0">No cached summaries found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <!-- Toasts will be injected here if needed, or we use a simple alert/notify function -->
 </div>
 
 <script>
-function getSelectedIds(){
-  return Array.from(document.querySelectorAll('.rowChk:checked')).map(n=>n.value);
-}
+    // Utility to show toast (simple implementation for now)
+    function showToast(message, type = 'info') {
+        // You could integrate a proper toast library or Bootstrap toast here.
+        // For now, we'll create a simple one.
+        const toastContainer = document.querySelector('.toast-container');
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast align-items-center text-white bg-${type === 'error' || type === 'danger' ? 'danger' : 'success'} border-0 show`;
+        toastEl.role = 'alert';
+        toastEl.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close" onclick="this.parentElement.parentElement.remove()"></button>
+            </div>
+        `;
+        toastContainer.appendChild(toastEl);
+        setTimeout(() => toastEl.remove(), 3000);
+    }
 
-document.getElementById('chkAll')?.addEventListener('change', function(){
-  const checked = this.checked;
-  document.querySelectorAll('.rowChk').forEach(cb => cb.checked = checked);
-});
+    function getSelectedIds(){
+        return Array.from(document.querySelectorAll('.rowChk:checked')).map(n=>n.value);
+    }
 
-async function postAction(action, ids){
-  const resp = await fetch('/admin/ai_summaries/clear', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ action: action, ids: ids })
-  });
-  return resp.json();
-}
-
-document.getElementById('clearSelected')?.addEventListener('click', async function(){
-  const ids = getSelectedIds();
-  if (!ids.length) return alert('No rows selected.');
-  if (!confirm('Clear selected summaries?')) return;
-  const data = await postAction('selected', ids);
-  if (data && data.deleted){
-    showToast(`Deleted ${data.deleted} summaries`, 'success');
-    // remove rows
-    ids.forEach(id => {
-      const tr = document.querySelector(`tr[data-id="${id}"]`);
-      if (tr) tr.remove();
+    document.getElementById('chkAll')?.addEventListener('change', function(){
+        const checked = this.checked;
+        document.querySelectorAll('.rowChk').forEach(cb => cb.checked = checked);
     });
-  } else {
-    showToast('Nothing deleted', 'info');
-  }
-});
 
-document.getElementById('clearExpired')?.addEventListener('click', async function(){
-  if (!confirm('Clear expired summaries?')) return;
-  const data = await postAction('expired', []);
-  if (data && data.deleted){
-    showToast(`Deleted ${data.deleted} expired summaries`, 'success');
-    window.location.reload();
-  } else if (data && data.error){
-    showToast(data.error, 'danger');
-  } else {
-    showToast('Nothing deleted', 'info');
-  }
-});
+    async function postAction(action, ids){
+        try {
+            const resp = await fetch('/admin/ai_summaries/clear', {
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ action: action, ids: ids })
+            });
+            return await resp.json();
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('An error occurred while processing your request.', 'error');
+            return null;
+        }
+    }
+
+    document.getElementById('clearSelected')?.addEventListener('click', async function(){
+        const ids = getSelectedIds();
+        if (!ids.length) return alert('No rows selected.');
+        if (!confirm('Are you sure you want to delete the selected summaries? This cannot be undone.')) return;
+        
+        const data = await postAction('selected', ids);
+        if (data && data.deleted){
+            showToast(`Successfully deleted ${data.deleted} summaries`, 'success');
+            // remove rows
+            ids.forEach(id => {
+                const tr = document.querySelector(`tr[data-id="${id}"]`);
+                if (tr) {
+                    tr.style.transition = 'opacity 0.3s';
+                    tr.style.opacity = '0';
+                    setTimeout(() => tr.remove(), 300);
+                }
+            });
+        } else if (data && !data.deleted) {
+             showToast('Nothing was deleted.', 'info');
+        }
+    });
+
+    document.getElementById('clearExpired')?.addEventListener('click', async function(){
+        if (!confirm('Are you sure you want to clear all expired summaries?')) return;
+        
+        const data = await postAction('expired', []);
+        if (data && data.deleted){
+            showToast(`Cleaned up ${data.deleted} expired summaries`, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else if (data && data.error){
+            showToast(data.error, 'danger');
+        } else {
+            showToast('No expired summaries found.', 'info');
+        }
+    });
 </script>
 
 {% endblock %}

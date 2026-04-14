@@ -1,182 +1,533 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>User Reports | NOVUS Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.png') }}">
-    <style>
-        body {
-            background-color: #000000;
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
-        }
-        .navbar {
-            background-color: #1a1a1a;
-            border-bottom: 1px solid #333;
-        }
-        .card {
-            background-color: #1e1e1e;
-            border: 1px solid #333;
-            color: white;
-        }
-        .table {
-            color: white;
-        }
-        .table thead th {
-            background-color: #2b2b2b;
-            border-color: #444;
-            color: #00d4ff;
-        }
-        .table tbody td {
-            border-color: #444;
-        }
-        .badge-danger { background-color: #dc3545; }
-        .badge-warning { background-color: #ffc107; color: black; }
-        .badge-info { background-color: #00d4ff; color: black; }
-        .btn-neon {
-            background: #00d4ff;
-            border: none;
-            color: black;
-            font-weight: bold;
-            padding: 8px 16px;
-            border-radius: 5px;
-            transition: 0.3s;
-        }
-        .btn-neon:hover {
-            background: white;
-            box-shadow: 0 0 10px #00d4ff;
-        }
-        .report-reasons {
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/admin/users">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" width="30" height="30" class="me-2">
-                NOVUS Admin - User Reports
-            </a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="/admin/users">User Management</a>
-                <a class="nav-link" href="/admin/ai_summaries">AI Summaries</a>
-                <a class="nav-link" href="/admin/system_logs">System Logs</a>
-                <a class="nav-link active" href="/admin/reports">Reports</a>
-                <a class="nav-link" href="/">Back to Site</a>
+{% extends "base.html" %}
+
+{% block title %}User Reports - Admin Dashboard | NOVUS{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --neon-blue: #00d4ff;
+        --neon-purple: #9d50bb;
+        --neon-danger: #ef4444;
+        --deep-dark: #0c0c0e;
+        --glass-bg: rgba(255, 255, 255, 0.03);
+        --glass-border: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Force Dark Theme */
+    body, html {
+        background-color: var(--deep-dark) !important;
+        color: #e4e4e7 !important;
+    }
+
+    .admin-container {
+        padding: 40px 20px;
+        max-width: 1240px;
+        margin: 0 auto;
+        min-height: 100vh;
+        background-color: var(--deep-dark);
+        animation: fadeIn 0.8s ease-out;
+    }
+
+    /* Glass Header */
+    .admin-header {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 30px 40px;
+        margin-bottom: 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .admin-title-group {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .admin-icon-box {
+        width: 60px;
+        height: 60px;
+        background: rgba(0, 212, 255, 0.1);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--neon-blue);
+        font-size: 1.5rem;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    }
+
+    .admin-title {
+        font-size: 2rem;
+        font-weight: 800;
+        margin: 0;
+        background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Stats Stats */
+    .stats-group {
+        display: flex;
+        gap: 30px;
+    }
+
+    .stat-item {
+        text-align: right;
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #fff;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #71717a;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* Section Cards */
+    .premium-card {
+        background: rgba(20, 20, 25, 0.6) !important;
+        backdrop-filter: blur(15px);
+        border: 1px solid var(--glass-border) !important;
+        border-radius: 24px;
+        margin-bottom: 40px;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    .premium-card:hover {
+        border-color: rgba(0, 212, 255, 0.3) !important;
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-header-premium {
+        padding: 24px 30px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--glass-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-title-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .card-title-text {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+    }
+
+    /* Search Input */
+    .search-wrapper-premium {
+        position: relative;
+        width: 300px;
+    }
+
+    .search-input-premium {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid var(--glass-border) !important;
+        border-radius: 12px !important;
+        padding: 10px 16px 10px 40px !important;
+        color: #fff !important;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+    .search-input-premium:focus {
+        border-color: var(--neon-blue) !important;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.1) !important;
+        background: rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #71717a;
+        pointer-events: none;
+    }
+
+    /* Table Styles */
+    .table-responsive {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .table-premium {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: transparent !important;
+        color: #e4e4e7 !important;
+    }
+
+    .table-premium th {
+        background: rgba(255, 255, 255, 0.03) !important;
+        color: #71717a !important;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 20px 30px;
+        border: none !important;
+    }
+
+    .table-premium td {
+        padding: 24px 30px;
+        color: #e4e4e7 !important;
+        border-top: 1px solid var(--glass-border) !important;
+        background: transparent !important;
+        vertical-align: middle;
+    }
+
+    .table-premium th:last-child,
+    .table-premium td:last-child {
+        min-width: 150px;
+        text-align: right;
+    }
+
+    .table-premium tr:hover td {
+        background: rgba(255, 255, 255, 0.02) !important;
+    }
+
+    /* User Pill */
+    .user-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 6px 12px 6px 6px;
+        border-radius: 12px;
+        border: 1px solid var(--glass-border);
+        color: #fff;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .user-pill:hover {
+        color: var(--neon-blue);
+    }
+
+    .avatar-sm {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        border: 1px solid var(--glass-border);
+        object-fit: cover;
+    }
+
+    .badge-count {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 0.8rem;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .badge-role {
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .badge-admin { background: rgba(0, 212, 255, 0.1); color: var(--neon-blue); border: 1px solid rgba(0, 212, 255, 0.2); }
+    .badge-publisher { background: rgba(157, 80, 187, 0.1); color: #c084fc; border: 1px solid rgba(157, 80, 187, 0.2); }
+    .badge-user { background: rgba(113, 113, 122, 0.1); color: #a1a1aa; border: 1px solid rgba(113, 113, 122, 0.2); }
+
+    .reason-text {
+        font-size: 0.9rem;
+        color: #a1a1aa;
+        font-style: italic;
+        max-width: 400px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Buttons */
+    .btn-action-premium {
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        border: 1px solid var(--glass-border);
+        background: rgba(255, 255, 255, 0.03);
+        color: #a1a1aa;
+    }
+
+    .btn-action-premium:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+
+    .search-wrapper-premium i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #71717a;
+    }
+
+    .search-input-premium {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.2) !important;
+        border: 1px solid var(--glass-border) !important;
+        border-radius: 12px !important;
+        padding: 8px 15px 8px 40px !important;
+        color: #fff !important;
+        font-size: 0.85rem !important;
+    }
+
+    .search-input-premium:focus {
+        border-color: var(--neon-blue) !important;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.1) !important;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+        animation: fadeIn 0.8s ease-out forwards;
+        opacity: 0;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+</style>
+
+<div class="admin-container">
+    
+    <!-- PREMIUM HEADER -->
+    <header class="admin-header animate-in">
+        <div class="admin-title-group">
+            <div class="admin-icon-box">
+                <i class="fas fa-flag"></i>
+            </div>
+            <div>
+                <h2 class="admin-title">Report Management</h2>
+                <p class="text-zinc-500 mb-0">Monitor user behavior and handle reported content.</p>
             </div>
         </div>
-    </nav>
+        <div class="stats-group">
+            <div class="stat-item">
+                <div class="stat-value">{{ reported_users|length }}</div>
+                <div class="stat-label">Flagged Users</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ all_reports|length }}</div>
+                <div class="stat-label">Total Reports</div>
+            </div>
+        </div>
+    </header>
 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-12">
-                <!-- Users with 2+ Reports -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h4 class="mb-0">Users with Multiple Reports (2+)</h4>
-                        <small class="text-muted">These users require attention from administrators</small>
+    <div class="row g-4">
+        <!-- High Priority: Multiple Reports -->
+        <div class="col-12">
+            <div class="premium-card animate-in delay-1">
+                <div class="card-header-premium">
+                    <div class="card-title-group">
+                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                        <h4 class="card-title-text text-warning">Priority Reviews (2+ Reports)</h4>
                     </div>
-                    <div class="card-body">
-                        {% if reported_users %}
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Username</th>
-                                        <th>Email</th>
-                                        <th>Role</th>
-                                        <th>Report Count</th>
-                                        <th>Reasons</th>
-                                        <th>Latest Report</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for user in reported_users %}
-                                    <tr>
-                                        <td>{{ user[1] }}</td>
-                                        <td>{{ user[2] or 'N/A' }}</td>
-                                        <td>
-                                            <span class="badge
-                                                {% if user[3] == 'admin' %}badge-danger
-                                                {% elif user[3] == 'publisher' %}badge-warning
-                                                {% else %}badge-info{% endif %}">
-                                                {{ user[3] }}
-                                            </span>
-                                        </td>
-                                        <td><span class="badge badge-danger">{{ user[4] }}</span></td>
-                                        <td>
-                                            <span class="report-reasons" title="{{ user[5] }}">{{ user[5] }}</span>
-                                        </td>
-                                        <td>{{ user[6] }}</td>
-                                        <td>
-                                            <a href="/user/{{ user[0] }}" class="btn btn-sm btn-neon me-1">View Profile</a>
-                                            <a href="/admin/users" class="btn btn-sm btn-outline-danger">Manage</a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <div class="text-center py-4">
-                            <p class="text-muted">No users currently have 2 or more reports.</p>
-                        </div>
-                        {% endif %}
+                </div>
+                
+                <div class="table-responsive">
+                    {% if reported_users %}
+                    <table class="table-premium table align-middle">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th class="text-center">Reports</th>
+                                <th>Primary Reason</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in reported_users %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-sm">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-white">{{ user[1] }}</div>
+                                            <div class="small text-muted">ID: {{ user[0] }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-muted small">{{ user[2] or 'No Email' }}</td>
+                                <td>
+                                    <span class="badge-role 
+                                        {% if user[3] == 'admin' %}badge-admin
+                                        {% elif user[3] == 'publisher' %}badge-publisher
+                                        {% else %}badge-user{% endif %}">
+                                        {{ user[3] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex justify-content-center">
+                                        <span class="badge-count">{{ user[4] }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="reason-text" title="{{ user[5] }}">
+                                        {{ user[5] }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <a href="/user/{{ user[0] }}" class="btn-action-premium btn-view" title="View Profile">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="/admin/users" class="btn-action-premium btn-manage" title="Manage Account">
+                                            <i class="fas fa-cog"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-5">
+                       <i class="fas fa-check-circle text-success mb-3" style="font-size: 3rem; opacity: 0.2;"></i>
+                       <h5 class="text-muted">All Clear!</h5>
+                       <p class="small text-muted mb-0">No users with multiple reports found.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- All Reports Log -->
+        <div class="col-12">
+            <div class="premium-card animate-in delay-2">
+                 <div class="card-header-premium">
+                    <div class="card-title-group">
+                        <h4 class="card-title-text">Recent History</h4>
+                    </div>
+                    <div class="search-wrapper-premium">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="reportSearch" class="search-input-premium" placeholder="Filter reports...">
                     </div>
                 </div>
 
-                <!-- All Reports -->
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="mb-0">All User Reports</h4>
-                        <small class="text-muted">Complete history of user reports</small>
+                <div class="table-responsive">
+                    {% if all_reports %}
+                    <table class="table-premium table align-middle" id="reportsTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Reporter</th>
+                                <th>Reported</th>
+                                <th>Reason</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in all_reports %}
+                            <tr>
+                                <td class="text-muted small">{{ report[6] }}</td>
+                                <td>
+                                    <a href="/user/{{ report[1] }}" class="user-pill">
+                                        <i class="fas fa-user-shield opacity-50 small"></i>
+                                        <span>{{ report[2] }}</span>
+                                    </a>
+                                </td>
+                                <td>
+                                     <a href="/user/{{ report[3] }}" class="user-pill text-danger">
+                                        <i class="fas fa-user-tag opacity-70 small"></i>
+                                        <span>{{ report[4] }}</span>
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="reason-text" title="{{ report[5] }}">
+                                        {{ report[5] }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="/user/{{ report[3] }}" class="btn-action-premium" title="View Profile">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-5">
+                       <h5 class="text-muted">Empty Log</h5>
+                       <p class="small text-muted mb-0">No reports have been filed yet.</p>
                     </div>
-                    <div class="card-body">
-                        {% if all_reports %}
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Reporter</th>
-                                        <th>Reported User</th>
-                                        <th>Reason</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for report in all_reports %}
-                                    <tr>
-                                        <td>{{ report[6] }}</td>
-                                        <td>{{ report[2] }} (ID: {{ report[1] }})</td>
-                                        <td>{{ report[4] }} (ID: {{ report[3] }})</td>
-                                        <td>{{ report[5] }}</td>
-                                        <td>
-                                            <a href="/user/{{ report[1] }}" class="btn btn-sm btn-outline-primary me-1">View Reporter</a>
-                                            <a href="/user/{{ report[3] }}" class="btn btn-sm btn-outline-warning">View Reported</a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <div class="text-center py-4">
-                            <p class="text-muted">No user reports found.</p>
-                        </div>
-                        {% endif %}
-                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<script>
+    // Search functionality
+    const searchInput = document.getElementById('reportSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#reportsTable tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(term) ? '' : 'none';
+            });
+        });
+    }
+</script>
+{% endblock %}

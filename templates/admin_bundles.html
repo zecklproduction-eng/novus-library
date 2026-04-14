@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+{% block title %}Admin: Bundles | NOVUS{% endblock %}
+
+{% block content %}
+<style>
+    .admin-bundles-page {
+        padding: 30px 40px;
+    }
+    .admin-bundles-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+    .admin-bundles-header h1 {
+        font-size: 2rem;
+        font-weight: 400;
+        margin: 0;
+    }
+    .admin-bundles-header h1 span {
+        color: #00d4ff;
+        font-weight: 700;
+    }
+    .btn-create-bundle {
+        background: linear-gradient(90deg, #00f2ff 0%, #bd00ff 100%);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 30px;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-create-bundle:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 25px rgba(0, 242, 255, 0.4);
+    }
+    .bundles-table {
+        width: 100%;
+        background: #0f0f12;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .bundles-table th,
+    .bundles-table td {
+        padding: 15px 20px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .bundles-table th {
+        background: rgba(255,255,255,0.03);
+        color: #8b9bb4;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.05em;
+    }
+    .bundles-table td {
+        color: #fff;
+    }
+    .bundle-name-cell { color: #fff; font-weight: 600; }
+    .bundle-slug-cell { color: #8b9bb4; font-family: monospace; font-size: 0.85rem; }
+    
+    .plan-badge {
+        font-size: 0.7rem;
+        font-weight: 800;
+        padding: 4px 8px;
+        border-radius: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .plan-badge.basic { background: rgba(139, 155, 180, 0.1); color: #8b9bb4; border: 1px solid rgba(139, 155, 180, 0.2); }
+    .plan-badge.plus { background: rgba(0, 212, 255, 0.1); color: #00d4ff; border: 1px solid rgba(0, 212, 255, 0.2); }
+    .plan-badge.premium { background: rgba(167, 139, 250, 0.1); color: #a78bfa; border: 1px solid rgba(167, 139, 250, 0.2); }
+    
+    .bundle-status {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .bundle-status.active {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+    }
+    .bundle-status.inactive {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    }
+    .bundle-actions-cell {
+        display: flex;
+        gap: 8px;
+    }
+    .btn-table-action {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    .btn-edit-table {
+        background: rgba(0, 212, 255, 0.15);
+        color: #00d4ff;
+        border: 1px solid rgba(0, 212, 255, 0.3);
+    }
+    .btn-edit-table:hover {
+        background: #00d4ff;
+        color: #000;
+    }
+    .btn-toggle-table {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .btn-toggle-table:hover {
+        background: #f59e0b;
+        color: #000;
+    }
+    .btn-delete-table {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .btn-delete-table:hover {
+        background: #ef4444;
+        color: #fff;
+    }
+    .back-link:hover {
+        color: #00d4ff;
+    }
+
+    /* Create Modal Styles */
+    .create-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.8);
+        backdrop-filter: blur(10px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+    .create-modal.show { display: flex; }
+    
+    .modal-container {
+        background: #0f0f12;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 24px;
+        width: 100%;
+        max-width: 500px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    }
+    
+    .modal-header {
+        padding: 30px 30px 0 30px;
+        margin-bottom: 20px;
+    }
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: #fff;
+    }
+    
+    .modal-body {
+        padding: 0 30px 30px 30px;
+        overflow-y: auto;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        color: #8b9bb4;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+    .form-control {
+        width: 100%;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 12px 16px;
+        color: #fff;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+    .form-control:focus {
+        border-color: #00d4ff;
+        background: rgba(255,255,255,0.05);
+        outline: none;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+    }
+    
+    .accent-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .accent-option {
+        aspect-ratio: 1;
+        border-radius: 10px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    .accent-option:hover { transform: scale(1.1); }
+    .accent-option.selected {
+        border-color: #fff;
+        box-shadow: 0 0 15px currentColor;
+    }
+
+    .theme-mode-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 10px;
+    }
+    .theme-mode-btn {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 12px;
+        border-radius: 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.2s;
+        color: #8b9bb4;
+    }
+    .theme-mode-btn:hover { background: rgba(255,255,255,0.06); color: #fff; }
+    .theme-mode-btn.selected {
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.1);
+        color: #fff;
+    }
+    .theme-mode-btn i { display: block; margin-bottom: 5px; font-size: 1.1rem; }
+    .theme-mode-btn span { font-size: 0.75rem; font-weight: 700; }
+    
+    .modal-actions {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+    }
+    .btn-modal {
+        flex: 1;
+        padding: 14px;
+        border-radius: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    .btn-modal-create {
+        background: linear-gradient(90deg, #00f2ff, #00d4ff);
+        color: #000;
+    }
+    .btn-modal-cancel {
+        background: #27272a;
+        color: #a1a1aa;
+    }
+</style>
+
+<div class="admin-bundles-page">
+    <a href="{{ url_for('bundles') }}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Bundles
+    </a>
+
+    <div class="admin-bundles-header">
+        <h1><span>Admin:</span> Bundle Manager</h1>
+        <button type="button" class="btn-create-bundle" onclick="openCreateModal()">
+            <i class="fas fa-plus"></i> Create Bundle
+        </button>
+    </div>
+
+    <table class="bundles-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Slug</th>
+                <th>Tier</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+</thead>
+        <tbody>
+            {% for bundle in bundles %}
+            <tr>
+                <td>{{ bundle.id }}</td>
+                <td class="bundle-name-cell">{{ bundle.name }}</td>
+                <td class="bundle-slug-cell">{{ bundle.slug }}</td>
+                <td>
+                    <span class="plan-badge {{ bundle.min_plan }}">
+                        {{ bundle.min_plan | upper }}
+                    </span>
+                </td>
+                <td>
+                    <span class="bundle-status {{ 'active' if bundle.is_active else 'inactive' }}">
+                        {{ 'Active' if bundle.is_active else 'Inactive' }}
+                    </span>
+                </td>
+                <td>{{ bundle.created_at[:10] if bundle.created_at else 'N/A' }}</td>
+                <td class="bundle-actions-cell">
+                    <a href="{{ url_for('admin_bundle_edit', id=bundle.id) }}" class="btn-table-action btn-edit-table">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <form action="{{ url_for('admin_bundle_toggle', id=bundle.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="btn-table-action btn-toggle-table">
+                            <i class="fas fa-power-off"></i> Toggle
+                        </button>
+                    </form>
+                    <form action="{{ url_for('admin_bundle_delete', id=bundle.id) }}" method="post" style="display:inline;" onsubmit="return confirm('Delete this bundle?');">
+                        <button type="submit" class="btn-table-action btn-delete-table">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Create Bundle Modal -->
+<div id="createBundleModal" class="create-modal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2>Start New Bundle</h2>
+        </div>
+        <div class="modal-body">
+            <form action="{{ url_for('admin_bundle_create') }}" method="post">
+                <div class="form-group">
+                    <label>Bundle Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Cyberpunk Blue" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" class="form-control" rows="3" placeholder="Explain what makes this bundle special..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Initial Theme Mode</label>
+                    <div class="theme-mode-grid">
+                        <div class="theme-mode-btn selected" onclick="selectThemeMode('dark', this)">
+                            <i class="fas fa-moon"></i>
+                            <span>Dark</span>
+                        </div>
+                        <div class="theme-mode-btn" onclick="selectThemeMode('light', this)">
+                            <i class="fas fa-sun"></i>
+                            <span>Light</span>
+                        </div>
+                        <div class="theme-mode-btn" onclick="selectThemeMode('glass', this)">
+                            <i class="fas fa-wind"></i>
+                            <span>Glass</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="themeMode" id="selectedThemeMode" value="dark">
+                </div>
+
+                <div class="form-group">
+                    <label>Subscription Tier</label>
+                    <div class="theme-mode-grid">
+                        <div class="theme-mode-btn selected" onclick="setCreationPlan('basic', this)">
+                            <i class="fas fa-certificate"></i>
+                            <span>BASIC</span>
+                        </div>
+                        <div class="theme-mode-btn" onclick="setCreationPlan('plus', this)">
+                            <i class="fas fa-star"></i>
+                            <span>PLUS</span>
+                        </div>
+                        <div class="theme-mode-btn" onclick="setCreationPlan('premium', this)">
+                            <i class="fas fa-crown"></i>
+                            <span>PREMIUM</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="minPlan" id="selectedMinPlan" value="basic">
+                </div>
+                
+                <div class="form-group">
+                    <label>Primary Accent Color</label>
+                    <input type="hidden" name="accentColor" id="selectedAccent" value="cyan">
+                    <div class="accent-grid">
+                        <div class="accent-option selected" style="background: #00d4ff; color: #00d4ff;" onclick="selectAccent('cyan', this)" title="Cyan"></div>
+                        <div class="accent-option" style="background: #667eea; color: #667eea;" onclick="selectAccent('purple', this)" title="Purple"></div>
+                        <div class="accent-option" style="background: #ef4444; color: #ef4444;" onclick="selectAccent('ruby', this)" title="Ruby"></div>
+                        <div class="accent-option" style="background: #10b981; color: #10b981;" onclick="selectAccent('emerald', this)" title="Emerald"></div>
+                        <div class="accent-option" style="background: #f59e0b; color: #f59e0b;" onclick="selectAccent('amber', this)" title="Amber"></div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-modal btn-modal-cancel" onclick="closeCreateModal()">Cancel</button>
+                    <button type="submit" class="btn-modal btn-modal-create">Initialize Bundle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openCreateModal() {
+        document.getElementById('createBundleModal').classList.add('show');
+    }
+    
+    function closeCreateModal() {
+        document.getElementById('createBundleModal').classList.remove('show');
+    }
+    
+    function selectAccent(color, el) {
+        document.getElementById('selectedAccent').value = color;
+        document.querySelectorAll('.accent-option').forEach(opt => opt.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    function selectThemeMode(mode, el) {
+        document.querySelectorAll('.theme-mode-btn').forEach(btn => btn.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('selectedThemeMode').value = mode;
+    }
+
+    function setCreationPlan(plan, el) {
+        // We use the same grid styling for plan selection
+        // Need to target specific siblings or use a different class if they collide
+        // Let's ensure we only target buttons in the same container
+        el.parentElement.querySelectorAll('.theme-mode-btn').forEach(btn => btn.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('selectedMinPlan').value = plan;
+    }
+
+    // Close on backdrop click
+    window.onclick = function(event) {
+        const modal = document.getElementById('createBundleModal');
+        if (event.target == modal) {
+            closeCreateModal();
+        }
+    }
+</script>
+{% endblock %}

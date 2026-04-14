@@ -1,0 +1,325 @@
+<!-- Audio Metadata Modal -->
+<div class="modal fade" id="audioMetadataModal" tabindex="-1" aria-labelledby="audioMetadataModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content text-light" style="background-color: #1e293b; border: 1px solid #334155;">
+            <div class="modal-header" style="border-bottom: 1px solid #334155;">
+                <h5 class="modal-title" id="audioMetadataModalLabel">
+                    <i class="fas fa-headphones-alt me-2 text-info"></i>Manage Audio Metadata
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body custom-scrollbar">
+
+                <!-- TRANSCRIPT SECTION -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <label class="form-label text-white mb-0 fw-bold">Audio Transcript</label>
+                        <div class="btn-group btn-group-sm">
+                            <label class="btn btn-outline-warning" title="Upload JSON Transcript File">
+                                <i class="fas fa-file-upload me-1"></i> Import JSON
+                                <input type="file" id="transcriptJsonUpload" accept=".json"
+                                    onchange="handleTranscriptJsonUpload(this)" style="display: none;">
+                            </label>
+                            <button type="button" class="btn btn-outline-success" onclick="addTranscriptItem()">
+                                <i class="fas fa-plus me-1"></i> Add Item
+                            </button>
+                        </div>
+                    </div>
+                    <p class="small text-muted mb-3">
+                        Add timestamped transcript segments manually or <strong class="text-warning">import a JSON
+                            file</strong> with segments array.
+                    </p>
+
+                    <!-- Transcript Items Container -->
+                    <div id="transcriptItemsList" class="d-flex flex-column gap-2">
+                        <!-- Items will be injected here via JS -->
+                        <div class="text-center text-muted py-4" id="emptyTranscriptMsg">
+                            <i class="fas fa-list-ul mb-2 d-block"></i>
+                            No transcript items yet. Click "Add Item" or import a JSON file.
+                        </div>
+                    </div>
+
+                    <!-- Show More Button (hidden by default) -->
+                    <div id="showMoreContainer" class="text-center mt-3" style="display: none;">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="showMoreBtn"
+                            onclick="toggleShowMore()">
+                            <i class="fas fa-chevron-down me-1"></i> Show <span id="hiddenItemCount">0</span> More Items
+                        </button>
+                    </div>
+                </div>
+
+                <hr style="border-color: #475569;">
+
+                <!-- SUMMARY and TOC moved to dedicated modal -->
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #334155;">
+                <button type="button" class="btn btn-ghost text-white" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-info text-white" onclick="saveAudioMetadata()">
+                    <i class="fas fa-save me-2"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Template for Transcript Item -->
+<template id="transcriptItemTemplate">
+    <div class="transcript-item card bg-dark border border-secondary mb-2">
+        <div class="card-body p-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-2">
+                    <label class="small text-muted mb-1">Start (s)</label>
+                    <input type="number"
+                        class="form-control form-control-sm bg-secondary text-white border-0 item-start"
+                        placeholder="0">
+                </div>
+                <div class="col-md-2">
+                    <label class="small text-muted mb-1">End (s)</label>
+                    <input type="number" class="form-control form-control-sm bg-secondary text-white border-0 item-end"
+                        placeholder="10">
+                </div>
+                <div class="col-md-7">
+                    <label class="small text-muted mb-1">Text</label>
+                    <input type="text" class="form-control form-control-sm bg-secondary text-white border-0 item-text"
+                        placeholder="Spoken text...">
+                </div>
+                <div class="col-md-1 text-end pt-3">
+                    <button type="button" class="btn btn-link text-danger p-0" onclick="removeTranscriptItem(this)"
+                        title="Remove">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+    // Global function to sync JSON to hidden input
+    function saveAudioMetadata() {
+        const items = [];
+        document.querySelectorAll('#transcriptItemsList .transcript-item').forEach((row, index) => {
+            const start = row.querySelector('.item-start').value;
+            const end = row.querySelector('.item-end').value;
+            const text = row.querySelector('.item-text').value;
+
+            if (start !== '' && text.trim() !== '') {
+                items.push({
+                    id: 'ts_' + Date.now() + '_' + index,
+                    startTime: parseFloat(start) || 0,
+                    endTime: parseFloat(end) || 0,
+                    text: text.trim(),
+                    pageNumber: 1 // Default for now
+                });
+            }
+        });
+
+        // Update Hidden Transcript Input
+        const transcriptJson = JSON.stringify(items);
+
+        // Find the storage field (could be input or textarea)
+        const storage = document.querySelector('input[name="transcript"], textarea[name="transcript"]');
+        if (storage) {
+            storage.value = items.length > 0 ? transcriptJson : '';
+
+            // Trigger change event just in case
+            storage.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        // Show feedback
+        const btn = document.querySelector('button[onclick="saveAudioMetadata()"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check me-2"></i> Saved';
+        btn.classList.remove('btn-info');
+        btn.classList.add('btn-success');
+
+        setTimeout(() => {
+            const modalEl = document.getElementById('audioMetadataModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            // Reset button
+            btn.innerHTML = originalText;
+            btn.classList.add('btn-info');
+            btn.classList.remove('btn-success');
+
+            // Update preview text on main page
+            const preview = document.getElementById('transcript_preview');
+            if (preview) {
+                preview.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i> ${items.length} transcript segments saved.`;
+            }
+        }, 800);
+    }
+
+    function addTranscriptItem(data = null) {
+        const template = document.getElementById('transcriptItemTemplate');
+        const clone = template.content.cloneNode(true);
+        const list = document.getElementById('transcriptItemsList');
+        const emptyMsg = document.getElementById('emptyTranscriptMsg');
+
+        if (emptyMsg) emptyMsg.style.display = 'none';
+
+        if (data) {
+            clone.querySelector('.item-start').value = data.startTime || data.startSeconds || 0;
+            clone.querySelector('.item-end').value = data.endTime || data.endSeconds || 0;
+            clone.querySelector('.item-text').value = data.text || '';
+        }
+
+        list.appendChild(clone);
+        updateShowMoreButton();
+    }
+
+    function removeTranscriptItem(btn) {
+        const item = btn.closest('.transcript-item');
+        item.remove();
+
+        const list = document.getElementById('transcriptItemsList');
+        if (list.children.length === 0 || (list.children.length === 1 && list.children[0].id === 'emptyTranscriptMsg')) {
+            const emptyMsg = document.getElementById('emptyTranscriptMsg');
+            if (emptyMsg) emptyMsg.style.display = 'block';
+        }
+        updateShowMoreButton();
+    }
+
+    // Handle JSON file upload
+    function handleTranscriptJsonUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                let jsonData = JSON.parse(e.target.result);
+                let segments = [];
+
+                // Handle different JSON structures
+                if (Array.isArray(jsonData)) {
+                    segments = jsonData;
+                } else if (jsonData.segments && Array.isArray(jsonData.segments)) {
+                    segments = jsonData.segments;
+                } else if (jsonData.transcript && Array.isArray(jsonData.transcript)) {
+                    segments = jsonData.transcript;
+                }
+
+                if (segments.length === 0) {
+                    alert('No segments found in the JSON file. Expected format: { "segments": [...] }');
+                    return;
+                }
+
+                // Clear existing items
+                const list = document.getElementById('transcriptItemsList');
+                list.innerHTML = '<div class="text-center text-muted py-4" id="emptyTranscriptMsg" style="display: none;"><i class="fas fa-list-ul mb-2 d-block"></i>No transcript items yet.</div>';
+
+                // Add each segment
+                segments.forEach(seg => {
+                    // Helper to handle both numeric seconds and "MM:SS" strings
+                    const toSec = (val) => {
+                        if (typeof val === 'number') return val;
+                        if (!val || typeof val !== 'string') return 0;
+                        const parts = val.split(':').map(p => parseFloat(p) || 0);
+                        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+                        if (parts.length === 2) return parts[0] * 60 + parts[1];
+                        return parts[0] || 0;
+                    };
+
+                    addTranscriptItem({
+                        startTime: seg.startSeconds !== undefined ? seg.startSeconds : toSec(seg.startTime),
+                        endTime: seg.endSeconds !== undefined ? seg.endSeconds : toSec(seg.endTime),
+                        text: seg.text || ''
+                    });
+                });
+
+                // Reset file input
+                input.value = '';
+
+            } catch (err) {
+                console.error('JSON parse error:', err);
+                alert('Invalid JSON file. Please check the format.');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // Show More / Show Less toggle
+    let showingAllItems = false;
+    const MAX_VISIBLE_ITEMS = 10;
+
+    function toggleShowMore() {
+        showingAllItems = !showingAllItems;
+        updateShowMoreButton();
+    }
+
+    function updateShowMoreButton() {
+        const list = document.getElementById('transcriptItemsList');
+        const container = document.getElementById('showMoreContainer');
+        const btn = document.getElementById('showMoreBtn');
+        const items = list.querySelectorAll('.transcript-item');
+        const totalItems = items.length;
+
+        if (totalItems <= MAX_VISIBLE_ITEMS) {
+            container.style.display = 'none';
+            items.forEach(item => item.style.display = 'block');
+            return;
+        }
+
+        container.style.display = 'block';
+        const hiddenCount = totalItems - MAX_VISIBLE_ITEMS;
+
+        // Update items visibility
+        items.forEach((item, index) => {
+            if (showingAllItems) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = index < MAX_VISIBLE_ITEMS ? 'block' : 'none';
+            }
+        });
+
+        // Update button appearance safely
+        if (showingAllItems) {
+            btn.innerHTML = '<i class="fas fa-chevron-up me-1"></i> Show Less';
+        } else {
+            btn.innerHTML = `<i class="fas fa-chevron-down me-1"></i> Show <span id="hiddenItemCount">${hiddenCount}</span> More Items`;
+        }
+    }
+
+    // Initialize Modal with existing data when opened
+    document.addEventListener('DOMContentLoaded', () => {
+        const modalEl = document.getElementById('audioMetadataModal');
+        modalEl.addEventListener('show.bs.modal', function (event) {
+            // Reset collapse state
+            showingAllItems = false;
+            // Load Transcript
+            const storage = document.querySelector('input[name="transcript"], textarea[name="transcript"]');
+            const list = document.getElementById('transcriptItemsList');
+
+            // Clear current list (except message)
+            list.innerHTML = '<div class="text-center text-muted py-4" id="emptyTranscriptMsg"><i class="fas fa-list-ul mb-2 d-block"></i>No transcript items yet. Click "Add Item" to start.</div>';
+
+            if (storage && storage.value) {
+                try {
+                    // Try parsing as JSON first
+                    let items = [];
+                    const rawVal = storage.value.trim();
+                    if (rawVal.startsWith('[') || rawVal.startsWith('{')) {
+                        items = JSON.parse(rawVal);
+                        if (!Array.isArray(items)) items = []; // Handle edge cases
+                    } else if (rawVal.length > 0) {
+                        // Raw text fallback
+                        items = [{ startTime: 0, endTime: 0, text: rawVal }];
+                    }
+
+                    if (items.length > 0) {
+                        items.forEach(item => addTranscriptItem(item));
+                    }
+                } catch (e) {
+                    console.error("Error parsing transcript JSON", e);
+                }
+            }
+
+            // Final check for Show More button
+            updateShowMoreButton();
+        });
+    });
+</script>

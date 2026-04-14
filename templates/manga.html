@@ -2,9 +2,73 @@
 {% block title %}Manga Universe | NOVUS{% endblock %}
 
 {% block content %}
+<style>
+  .manga-realm-filter {
+    margin-top: -30px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    z-index: 100;
+  }
+
+  .realm-tabs {
+    display: flex;
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(15px);
+    padding: 8px;
+    border-radius: 50px;
+    border: 1px solid rgba(255, 0, 255, 0.2);
+    box-shadow: 0 0 25px rgba(255, 0, 255, 0.1), inset 0 0 10px rgba(0, 212, 255, 0.05);
+    gap: 8px;
+  }
+
+  .realm-tab {
+    padding: 12px 28px;
+    border-radius: 40px;
+    color: #a0a0c0;
+    text-decoration: none !important;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid transparent;
+  }
+
+  .realm-tab i {
+    font-size: 1.1rem;
+    transition: transform 0.3s ease;
+  }
+
+  .realm-tab:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.07);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  }
+
+  .realm-tab:hover i {
+    transform: rotate(15deg) scale(1.2);
+  }
+
+  .realm-tab.active {
+    background: linear-gradient(135deg, #ff00ff, #00d4ff);
+    color: #000;
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.4), 0 0 40px rgba(0, 212, 255, 0.2);
+  }
+
+  .realm-tab.active i {
+    transform: scale(1.1);
+  }
+</style>
+
 <div class="manga-page">
 
-  <!-- ================= HERO (use the one you already like) ================= -->
+  <!-- ================= HERO ================= -->
   <section class="manga-hero-shell">
     <div class="manga-hero">
       <div class="manga-hero-text">
@@ -18,18 +82,51 @@
           <a href="#manga-latest" class="btn-manga-primary">Explore Series</a>
           <a href="{{ url_for('home') }}" class="btn-manga-ghost">Back to Library</a>
         </div>
-
-        <p class="manga-hero-footnote">
-          Books. Audiobooks. <span>Manga.</span> Each with its own atmosphere.
-        </p>
       </div>
 
-      <div class="manga-hero-orbit">
-  <div class="manga-hero-orbit-ring"></div>
-  <div class="manga-hero-orbit-core"></div>
-</div>
+      <div class="manga-hero-portal">
+        <div class="portal-outer-ring"></div>
+        <div class="portal-ring-1"></div>
+        <div class="portal-ring-2"></div>
 
+        <div class="portal-core">
+          <div class="vortex-container">
+            <img src="{{ url_for('static', filename='img/manga_vortex.png') }}" alt="Dimensional Portal"
+              class="portal-vortex">
+            <div class="vortex-glass"></div>
+          </div>
+          <div class="vortex-glint"></div>
+        </div>
 
+        <div class="portal-particles">
+          <div class="p1"></div>
+          <div class="p2"></div>
+          <div class="p3"></div>
+          <div class="p4"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DIMENSIONAL REALMS (SUBTYPES) ================= -->
+  <section class="manga-realm-filter container">
+    <div class="realm-tabs">
+      <a href="{{ url_for('manga', type='all', category=selected_category, q=q) }}"
+        class="realm-tab {{ 'active' if selected_type == 'all' or not selected_type }}">
+        <i class="fas fa-certificate"></i> All Worlds
+      </a>
+      <a href="{{ url_for('manga', type='manga', category=selected_category, q=q) }}"
+        class="realm-tab {{ 'active' if selected_type == 'manga' }}">
+        <i class="fas fa-book-open"></i> Manga
+      </a>
+      <a href="{{ url_for('manga', type='manhwa', category=selected_category, q=q) }}"
+        class="realm-tab {{ 'active' if selected_type == 'manhwa' }}">
+        <i class="fas fa-scroll"></i> Manhwa
+      </a>
+      <a href="{{ url_for('manga', type='light_novel', category=selected_category, q=q) }}"
+        class="realm-tab {{ 'active' if selected_type == 'light_novel' }}">
+        <i class="fas fa-feather-alt"></i> Light Novels
+      </a>
     </div>
   </section>
 
@@ -49,15 +146,10 @@
     </div>
 
     <form class="mv-search" method="get" action="{{ url_for('manga') }}">
-      <input
-        type="text"
-        name="q"
-        placeholder="Search manga title or author..."
-        value="{{ request.args.get('q', '') }}"
-      />
       <button type="submit">
         <i class="fas fa-search"></i>
       </button>
+      <input type="text" name="q" placeholder="Search series or creators..." value="{{ request.args.get('q', '') }}" />
     </form>
   </section>
 
@@ -65,60 +157,130 @@
   <section class="manga-main container" id="manga-latest">
     <!-- LEFT: MANGA CARDS -->
     <div class="manga-grid-col">
-      <h2 class="manga-section-title">Featured Manga Worlds</h2>
+      <h2 class="manga-section-title">Dimensional Portals</h2>
       <p class="manga-section-subtitle">
         {% if mangas %}
-          Explore our collection of manga series.
+        Discover paths to new worlds and legendary heroics.
         {% else %}
-          No manga available yet. Check back soon!
+        The universe is currently quiet. Check back soon for new arrivals.
         {% endif %}
       </p>
 
       <div class="manga-card-grid">
         {% if mangas %}
-          {% for m in mangas %}
-          <article class="manga-card">
-            <div class="manga-card-cover" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        {% for m in mangas %}
+        <article class="manga-card">
+          <a href="{{ url_for('manga_detail', id=m[0]) }}" class="manga-card-link">
+            <div class="manga-card-cover">
               {% if m[6] %}
-                <img src="{{ url_for('static', filename=m[6]) }}" alt="{{ m[1] }}" style="width: 100%; height: 100%; object-fit: cover;">
+              <img src="{{ url_for('static', filename=m[6]) }}" alt="{{ m[1] }}" loading="lazy">
               {% else %}
-                <div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 50px;">📖</div>
+              <div class="empty-cover">📖</div>
               {% endif %}
             </div>
-            <div class="manga-card-body">
+          </a>
+          <div class="manga-card-body">
+            <a href="{{ url_for('manga_detail', id=m[0]) }}" class="manga-card-title-link">
               <h3 class="manga-card-title">{{ m[1] }}</h3>
-              <p class="manga-card-desc">
-                By {{ m[2] or 'Unknown Author' }}
-              </p>
-              <div class="manga-card-meta">
-                <span>{{ m[3] }}</span>
+            </a>
+            <p class="manga-card-desc">
+              {{ m[2] or 'Unknown Author' }}
+            </p>
+            <div class="manga-card-meta">
+              {% set categories = m[3].split(',') if m[3] else [] %}
+              <div class="manga-tags-wrapper">
+                <div class="manga-tags-row">
+                  {% for cat in categories[:2] %}
+                  <span class="manga-type-pill">{{ cat|trim }}</span>
+                  {% endfor %}
+                  {% if categories|length > 2 %}
+                  <span class="manga-type-pill manga-more-btn"
+                    onclick="this.closest('.manga-tags-wrapper').classList.toggle('expanded')">+{{ categories|length - 2
+                    }}</span>
+                  {% endif %}
+                </div>
+                {% if categories|length > 2 %}
+                <div class="manga-tags-expanded">
+                  {% for cat in categories[2:] %}
+                  <span class="manga-type-pill">{{ cat|trim }}</span>
+                  {% endfor %}
+                  <span class="manga-type-pill manga-less-btn"
+                    onclick="this.closest('.manga-tags-wrapper').classList.remove('expanded')">−</span>
+                </div>
+                {% endif %}
               </div>
-              <a href="{{ url_for('read_manga', id=m[0]) }}" class="btn-manga-card">Read Now</a>
             </div>
-          </article>
-          {% endfor %}
-        {% else %}
-          <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #999;">
-            <p style="font-size: 18px; margin-bottom: 10px;">No manga found</p>
-            <p>Start by uploading a manga from the "Add New Book" section!</p>
+            <div class="manga-chapter-row">
+              <span class="manga-type-pill manga-chapter-tag">CH.{{ m[7] }}</span>
+            </div>
+            <div class="manga-card-actions">
+              <a href="{{ url_for('manga_detail', id=m[0]) }}" class="btn-manga-card btn-manga-detail">View Details</a>
+              <a href="{{ url_for('read_manga', id=m[0]) }}" class="btn-manga-card btn-manga-read">Read Now</a>
+            </div>
           </div>
+        </article>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+          <p class="empty-title">Unknown Sector</p>
+          <p class="empty-sub">No manga found in this dimension. Try adjusting your coordinates.</p>
+        </div>
         {% endif %}
       </div>
     </div>
 
     <!-- RIGHT: FILTER SIDEBAR -->
     <aside class="manga-filter-col">
-      <!-- Categories -->
       <div class="manga-filter-card">
-        <h3 class="filter-title">Categories</h3>
-        <div class="chip-row">
-          <a href="{{ url_for('manga') }}" class="chip {% if not selected_category %}chip-active{% endif %}">All</a>
-          {% for cat in categories %}
-          <a href="{{ url_for('manga', category=cat) }}" class="chip {% if cat == selected_category %}chip-active{% endif %}">{{ cat }}</a>
-          {% endfor %}
+        <h3 class="filter-title"><i class="fas fa-filter"></i> Refine Search</h3>
+
+        <div class="filter-group">
+          <label class="filter-label">Realm (Genre)</label>
+          <div class="chip-row">
+            <a href="{{ url_for('manga') }}" class="chip {% if not selected_category %}chip-active{% endif %}">All
+              Worlds</a>
+            {% for cat in categories %}
+            <a href="{{ url_for('manga', category=cat) }}"
+              class="chip {% if cat == selected_category %}chip-active{% endif %}">{{ cat }}</a>
+            {% endfor %}
+          </div>
         </div>
       </div>
     </aside>
   </section>
+
+  <!-- ================= CONTINUE READING ================= -->
+  {% if continue_reading %}
+  <section class="manga-continue container">
+    <h2 class="manga-section-title">Resume Journey</h2>
+    <div class="manga-card-grid">
+      {% for item in continue_reading %}
+      <article class="manga-card">
+        <div class="manga-card-cover">
+          {% if item[2] %}
+          <img src="{{ url_for('static', filename=item[2]) }}" alt="{{ item[1] }}" loading="lazy">
+          {% else %}
+          <div class="empty-cover">🔖</div>
+          {% endif %}
+        </div>
+        <div class="manga-card-body">
+          <h3 class="manga-card-title">{{ item[1] }}</h3>
+          <div class="manga-card-meta">
+            <span class="accent-text">Ch. {{ item[5] }}</span>
+            <span>•</span>
+            <span>Page {{ item[4] + 1 }}</span>
+          </div>
+          <div class="manga-progress-shell">
+            <div class="manga-progress-bar" style="width: 60%;"></div>
+          </div>
+          <a href="{{ url_for('read_manga', id=item[0]) }}?chapter_id={{ item[3] }}&page={{ item[4] }}"
+            class="btn-manga-card">Resume</a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
 </div>
 {% endblock %}
